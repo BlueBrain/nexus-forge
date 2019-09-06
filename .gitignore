@@ -1,0 +1,9 @@
+*.pyc
+*.swp
+coverage.xml
+*.egg-info
+.coverage
+doc/build
+.tox
+.idea/*
+.DS_Store
