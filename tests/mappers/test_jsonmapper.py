@@ -1,7 +1,3 @@
-from _pytest.mark import param
-from pytest import mark
-from pytest_lazyfixture import lazy_fixture
-
 from kgforge.core.models.resources import Resource, Resources
 from kgforge.mappers.jsonmapper import DictWrapper, JsonMapper
 
@@ -28,23 +24,28 @@ class TestJsonMapper:
         resource = mapper.apply(data)
         assert resource.property == rule
 
-    @mark.parametrize("data", [
-        param(lazy_fixture("json_record_path"), id="file"),
-        param(lazy_fixture("json_record"), id="record"),
-    ])
-    def test_apply_on_data_one(self, json_mapper, data):
-        resource = json_mapper.apply(data)
+    def test_apply_on_data_one_flat(self, json_mapper_flat, json_data_one):
+        resource = json_mapper_flat.apply(json_data_one)
         assert isinstance(resource, Resource)
-        assert hasattr(resource, "type")
-        # FIXME Nested Resource creation testing.
+        assert resource.type == "Person"
 
-    @mark.parametrize("data", [
-        param(lazy_fixture("json_records_path"), id="directory"),
-        param(lazy_fixture("json_records"), id="records"),
-    ])
-    def test_apply_on_data_many(self, json_mapper, data):
-        resources = json_mapper.apply(data)
+    def test_apply_on_data_one_nested(self, json_mapper_nested, json_data_one):
+        resource = json_mapper_nested.apply(json_data_one)
+        assert isinstance(resource, Resource)
+        assert resource.type == "Contribution"
+        assert resource.agent.type == "Person"
+
+    def test_apply_on_data_many_flat(self, json_mapper_flat, json_data_many):
+        resources = json_mapper_flat.apply(json_data_many)
         assert isinstance(resources, Resources)
         resource = resources[-1]
         assert isinstance(resource, Resource)
-        assert hasattr(resource, "type")
+        assert resource.type == "Person"
+
+    def test_apply_on_data_many_nested(self, json_mapper_nested, json_data_many):
+        resources = json_mapper_nested.apply(json_data_many)
+        assert isinstance(resources, Resources)
+        resource = resources[-1]
+        assert isinstance(resource, Resource)
+        assert resource.type == "Contribution"
+        assert resource.agent.type == "Person"

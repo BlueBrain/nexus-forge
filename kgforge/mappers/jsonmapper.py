@@ -33,11 +33,11 @@ class JsonMapper(Mapper):
             "forge": self.forge,
             "source": DictWrapper(record),
         }
-        properties = self._apply_dict(self.mapping, variables)
-        return Resource(self.forge, **properties)
+        return self._apply_dict(self.mapping, variables)
 
-    def _apply_dict(self, mapping: Dict, variables: Dict) -> Dict:
-        return {k: self._apply_value(v, variables) for k, v in mapping.items()}
+    def _apply_dict(self, mapping: Dict, variables: Dict) -> Resource:
+        properties = {k: self._apply_value(v, variables) for k, v in mapping.items()}
+        return Resource(self.forge, **properties)
 
     def _apply_value(self, value: Any, variables: Dict) -> Any:
         if isinstance(value, Dict):

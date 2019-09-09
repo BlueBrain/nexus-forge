@@ -51,6 +51,16 @@ def json_mapper(forge, mapping):
 
 
 @fixture
+def json_mapper_flat(forge, flat_mapping):
+    return JsonMapper(forge, flat_mapping)
+
+
+@fixture
+def json_mapper_nested(forge, nested_mapping):
+    return JsonMapper(forge, nested_mapping)
+
+
+@fixture
 def mapper(forge, mapping):
     return Mapper(forge, mapping)
 
@@ -93,6 +103,14 @@ def nested_mapping(flat_mapping):
 # JSON
 
 @fixture(params=[
+    lazy_fixture("json_record"),
+    lazy_fixture("json_record_path"),
+], ids=["record", "file"])
+def json_data_one(request):
+    return request.param
+
+
+@fixture(params=[
     lazy_fixture("json_flat_record"),
     lazy_fixture("json_nested_record"),
 ], ids=["flat_record", "nested_record"])
@@ -108,6 +126,14 @@ def json_flat_record(make_json_record):
 @fixture
 def json_nested_record(make_json_record):
     return make_json_record("John Smith", nested=True)
+
+
+@fixture(params=[
+    lazy_fixture("json_records"),
+    lazy_fixture("json_records_path"),
+], ids=["records", "directory"])
+def json_data_many(request):
+    return request.param
 
 
 @fixture(params=[
