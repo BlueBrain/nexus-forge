@@ -5,20 +5,19 @@ from kgforge.core.models.resources import Resource, Resources
 
 class TestResource:
 
-    def test_init(self, make_resource, properties):
-        r = make_resource(properties)
-        for k, v in properties.items():
+    def test_init(self, make_resource, resource_properties):
+        r = make_resource(resource_properties)
+        for k, v in resource_properties.items():
             assert getattr(r, k) == v
 
-    def test_init_reserved(self, forge, make_resource):
-        r = Resource(forge)
-        for x in r.__dict__.keys():
+    def test_init_reserved(self, make_resource, resource_reserved_attributes):
+        for x in resource_reserved_attributes:
             with raises(NotImplementedError):
                 make_resource({x: 3})
 
-    def test_path(self, make_resource, properties_with_resource):
-        r = make_resource(properties_with_resource)
-        id_ = properties_with_resource["agent"].id
+    def test_path(self, make_resource, resource_properties_nested):
+        r = make_resource(resource_properties_nested)
+        id_ = resource_properties_nested["agent"].id
         assert r.agent.id == id_
 
     def test_repr(self, resource):
@@ -28,8 +27,11 @@ class TestResource:
     def test_print(self, resource):
         assert str(resource)
 
-    def test_to_dict(self, resource):
-        assert resource._to_dict()
+    def test_to_dict(self, resource, resource_reserved_attributes):
+        dict_ = resource._to_dict()
+        assert set(resource_reserved_attributes).isdisjoint(set(dict_.keys()))
+        for k, v in dict_.items():
+            assert not isinstance(v, Resource)
 
     def test_to_dict_added(self, make_resource):
         name_ = "Jane Doe"

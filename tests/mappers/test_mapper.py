@@ -12,26 +12,26 @@ class TestMapper:
         mapper = Mapper(forge, mapping)
         assert mapper.mapping == loaded
 
-    def test_apply_one(self, mapper, record):
+    def test_apply_one(self, mapper, json_record):
         with raises(NotImplementedError):
-            mapper.apply_one(record)
+            mapper.apply_one(json_record)
 
-    def test_apply_many(self, mocker, mapper, records):
+    def test_apply_many(self, mocker, mapper, json_records):
         mocker.patch("kgforge.core.mapping.Mapper.apply_one")
-        resources = mapper.apply_many(records)
+        resources = mapper.apply_many(json_records)
         assert Mapper.apply_one.call_count == 2
         assert isinstance(resources, Resources)
 
-    def test_apply_on_path(self, record_path, mapper):
+    def test_apply_on_path(self, mapper, path):
         with raises(NotImplementedError):
-            mapper.apply(record_path)
+            mapper.apply(path)
 
-    def test_apply_on_one(self, mocker, mapper, record):
+    def test_apply_on_one(self, mocker, mapper, json_record):
         mocker.patch("kgforge.core.mapping.Mapper.apply_one")
-        mapper.apply(record)
+        mapper.apply(json_record)
         Mapper.apply_one.assert_called_once()
 
-    def test_apply_on_many(self, mocker, mapper, records):
+    def test_apply_on_many(self, mocker, mapper, json_records):
         mocker.patch("kgforge.core.mapping.Mapper.apply_many")
-        mapper.apply(records)
+        mapper.apply(json_records)
         Mapper.apply_many.assert_called_once()
