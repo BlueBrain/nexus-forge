@@ -4,10 +4,10 @@ from uuid import uuid4
 from pytest import fixture
 from pytest_lazyfixture import lazy_fixture
 
-from kgforge.core.forges import Forge
-from kgforge.core.mapping import Mapper
-from kgforge.core.models.resources import Resource
-from kgforge.mappers.jsonmapper import JsonMapper
+from kgforge.core.forge import KnowledgeGraphForge
+from kgforge.core.transforming.mapping import Mapper
+from kgforge.core.resources import Resource
+from specializations.mappers.dictionaries import DictionaryMapper
 
 
 # Utils #
@@ -39,7 +39,7 @@ def dirpath(tmp_path):
 
 @fixture
 def forge():
-    return Forge()
+    return KnowledgeGraphForge()
 
 
 # Mappers #
@@ -47,17 +47,17 @@ def forge():
 
 @fixture
 def json_mapper(forge, mapping):
-    return JsonMapper(forge, mapping)
+    return DictionaryMapper(forge, mapping)
 
 
 @fixture
 def json_mapper_flat(forge, flat_mapping):
-    return JsonMapper(forge, flat_mapping)
+    return DictionaryMapper(forge, flat_mapping)
 
 
 @fixture
 def json_mapper_nested(forge, nested_mapping):
-    return JsonMapper(forge, nested_mapping)
+    return DictionaryMapper(forge, nested_mapping)
 
 
 @fixture

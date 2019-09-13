@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-VERSION = "0.1.0.dev0"
+VERSION = "0.1.0.dev1"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,6 +26,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "hjson",
+        "pandas",
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "pytest-lazy-fixture"],

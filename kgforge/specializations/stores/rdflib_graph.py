@@ -1,0 +1,2 @@
+class RdflibGraph(Store):
+    pass

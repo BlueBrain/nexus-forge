@@ -1,0 +1,2 @@
+class BlueBrainNexus(Store):
+    pass
