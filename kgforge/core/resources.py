@@ -8,8 +8,15 @@ class Resource:
 
     def __init__(self, **properties) -> None:
         self.__dict__ = properties
+        # Status of the last action performed on the resource.
         self._last_action = None
+        # True if the resource is synchronized with the store.
+        # False if the resource has not been registered yet or a modification has been done since
+        # the synchronization.
         self._synchronized = False
+        # True if the resource has been validated.
+        # False if the entity has not been validated yet or a modification has been done since
+        # the last validation.
         self._validated = False
 
     def __repr__(self) -> str:

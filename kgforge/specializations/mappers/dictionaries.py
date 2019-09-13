@@ -6,29 +6,28 @@ from kgforge.core.commons.wrappers import AttrsDict
 from kgforge.core.transforming import Mapper, Mapping
 
 
-# TODO Some parts might be generalized and moved to core/mapping.py, like _apply_rule().
 class DictionaryMapper(Mapper):
+    reader = json.load
 
-    def __init__(self, forge, mapping: Mapping) -> None:
-        super().__init__(forge, mapping)
-        self.reader = json.load
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
-    def apply_one(self, record: Dict) -> Resource:
+    def map_one(self, record: Dict, mapping: Mapping) -> Resource:
         variables = {
             "forge": self.forge,
             "x": AttrsDict(record),
         }
-        return self._apply_dict(self.mapping.rules, variables)
+        return self._map_dict(mapping.rules, variables)
 
-    def _apply_dict(self, rules: Dict, variables: Dict) -> Resource:
-        properties = {k: self._apply_value(v, variables) for k, v in rules.items()}
+    def _map_dict(self, rules: Dict, variables: Dict) -> Resource:
+        properties = {k: self._map_value(v, variables) for k, v in rules.items()}
         return Resource(**properties)
 
-    def _apply_value(self, value: Any, variables: Dict) -> Any:
+    def _map_value(self, value: Any, variables: Dict) -> Any:
         if isinstance(value, List):
-            return [self._apply_dict(x, variables) for x in value]
+            return [self._map_dict(x, variables) for x in value]
         elif isinstance(value, Dict):
-            return self._apply_dict(value, variables)
+            return self._map_dict(value, variables)
         else:
             return self._apply_rule(value, variables)
 

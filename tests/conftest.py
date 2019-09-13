@@ -5,8 +5,8 @@ from pytest import fixture
 from pytest_lazyfixture import lazy_fixture
 
 from kgforge.core.forge import KnowledgeGraphForge
-from kgforge.core.transforming.mapping import Mapper
 from kgforge.core.resources import Resource
+from kgforge.core.transforming.mapping import Mapper
 from specializations.mappers.dictionaries import DictionaryMapper
 
 

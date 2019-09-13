@@ -1,2 +1,8 @@
+from core.storing import Store
+
+
 class BlueBrainNexus(Store):
-    pass
+
+    def __init__(self) -> None:
+        super().__init__()
+        print("FIXME - BlueBrainNexus")

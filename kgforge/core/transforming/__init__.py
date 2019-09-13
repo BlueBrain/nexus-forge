@@ -1,2 +1,3 @@
 from .interface import TransformingInterface
-from .mapping import Mapping, Mapper
+from .mapper import Mapper
+from .mapping import Mapping

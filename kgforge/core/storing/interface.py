@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 from kgforge.core.commons.typing import ManagedData
 from kgforge.core.resources import Resource
@@ -6,13 +6,13 @@ from kgforge.core.resources import Resource
 
 class StoringInterface:
 
-    def __init__(self, forge) -> None:
-        self.forge = forge
+    def __init__(self, store: Callable) -> None:
+        self.store = store()
 
     # [C]RUD
 
     def register(self, data: ManagedData) -> None:
-        print("FIXME - StoringInterface.register()")
+        self.store.register(data)
 
     # C[R]UD
 

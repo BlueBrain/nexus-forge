@@ -1,14 +1,15 @@
+from typing import Callable
+
 from kgforge.core.commons.typing import Hjson, ManagedData
 
 
 class ModelingInterface:
 
-    def __init__(self, forge) -> None:
-        self.forge = forge
+    def __init__(self, model: Callable, model_dir: str) -> None:
+        self.model = model(model_dir)
 
     def template(self, type: str, only_required: bool = False) -> Hjson:
-        print("FIXME - ModelingInterface.template()")
-        return sh.te
+        return self.model.template(type, only_required)
 
     def validate(self, data: ManagedData) -> None:
-        print("FIXME - ModelingInterface.validate()")
+        self.model.validate(data)

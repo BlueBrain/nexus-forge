@@ -1,8 +1,9 @@
-from core.transforming import Mapper, Mapping
+from kgforge.core.transforming import Mapper
 
 
 class TableMapper(Mapper):
+    reader = None
 
-    def __init__(self, forge, mapping: Mapping) -> None:
-        super().__init__(forge, mapping)
-        self.reader = None
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        print("FIXME - TableMapper")
