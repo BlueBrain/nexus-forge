@@ -7,7 +7,7 @@ from pytest_lazyfixture import lazy_fixture
 from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.resources import Resource
 from kgforge.core.transforming.mapping import Mapper
-from specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 
 
 # Utils #
@@ -18,7 +18,7 @@ from specializations.mappers.dictionaries import DictionaryMapper
 @fixture(params=[
     lazy_fixture("filepath"),
     lazy_fixture("dirpath"),
-], ids=["file_path", "dir_path"])
+], ids=["filepath", "dirpath"])
 def path(request):
     return request.param
 

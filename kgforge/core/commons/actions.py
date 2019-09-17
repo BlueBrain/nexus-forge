@@ -1,12 +1,14 @@
 from collections import Counter
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Optional, Sequence, Union
 
 from kgforge.core import Resource, Resources
+from kgforge.core.commons.typing import ManagedData
 
 
-def _run(fun: Callable, status_field: str, resource: Resource) -> None:
+def run(operation: Callable, status_field: str, resource: Resource, **kwargs) -> None:
+    # POLICY Should be called for operations on existing resources.
     try:
-        result = fun(resource)
+        result = operation(resource, kwargs) if kwargs else operation(resource)
     except Exception as e:
         succeeded = False
         error = str(e)
@@ -15,50 +17,49 @@ def _run(fun: Callable, status_field: str, resource: Resource) -> None:
         error = None
         setattr(resource, status_field, result)
     finally:
-        resource._last_action = Action(fun.__name__, succeeded, error)
+        resource._last_action = Action(operation.__name__, succeeded, error)
 
 
 class Action:
 
-    def __init__(self, type: str, succeeded: bool, error: str) -> None:
-        self.type = type
+    def __init__(self, operation: str, succeeded: bool, error: Optional[str]) -> None:
+        self.operation = operation
         self.succeeded = succeeded
         self.error = error
 
-    def __hash__(self):
+    def __str__(self) -> str:
+        return self._str()
+
+    def __eq__(self, other) -> bool:
+        return self.__dict__ == other.__dict__ if type(other) is type(self) else False
+
+    def __hash__(self) -> int:
         return hash(tuple(sorted(self.__dict__.items())))
 
-    def __eq__(self, other):
-        if type(other) is type(self):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
-
-    def __str__(self) -> str:
-        return _str(self)
+    def _str(self) -> str:
+        error = f" <error> {self.error}" if self.error is not None else ""
+        return f"<action> {self.operation} <succeeded> {self.succeeded}{error}"
 
 
-# FIXME Check if inheriting directly from 'list' is a good idea.
 class Actions(list):
 
-    def __init__(self, actions: Iterator[Action]) -> None:
+    def __init__(self, actions: Union[Sequence[Action], Iterator[Action]]) -> None:
         super().__init__(actions)
 
-    def __str__(self):
+    def __str__(self) -> str:
         counted = Counter(self)
-        return "\n".join(f"<count> {count} {_str(action)}" for action, count in counted.items())
+        return "\n".join(f"<count> {count} {action}" for action, count in counted.items())
 
     @staticmethod
     def from_resources(resources: Resources) -> "Actions":
         return Actions(x._last_action for x in resources)
 
 
-def _str(action: Action) -> str:
-    error = f" <error> {action.error}" if action.error is not None else ""
-    return f"<action> {action.type} <succeeded> {action.succeeded}{error}"
-
-
 class LazyAction:
 
-    def __init__(self) -> None:
-        print("FIXME - LazyAction")
+    def __init__(self, operation: Callable, **params) -> None:
+        self.operation = operation
+        self.params = params
+
+    def execute(self) -> ManagedData:
+        return self.operation(self.params)

@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List
 
 from kgforge.core import Resource
-from kgforge.core.commons.wrappers import AttrsDict
+from kgforge.core.commons.wrappers import DictWrapper
 from kgforge.core.transforming import Mapper, Mapping
 
 
@@ -12,10 +12,10 @@ class DictionaryMapper(Mapper):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def map_one(self, record: Dict, mapping: Mapping) -> Resource:
+    def _map_one(self, record: Dict, mapping: Mapping) -> Resource:
         variables = {
             "forge": self.forge,
-            "x": AttrsDict(record),
+            "x": DictWrapper(record),
         }
         return self._map_dict(mapping.rules, variables)
 

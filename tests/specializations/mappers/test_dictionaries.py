@@ -1,5 +1,5 @@
 from kgforge.core.resources import Resource, Resources
-from specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 
 
 class TestJsonMapper:

@@ -7,5 +7,4 @@ class FilesHandler:
         self.forge = forge
 
     def as_resource(self, path: str) -> LazyAction:
-        print("FIXME - FilesHandler.as_resource()")
-        return LazyAction()
+        return LazyAction(self.forge.store.upload, path=path)
