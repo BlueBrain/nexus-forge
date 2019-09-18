@@ -1,16 +1,15 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 from kgforge.core import Resource, Resources
-from kgforge.core.commons.actions import Actions, run
-from kgforge.core.commons.attributes import should_be_overridden
-from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL
+from kgforge.core.commons.attributes import not_supported
+from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL, dispatch
 from kgforge.core.modeling.handlers.ontologies import OntologyResolver
 from kgforge.core.transforming import Mapping
-from kgforge.specializations.mappers import DictionaryMapper
 
 
-class Store:
+class Store(ABC):
 
     def __init__(self, file_mapping: Union[Hjson, FilePath, URL], bucket: str, token: str) -> None:
         # FIXME Should implement the loading from a file and an URL.
@@ -22,88 +21,98 @@ class Store:
     # [C]RUD
 
     def register(self, data: ManagedData, update: bool) -> None:
-        # FIXME Example.
         # POLICY Values of type LazyAction should be processed first.
-        # POLICY Should notify of failures with exceptions extending RegistrationError.
-        # FIXME Example of updating Resource._store_metadata.
         # POLICY Resource _last_action, _synchronized and _store_metadata should be updated.
-        if isinstance(data, Resources):
-            return self._register_many(data, update)
-        else:
-            run(self._register_one, "_synchronized", data, update=update)
-            print(data._last_action)
+        # POLICY Should notify of failures with exception RegistrationError including a message.
+        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should print Resource _last_action before returning.
+        dispatch(data, self._register_many, self._register_one, update)
 
+    @abstractmethod
     def _register_many(self, resources: Resources, update: bool) -> None:
-        # Could be optimized by overriding the method in the specialization.
-        for x in resources:
-            run(self._register_one, "_synchronized", x, update=update)
-        print(Actions.from_resources(resources))
+        # POLICY Follow register() policies.
+        pass
 
+    @abstractmethod
     def _register_one(self, resource: Resource, update: bool) -> None:
-        should_be_overridden()
+        # POLICY Follow register() policies.
+        pass
 
     def upload(self, path: str) -> ManagedData:
-        # POLICY Should call Store.register() with update=False.
-        # FIXME Should catch and deal with UploadingError.
-        # POLICY Should notify of failures with exceptions extending UploadingError.
-        # FIXME Should set Resource _synchronized to True and should set _store_metadata.
-        # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
+        # POLICY Should use self.files_mapping to map Store metadata to Model metadata.
+        # POLICY Resource _synchronized should be set to True.
+        # POLICY Should notify of failures with exception UploadingError including a message.
+        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
         p = Path(path)
-        metadata = self._upload_many(p) if p.is_dir() else self._upload_one(p)
-        data = DictionaryMapper(None).map(metadata, self.files_mapping)
-        return data
+        return self._upload_many(p) if p.is_dir() else self._upload_one(p)
 
     def _upload_many(self, dirpath: Path) -> Resources:
-        # Could be optimized by overriding the method in the specialization.
-        return Resources(self._upload_one(x) for x in dirpath.iterdir())
+        # POLICY Follow upload() policies.
+        not_supported()
 
     def _upload_one(self, filepath: Path) -> Resource:
-        should_be_overridden()
+        # POLICY Follow upload() policies.
+        not_supported()
 
     # C[R]UD
 
+    @abstractmethod
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
-        # FIXME Should catch and deal with RetrievalError.
-        # POLICY Should notify of failures with exceptions extending RetrievalError.
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
-        should_be_overridden()
+        # POLICY Should notify of failures with exception RetrievalError including a message.
+        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
+        pass
 
     def download(self, data: ManagedData, follow: str, path: str) -> None:
-        # FIXME Should catch and deal with DownloadingError.
-        # POLICY Should notify of failures with exceptions extending DownloadingError.
-        should_be_overridden()
+        # POLICY Should notify of failures with exception DownloadingError including a message.
+        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
+        not_supported()
 
     # CR[U]D
 
     def update(self, data: ManagedData) -> None:
         # POLICY Should call Store.register() with update=True.
-        # POLICY Resource _last_action, _synchronized and _store_metadata should be updated.
+        # POLICY Follow register() policies.
         self.register(data, update=True)
 
-    def tag_version(self, data: ManagedData, value: str) -> None:
-        should_be_overridden()
+    def tag(self, data: ManagedData, value: str) -> None:
+        # POLICY Resource _synchronized might be set to True and _store_metadata might be set.
+        # POLICY Should notify of failures with exception TaggingError including a message.
+        # POLICY Might call actions.run() if the specialization is modifying the resources.
+        # POLICY In this case, should print Resource _last_action before returning.
+        # POLICY Otherwise, should be decorated with exceptions.catch() to deal with exceptions.
+        not_supported()
 
     # CRU[D]
 
     def deprecate(self, data: ManagedData) -> None:
         # POLICY Resource _last_action, _synchronized and _store_metadata should be updated.
-        should_be_overridden()
+        # POLICY Should notify of failures with exception DeprecationError including a message.
+        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should print Resource _last_action before returning.
+        not_supported()
 
     # Query
 
+    @abstractmethod
     def search(self, resolver: OntologyResolver, *filters, **params) -> Resources:
-        # POLICY Resource _synchronized should be set to True and ._store_metadata should be set.
-        should_be_overridden()
+        # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
+        pass
 
-    def sparql(self, query: str) -> Resources:
-        # POLICY Resource _synchronized should be set to True and ._store_metadata should be set.
-        should_be_overridden()
+    def sparql(self, prefixes: Dict[str, str], query: str) -> Resources:
+        # POLICY Follow search() policies.
+        not_supported()
 
     # Versioning
 
-    def freeze_links(self, resource: Resource) -> None:
+    def freeze(self, resource: Resource) -> None:
         # POLICY Resource _synchronized and _validated should be set to False.
-        should_be_overridden()
+        # POLICY Should notify of failures with exception FreezingError including a message.
+        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should print Resource _last_action before returning.
+        not_supported()
 
 
 class RegistrationError(Exception):
@@ -121,6 +130,26 @@ class RetrievalError(Exception):
     pass
 
 
-class DownloadError(Exception):
+class DownloadingError(Exception):
+
+    pass
+
+
+class TaggingError(Exception):
+
+    pass
+
+
+class DeprecationError(Exception):
+
+    pass
+
+
+class QueryingError(Exception):
+
+    pass
+
+
+class FreezingError(Exception):
 
     pass

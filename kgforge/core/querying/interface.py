@@ -16,10 +16,10 @@ class QueryingInterface:
         self.forge.store.download(data, follow, path)
 
     def search(self, *filters, **params) -> Resources:
-        # FIXME Example.
         # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
         revolver = self.forge.ontologies.resolve
         return self.forge.store.search(revolver, filters, params)
 
     def sparql(self, query: str) -> Resources:
-        return self.forge.store.sparql(query)
+        prefixes = self.forge.modeling.prefixes()
+        return self.forge.store.sparql(prefixes, query)

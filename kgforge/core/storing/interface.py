@@ -14,7 +14,7 @@ class StoringInterface:
         self.store.update(data)
 
     def tag_version(self, data: ManagedData, value: str) -> None:
-        self.store.tag_version(data, value)
+        self.store.tag(data, value)
 
     def deprecate(self, data: ManagedData) -> None:
         self.store.deprecate(data)

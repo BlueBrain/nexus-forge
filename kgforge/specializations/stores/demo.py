@@ -25,6 +25,10 @@ class DemoStore(Store):
     # [C]RUD
 
     def _register_one(self, resource: Resource, update: bool = False) -> None:
+
+        run(self._register_one, "_synchronized", resource, update=update)
+        print(resource._last_action)
+
         print("DEMO - DemoStore.register_one()")
         if update:
             stored = self._data[resource.id]
@@ -59,13 +63,13 @@ class DemoStore(Store):
 
     # CR[U]D
 
-    def tag_version(self, data: ManagedData, value: str) -> None:
+    def tag(self, data: ManagedData, value: str) -> None:
         print("DEMO - DemoStore.tag_version()")
 
     # CRU[D]
 
     def deprecate(self, data: ManagedData) -> None:
-        should_be_overridden()
+        pass
 
     # Query
 
@@ -82,9 +86,9 @@ class DemoStore(Store):
         return Resources(results)
 
     def sparql(self, query: str) -> Resources:
-        should_be_overridden()
+        pass
 
     # Versioning
 
-    def freeze_links(self, resource: Resource) -> None:
-        should_be_overridden()
+    def freeze(self, resource: Resource) -> None:
+        pass

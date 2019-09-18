@@ -23,7 +23,7 @@ class TransformingInterface:
         def _process(resource: Resource, keep, versioned) -> Resource:
             r = _reshape(resource, keep)
             if versioned:
-                self.forge.store.freeze_links(r)
+                self.forge.store.freeze(r)
             return r
         if isinstance(data, Resources):
             return Resources(_process(x, keep, versioned) for x in data)
@@ -39,7 +39,9 @@ class TransformingInterface:
             return data
 
     def as_jsonld(self, compacted: bool = True, store_metadata: bool = False) -> Dict:
+        # FIXME Implement.
         raise NotImplementedError
 
     def as_dataframe(self, store_metadata: bool = False) -> DataFrame:
+        # FIXME Implement.
         raise NotImplementedError

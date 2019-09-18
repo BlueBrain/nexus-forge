@@ -34,6 +34,8 @@ pip install git+https://github.com/BlueBrain/kgforge
 
 ## Contributing
 
+Please add `@pafonta` as reviewer if your Pull Request modifies `core`.
+
 Setup
 
 ```bash

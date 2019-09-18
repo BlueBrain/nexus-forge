@@ -19,9 +19,10 @@ class Mapping:
         # FIXME Should normalize rules representation as Model.template().
         # POLICY Saved rules representation should normalized by being sorted so that:
         # - known keys are sorted like the Model.template() output,
-        # - unknown keys are sorted alphabetically in their compacted form (i.e. not IRI or CURIE).
+        # - unknown keys are sorted alphabetically in their compacted form (i.e. not IRI nor CURIE).
         normalized = hjson.dumps(self.rules, indent=4, sort_keys=True)
         Path(path).write_text(normalized)
 
     def load(self, path: str) -> "Mapping":
+        # FIXME Implement.
         raise NotImplementedError

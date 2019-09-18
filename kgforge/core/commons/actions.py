@@ -1,23 +1,26 @@
 from collections import Counter
-from typing import Callable, Iterator, Optional, Sequence, Union
+from typing import Any, Callable, Iterator, Optional, Sequence, Union
 
 from kgforge.core import Resource, Resources
 from kgforge.core.commons.typing import ManagedData
 
 
-def run(operation: Callable, status_field: str, resource: Resource, **kwargs) -> None:
-    # POLICY Should be called for operations on existing resources.
+def run(fun: Callable, status_attr: str, resource: Resource, *args) -> Any:
+    # POLICY Should be called for operations on resources.
     try:
-        result = operation(resource, kwargs) if kwargs else operation(resource)
+        result = fun(resource, *args)
     except Exception as e:
-        succeeded = False
+        status_value = False
+        has_raised = True
         error = str(e)
     else:
-        succeeded = True
+        status_value = True if not isinstance(result, bool) else result
+        has_raised = False
         error = None
-        setattr(resource, status_field, result)
     finally:
-        resource._last_action = Action(operation.__name__, succeeded, error)
+        setattr(resource, status_attr, status_value)
+        resource._last_action = Action(fun.__name__, has_raised, error)
+        return result
 
 
 class Action:
@@ -37,8 +40,10 @@ class Action:
         return hash(tuple(sorted(self.__dict__.items())))
 
     def _str(self) -> str:
-        error = f" <error> {self.error}" if self.error is not None else ""
-        return f"<action> {self.operation} <succeeded> {self.succeeded}{error}"
+        error = f"\n<error> {self.error}" if self.error is not None else ""
+        return (f"<action> {self.operation}"
+                f"\n<succeeded> {self.succeeded}"
+                f"{error}")
 
 
 class Actions(list):

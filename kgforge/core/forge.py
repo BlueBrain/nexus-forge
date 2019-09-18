@@ -30,4 +30,5 @@ class KnowledgeGraphForge:
     @staticmethod
     def from_config(path: str, bucket: str, token: str) -> "KnowledgeGraphForge":
         # The configuration file is in YAML.
+        # FIXME Implement.
         raise NotImplementedError

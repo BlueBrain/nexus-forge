@@ -1,3 +1,4 @@
+import inspect
 from typing import Any
 
 
@@ -8,13 +9,12 @@ def safe_setattr(object: Any, name: str, value: Any) -> None:
         setattr(object, name, value)
 
 
-# FIXME FIXME FIXME
-
-def should_be_overridden():
-    raise NotImplementedError("Method should be overridden in the derived classes.")
-
-
-# FIXME FIXME FIXME
-
-def not_supported(feature: str, object: str) -> None:
-    print(f"<not implemented> {feature} is not supported by {object}")
+def not_supported() -> None:
+    # POLICY Should be called in methods in core which could be not implemented by specializations.
+    frame = inspect.currentframe().f_back
+    try:
+        class_name = type(frame.f_locals["self"]).__name__
+        method_name = inspect.getframeinfo(frame).function
+        print(f"{class_name} is not supporting {method_name}")
+    finally:
+        del frame

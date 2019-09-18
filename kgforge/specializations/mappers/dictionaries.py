@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 from kgforge.core import Resource
 from kgforge.core.commons.wrappers import DictWrapper
@@ -7,10 +7,12 @@ from kgforge.core.transforming import Mapper, Mapping
 
 
 class DictionaryMapper(Mapper):
-    reader = json.load
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+    def reader(self) -> Callable:
+        return json.load
 
     def _map_one(self, record: Dict, mapping: Mapping) -> Resource:
         variables = {
@@ -33,6 +35,7 @@ class DictionaryMapper(Mapper):
 
     @staticmethod
     def _apply_rule(rule: Any, variables: Dict) -> Any:
+        # TODO Add support for the full syntax of JSONPath.
         try:
             return eval(rule, {}, variables)
         except (TypeError, NameError, SyntaxError):

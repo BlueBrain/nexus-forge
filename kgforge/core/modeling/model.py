@@ -1,51 +1,52 @@
+from abc import ABC, abstractmethod
 from typing import Dict, List, Union
 
 from kgforge.core import Resource, Resources
-from kgforge.core.commons.actions import Actions, run
-from kgforge.core.commons.attributes import should_be_overridden
-from kgforge.core.commons.typing import DirPath, Hjson, ManagedData, URL
+from kgforge.core.commons.attributes import not_supported
+from kgforge.core.commons.typing import DirPath, Hjson, ManagedData, URL, dispatch
 from kgforge.core.storing import Store
 
 
-class Model:
+class Model(ABC):
 
     def __init__(self, source: Union[DirPath, URL, Store]) -> None:
-        # FIXME Example.
         # Schemas could be loaded from a directory, an URL, or the store.
+        # The strategy to get the relevant data should be lazy and could depend on the objective.
+        # Therefore, there is general loading at object creation.
         self.source = source
 
     def prefixes(self) -> Dict[str, str]:
-        should_be_overridden()
+        not_supported()
 
+    @abstractmethod
     def types(self) -> List[str]:
-        should_be_overridden()
+        pass
 
+    @abstractmethod
     def template(self, type: str, only_required: bool = False) -> Hjson:
-        # FIXME Example.
         # POLICY Each nested typed resource should have its template included.
         # POLICY Template should be normalized by being sorted so that:
         # - 'type' comes first, recursively,
         # - 'id' comes second, recursively,
-        # - properties are sorted alphabetically in their compacted form (i.e. not IRI or CURIE).
-        should_be_overridden()
+        # - properties are sorted alphabetically in their compacted form (i.e. not IRI nor CURIE).
+        pass
 
     def validate(self, data: ManagedData) -> None:
-        # POLICY Should notify of failures with exceptions extending ValidationError.
-        # POLICY Resource._validated should be updated.
-        if isinstance(data, Resources):
-            return self._validate_many(data)
-        else:
-            run(self._validate_one, "_validated", data)
-            print(data._last_action)
+        # POLICY Resource _last_action and _validated should be updated.
+        # POLICY Should notify of failures with exception ValidationError including a message.
+        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should print Resource _last_action before returning.
+        dispatch(data, self._validate_many, self._validate_one)
 
+    @abstractmethod
     def _validate_many(self, resources: Resources) -> None:
-        # Could be optimized by overriding the method in the specialization.
-        for x in resources:
-            run(self._validate_one, "_validated", x)
-        print(Actions.from_resources(resources))
+        # POLICY Follow validate() policies.
+        pass
 
+    @abstractmethod
     def _validate_one(self, resource: Resource) -> None:
-        should_be_overridden()
+        # POLICY Follow validate() policies.
+        pass
 
 
 class ValidationError(Exception):
