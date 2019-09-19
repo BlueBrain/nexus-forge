@@ -47,8 +47,3 @@ class Model(ABC):
     def _validate_one(self, resource: Resource) -> None:
         # POLICY Follow validate() policies.
         pass
-
-
-class ValidationError(Exception):
-
-    pass

@@ -12,9 +12,8 @@ from kgforge.core.transforming import Mapping
 class Store(ABC):
 
     def __init__(self, file_mapping: Union[Hjson, FilePath, URL], bucket: str, token: str) -> None:
-        # FIXME Should implement the loading from a file and an URL.
         # Files mapping could be loaded from a Hjson, a file, or an URL.
-        self.files_mapping = Mapping(file_mapping)
+        self.files_mapping = file_mapping
         self.bucket = bucket
         self.token = token
 
@@ -113,43 +112,3 @@ class Store(ABC):
         # POLICY Should call actions.run() to update the status and deal with exceptions.
         # POLICY Should print Resource _last_action before returning.
         not_supported()
-
-
-class RegistrationError(Exception):
-
-    pass
-
-
-class UploadingError(Exception):
-
-    pass
-
-
-class RetrievalError(Exception):
-
-    pass
-
-
-class DownloadingError(Exception):
-
-    pass
-
-
-class TaggingError(Exception):
-
-    pass
-
-
-class DeprecationError(Exception):
-
-    pass
-
-
-class QueryingError(Exception):
-
-    pass
-
-
-class FreezingError(Exception):
-
-    pass

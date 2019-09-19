@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from pandas import DataFrame
 
@@ -30,7 +30,7 @@ class TransformingInterface:
         else:
             return _process(data, keep, versioned)
 
-    def as_json(self, expanded: bool = False, store_metadata: bool = False) -> Dict:
+    def as_json(self, expanded: bool = False, store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         if expanded:
             return self.as_jsonld(False, store_metadata)
         else:
@@ -38,7 +38,11 @@ class TransformingInterface:
             del data["@context"]
             return data
 
-    def as_jsonld(self, compacted: bool = True, store_metadata: bool = False) -> Dict:
+    def as_jsonld(self, compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]:
+        # FIXME Implement.
+        raise NotImplementedError
+
+    def as_triples(self, store_metadata: bool = False) -> List[Tuple[str, str, str]]:
         # FIXME Implement.
         raise NotImplementedError
 

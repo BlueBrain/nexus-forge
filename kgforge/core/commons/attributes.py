@@ -1,10 +1,16 @@
 import inspect
-from typing import Any
+from typing import Any, KeysView, List, Set
+
+
+def check_collisions(reserved: Set[str], new: KeysView[str]) -> None:
+    intersect = reserved.intersection(set(new))
+    if intersect:
+        raise NotImplementedError(f"Some names of the given properties are reserved: {intersect}")
 
 
 def safe_setattr(object: Any, name: str, value: Any) -> None:
     if hasattr(object, name):
-        raise NotImplementedError(f"Name of the property reserved: {name}")
+        raise NotImplementedError(f"Name of the property is reserved: {name}")
     else:
         setattr(object, name, value)
 
@@ -18,3 +24,7 @@ def not_supported() -> None:
         print(f"{class_name} is not supporting {method_name}")
     finally:
         del frame
+
+
+def as_list(data: Any) -> List[Any]:
+    return [data] if not isinstance(data, list) else data

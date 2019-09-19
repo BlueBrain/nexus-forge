@@ -5,6 +5,7 @@ from kgforge.core import Resource, Resources
 DirPath = str
 FilePath = str
 
+IRI = str
 URL = str
 
 Hjson = str

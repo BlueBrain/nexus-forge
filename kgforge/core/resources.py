@@ -6,6 +6,10 @@ from kgforge.core.commons.attributes import safe_setattr
 
 class Resource:
 
+    # In the specializations:
+    # POLICY Should declare added method names in a class attribute _RESERVED.
+    # POLICY Should call with _RESERVED attributes.check_collisions() before super().__init__(...).
+
     def __init__(self, **properties) -> None:
         self.__dict__ = properties
         # Status of the last modifying action performed on the resource.

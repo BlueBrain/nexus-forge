@@ -20,6 +20,16 @@ class DictWrapper(dict):
             return data
 
 
+def wrap_paths(template: Hjson) -> "PathsWrapper":
+    def _wrap(data: Any, path: List[str]):
+        if isinstance(data, Dict):
+            return PathsWrapper({k: _wrap(v, path + [k]) for k, v in data.items()}, path=path)
+        else:
+            return PathWrapper(path)
+    loaded = hjson.loads(template)
+    return _wrap(loaded, [])
+
+
 class Filter:
 
     def __init__(self, path: List[str], operator: str, value: Any):
@@ -66,13 +76,3 @@ class PathsWrapper(FilterMixin):
     def __init__(self, paths: Dict, *args, **kwargs) -> None:
         self.__dict__ = paths
         super().__init__(*args, **kwargs)
-
-
-def wrap_paths(template: Hjson) -> PathsWrapper:
-    def _wrap(data: Any, path: List[str]):
-        if isinstance(data, Dict):
-            return PathsWrapper({k: _wrap(v, path + [k]) for k, v in data.items()}, path=path)
-        else:
-            return PathWrapper(path)
-    loaded = hjson.loads(template)
-    return _wrap(loaded, [])

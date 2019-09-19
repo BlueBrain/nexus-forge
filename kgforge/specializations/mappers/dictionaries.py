@@ -35,7 +35,7 @@ class DictionaryMapper(Mapper):
 
     @staticmethod
     def _apply_rule(rule: Any, variables: Dict) -> Any:
-        # TODO Add support for the full syntax of JSONPath.
+        # TODO Add support for the full syntax of JSONPath. Need some thinking on the consequences.
         try:
             return eval(rule, {}, variables)
         except (TypeError, NameError, SyntaxError):

@@ -43,4 +43,5 @@ class Mapper(ABC):
 
     @abstractmethod
     def _map_one(self, record: Any, mapping: Mapping) -> Resource:
+        # POLICY Should give the rules access to the forge as 'forge' and the record as 'x'.
         pass

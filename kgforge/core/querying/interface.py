@@ -12,9 +12,6 @@ class QueryingInterface:
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
         return self.forge.store.retrieve(id, version)
 
-    def download(self, data: ManagedData, follow: str, path: str) -> None:
-        self.forge.store.download(data, follow, path)
-
     def search(self, *filters, **params) -> Resources:
         # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
         revolver = self.forge.ontologies.resolve
@@ -23,3 +20,6 @@ class QueryingInterface:
     def sparql(self, query: str) -> Resources:
         prefixes = self.forge.modeling.prefixes()
         return self.forge.store.sparql(prefixes, query)
+
+    def download(self, data: ManagedData, follow: str, path: str) -> None:
+        self.forge.store.download(data, follow, path)
