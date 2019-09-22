@@ -1,10 +1,10 @@
 from typing import Dict, Optional, Union
 
-from kgforge.core import Resource
 from kgforge.core.commons.typing import DirPath, FilePath, Hjson, URL
-from kgforge.core.storing import Store
-from kgforge.core.transforming import Mapping
-from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.core.resources import Resource
+from kgforge.core.storing.store import Store
+from kgforge.core.transforming.mapping import Mapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 
 
 # FIXME FIXME FIXME

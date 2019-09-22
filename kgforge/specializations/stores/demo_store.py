@@ -2,18 +2,24 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional, Union
 
+from kgforge.core.commons.actions import run, Actions
+from kgforge.core.storing.exceptions import RegistrationError
+from kgforge.core.storing.store import Store
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL, dispatch
 from kgforge.core.resources import Resource, Resources
 
 
-class Store(ABC):
+class DemoStore(Store):
 
-    def __init__(self, file_mapping: Union[Hjson, FilePath, URL], bucket: str, token: str) -> None:
-        # Files mapping could be loaded from a Hjson, a file, or an URL.
-        self.files_mapping = file_mapping
-        self.bucket = bucket
-        self.token = token
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # FIXME Should demo the loading of file_mapping from a Hjson, a file, or an URL.
+        self.files_mapping = """
+            FIXME
+        """
+        self._data = {}
+        self._archives = {}
 
     # [C]RUD
 
@@ -25,15 +31,27 @@ class Store(ABC):
         # POLICY Should print Resource _last_action before returning.
         dispatch(data, self._register_many, self._register_one, update)
 
-    @abstractmethod
     def _register_many(self, resources: Resources, update: bool) -> None:
-        # POLICY Follow register() policies.
-        pass
+        for x in resources:
+            run(self._register, "_synchronized", x, update)
+        print(Actions.from_resources(resources))
 
-    @abstractmethod
     def _register_one(self, resource: Resource, update: bool) -> None:
-        # POLICY Follow register() policies.
-        pass
+        run(self._register, "_synchronized", resource, update)
+        print(resource._last_action)
+
+    # Demo implementation.
+    def _register(self, resource: Resource, update: bool) -> Dict:
+        rid = resource.id
+        if rid in self._data.keys():
+            if update:
+                pr, pv = self._data[rid]
+                self._archives[f"{rid}_{pv}"] = pr
+                self._data[rid] = (resource, pv + 1)
+            else:
+                raise RegistrationError("resource already exists")
+        else:
+            self._data[rid] = (resource, 1)
 
     def upload(self, path: str) -> ManagedData:
         # POLICY Should use self.files_mapping to map Store metadata to Model metadata.

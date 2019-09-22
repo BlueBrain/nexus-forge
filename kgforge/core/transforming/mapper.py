@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Iterator, Sequence, Union
 
-from kgforge.core import Resource, Resources
 from kgforge.core.commons.typing import ManagedData
-from kgforge.core.transforming import Mapping
+from kgforge.core.resources import Resource, Resources
+from kgforge.core.transforming.mapping import Mapping
 
 
 class Mapper(ABC):

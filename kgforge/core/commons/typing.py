@@ -1,6 +1,6 @@
 from typing import Any, Callable, Union
 
-from kgforge.core import Resource, Resources
+from kgforge.core.resources import Resource, Resources
 
 DirPath = str
 FilePath = str

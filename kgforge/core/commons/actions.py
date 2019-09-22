@@ -1,8 +1,8 @@
 from collections import Counter
 from typing import Any, Callable, Iterator, Optional, Sequence, Union
 
-from kgforge.core import Resource, Resources
 from kgforge.core.commons.typing import ManagedData
+from kgforge.core.resources import Resource, Resources
 
 
 def run(fun: Callable, status_attr: str, resource: Resource, *args) -> Any:
@@ -11,15 +11,16 @@ def run(fun: Callable, status_attr: str, resource: Resource, *args) -> Any:
         result = fun(resource, *args)
     except Exception as e:
         status_value = False
-        has_raised = True
+        succeeded = False
         error = str(e)
+        result = None
     else:
         status_value = True if not isinstance(result, bool) else result
-        has_raised = False
+        succeeded = True
         error = None
     finally:
         setattr(resource, status_attr, status_value)
-        resource._last_action = Action(fun.__name__, has_raised, error)
+        resource._last_action = Action(fun.__name__, succeeded, error)
         return result
 
 
@@ -53,7 +54,7 @@ class Actions(list):
 
     def __str__(self) -> str:
         counted = Counter(self)
-        return "\n".join(f"<count> {count} {action}" for action, count in counted.items())
+        return "\n".join(f"<count> {count}\n{action}" for action, count in counted.items())
 
     @staticmethod
     def from_resources(resources: Resources) -> "Actions":

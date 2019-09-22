@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 import hjson
 
-from kgforge.core.commons.attributes import safe_setattr
+from kgforge.core.commons.attributes import check_collisions
 from kgforge.core.commons.typing import Hjson
 
 
@@ -40,8 +40,11 @@ class Filter:
 
 class FilterMixin:
 
-    def __init__(self, path: List[str]) -> None:
-        safe_setattr(self, "_path", path)
+    _RESERVED = {"_path"}
+
+    def __init__(self, path: List[str], **kwargs) -> None:
+        check_collisions(self._RESERVED, kwargs.keys())
+        self._path = path
 
     def __lt__(self, other: Any) -> Filter:
         return self._for("__lt__", other)
@@ -67,12 +70,12 @@ class FilterMixin:
 
 class PathWrapper(FilterMixin):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
 
 class PathsWrapper(FilterMixin):
 
-    def __init__(self, paths: Dict, *args, **kwargs) -> None:
+    def __init__(self, paths: Dict, **kwargs) -> None:
         self.__dict__ = paths
-        super().__init__(*args, **kwargs)
+        super().__init__( **kwargs)

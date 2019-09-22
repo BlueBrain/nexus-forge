@@ -1,5 +1,5 @@
 from kgforge.core.commons.typing import ManagedData
-from kgforge.core.storing import Store
+from kgforge.core.storing.store import Store
 
 
 class StoringInterface:

@@ -1,7 +1,7 @@
 from itertools import groupby
 from typing import List
 
-from kgforge.core import Resource
+from kgforge.core.resources import Resource
 
 
 # FIXME FIXME FIXME

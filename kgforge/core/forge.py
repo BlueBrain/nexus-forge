@@ -1,11 +1,14 @@
 from typing import Callable, Union
 
 from kgforge.core.commons.typing import DirPath, FilePath, Hjson, URL
-from kgforge.core.modeling import ModelingInterface
-from kgforge.core.modeling.handlers import FilesHandler, IdentifiersHandler, OntologiesHandler
-from kgforge.core.querying import QueryingInterface
-from kgforge.core.storing import Store, StoringInterface
-from kgforge.core.transforming import TransformingInterface
+from kgforge.core.modeling.handlers.files import FilesHandler
+from kgforge.core.modeling.handlers.identifiers import IdentifiersHandler
+from kgforge.core.modeling.handlers.ontologies import OntologiesHandler
+from kgforge.core.modeling.interface import ModelingInterface
+from kgforge.core.querying.interface import QueryingInterface
+from kgforge.core.storing.interface import StoringInterface
+from kgforge.core.storing.store import Store
+from kgforge.core.transforming.interface import TransformingInterface
 
 
 class KnowledgeGraphForge:

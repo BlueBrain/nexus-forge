@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
-from kgforge.core import Resource, Resources
 from kgforge.core.commons.typing import ManagedData
+from kgforge.core.resources import Resource, Resources
 
 
 class QueryingInterface:

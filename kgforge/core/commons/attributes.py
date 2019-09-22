@@ -8,13 +8,6 @@ def check_collisions(reserved: Set[str], new: KeysView[str]) -> None:
         raise NotImplementedError(f"Some names of the given properties are reserved: {intersect}")
 
 
-def safe_setattr(object: Any, name: str, value: Any) -> None:
-    if hasattr(object, name):
-        raise NotImplementedError(f"Name of the property is reserved: {name}")
-    else:
-        setattr(object, name, value)
-
-
 def not_supported() -> None:
     # POLICY Should be called in methods in core which could be not implemented by specializations.
     frame = inspect.currentframe().f_back

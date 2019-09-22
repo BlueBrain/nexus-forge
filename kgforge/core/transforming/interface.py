@@ -2,9 +2,9 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 
 from pandas import DataFrame
 
-from kgforge.core import Resource, Resources
 from kgforge.core.commons.typing import ManagedData
-from kgforge.core.transforming import Mapping
+from kgforge.core.resources import Resource, Resources
+from kgforge.core.transforming.mapping import Mapping
 from kgforge.core.transforming.reshaping import _reshape
 
 

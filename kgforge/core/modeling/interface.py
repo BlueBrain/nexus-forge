@@ -2,7 +2,7 @@ from typing import Dict, List
 
 from kgforge.core.commons.typing import Hjson, ManagedData
 from kgforge.core.commons.wrappers import PathsWrapper, wrap_paths
-from kgforge.core.modeling import Model
+from kgforge.core.modeling.model import Model
 
 
 class ModelingInterface:

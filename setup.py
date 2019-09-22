@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-VERSION = "0.1.0.dev3"
+VERSION = "0.1.0.dev4"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -29,7 +29,7 @@ setup(
         "pandas",
     ],
     extras_require={
-        "dev": ["pytest", "pytest-cov", "pytest-mock", "pytest-lazy-fixture"],
+        "dev": ["pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

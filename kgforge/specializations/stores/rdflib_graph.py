@@ -1,4 +1,4 @@
-from kgforge.core.storing import Store
+from kgforge.core.storing.store import Store
 
 
 class RdfLibGraph(Store):
