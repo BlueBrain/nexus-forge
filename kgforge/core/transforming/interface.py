@@ -20,11 +20,13 @@ class TransformingInterface:
         # POLICY Resource _last_action and _store_metadata should be None.
         # POLICY Resource _validated and _synchronized should be False.
         # FIXME Use ResourceMapper instead.
+
         def _process(resource: Resource, keep, versioned) -> Resource:
             r = _reshape(resource, keep)
             if versioned:
                 self.forge.store.freeze(r)
             return r
+
         if isinstance(data, Resources):
             return Resources(_process(x, keep, versioned) for x in data)
         else:
@@ -39,11 +41,11 @@ class TransformingInterface:
             return data
 
     def as_jsonld(self, compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]:
-        # FIXME Implement.
+        # TODO Implement.
         raise NotImplementedError
 
     def as_triples(self, store_metadata: bool = False) -> List[Tuple[str, str, str]]:
-        # FIXME Implement.
+        # TODO Implement.
         raise NotImplementedError
 
     def as_dataframe(self, store_metadata: bool = False) -> DataFrame:

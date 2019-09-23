@@ -1,5 +1,5 @@
 import pytest
-from pytest_bdd import given, scenario, then
+from pytest_bdd import given, scenario, scenarios, then
 
 from kgforge.core.resources import Resource, Resources
 
@@ -12,12 +12,17 @@ def _resources():
 
 @pytest.mark.parametrize("collection", [
     pytest.param(_resources(), id="list"),
-    pytest.param(iter(_resources()), id="iterator")])
+    pytest.param(iter(_resources()), id="iterator"),
+])
 @scenario(
     "resources.feature",
-    "Create a Resources object from a collection of resources.")
+    "Create a Resources object from a collection of resources."
+)
 def test_creation(collection):
     pass
+
+
+scenarios("resources.feature")
 
 
 @given("I create a Resources object from a collection of resources.")
@@ -25,8 +30,13 @@ def resources(collection):
     return Resources(collection)
 
 
+@given("I create a Resources object from existing resources.", target_fixture="resources")
+def resources_():
+    return Resources(*_resources())
+
+
 @then("I should be able to count the number of resources with len().")
-def count_resources(resources):
+def check_count(resources):
     assert len(resources) == 2
 
 

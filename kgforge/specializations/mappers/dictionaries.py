@@ -3,7 +3,8 @@ from typing import Any, Callable, Dict, List
 
 from kgforge.core.commons.wrappers import DictWrapper
 from kgforge.core.resources import Resource
-from kgforge.core.transforming import Mapper, Mapping
+from kgforge.core.transforming.mapper import Mapper
+from kgforge.core.transforming.mapping import Mapping
 
 
 class DictionaryMapper(Mapper):

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, List, Union
 
 from kgforge.core.resources import Resource, Resources
 
@@ -20,4 +20,8 @@ def dispatch(data: ManagedData, fun_resources: Callable, fun_resource: Callable,
     elif isinstance(data, Resource):
         return fun_resource(data, *args)
     else:
-        raise TypeError("Not managed data!")
+        raise TypeError("Not managed data")
+
+
+def as_list_if_not(data: Any) -> List[Any]:
+    return [data] if not isinstance(data, list) else data

@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from kgforge.core.commons.typing import Hjson, ManagedData
+from kgforge.core.commons.typing import ManagedData
 from kgforge.core.commons.wrappers import PathsWrapper, wrap_paths
 from kgforge.core.modeling.model import Model
 
@@ -16,11 +16,11 @@ class ModelingInterface:
     def types(self) -> List[str]:
         return self.model.types()
 
-    def template(self, type: str, only_required: bool = False) -> Hjson:
-        return self.model.template(type, only_required)
+    def template(self, type: str, only_required: bool = False) -> None:
+        print(self.model.template(type, only_required))
 
     def validate(self, data: ManagedData) -> None:
         self.model.validate(data)
 
     def paths(self, type: str) -> PathsWrapper:
-        return wrap_paths(self.template(type))
+        return wrap_paths(self.model.template(type))

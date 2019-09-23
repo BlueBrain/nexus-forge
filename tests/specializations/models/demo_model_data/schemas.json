@@ -1,0 +1,13 @@
+{
+  "schema:Person": {
+    "rdf:type": "schema:Person",
+    "schema:name": "hasattr"
+  },
+  "schema:Action": {
+    "rdf:type": "schema:Action",
+    "schema:agent": {
+      "rdf:type": "schema:Person",
+      "schema:name": "hasattr"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 from typing import Iterator, List, Optional, Sequence, Union
 
-from kgforge.core.commons.attributes import as_list, check_collisions
-from kgforge.core.commons.typing import DirPath, IRI
+from kgforge.core.commons.attributes import check_collisions
+from kgforge.core.commons.typing import DirPath, IRI, as_list_if_not
 from kgforge.core.resources import Resource, Resources
 
 
@@ -23,7 +23,7 @@ class Dataset(Resource):
     def with_parts(self, resources: Union[Resource, Resources], versioned: bool = True) -> None:
         """Set resources part of the dataset (i.e. in schema:hasPart)."""
         keep = ["id", "type", "name", "distribution.contentUrl"]
-        self.hasPart = self._forge.transforming.reshape(as_list(resources), keep, versioned)
+        self.hasPart = self._forge.transforming.reshape(as_list_if_not(resources), keep, versioned)
 
     def files(self) -> Optional["DatasetFiles"]:
         """Returns files part of the dataset (i.e. in schema:distribution) in an handler."""
@@ -41,20 +41,20 @@ class Dataset(Resource):
     def contributors(self) -> Optional[Resources]:
         return getattr(self, "contribution", None)
 
-    # TODO Check how to best include the optional resources (Plan, Role).
+    # FIXME Check how to best include the optional resources (Plan, Role).
     def with_contributors(self, agents: Union[IRI, List[IRI]]) -> None:
-        self.contribution = [Resource(type="Contribution", agent=x) for x in as_list(agents)]
+        self.contribution = [Resource(type="Contribution", agent=x) for x in as_list_if_not(agents)]
 
     def derivations(self) -> Optional[Resources]:
         return getattr(self, "derivation", None)
 
-    # TODO Check how to best include the optional resources (Activity, Usage).
+    # FIXME Check how to best include the optional resources (Activity, Usage).
     def with_derivations(self, resources: Union[Resource, Resources], versioned: bool = True) -> None:
         keep = ["id", "type"]
-        entities = self._forge.transforming.reshape(as_list(resources), keep, versioned)
+        entities = self._forge.transforming.reshape(as_list_if_not(resources), keep, versioned)
         self.derivation = [Resource(type="Derivation", entity=x) for x in entities]
 
-    # TODO Implement for 'generation' and 'invalidation' properties methods as for derivation.
+    # FIXME Implement for 'generation' and 'invalidation' properties methods as for derivation.
 
 
 class DatasetFiles(Resources):

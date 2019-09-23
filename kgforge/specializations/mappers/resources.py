@@ -1,4 +1,4 @@
-from kgforge.core.transforming import Mapper
+from core.transforming.mapper import Mapper
 
 
 class ResourceMapper(Mapper):

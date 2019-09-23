@@ -1,66 +1,52 @@
+import json
 import re
-from typing import Dict, List
+from pathlib import Path
+from typing import Dict, List, Union
 
 import hjson
 
-from kgforge.core.commons.actions import Actions, run
-from kgforge.core.commons.typing import Hjson, ManagedData, dispatch
+from kgforge.core.commons.actions import run
+from kgforge.core.commons.attributes import not_supported
+from kgforge.core.commons.sorting import sort_attributes
+from kgforge.core.commons.typing import Hjson
 from kgforge.core.modeling.exceptions import ValidationError
 from kgforge.core.modeling.model import Model
 from kgforge.core.resources import Resource, Resources
 
 
 class DemoModel(Model):
+    """This is an implementation of a Model to perform tests and help implement specializations."""
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        # FIXME Should demo the loading from a directory, an URL, or the store.
-        # Demo implementation.
-        self.source = {
-            "prefixes": {
-                "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-                "schema": "http://schema.org/",
-            },
-            "vocabulary": {
-                "Person": "schema:Person",
-            },
-            "schemas": {
-                "schema:Person": {
-                    "rdf:type": "schema:Person",
-                    "schema:name": "hasattr",
-                }
-            }
-        }
+        # TODO Example for 'Model data could be loaded from an URL or the store'.
+        self.source = Path(self.source)
 
     def prefixes(self) -> Dict[str, str]:
-        # Demo implementation.
-        return self.source["prefixes"]
+        with (self.source / "prefixes.json").open() as f:
+            return json.load(f)
 
     def types(self) -> List[str]:
-        # Demo implementation.
-        return [self._compact(x) for x in self.source["schemas"].keys()]
+        with (self.source / "schemas.json").open() as f:
+            schemas = json.load(f)
+            return [self._compact(x) for x in schemas.keys()]
 
     def template(self, type: str, only_required: bool = False) -> Hjson:
-        # Demo implementation.
-        # FIXME Should order 'type' and 'id' first.
-        type_expanded = self._expand(type)
-        schema = {self._compact(k): v for k, v in self._schema(type_expanded).items()}
-        schema["type"] = type
-        return hjson.dumps(schema, indent=4, sort_keys=True)
-
-    def validate(self, data: ManagedData) -> None:
-        dispatch(data, self._validate_many, self._validate_one)
+        # TODO Example for 'Each nested typed resource should have its template included'.
+        if only_required:
+            not_supported(("only_required", True))
+        else:
+            type_expanded = self._expand(type)
+            schema = self._schema(type_expanded)
+            schema_compacted = self._compact(schema)
+            return hjson.dumps(schema_compacted, indent=4, item_sort_key=sort_attributes)
 
     def _validate_many(self, resources: Resources) -> None:
-        for x in resources:
-            run(self._validate, "_validated", x)
-        print(Actions.from_resources(resources))
+        run(self._validate, resources, "_validated")
 
     def _validate_one(self, resource: Resource) -> None:
-        run(self._validate, "_validated", resource)
-        print(resource._last_action)
+        run(self._validate, resource, "_validated")
 
-    # Demo implementation.
     def _validate(self, resource: Resource) -> bool:
         try:
             type_ = resource.type
@@ -70,6 +56,9 @@ class DemoModel(Model):
             type_expanded = self._expand(type_)
             schema = self._schema(type_expanded)
             for k, v in schema.items():
+                # FIXME Validation of nested structures.
+                if isinstance(v, Dict):
+                    raise NotImplementedError("nested validation not supported yet")
                 if k != "rdf:type":
                     prop_compacted = self._compact(k)
                     rule = f"{v}(resource, '{prop_compacted}')"
@@ -78,14 +67,19 @@ class DemoModel(Model):
                     else:
                         return True
 
-    # Demo implementation.
-    def _compact(self, value: str) -> str:
-        return re.sub("[a-z]+:", "", value)
+    def _compact(self, value: Union[str, Dict]) -> Union[str, Dict]:
+        if isinstance(value, str):
+            return re.sub("[a-z]+:", "", value)
+        else:
+            return {self._compact(k): self._compact(v) for k, v in value.items()}
 
-    # Demo implementation.
     def _expand(self, value: str) -> str:
-        return self.source["vocabulary"][value]
+        with (self.source / "vocabulary.json").open() as f:
+            vocabulary = json.load(f)
+            return vocabulary[value]
 
-    # Demo implementation.
     def _schema(self, type_expanded: str) -> Dict:
-        return self.source["schemas"][type_expanded]
+        # TODO Example of 'There could be caching but it should be aware of changes made in the source'.
+        with (self.source / "schemas.json").open() as f:
+            schemas = json.load(f)
+            return schemas[type_expanded]

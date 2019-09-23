@@ -18,6 +18,7 @@ class Mapper(ABC):
         pass
 
     def map(self, data: Any, mapping: Mapping) -> ManagedData:
+        # Data could be loaded from a directory, a file, a collection or an object.
         if isinstance(data, str):
             path = Path(data)
             if path.is_dir():

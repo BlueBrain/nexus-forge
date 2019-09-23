@@ -1,28 +1,33 @@
-from collections import OrderedDict
+from abc import ABC, abstractmethod
 from pathlib import Path
 
-import hjson
 
-from kgforge.core.commons.typing import Hjson
+class Mapping(ABC):
 
+    # TODO Add used versions of the forge and the model.
+    # TODO Add used mappings for ontology terms and files.
+    # TODO Add used format template for identifiers.
 
-# FIXME FIXME FIXME
-class Mapping:
+    # See dictionaries.py in kgforge/specializations/mappings for an implementation.
 
-    def __init__(self, mapping: Hjson) -> None:
-        # FIXME Add used versions of the forge and the model.
-        # FIXME Add used mappings for ontology terms and files.
-        # FIXME Add used format template for identifiers.
-        self.rules: OrderedDict = hjson.loads(mapping)
+    def __init__(self, mapping: str) -> None:
+        # POLICY Should load the mapping according to its interpretation.
+        self.rules = self._load_rules(mapping)
 
     def save(self, path: str) -> None:
-        # FIXME Should normalize rules representation as Model.template().
-        # POLICY Saved rules representation should normalized by being sorted so that:
-        # - known keys are sorted like the Model.template() output,
-        # - unknown keys are sorted alphabetically in their compacted form (i.e. not IRI nor CURIE).
-        normalized = hjson.dumps(self.rules, indent=4, sort_keys=True)
+        # POLICY Should save the mapping in a normalized representation.
+        normalized = self._normalize_rules(self.rules)
         Path(path).write_text(normalized)
 
-    def load(self, path: str) -> "Mapping":
-        # FIXME Implement.
-        raise NotImplementedError
+    @staticmethod
+    @abstractmethod
+    def load(path: str):
+        pass
+
+    @abstractmethod
+    def _load_rules(self, mapping: str):
+        pass
+
+    @abstractmethod
+    def _normalize_rules(self, rules) -> str:
+        pass

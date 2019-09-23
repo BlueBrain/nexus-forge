@@ -9,12 +9,13 @@ from kgforge.core.storing.store import Store
 
 class Model(ABC):
 
-    # See demo_model.py in specializations/models for implementation.
+    # See demo_model.py in kgforge/specializations/models for an implementation.
+    # Specializations should pass tests/specializations/models/demo_model.feature tests.
 
     def __init__(self, source: Union[DirPath, URL, Store]) -> None:
-        # Schemas could be loaded from a directory, an URL, or the store.
-        # The strategy to get the relevant data should be lazy and could depend on the objective.
-        # Therefore, there is no general loading at object creation.
+        # Model data could be loaded from a directory, an URL, or the store.
+        # POLICY Model data access should be lazy: no general loading at object creation.
+        # POLICY There could be caching but it should be aware of changes made in the source.
         self.source = source
 
     def prefixes(self) -> Dict[str, str]:
@@ -28,10 +29,9 @@ class Model(ABC):
     @abstractmethod
     def template(self, type: str, only_required: bool = False) -> Hjson:
         # POLICY Each nested typed resource should have its template included.
-        # POLICY Template should be normalized by being sorted so that:
-        # - 'type' comes first, compact (i.e. not IRI nor CURIE), recursively,
-        # - 'id' comes second, recursively,
-        # - properties are sorted alphabetically in their compacted form (i.e. not IRI nor CURIE).
+        # POLICY Template should be normalized by calling sorting.sort_attributes().
+        # POLICY The order is then, recursively: 'type', 'id', properties sorted alphabetically.
+        # POLICY The value of 'type' and the properties should be compacted (i.e. not IRI nor CURIE).
         pass
 
     def validate(self, data: ManagedData) -> None:

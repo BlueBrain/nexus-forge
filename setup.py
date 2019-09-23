@@ -2,7 +2,7 @@ import os
 
 from setuptools import setup
 
-VERSION = "0.1.0.dev4"
+VERSION = "0.1.0.dev5"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 

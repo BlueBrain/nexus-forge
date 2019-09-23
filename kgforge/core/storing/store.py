@@ -9,7 +9,11 @@ from kgforge.core.resources import Resource, Resources
 
 class Store(ABC):
 
-    def __init__(self, file_mapping: Union[Hjson, FilePath, URL], bucket: str, token: str) -> None:
+    # See demo_store.py in kgforge/specializations/stores for an implementation.
+    # Specializations should pass tests/specializations/stores/demo_store.feature tests.
+
+    def __init__(self, file_mapping: Optional[Union[Hjson, FilePath, URL]],
+                 bucket: Optional[str], token: Optional[str]) -> None:
         # Files mapping could be loaded from a Hjson, a file, or an URL.
         self.files_mapping = file_mapping
         self.bucket = bucket
@@ -93,6 +97,7 @@ class Store(ABC):
 
     @abstractmethod
     def search(self, resolver, *filters, **params) -> Resources:
+        # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
