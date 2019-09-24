@@ -3,9 +3,9 @@
     "rdf:type": "schema:Person",
     "schema:name": "hasattr"
   },
-  "schema:Action": {
-    "rdf:type": "schema:Action",
-    "schema:agent": {
+  "prov:Association": {
+    "rdf:type": "prov:Association",
+    "prov:agent": {
       "rdf:type": "schema:Person",
       "schema:name": "hasattr"
     }

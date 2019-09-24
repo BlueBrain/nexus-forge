@@ -2,16 +2,17 @@ from typing import Dict, Optional, Union
 
 from kgforge.core.commons.typing import DirPath, FilePath, Hjson, URL
 from kgforge.core.resources import Resource
-from kgforge.core.storing.store import Store
+# from kgforge.core.storing.store import Store
 from kgforge.core.transforming.mapping import Mapping
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 
 
 # FIXME FIXME FIXME
 
+
 class OntologiesHandler:
 
-    def __init__(self, ontologies: Union[DirPath, URL, Store], terms_mapping: Union[Hjson, FilePath, URL]) -> None:
+    def __init__(self, ontologies: Union[DirPath, URL, "Store"], terms_mapping: Union[Hjson, FilePath, URL]) -> None:
         # Ontologies could be loaded from a directory, an URL, or the store.
         print("FIXME Should implement the loading of the ontologies.")
         print("DEMO - OntologiesHandler")

@@ -11,4 +11,4 @@ Feature: Resource
     Then I should be able to access the nested resource properties as JSONPath.
 
   Scenario: There is a collision with a reserved attribute.
-    When I create a resource with a reserved attribute, creation should fail.
+    When I create a resource with a reserved attribute. Creation should fail.

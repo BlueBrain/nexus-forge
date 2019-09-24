@@ -9,12 +9,14 @@ from kgforge.core.transforming.mapping import Mapping
 
 class Mapper(ABC):
 
-    def __init__(self, forge) -> None:
+    # See dictionaries.py in kgforge/specializations/mappers for an implementation.
+
+    def __init__(self, forge: "KnowledgeGraphForge") -> None:
         self.forge = forge
 
     @property
     @abstractmethod
-    def reader(self) -> Callable:
+    def _reader(self) -> Callable:
         pass
 
     def map(self, data: Any, mapping: Mapping) -> ManagedData:
@@ -26,11 +28,12 @@ class Mapper(ABC):
                 records = []
                 for x in path.iterdir():
                     with x.open() as f:
-                        records.append(self.reader(f))
+                        record = self._reader(f)
+                        records.append(record)
                 return self._map_many(records, mapping)
             else:
                 with path.open() as f:
-                    record = self.reader(f)
+                    record = self._reader(f)
                     return self._map_one(record, mapping)
         elif isinstance(data, (Sequence, Iterator)):
             return self._map_many(data, mapping)

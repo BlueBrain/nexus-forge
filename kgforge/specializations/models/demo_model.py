@@ -6,8 +6,7 @@ from typing import Dict, List, Union
 import hjson
 
 from kgforge.core.commons.actions import run
-from kgforge.core.commons.attributes import not_supported
-from kgforge.core.commons.sorting import sort_attributes
+from kgforge.core.commons.attributes import not_supported, sort_attributes
 from kgforge.core.commons.typing import Hjson
 from kgforge.core.modeling.exceptions import ValidationError
 from kgforge.core.modeling.model import Model
@@ -32,7 +31,7 @@ class DemoModel(Model):
             return [self._compact(x) for x in schemas.keys()]
 
     def template(self, type: str, only_required: bool = False) -> Hjson:
-        # TODO Example for 'Each nested typed resource should have its template included'.
+        # FIXME Example for 'Each nested typed resource should have its template included'.
         if only_required:
             not_supported(("only_required", True))
         else:
@@ -42,10 +41,11 @@ class DemoModel(Model):
             return hjson.dumps(schema_compacted, indent=4, item_sort_key=sort_attributes)
 
     def _validate_many(self, resources: Resources) -> None:
-        run(self._validate, resources, "_validated")
+        # TODO Example of an optimization for bulk validation.
+        run(self._validate, resources, status="_validated")
 
     def _validate_one(self, resource: Resource) -> None:
-        run(self._validate, resource, "_validated")
+        run(self._validate, resource, status="_validated")
 
     def _validate(self, resource: Resource) -> bool:
         try:

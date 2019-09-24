@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import hjson
 
@@ -10,31 +10,21 @@ class DictWrapper(dict):
 
     # TODO Should be immutable.
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.__dict__ = self
 
     @staticmethod
-    def wrap(data: Any):
+    def _wrap(data: Any) -> Any:
         if isinstance(data, Dict):
-            return DictWrapper({k: DictWrapper.wrap(v) for k, v in data.items()})
+            return DictWrapper({k: DictWrapper._wrap(v) for k, v in data.items()})
         else:
             return data
 
 
-def wrap_paths(template: Hjson) -> "PathsWrapper":
-    def _wrap(data: Any, path: List[str]):
-        if isinstance(data, Dict):
-            return PathsWrapper(path, {k: _wrap(v, path + [k]) for k, v in data.items()})
-        else:
-            return PathWrapper(path)
-    loaded = hjson.loads(template)
-    return _wrap(loaded, [])
-
-
 class Filter:
 
-    def __init__(self, path: List[str], operator: str, value: Any):
+    def __init__(self, path: List[str], operator: str, value: Any) -> None:
         self.path = path
         self.operator = operator
         self.value = value
@@ -84,3 +74,13 @@ class PathsWrapper(FilterMixin):
         check_collisions(self._RESERVED, paths.keys())
         super().__init__(path)
         self.__dict__ = paths
+
+    @staticmethod
+    def _wrap(template: Hjson) -> "PathsWrapper":
+        def process(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:
+            if isinstance(data, Dict):
+                return PathsWrapper(path, {k: process(v, path + [k]) for k, v in data.items()})
+            else:
+                return PathWrapper(path)
+        loaded = hjson.loads(template)
+        return process(loaded, [])

@@ -4,6 +4,7 @@ from typing import Dict, Optional, Union
 
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL, dispatch
+from kgforge.core.modeling.handlers.ontologies import OntologyResolver
 from kgforge.core.resources import Resource, Resources
 
 
@@ -12,8 +13,8 @@ class Store(ABC):
     # See demo_store.py in kgforge/specializations/stores for an implementation.
     # Specializations should pass tests/specializations/stores/demo_store.feature tests.
 
-    def __init__(self, file_mapping: Optional[Union[Hjson, FilePath, URL]],
-                 bucket: Optional[str], token: Optional[str]) -> None:
+    def __init__(self, file_mapping: Optional[Union[Hjson, FilePath, URL]], bucket: Optional[str],
+                 token: Optional[str]) -> None:
         # Files mapping could be loaded from a Hjson, a file, or an URL.
         self.files_mapping = file_mapping
         self.bucket = bucket
@@ -77,11 +78,11 @@ class Store(ABC):
         self.register(data, update=True)
 
     def tag(self, data: ManagedData, value: str) -> None:
-        # POLICY Resource _synchronized might be set to True and _store_metadata might be set.
+        # POLICY If the resource is modified by the action, Resource _synchronized should be set
+        # POLICY to True and _store_metadata should be set. Otherwise, they should not be changed.
         # POLICY Should notify of failures with exception TaggingError including a message.
-        # POLICY Might call actions.run() if the specialization is modifying the resources.
-        # POLICY In this case, should print Resource _last_action before returning.
-        # POLICY Otherwise, should be decorated with exceptions.catch() to deal with exceptions.
+        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should print Resource _last_action before returning.
         not_supported()
 
     # CRU[D]
@@ -96,7 +97,7 @@ class Store(ABC):
     # Query
 
     @abstractmethod
-    def search(self, resolver, *filters, **params) -> Resources:
+    def search(self, resolver: OntologyResolver, *filters, **params) -> Resources:
         # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
         # POLICY Should notify of failures with exception QueryingError including a message.
@@ -109,9 +110,9 @@ class Store(ABC):
 
     # Versioning
 
-    def freeze(self, resource: Resource) -> None:
+    def freeze(self, data: ManagedData) -> None:
         # POLICY Resource _synchronized and _validated should be set to False.
         # POLICY Should notify of failures with exception FreezingError including a message.
-        # POLICY Should call actions.run() to update the status and deal with exceptions.
+        # POLICY Should call actions.run() with propagate=True to update the status and propagate exceptions.
         # POLICY Should print Resource _last_action before returning.
         not_supported()

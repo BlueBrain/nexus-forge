@@ -29,7 +29,7 @@ class Model(ABC):
     @abstractmethod
     def template(self, type: str, only_required: bool = False) -> Hjson:
         # POLICY Each nested typed resource should have its template included.
-        # POLICY Template should be normalized by calling sorting.sort_attributes().
+        # POLICY Template should be normalized by calling attributes.sort_attributes().
         # POLICY The order is then, recursively: 'type', 'id', properties sorted alphabetically.
         # POLICY The value of 'type' and the properties should be compacted (i.e. not IRI nor CURIE).
         pass

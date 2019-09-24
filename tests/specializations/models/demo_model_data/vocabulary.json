@@ -1,4 +1,4 @@
 {
   "Person": "schema:Person",
-  "Action": "schema:Action"
+  "Association": "prov:Association"
 }

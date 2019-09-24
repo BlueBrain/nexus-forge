@@ -6,14 +6,15 @@ from kgforge.core.resources import Resource, Resources
 
 class QueryingInterface:
 
-    def __init__(self, forge) -> None:
+    def __init__(self, forge: "KnowledgeGraphForge") -> None:
         self.forge = forge
 
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
         return self.forge.store.retrieve(id, version)
 
     def search(self, *filters, **params) -> Resources:
-        revolver = None  # FIXME self.forge.ontologies.resolve
+        # FIXME FIXME FIXME
+        revolver = None  # self.forge.ontologies.resolve
         return self.forge.store.search(revolver, *filters, **params)
 
     def sparql(self, query: str) -> Resources:

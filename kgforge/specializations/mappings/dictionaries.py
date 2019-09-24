@@ -3,7 +3,7 @@ from pathlib import Path
 
 import hjson
 
-from kgforge.core.commons.sorting import sort_attributes
+from kgforge.core.commons.attributes import sort_attributes
 from kgforge.core.transforming.mapping import Mapping
 
 
@@ -13,7 +13,7 @@ class DictionaryMapping(Mapping):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def load(path: str):
+    def load(path: str) -> "DictionaryMapping":
         text = Path(path).read_text()
         return DictionaryMapping(text)
 

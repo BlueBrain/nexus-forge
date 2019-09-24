@@ -5,7 +5,7 @@ from kgforge.core.storing.store import Store
 class StoringInterface:
 
     def __init__(self, store: Store) -> None:
-        self.store = store
+        self.store: Store = store
 
     def register(self, data: ManagedData) -> None:
         self.store.register(data, update=False)

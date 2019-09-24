@@ -16,7 +16,7 @@ def nresource():
     return Resource(type="Entity", contribution=Resource(type="Contribution"))
 
 
-@when("I create a resource with a reserved attribute, creation should fail.")
+@when("I create a resource with a reserved attribute. Creation should fail.")
 def reserved_attribute_error():
     with pytest.raises(NotImplementedError):
         Resource(_validated=True)

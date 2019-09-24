@@ -1,19 +1,17 @@
-from typing import Any, Optional
+from typing import Dict, Optional
 
 import hjson
 
-from kgforge.core.commons.attributes import check_collisions
-from kgforge.core.commons.sorting import sort_attributes
+from kgforge.core.commons.attributes import check_collisions, sort_attributes
 
 
 class Resource:
 
+    # Specializations:
+    # POLICY Should declare added attributes in _RESERVED while keeping the ones from the specialized class.
+    # POLICY Should call attributes.check_collisions() with _RESERVED before super().__init__().
     # See datasets.py in kgforge/specializations/resources for a specialization.
     # Specializations should pass tests/core/resources/resource.feature tests.
-
-    # In specializations:
-    # POLICY Should declare added attributes names in a class attribute _RESERVED.
-    # POLICY Should call attributes.check_collisions() with _RESERVED.
 
     _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata"}
 
@@ -23,7 +21,7 @@ class Resource:
         # Status of the last modifying action performed on the resource.
         self._last_action: "Optional[Action]" = None
         # True if the resource has been validated.
-        # False if the entity has not been validated yet or a modification has been done since
+        # False if the resource has not been validated yet or a modification has been done since
         # the last validation.
         self._validated: bool = False
         # True if the resource is synchronized with the store.
@@ -31,16 +29,17 @@ class Resource:
         # the synchronization.
         self._synchronized: bool = False
         # None until synchronized.
-        # Otherwise, holds metadata the potentially configured store returns at synchronization.
+        # Otherwise, holds the metadata the store returns at synchronization.
         self._store_metadata: "Optional[DictWrapper]" = None
 
     def __repr__(self) -> str:
         ordered = sorted(self.__dict__.items(), key=sort_attributes)
         attributes = (f"{k}={repr(v)}" for k, v in ordered)
-        return f"Resource({', '.join(attributes)})"
+        attributes_str = ', '.join(attributes)
+        return f"Resource({attributes_str})"
 
     def __str__(self) -> str:
-        return _str(self.__dict__)
+        return _str(self)
 
     def __setattr__(self, key, value) -> None:
         if key not in self._RESERVED:
@@ -56,8 +55,10 @@ class Resources(list):
         super().__init__(resources)
 
     def __str__(self) -> str:
-        return _str([x.__dict__ for x in self])
+        return _str(self)
 
 
-def _str(data: Any) -> str:
-    return hjson.dumps(data, indent=4, default=lambda x: x.__dict__, item_sort_key=sort_attributes)
+def _str(data: "ManagedData") -> str:
+    def _as_dict(x) -> Dict:
+        return {k: v for k, v in x.__dict__.items() if k not in Resource._RESERVED}
+    return hjson.dumps(data, indent=4, default=_as_dict, item_sort_key=sort_attributes)

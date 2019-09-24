@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 
 class Mapping(ABC):
@@ -12,7 +13,7 @@ class Mapping(ABC):
 
     def __init__(self, mapping: str) -> None:
         # POLICY Should load the mapping according to its interpretation.
-        self.rules = self._load_rules(mapping)
+        self.rules: Any = self._load_rules(mapping)
 
     def save(self, path: str) -> None:
         # POLICY Should save the mapping in a normalized representation.
@@ -21,13 +22,13 @@ class Mapping(ABC):
 
     @staticmethod
     @abstractmethod
-    def load(path: str):
+    def load(path: str) -> "Mapping":
         pass
 
     @abstractmethod
-    def _load_rules(self, mapping: str):
+    def _load_rules(self, mapping: str) -> Any:
         pass
 
     @abstractmethod
-    def _normalize_rules(self, rules) -> str:
+    def _normalize_rules(self, rules: Any) -> str:
         pass

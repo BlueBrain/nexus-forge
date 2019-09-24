@@ -12,7 +12,7 @@ class DictionaryMapper(Mapper):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def reader(self) -> Callable:
+    def _reader(self) -> Callable:
         return json.load
 
     def _map_one(self, record: Dict, mapping: Mapping) -> Resource:

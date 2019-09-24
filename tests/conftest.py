@@ -1,19 +1,14 @@
-from typing import Callable
 from uuid import uuid4
 
 from pytest_bdd import given, parsers, then, when
 
 from kgforge.core.commons.actions import Action
-from kgforge.core.commons.typing import ManagedData
+from kgforge.core.commons.typing import do
 from kgforge.core.resources import Resource, Resources
 
 
 # It seems using 'given' with both 'fixture' and 'target_fixture' does not work.
 # This implies that (in)valid resources creation steps need their dedicated function.
-
-
-def check(fun: Callable, data: ManagedData):
-    fun(data) if not isinstance(data, Resources) else (fun(x) for x in data)
 
 
 # Resource(s) creation.
@@ -64,7 +59,7 @@ def modify_resource(data):
 @then(parsers.parse("The '{attr}' status of {} resource should be '{value}'."))
 def check_resource_status(data, attr, value):
     def fun(x): assert str(getattr(x, attr)) == value
-    check(fun, data)
+    do(fun, data, error=True)
 
 
 # Action(s) verifications.
@@ -87,22 +82,22 @@ def check_report(capsys, rc, err, msg, op):
 @then("I should be able to access the report of the action on a resource.")
 def check_action(data):
     def fun(x): assert isinstance(x._last_action, Action)
-    check(fun, data)
+    do(fun, data, error=True)
 
 
 @then(parsers.parse("The report should say that the operation was '{value}'."))
 def check_action_operation(data, value):
     def fun(x): assert x._last_action.operation == value
-    check(fun, data)
+    do(fun, data, error=True)
 
 
 @then(parsers.parse("The report should say that the operation success is '{value}'."))
 def check_action_success(data, value):
     def fun(x): assert str(x._last_action.succeeded) == value
-    check(fun, data)
+    do(fun, data, error=True)
 
 
 @then(parsers.parse("The report should say that the error was '{value}'."))
 def check_action_error(data, value):
     def fun(x): assert str(x._last_action.error) == value
-    check(fun, data)
+    do(fun, data, error=True)

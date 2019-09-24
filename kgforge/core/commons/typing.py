@@ -20,7 +20,18 @@ def dispatch(data: ManagedData, fun_resources: Callable, fun_resource: Callable,
     elif isinstance(data, Resource):
         return fun_resource(data, *args)
     else:
-        raise TypeError("Not managed data")
+        raise TypeError("not managed data")
+
+
+def do(fun: Callable, data: ManagedData, error: bool, *args) -> None:
+    if isinstance(data, Resources):
+        for x in data:
+            fun(x, *args)
+    elif isinstance(data, Resource):
+        fun(data, *args)
+    else:
+        if error:
+            raise TypeError("not managed data")
 
 
 def as_list_if_not(data: Any) -> List[Any]:

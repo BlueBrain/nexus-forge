@@ -6,34 +6,43 @@ from kgforge.core.commons.typing import ManagedData
 from kgforge.core.resources import Resource, Resources
 
 
-def run(fun: Callable, data: ManagedData, status_attr: Optional[str],  *args) -> None:
+def run(fun: Callable, data: ManagedData, **kwargs) -> None:
     # POLICY Should be called for operations on resources.
     if isinstance(data, Resources):
         for x in data:
-            _run_one(fun, x, status_attr, *args)
-        print(Actions.from_resources(data))
+            _run_one(fun, x, **kwargs)
+        actions = Actions.from_resources(data)
+        print(actions)
     elif isinstance(data, Resource):
-        _run_one(fun, data, status_attr, *args)
+        _run_one(fun, data, **kwargs)
         print(data._last_action)
     else:
-        raise TypeError("Not managed data")
+        raise TypeError("not managed data")
 
 
-def _run_one(fun: Callable, resource: Resource, status_attr: Optional[str],  *args) -> None:
+def _run_one(fun: Callable, resource: Resource, **kwargs) -> None:
+    # Accepted parameters: status: Optional[str] = None, propagate: bool = False.
+    status = kwargs.pop("status", None)
+    propagate = kwargs.pop("propagate", False)
     try:
+        args = kwargs.values()
         result = fun(resource, *args)
     except Exception as e:
         status_value = False
         succeeded = False
-        error = str(e)
+        error = e
+        error_msg = str(e)
     else:
         status_value = True if not isinstance(result, bool) else result
         succeeded = True
         error = None
+        error_msg = None
     finally:
-        if status_attr:
-            setattr(resource, status_attr, status_value)
-        resource._last_action = Action(fun.__name__, succeeded, error)
+        if status:
+            setattr(resource, status, status_value)
+        resource._last_action = Action(fun.__name__, succeeded, error_msg)
+        if propagate and error:
+            raise error
 
 
 class Action:

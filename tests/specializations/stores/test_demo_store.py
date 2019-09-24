@@ -1,7 +1,8 @@
 from pytest_bdd import given, parsers, scenarios, then, when
 
+from kgforge.core.commons.typing import do
 from kgforge.specializations.stores.demo_store import DemoStore
-from tests.conftest import check, check_report
+from tests.conftest import check_report
 
 scenarios("demo_store.feature")
 
@@ -48,4 +49,4 @@ def register_exception(monkeypatch, capsys, store, data):
 @then(parsers.parse("The store metadata of a resource should be '{metadata}'."))
 def check_metadata(data, metadata):
     def fun(x): assert str(x._store_metadata) == metadata
-    check(fun, data)
+    do(fun, data, error=True)

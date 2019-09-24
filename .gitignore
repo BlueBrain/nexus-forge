@@ -8,3 +8,4 @@ doc/build
 .idea/*
 .DS_Store
 **/.ipynb_checkpoints/*
+examples/data/*

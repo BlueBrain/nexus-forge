@@ -2,7 +2,7 @@ from functools import wraps
 
 
 def catch(fun):
-    # POLICY Should wrap operations retrieving resources.
+    # POLICY Should wrap operations on resources not managed by actions.run().
     @wraps(fun)
     def wrapper(*args):
         try:
