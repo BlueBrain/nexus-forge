@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
-from kgforge.core.commons.attributes import check_collisions
-from kgforge.core.commons.typing import DirPath, IRI, ManagedData, as_list_if_not
+from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.typing import DirPath, IRI, ManagedData, as_list
 from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.resources import Resource, Resources
 
@@ -13,7 +13,6 @@ class Dataset(Resource):
                  "with_contributors", "derivations", "with_derivations"} | Resource._RESERVED
 
     def __init__(self, forge: KnowledgeGraphForge, type: str = "Dataset", **properties) -> None:
-        check_collisions(self._RESERVED, properties.keys())
         super().__init__(**properties)
         self._forge = forge
         self.type = type
@@ -30,23 +29,23 @@ class Dataset(Resource):
     def files(self) -> Optional["DatasetFiles"]:
         """Returns files part of the dataset (schema:distribution) in an handler."""
         try:
-            distribution = self.hasPart.distribution
+            distribution = Resources(x.distribution for x in as_list(self.hasPart))
         except AttributeError:
-            return None
+            hasPart = self.parts()
+            return hasPart if isinstance(hasPart, LazyAction) else None
         else:
             return DatasetFiles(self._forge, distribution)
 
     def with_files(self, path: DirPath) -> None:
         """Set files part of the dataset (schema:distribution)."""
-        # FIXME FIXME FIXME
-        self.distribution = self._forge.files.as_resource(path)
+        self.hasPart = self._forge.files.as_resource(path)
 
     def contributors(self) -> Optional[Resources]:
         return getattr(self, "contribution", None)
 
     def with_contributors(self, agents: Union[IRI, List[IRI]]) -> None:
         # FIXME Check how to best include the optional resources (Plan, Role).
-        self.contribution = [Resource(type="Contribution", agent=x) for x in as_list_if_not(agents)]
+        self.contribution = [Resource(type="Contribution", agent=x) for x in as_list(agents)]
 
     def derivations(self) -> Optional[Resources]:
         return getattr(self, "derivation", None)

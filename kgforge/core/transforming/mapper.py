@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Iterator, Sequence, Union
 
+from kgforge.core.commons.exceptions import catch
 from kgforge.core.commons.typing import ManagedData
 from kgforge.core.resources import Resource, Resources
 from kgforge.core.transforming.mapping import Mapping
@@ -19,6 +20,7 @@ class Mapper(ABC):
     def _reader(self) -> Callable:
         pass
 
+    @catch
     def map(self, data: Any, mapping: Mapping) -> ManagedData:
         # Data could be loaded from a directory, a file, a collection or an object.
         if isinstance(data, str):

@@ -74,6 +74,7 @@ class DemoModel(Model):
             return {self._compact(k): self._compact(v) for k, v in value.items()}
 
     def _expand(self, value: str) -> str:
+        # FIXME Configure an ontology & Use forge.ontology.resolve() with type="Class" instead.
         with (self.source / "vocabulary.json").open() as f:
             vocabulary = json.load(f)
             return vocabulary[value]

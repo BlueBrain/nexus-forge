@@ -8,7 +8,6 @@ scenarios("demo_model.feature")
 
 @given("A model instance.")
 def model():
-    # TODO Tests for 'Model data could be loaded from an URL or the store'.
     return DemoModel("./specializations/models/demo_model_data/")
 
 

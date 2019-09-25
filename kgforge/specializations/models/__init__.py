@@ -1,2 +1,2 @@
-# FIXME Imports for User API.
-# from .neuroshapes import Neuroshapes
+from .demo_model import DemoModel
+from .neuroshapes import Neuroshapes

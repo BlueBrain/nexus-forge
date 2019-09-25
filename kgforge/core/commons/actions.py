@@ -1,5 +1,5 @@
 from collections import Counter
-from typing import Callable, Iterator, Optional, Sequence, Union
+from typing import Callable, Iterable, Optional
 
 from kgforge.core.commons.attributes import repr_
 from kgforge.core.commons.typing import ManagedData
@@ -7,7 +7,7 @@ from kgforge.core.resources import Resource, Resources
 
 
 def run(fun: Callable, data: ManagedData, **kwargs) -> None:
-    # POLICY Should be called for operations on resources.
+    # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, Resources):
         for x in data:
             _run_one(fun, x, **kwargs)
@@ -70,7 +70,7 @@ class Action:
 
 class Actions(list):
 
-    def __init__(self, actions: Union[Sequence[Action], Iterator[Action]]) -> None:
+    def __init__(self, actions: Iterable[Action]) -> None:
         super().__init__(actions)
 
     def __str__(self) -> str:
@@ -84,9 +84,12 @@ class Actions(list):
 
 class LazyAction:
 
-    def __init__(self, operation: Callable, **params) -> None:
+    def __init__(self, operation: Callable, *args) -> None:
         self.operation = operation
-        self.params = params
+        self.args = args
+
+    def __str__(self) -> str:
+        return f"LazyAction(operation={self.operation.__qualname__}, args={list(self.args)})"
 
     def execute(self) -> ManagedData:
-        return self.operation(self.params)
+        return self.operation(*self.args)

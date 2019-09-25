@@ -1,61 +1,23 @@
-from typing import Dict, Optional, Union
+from typing import Dict, List
 
-from kgforge.core.commons.typing import DirPath, FilePath, Hjson, URL
+from kgforge.core.modeling.resolvers import (OntologyConfiguration, OntologyResolver,
+                                             ResolvingStrategy)
 from kgforge.core.resources import Resource
-# from kgforge.core.storing.store import Store
-from kgforge.core.transforming.mapping import Mapping
-from kgforge.specializations.mappers.dictionaries import DictionaryMapper
-
-
-# FIXME FIXME FIXME
 
 
 class OntologiesHandler:
 
-    def __init__(self, ontologies: Union[DirPath, URL, "Store"], terms_mapping: Union[Hjson, FilePath, URL]) -> None:
-        # Ontologies could be loaded from a directory, an URL, or the store.
-        print("FIXME Should implement the loading of the ontologies.")
-        print("DEMO - OntologiesHandler")
-        self.ontologies = {
-            "sex": {
-                "male": "http://purl.obolibrary.org/obo/PATO_0000384",
-                "female": "http://purl.obolibrary.org/obo/PATO_0000383",
-            },
-            "species": {
-                "Mus musculus": "https://www.ncbi.nlm.nih.gov/taxonomy/10090",
-                "Homo sapiens": "http://purl.obolibrary.org/obo/NCBITaxon_9606",
-            },
-            "brain region": {
-                "layer 1": "http://purl.obolibrary.org/obo/UBERON_0005390",
-                "layer 2": "http://purl.obolibrary.org/obo/UBERON_0005391",
-                "layer 3": "http://purl.obolibrary.org/obo/UBERON_0005392",
-                "layer 4": "http://purl.obolibrary.org/obo/UBERON_0005393",
-                "layer 5": "http://purl.obolibrary.org/obo/UBERON_0005394",
-                "layer 6": "http://purl.obolibrary.org/obo/UBERON_0005395",
-            }
-        }
-        # Ontology terms mapping could be loaded from a Hjson, a file, or an URL.
-        print("FIXME Should implement the loading from a file and an URL.")
-        self.terms_mapping = Mapping(terms_mapping)
+    def __init__(self, configurations: List[OntologyConfiguration]) -> None:
+        self._configurations = {x.name: x for x in configurations}
+        self._resolvers: Dict[str, OntologyResolver] = {}
 
-    def resolve(self, type: str, label: str, hint: Optional[str] = None) -> Resource:
-        # FIXME
-        ontology = self.ontologies[type]
-        resolver = OntologyResolver(ontology)
-        resolved = resolver.resolve(label, hint)
-        return DictionaryMapper(None).map(resolved, self.terms_mapping)
-
-
-# FIXME Interface / Specialization
-class OntologyResolver:
-
-    def __init__(self, ontology) -> None:
-        print("DEMO - OntologyResolver")
-        self.loaded = ontology
-
-    def resolve(self, label: str, hint: Optional[str] = None) -> Dict:
-        print("DEMO - OntologyResolver.resolve()")
-        return {
-            "id": self.loaded.get(label.lower(), self.loaded[f"{hint} {label.lower()}"]),
-            "label": label,
-        }
+    def resolve(self, label: str, ontology: str, type: str = "Class",
+                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource:
+        try:
+            resolver = self._resolvers[ontology]
+        except KeyError:
+            config = self._configurations[ontology]
+            resolver = config.resolver(config)
+            self._resolvers[ontology] = resolver
+        finally:
+            return resolver.resolve(label, type, strategy)

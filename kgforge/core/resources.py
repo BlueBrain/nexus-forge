@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Iterable, Optional, Union
 
 import hjson
 
@@ -8,8 +8,7 @@ from kgforge.core.commons.attributes import check_collisions, sort_attributes
 class Resource:
 
     # Specializations:
-    # POLICY Should declare added attributes in _RESERVED while keeping the ones from the specialized class.
-    # POLICY Should call attributes.check_collisions() with _RESERVED before super().__init__().
+    # POLICY Should add new attributes to _RESERVED.
     # See datasets.py in kgforge/specializations/resources for a specialization.
     # Specializations should pass tests/core/resources/resource.feature tests.
 
@@ -30,7 +29,7 @@ class Resource:
         self._synchronized: bool = False
         # None until synchronized.
         # Otherwise, holds the metadata the store returns at synchronization.
-        self._store_metadata: "Optional[DictWrapper]" = None
+        self._store_metadata: Optional["DictWrapper"] = None
 
     def __repr__(self) -> str:
         ordered = sorted(self.__dict__.items(), key=sort_attributes)
@@ -50,8 +49,8 @@ class Resource:
 
 class Resources(list):
 
-    def __init__(self, data, *args) -> None:
-        resources = [data, *args] if args else data
+    def __init__(self, data: Union[Resource, Iterable[Resource]], *resources) -> None:
+        resources = [data, *resources] if resources else data
         super().__init__(resources)
 
     def __str__(self) -> str:
@@ -59,6 +58,9 @@ class Resources(list):
 
 
 def _str(data: "ManagedData") -> str:
-    def _as_dict(x) -> Dict:
-        return {k: v for k, v in x.__dict__.items() if k not in Resource._RESERVED}
+    def _as_dict(x: Any) -> Union[str, Dict]:
+        if type(x).__name__ == "LazyAction":
+            return str(x)
+        else:
+            return {k: v for k, v in x.__dict__.items() if k not in Resource._RESERVED}
     return hjson.dumps(data, indent=4, default=_as_dict, item_sort_key=sort_attributes)

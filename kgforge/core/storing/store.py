@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 from kgforge.core.commons.attributes import not_supported
+from kgforge.core.commons.exceptions import catch
 from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL, dispatch
-from kgforge.core.modeling.handlers.ontologies import OntologyResolver
 from kgforge.core.resources import Resource, Resources
 
 
@@ -15,7 +15,7 @@ class Store(ABC):
 
     def __init__(self, file_mapping: Optional[Union[Hjson, FilePath, URL]], bucket: Optional[str],
                  token: Optional[str]) -> None:
-        # Files mapping could be loaded from a Hjson, a file, or an URL.
+        # Files mapping could be loaded from a Hjson string, a file, or an URL.
         self.files_mapping = file_mapping
         self.bucket = bucket
         self.token = token
@@ -40,34 +40,38 @@ class Store(ABC):
         # POLICY Follow register() policies.
         pass
 
+    @catch
     def upload(self, path: str) -> ManagedData:
+        # FIXME Example implementation in DemoStore.
         # POLICY Should use self.files_mapping to map Store metadata to Model metadata.
         # POLICY Resource _synchronized should be set to True.
         # POLICY Should notify of failures with exception UploadingError including a message.
-        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
         p = Path(path)
         return self._upload_many(p) if p.is_dir() else self._upload_one(p)
 
     def _upload_many(self, dirpath: Path) -> Resources:
+        # FIXME Example implementation in DemoStore.
         # POLICY Follow upload() policies.
         not_supported()
 
     def _upload_one(self, filepath: Path) -> Resource:
+        # FIXME Example implementation in DemoStore.
         # POLICY Follow upload() policies.
         not_supported()
 
     # C[R]UD
 
+    @catch
     @abstractmethod
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
         # POLICY Should notify of failures with exception RetrievalError including a message.
-        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
         pass
 
+    @catch
     def download(self, data: ManagedData, follow: str, path: str) -> None:
+        # FIXME Example implementation in DemoStore.
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
         not_supported()
 
     # CR[U]D
@@ -96,15 +100,17 @@ class Store(ABC):
 
     # Query
 
+    @catch
     @abstractmethod
-    def search(self, resolver: OntologyResolver, *filters, **params) -> Resources:
+    def search(self, resolvers: "OntologiesHandler", *filters, **params) -> Resources:
         # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
         # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Should be decorated with exceptions.catch() to deal with exceptions.
         pass
 
+    @catch
     def sparql(self, prefixes: Dict[str, str], query: str) -> Resources:
+        # TODO Example implementation for a store supporting SPARQL queries.
         # POLICY Follow search() policies.
         not_supported()
 

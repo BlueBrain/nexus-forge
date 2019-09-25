@@ -1,0 +1,10 @@
+[
+  {
+    "label": "male",
+    "id": "http://purl.obolibrary.org/obo/PATO_0000384"
+  },
+  {
+    "label": "female",
+    "id": "http://purl.obolibrary.org/obo/PATO_0000383"
+  }
+]

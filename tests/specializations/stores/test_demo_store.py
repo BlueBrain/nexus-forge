@@ -9,8 +9,6 @@ scenarios("demo_store.feature")
 
 @given("A store instance.")
 def store():
-    # TODO Tests for 'Files mapping could be loaded from a Hjson, a file, or an URL'.
-    # TODO Tests for a store using 'bucket' and 'token'.
     return DemoStore(None, None, None)
 
 

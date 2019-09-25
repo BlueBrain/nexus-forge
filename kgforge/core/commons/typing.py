@@ -34,5 +34,5 @@ def do(fun: Callable, data: ManagedData, error: bool, *args) -> None:
             raise TypeError("not managed data")
 
 
-def as_list_if_not(data: Any) -> List[Any]:
+def as_list(data: Any) -> List[Any]:
     return [data] if not isinstance(data, list) else data

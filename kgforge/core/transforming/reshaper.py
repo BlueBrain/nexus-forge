@@ -18,15 +18,12 @@ class Reshaper:
             self.forge.store.freeze(data)
         return dispatch(data, self._reshape_many, self._reshape_one, keep)
 
-    @catch
     def _reshape_many(self, resources: Resources, keep: List[str]) -> Resources:
         return Resources(self._reshape(x, keep) for x in resources)
 
-    @catch
     def _reshape_one(self, resource: Resource, keep: List[str]) -> Resource:
         return self._reshape(resource, keep)
 
-    @catch
     def _reshape(self, resource: Resource, keep: List[str]) -> Resource:
         levels = [x.split(".", maxsplit=1) for x in keep]
         roots = {x[0] for x in levels}

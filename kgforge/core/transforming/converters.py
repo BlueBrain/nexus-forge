@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Union
 from pandas import DataFrame
 
 from kgforge.core.commons.exceptions import catch
-from kgforge.core.commons.typing import ManagedData, as_list_if_not
+from kgforge.core.commons.typing import ManagedData, as_list
 
 
 class Converters:
@@ -17,7 +17,7 @@ class Converters:
             return cls.as_jsonld(data, False, store_metadata)
         else:
             data = cls.as_jsonld(data, True, store_metadata)
-            for x in as_list_if_not(data):
+            for x in as_list(data):
                 del x["@context"]
             return data
 
@@ -36,5 +36,5 @@ class Converters:
     @classmethod
     @catch
     def as_dataframe(cls, data: ManagedData, store_metadata: bool = False) -> DataFrame:
-        # FIXME Implement.
-        raise NotImplementedError("FIXME Implement")
+        # TODO Implement.
+        raise NotImplementedError("TODO Implement")

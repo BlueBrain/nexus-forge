@@ -1,0 +1,19 @@
+Model:
+  name: DemoModel
+  # TODO Example for an URL or a model name.
+  source: ../tests/specializations/models/demo_model_data/
+
+Store:
+  name: DemoStore
+  files mapping: ../tests/specializations/stores/demo_store_data/files_mapping.hjson
+
+Ontologies:
+  sex:
+    # TODO Example for an URL or a store name.
+    source: ../tests/specializations/resolvers/demo_resolver_data/sex.json
+    # TODO Example for an Hjson string or an URL.
+    terms mapping: ../tests/specializations/resolvers/demo_resolver_data/sex_mapping.hjson
+    resolver: DemoResolver
+
+Identifiers:
+  formatter: https://knowledgegraph.domain.ch/{}/{}

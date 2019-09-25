@@ -13,9 +13,8 @@ class QueryingInterface:
         return self.forge.store.retrieve(id, version)
 
     def search(self, *filters, **params) -> Resources:
-        # FIXME FIXME FIXME
-        revolver = None  # self.forge.ontologies.resolve
-        return self.forge.store.search(revolver, *filters, **params)
+        revolvers = self.forge.ontologies
+        return self.forge.store.search(revolvers, *filters, **params)
 
     def sparql(self, query: str) -> Resources:
         prefixes = self.forge.modeling.prefixes()
