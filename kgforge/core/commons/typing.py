@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Union
 
 from kgforge.core.resources import Resource, Resources
 
@@ -32,7 +32,3 @@ def do(fun: Callable, data: ManagedData, error: bool, *args) -> None:
     else:
         if error:
             raise TypeError("not managed data")
-
-
-def as_list(data: Any) -> List[Any]:
-    return [data] if not isinstance(data, list) else data

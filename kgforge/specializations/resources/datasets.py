@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from kgforge.core.commons.actions import LazyAction
-from kgforge.core.commons.typing import DirPath, IRI, ManagedData, as_list
+from kgforge.core.commons.typing import DirPath, IRI, ManagedData
 from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.resources import Resource, Resources
 
@@ -26,15 +26,18 @@ class Dataset(Resource):
         keep = ["type", "id", "name", "distribution.contentUrl"]
         self.hasPart = self._forge.transforming.reshape(resources, keep, versioned)
 
-    def files(self) -> Optional["DatasetFiles"]:
+    def files(self) -> Union[Optional["DatasetFiles"], LazyAction]:
         """Returns files part of the dataset (schema:distribution) in an handler."""
-        try:
-            distribution = Resources(x.distribution for x in as_list(self.hasPart))
-        except AttributeError:
-            hasPart = self.parts()
-            return hasPart if isinstance(hasPart, LazyAction) else None
+        if hasattr(self, "hasPart"):
+            if isinstance(self.hasPart, LazyAction):
+                return self.hasPart
+            elif isinstance(self.hasPart, List):
+                distribution = Resources(x.distribution for x in self.hasPart)
+                return DatasetFiles(self._forge, distribution)
+            else:
+                return DatasetFiles(self._forge, self.hasPart.distribution)
         else:
-            return DatasetFiles(self._forge, distribution)
+            return None
 
     def with_files(self, path: DirPath) -> None:
         """Set files part of the dataset (schema:distribution)."""
@@ -45,7 +48,10 @@ class Dataset(Resource):
 
     def with_contributors(self, agents: Union[IRI, List[IRI]]) -> None:
         # FIXME Check how to best include the optional resources (Plan, Role).
-        self.contribution = [Resource(type="Contribution", agent=x) for x in as_list(agents)]
+        if isinstance(agents, List):
+            self.contribution = Resources(Resource(type="Contribution", agent=x) for x in agents)
+        else:
+            self.contribution = Resource(type="Contribution", agent=agents)
 
     def derivations(self) -> Optional[Resources]:
         return getattr(self, "derivation", None)
@@ -54,7 +60,10 @@ class Dataset(Resource):
         # FIXME Check how to best include the optional resources (Activity, Usage).
         keep = ["type", "id"]
         entities = self._forge.transforming.reshape(resources, keep, versioned)
-        self.derivation = [Resource(type="Derivation", entity=x) for x in entities]
+        if isinstance(entities, List):
+            self.derivation = Resources(Resource(type="Derivation", entity=x) for x in entities)
+        else:
+            self.derivation = Resource(type="Derivation", entity=entities)
 
     # FIXME Implement methods for 'generation' and 'invalidation' as for derivation.
 
