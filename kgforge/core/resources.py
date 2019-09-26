@@ -38,7 +38,7 @@ class Resource:
         return f"Resource({attributes_str})"
 
     def __str__(self) -> str:
-        return _str(self)
+        return hjson.dumps(self, indent=4, default=_encode, item_sort_key=sort_attributes)
 
     def __setattr__(self, key, value) -> None:
         if key not in self._RESERVED:
@@ -54,13 +54,13 @@ class Resources(list):
         super().__init__(resources)
 
     def __str__(self) -> str:
-        return _str(self)
+        return hjson.dumps(self, indent=4, default=_encode)
 
 
-def _str(data: "ManagedData") -> str:
-    def _as_dict(x: Any) -> Union[str, Dict]:
-        if type(x).__name__ == "LazyAction":
-            return str(x)
-        else:
-            return {k: v for k, v in x.__dict__.items() if k not in Resource._RESERVED}
-    return hjson.dumps(data, indent=4, default=_as_dict, item_sort_key=sort_attributes)
+def _encode(data: Any) -> Union[str, Dict]:
+    if isinstance(data, Resource):
+        return {k: v for k, v in data.__dict__.items() if k not in data._RESERVED}
+    elif type(data).__name__ == "LazyAction":
+        return str(data)
+    else:
+        return data.__dict__

@@ -38,7 +38,7 @@ class Reshaper:
                     new_value = self._reshape_one(value, leafs)
                 else:
                     attributes = value.__dict__.items()
-                    properties = {k: v for k, v in attributes if k not in Resource._RESERVED}
+                    properties = {k: v for k, v in attributes if k not in value._RESERVED}
                     new_value = Resource(**properties)
             else:
                 new_value = value
