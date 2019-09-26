@@ -4,9 +4,18 @@
 
 # Knowledge Graph Forge
 
-The *Knowledge Graph Forge* is a framework building **a bridge between
-data engineers, knowledge engineers, and (data) scientists** in the context
+The *Knowledge Graph Forge* is a **framework building a bridge** between
+data engineers, knowledge engineers, and (data) scientists in the context
 of knowledge graphs.
+
+This unified framework makes easier for:
+- **data engineers** to define, execute, share data transformations in a traceable way,
+- **knowledge engineers** to define and share knowledge representations of heterogeneous data,
+- **(data) scientists** to query and register data during their analysis without
+having to worry about the semantic formats and technologies,
+
+while guarantying the consistency of operations with a knowledge graph schema
+like [Neuroshapes](https://github.com/INCF/neuroshapes).
 
 ## Getting Started
 
