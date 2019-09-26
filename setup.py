@@ -26,7 +26,7 @@ setup(
     python_requires=">=3.6",
     install_requires=[
         "hjson",
-        "poyo"
+        "poyo",
         "pandas",
     ],
     extras_require={
