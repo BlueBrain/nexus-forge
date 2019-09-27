@@ -1,18 +1,18 @@
 Model:
   name: DemoModel
   # TODO Example for an URL or a model name.
-  source: ../tests/specializations/models/demo_model_data/
+  source: ../tests/data/demo-model/
 
 Store:
   name: DemoStore
-  file to resource mapping: ../tests/specializations/stores/demo_store_data/file-to-resource-mapping.hjson
+  file to resource mapping: ../tests/data/demo-store/file-to-resource-mapping.hjson
 
 Ontologies:
   sex:
     # TODO Example for an URL or a store name.
-    source: ../tests/specializations/resolvers/demo_resolver_data/sex.json
+    source: ../tests/data/demo-resolver/sex.json
     # TODO Example for an Hjson string or an URL.
-    term to resource mapping: ../tests/specializations/resolvers/demo_resolver_data/term-to-resource-mapping.hjson
+    term to resource mapping: ../tests/data/demo-resolver/term-to-resource-mapping.hjson
     resolver: DemoResolver
 
 Identifiers:

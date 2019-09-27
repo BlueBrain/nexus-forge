@@ -8,7 +8,7 @@ scenarios("demo_model.feature")
 
 @given("A model instance.")
 def model():
-    return DemoModel("tests/specializations/models/demo_model_data/")
+    return DemoModel("tests/data/demo-model/")
 
 
 @given("A validated resource.", target_fixture="data")
