@@ -7,18 +7,19 @@ import hjson
 
 from kgforge.core.commons.actions import run
 from kgforge.core.commons.attributes import not_supported, sort_attributes
-from kgforge.core.commons.typing import Hjson
+from kgforge.core.commons.typing import DirPath, Hjson, URL
 from kgforge.core.modeling.exceptions import ValidationError
 from kgforge.core.modeling.model import Model
 from kgforge.core.resources import Resource, Resources
+from kgforge.core.storing import Store
 from kgforge.core.transforming import Mapping
 
 
 class DemoModel(Model):
     """This is an implementation of a Model to perform tests and help implement specializations."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, source: Union[DirPath, URL, Store]) -> None:
+        super().__init__(source)
         # TODO Example for 'Model data could be loaded from an URL or the store'.
         self.source = Path(self.source)
 

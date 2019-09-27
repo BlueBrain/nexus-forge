@@ -9,7 +9,7 @@ scenarios("demo_store.feature")
 
 @given("A store instance.")
 def store():
-    return DemoStore(None, None, None, None)
+    return DemoStore()
 
 
 @given("An already registered resource.", target_fixture="data")

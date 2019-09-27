@@ -21,7 +21,9 @@ def run(fun: Callable, data: ManagedData, **kwargs) -> None:
 
 
 def _run_one(fun: Callable, resource: Resource, **kwargs) -> None:
-    # Accepted parameters: status: Optional[str] = None, propagate: bool = False.
+    # Accepted parameters:
+    #   - status: Optional[str] = None
+    #   - propagate: bool = False
     status = kwargs.pop("status", None)
     propagate = kwargs.pop("propagate", False)
     try:

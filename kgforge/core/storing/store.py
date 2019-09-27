@@ -4,7 +4,7 @@ from typing import Dict, Optional, Union
 
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.exceptions import catch
-from kgforge.core.commons.typing import FilePath, Hjson, ManagedData, URL, dispatch
+from kgforge.core.commons.typing import ManagedData, dispatch
 from kgforge.core.resources import Resource, Resources
 
 
@@ -13,13 +13,12 @@ class Store(ABC):
     # See demo_store.py in kgforge/specializations/stores for an implementation.
     # Specializations should pass tests/specializations/stores/demo_store.feature tests.
 
-    def __init__(self, endpoint: Optional[URL], bucket: Optional[str], token: Optional[str],
-                 file_resource_mapping: Optional[Union[Hjson, FilePath, URL]]) -> None:
-        self.endpoint = endpoint
-        self.bucket = bucket
-        self.token = token
+    def __init__(self, **kwargs) -> None:
+        self.endpoint = kwargs.get("endpoint", None)
+        self.bucket = kwargs.get("bucket", None)
+        self.token = kwargs.get("token", None)
         # File to resource mapping could be loaded from a Hjson string, a file, or an URL.
-        self.file_resource_mapping = file_resource_mapping
+        self.file_resource_mapping = kwargs.get("file_resource_mapping", None)
 
     # [C]RUD
 
@@ -104,7 +103,9 @@ class Store(ABC):
     @catch
     @abstractmethod
     def search(self, resolvers: "OntologiesHandler", *filters, **params) -> Resources:
-        # Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children").
+        # Accepted parameters:
+        #   - resolving ("exact", "fuzzy")
+        #   - lookup ("current", "children")
         # POLICY Resource _synchronized should be set to True and _store_metadata should be set.
         # POLICY Should notify of failures with exception QueryingError including a message.
         pass

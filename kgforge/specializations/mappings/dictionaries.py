@@ -9,8 +9,8 @@ from kgforge.core.transforming.mapping import Mapping
 
 class DictionaryMapping(Mapping):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, mapping: str) -> None:
+        super().__init__(mapping)
 
     @staticmethod
     def load(path: str) -> "DictionaryMapping":

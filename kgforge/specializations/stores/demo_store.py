@@ -14,8 +14,8 @@ from kgforge.core.storing.store import Store
 class DemoStore(Store):
     """This is an implementation of a Store to perform tests and help implement specializations."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
         # TODO Example for 'File to resource mapping could be loaded from a Hjson string, a file, or an URL'.
         # TODO Example for a store using 'bucket' and 'token'.
         self._data = {}

@@ -5,15 +5,15 @@ Model:
 
 Store:
   name: DemoStore
-  file to resource mapping: ../tests/data/demo-store/file-to-resource-mapping.hjson
+  file_resource_mapping: ../tests/data/demo-store/file-to-resource-mapping.hjson
 
 Ontologies:
   sex:
     # TODO Example for an URL or a store name.
     source: ../tests/data/demo-resolver/sex.json
-    # TODO Example for an Hjson string or an URL.
-    term to resource mapping: ../tests/data/demo-resolver/term-to-resource-mapping.hjson
     resolver: DemoResolver
+    # TODO Example for an Hjson string or an URL.
+    term_resource_mapping: ../tests/data/demo-resolver/term-to-resource-mapping.hjson
 
 Identifiers:
   formatter: https://knowledgegraph.domain.ch/{}/{}

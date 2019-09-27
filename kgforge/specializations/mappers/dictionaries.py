@@ -9,8 +9,8 @@ from kgforge.core.transforming.mapping import Mapping
 
 class DictionaryMapper(Mapper):
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, forge: "KnowledgeGraphForge") -> None:
+        super().__init__(forge)
 
     def _reader(self) -> Callable:
         return json.load
