@@ -62,6 +62,20 @@ class DemoModel(Model):
         run(self._validate, resource, status="_validated")
 
     def _validate(self, resource: Resource) -> bool:
+        def verify(nested_resource: Resource, nested_schema: Dict) -> None:
+            for k, v in nested_schema.items():
+                compacted = self._compact(k)
+                if isinstance(v, Dict):
+                    verify(getattr(nested_resource, compacted), v)
+                else:
+                    rule = f"{v}(resource, '{compacted}')"
+                    try:
+                        check = eval(rule, {}, {"resource": nested_resource})
+                    except (TypeError, NameError, SyntaxError):
+                        pass
+                    else:
+                        if not check:
+                            raise ValidationError(f"{compacted} is missing")
         try:
             type_ = resource.type
         except AttributeError:
@@ -69,17 +83,8 @@ class DemoModel(Model):
         else:
             type_expanded = self._expand(type_)
             schema = self._schema(type_expanded)
-            for k, v in schema.items():
-                # FIXME Validation of nested structures.
-                if isinstance(v, Dict):
-                    raise NotImplementedError("nested validation not supported yet")
-                if k != "rdf:type":
-                    prop_compacted = self._compact(k)
-                    rule = f"{v}(resource, '{prop_compacted}')"
-                    if not eval(rule, {}, {"resource": resource}):
-                        raise ValidationError(f"{prop_compacted} is missing")
-                    else:
-                        return True
+            verify(resource, schema)
+            return True
 
     def _compact(self, value: Union[str, Dict]) -> Union[str, Dict]:
         if isinstance(value, str):
