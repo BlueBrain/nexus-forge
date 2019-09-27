@@ -1,6 +1,5 @@
 Model:
   name: DemoModel
-  # TODO Example for an URL or a model name.
   source: ../tests/data/demo-model/
 
 Store:
@@ -9,10 +8,8 @@ Store:
 
 Ontologies:
   sex:
-    # TODO Example for an URL or a store name.
     source: ../tests/data/demo-resolver/sex.json
     resolver: DemoResolver
-    # TODO Example for an Hjson string or an URL.
     term_resource_mapping: ../tests/data/demo-resolver/term-to-resource-mapping.hjson
 
 Identifiers:

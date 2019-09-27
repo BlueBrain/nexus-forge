@@ -25,17 +25,17 @@ class Converters:
     @classmethod
     @catch
     def as_jsonld(cls, data: ManagedData, compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]:
-        # TODO Implement.
+        # FIXME Implement.
         raise NotImplementedError("TODO Implement")
 
     @classmethod
     @catch
     def as_triples(cls, data: ManagedData, store_metadata: bool = False) -> List[Tuple[str, str, str]]:
-        # TODO Implement.
+        # FIXME Implement.
         raise NotImplementedError("TODO Implement")
 
     @classmethod
     @catch
     def as_dataframe(cls, data: ManagedData, store_metadata: bool = False) -> DataFrame:
-        # TODO Implement.
+        # FIXME Implement.
         raise NotImplementedError("TODO Implement")

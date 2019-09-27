@@ -16,8 +16,6 @@ class DemoStore(Store):
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        # TODO Example for 'File to resource mapping could be loaded from a Hjson string, a file, or an URL'.
-        # TODO Example for a store using 'endpoint', 'bucket' and 'token'.
         self._data = {}
         self._archives = {}
         self._tags = {}
@@ -38,7 +36,7 @@ class DemoStore(Store):
         run(self._register, resource, status="_synchronized", update=update)
 
     def _register(self, resource: Resource, update: bool) -> None:
-        # FIXME Example for "Values of type LazyAction should be processed first".
+        # TODO Example for "Values of type LazyAction should be processed first".
         try:
             rid = resource.id
         except AttributeError:
@@ -120,7 +118,6 @@ class DemoStore(Store):
     @catch
     def search(self, resolvers: "OntologiesHandler", *filters, **params) -> Resources:
         # TODO Example for 'Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children")".
-        # TODO Example for 'Should notify of failures with exception QueryingError including a message'.
         records = [x for x in self._data.values()]
         for x in filters:
             path = ".".join(x.path)

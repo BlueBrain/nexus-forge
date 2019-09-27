@@ -42,7 +42,8 @@ class Store(ABC):
 
     @catch
     def upload(self, path: str) -> ManagedData:
-        # FIXME Example implementation in DemoStore.
+        # TODO Example implementation in DemoStore.
+        # TODO The logic is the same as what DemoResolver.resolve() do with terms_resource_mapping.
         # POLICY Should use self.file_resource_mapping to map Store metadata to Model metadata.
         # POLICY Resource _synchronized should be set to True.
         # POLICY Should notify of failures with exception UploadingError including a message.
@@ -50,12 +51,10 @@ class Store(ABC):
         return self._upload_many(p) if p.is_dir() else self._upload_one(p)
 
     def _upload_many(self, dirpath: Path) -> Resources:
-        # FIXME Example implementation in DemoStore.
         # POLICY Follow upload() policies.
         not_supported()
 
     def _upload_one(self, filepath: Path) -> Resource:
-        # FIXME Example implementation in DemoStore.
         # POLICY Follow upload() policies.
         not_supported()
 
@@ -70,7 +69,7 @@ class Store(ABC):
 
     @catch
     def download(self, data: ManagedData, follow: str, path: str) -> None:
-        # FIXME Example implementation in DemoStore.
+        # TODO Example implementation in DemoStore.
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()
 

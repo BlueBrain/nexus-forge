@@ -20,7 +20,6 @@ class DemoModel(Model):
 
     def __init__(self, source: Union[DirPath, URL, Store]) -> None:
         super().__init__(source)
-        # TODO Example for 'Model data could be loaded from an URL or the store'.
         self.source = Path(self.source)
 
     def prefixes(self) -> Dict[str, str]:
@@ -33,13 +32,16 @@ class DemoModel(Model):
             return [self._compact(x) for x in schemas.keys()]
 
     def template(self, type: str, only_required: bool = False) -> Hjson:
-        # FIXME Example for 'Each nested typed resource should have its template included'.
         if only_required:
             not_supported(("only_required", True))
         else:
             type_expanded = self._expand(type)
             schema = self._schema(type_expanded)
             schema_compacted = self._compact(schema)
+            # TODO Example for 'Each nested typed resource should have its template included'.
+            for k, v in schema_compacted.items():
+                if isinstance(v, Dict):
+                    print("NB: DemoStore is not automatically including templates for nested typed resources yet")
             return hjson.dumps(schema_compacted, indent=4, item_sort_key=sort_attributes)
 
     def mappings(self, source: str) -> Dict[str, List[str]]:
