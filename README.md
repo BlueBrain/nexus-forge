@@ -17,6 +17,31 @@ having to worry about the semantic formats and technologies,
 while guarantying the consistency of operations with a knowledge graph schema
 like [Neuroshapes](https://github.com/INCF/neuroshapes).
 
+The **architectural design choices**:
+ 1) be generic on where it brings flexibility for adaptation to multiple ecosystems,
+ 2) be opinionated on where it simplifies the complexity,
+ 3) have strong separation of concern with delegation to the lowest level for modularity.
+
+## Installation
+
+Stable version
+
+```bash
+pip install kgforge
+```
+
+Upgrade to latest version
+
+```bash
+pip install --upgrade kgforge
+```
+
+Development version
+
+```bash
+pip install git+https://github.com/BlueBrain/kgforge
+```
+
 ## Getting Started
 
 See `examples` folder for notebooks and what a configuration file looks like.
@@ -48,6 +73,8 @@ as_dataframe(data: ManagedData, store_metadata: bool = False) -> DataFrame
 prefixes() -> Dict[str, str]
 types() -> List[str]
 template(type: str, only_required: bool = False) -> None
+mappings(self, source: str) -> Dict[str, List[str]]
+mapping(self, type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
 validate(data: ManagedData) -> None
 paths(type: str) -> PathsWrapper
 
@@ -80,7 +107,7 @@ download(data: ManagedData, follow: str, path: str) -> None
 Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
   parts() -> Optional[Resources]
   with_parts(resources: ManagedData, versioned: bool = True) -> None
-  files() -> Optional[DatasetFiles]
+  files() -> Union[Optional["DatasetFiles"], LazyAction]
   with_files(path: DirPath) -> None
 
 
@@ -119,26 +146,6 @@ DemoResolver
 DemoStore
 RdfLibGraph [TODO]
 BlueBrainNexus[TODO]
-```
-
-## Installation
-
-Stable version
-
-```bash
-pip install kgforge
-```
-
-Upgrade to latest version
-
-```bash
-pip install --upgrade kgforge
-```
-
-Development version
-
-```bash
-pip install git+https://github.com/BlueBrain/kgforge
 ```
 
 ## Contributing
