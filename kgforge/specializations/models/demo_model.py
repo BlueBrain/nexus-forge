@@ -95,10 +95,9 @@ class DemoModel(Model):
             return {self._compact(k): self._compact(v) for k, v in value.items()}
 
     def _expand(self, value: str) -> str:
-        # FIXME Configure an ontology & Use forge.ontology.resolve() with type="Class" instead.
-        with (self.source / "vocabulary.json").open() as f:
-            vocabulary = json.load(f)
-            return vocabulary[value]
+        with (self.source / "core.json").open() as f:
+            loaded = json.load(f)
+            return next(x["id"] for x in loaded["Class"] if x["label"] == value)
 
     def _schema(self, type_expanded: str) -> Dict:
         # TODO Example of 'There could be caching but it should be aware of changes made in the source'.

@@ -59,11 +59,12 @@ class KnowledgeGraphForge:
         #   file_resource_mapping: <an Hjson string, a file path, or an URL>  # (optional)
         #
         # (optional)
+        # TODO Add possibility to configure default resolver and term_resource_mapping.
         # Ontologies:
         #   <ontology name>:
         #       source: <a file path, an URL, or the store name>
         #       resolver: <a class name in specializations/resolvers, imported in the module __init__.py>
-        #       term to resource mapping: <an Hjson string, a file path, or an URL>
+        #       term_resource_mapping: <an Hjson string, a file path, or an URL>
         #
         # (optional)
         # Identifiers:
