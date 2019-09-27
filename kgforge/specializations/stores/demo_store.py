@@ -1,6 +1,5 @@
 from collections import namedtuple
 from typing import Dict, Optional, Union
-from uuid import uuid4
 
 from kgforge.core.commons.actions import run
 from kgforge.core.commons.exceptions import catch
@@ -22,6 +21,12 @@ class DemoStore(Store):
         self._data = {}
         self._archives = {}
         self._tags = {}
+        self._last_id = -1
+
+    def _new_id(self):
+        next_id = self._last_id + 1
+        self._last_id = next_id
+        return next_id
 
     # [C]RUD
 
@@ -37,7 +42,7 @@ class DemoStore(Store):
         try:
             rid = resource.id
         except AttributeError:
-            rid = str(uuid4())
+            rid = self._new_id()
             resource.id = rid
         finally:
             if rid in self._data.keys():
