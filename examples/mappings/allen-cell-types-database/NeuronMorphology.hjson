@@ -19,7 +19,7 @@
             valueY: x.csl__y
             valueZ: x.csl__z
         }
-        layer: forge.ontologies.resolve("brain region", x.structure__layer, "layer")
+        layer: forge.ontologies.resolve(f"layer {x.structure__layer}", "brain region")
     }
     contribution:
     {
