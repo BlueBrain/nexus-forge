@@ -13,12 +13,12 @@ class OntologyConfiguration(NamedTuple):
     # Some ontologies could have different source data.
     # Ontology data could be loaded from a file, an URL, or the store.
     source: Union[FilePath, URL, Store]
-    # Some ontologies could have their resolved terms in different formats.
-    # Ontology terms mapping could be loaded from a Hjson string, a file, or an URL.
-    terms_mapping: Union[Hjson, FilePath, URL]
     # Some ontologies could have their terms resolved differently.
     # Ontology resolver is a derived class of OntologyResolver.
     resolver: Callable
+    # Some ontologies could have their resolved terms in different formats.
+    # Ontology term to resource mapping could be loaded from a Hjson string, a file, or an URL.
+    term_resource_mapping: Union[Hjson, FilePath, URL]
 
 
 class ResolvingStrategy(Enum):
@@ -39,5 +39,5 @@ class OntologyResolver(ABC):
     def resolve(self, label: str, type: str, strategy: ResolvingStrategy) -> ManagedData:
         # POLICY With ResolvingStrategy.BEST_MATCH, returns a (unique) Resource.
         # POLICY Use already defined mappers, if possible, to map returned data to a resource.
-        # POLICY Use configuration.terms_mapping to know how to do it.
+        # POLICY Use configuration.term_resource_mapping to know how to do it.
         pass

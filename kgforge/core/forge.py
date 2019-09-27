@@ -25,15 +25,16 @@ class KnowledgeGraphForge:
                  model_source: Union[DirPath, URL, "Store"],
                  # Store.
                  store: Callable,
-                 files_mapping: Optional[Union[Hjson, FilePath, URL]] = None,
+                 endpoint: Optional[URL] = None,
                  bucket: Optional[str] = None,
                  token: Optional[str] = None,
+                 file_resource_mapping: Optional[Union[Hjson, FilePath, URL]] = None,
                  # Ontologies.
                  ontologies: Optional[List[OntologyConfiguration]] = None,
                  # Identifiers.
                  formatter: Optional[str] = None) -> None:
         self.model: Model = model(model_source)
-        self.store: Store = store(files_mapping, bucket, token)
+        self.store: Store = store(endpoint, bucket, token, file_resource_mapping)
         # Handlers.
         self.ontologies = OntologiesHandler(ontologies) if ontologies else None
         self.identifiers = IdentifiersHandler(formatter) if formatter else None
@@ -55,13 +56,14 @@ class KnowledgeGraphForge:
         #
         # Store:
         #   name: <a class name in specializations/stores, imported in the module __init__.py>
-        #   files mapping: <an Hjson string, a file path, or an URL>  # (optional)
+        #   endpoint: <an URL>  # (optional)
+        #   file to resource mapping: <an Hjson string, a file path, or an URL>  # (optional)
         #
         # (optional)
         # Ontologies:
         #   <ontology name>:
         #       source: <a file path, an URL, or the store name>
-        #       terms mapping: <an Hjson string, a file path, or an URL>
+        #       term to resource mapping: <an Hjson string, a file path, or an URL>
         #       resolver: <a class name in specializations/resolvers, imported in the module __init__.py>
         #
         # (optional)
@@ -69,8 +71,9 @@ class KnowledgeGraphForge:
         #   formatter: <a string with replacement fields delimited by braces, i.e. '{}'>
         #
         def _convert(configurations: Dict) -> List[OntologyConfiguration]:
-            return [OntologyConfiguration(name=k, source=v["source"], terms_mapping=v["terms mapping"],
-                                          resolver=getattr(resolvers, v["resolver"]))
+            return [OntologyConfiguration(name=k, source=v["source"],
+                                          resolver=getattr(resolvers, v["resolver"]),
+                                          term_resource_mapping=v["term to resource mapping"])
                     for k, v in configurations.items()]
         models = import_module("kgforge.specializations.models")
         stores = import_module("kgforge.specializations.stores")
@@ -83,11 +86,12 @@ class KnowledgeGraphForge:
             model_source = config["Model"]["source"]
             # Store.
             store = getattr(stores, config["Store"]["name"])
-            files_mapping = config["Store"].get("files mapping", None)
+            endpoint = config["Store"].get("endpoint", None)
+            file_resource_mapping = config["Store"].get("file to resource mapping", None)
             # Ontologies.
             configurations = config.get("Ontologies", None)
             ontologies = _convert(configurations) if configurations else None
             # Identifiers.
             formatter = config.get("Identifiers", {}).get("formatter", None)
-            return KnowledgeGraphForge(model, model_source, store, files_mapping, bucket, token,
-                                       ontologies, formatter)
+            return KnowledgeGraphForge(model, model_source, store, endpoint, bucket, token,
+                                       file_resource_mapping, ontologies, formatter)

@@ -54,7 +54,7 @@ paths(type: str) -> PathsWrapper
 > Handlers
 Identifiers: format(*args) -> str
 Ontologies: resolve(label: str, ontology: str, type: str = "Class",
-  strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource
+    strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource
 Files: as_resource(path: str) -> LazyAction
 
 
@@ -94,7 +94,8 @@ Mapping(mapping: str)
 Model(source: Union[DirPath, URL, Store])
 OntologyResolver(configuration: OntologyConfiguration)
 
-Store(file_mapping: Optional[Union[Hjson, FilePath, URL]], bucket: Optional[str], token: Optional[str])
+Store(endpoint: Optional[URL], bucket: Optional[str], token: Optional[str],
+    file_resource_mapping: Optional[Union[Hjson, FilePath, URL]])
 
 
 # Archetypes implementations

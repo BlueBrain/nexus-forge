@@ -5,14 +5,14 @@ Model:
 
 Store:
   name: DemoStore
-  files mapping: ../tests/specializations/stores/demo_store_data/files_mapping.hjson
+  file to resource mapping: ../tests/specializations/stores/demo_store_data/file-to-resource-mapping.hjson
 
 Ontologies:
   sex:
     # TODO Example for an URL or a store name.
     source: ../tests/specializations/resolvers/demo_resolver_data/sex.json
     # TODO Example for an Hjson string or an URL.
-    terms mapping: ../tests/specializations/resolvers/demo_resolver_data/sex_mapping.hjson
+    term to resource mapping: ../tests/specializations/resolvers/demo_resolver_data/term-to-resource-mapping.hjson
     resolver: DemoResolver
 
 Identifiers:

@@ -13,12 +13,13 @@ class Store(ABC):
     # See demo_store.py in kgforge/specializations/stores for an implementation.
     # Specializations should pass tests/specializations/stores/demo_store.feature tests.
 
-    def __init__(self, file_mapping: Optional[Union[Hjson, FilePath, URL]], bucket: Optional[str],
-                 token: Optional[str]) -> None:
-        # Files mapping could be loaded from a Hjson string, a file, or an URL.
-        self.files_mapping = file_mapping
+    def __init__(self, endpoint: Optional[URL], bucket: Optional[str], token: Optional[str],
+                 file_resource_mapping: Optional[Union[Hjson, FilePath, URL]]) -> None:
+        self.endpoint = endpoint
         self.bucket = bucket
         self.token = token
+        # File to resource mapping could be loaded from a Hjson string, a file, or an URL.
+        self.file_resource_mapping = file_resource_mapping
 
     # [C]RUD
 
@@ -43,7 +44,7 @@ class Store(ABC):
     @catch
     def upload(self, path: str) -> ManagedData:
         # FIXME Example implementation in DemoStore.
-        # POLICY Should use self.files_mapping to map Store metadata to Model metadata.
+        # POLICY Should use self.file_resource_mapping to map Store metadata to Model metadata.
         # POLICY Resource _synchronized should be set to True.
         # POLICY Should notify of failures with exception UploadingError including a message.
         p = Path(path)

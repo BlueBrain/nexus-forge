@@ -13,8 +13,8 @@ class DemoResolver(OntologyResolver):
     def __init__(self, configuration: OntologyConfiguration) -> None:
         super().__init__()
         self.name = configuration.name
-        # TODO Example for 'Ontology terms mapping could be loaded from a Hjson string or an URL'.
-        self.terms_mapping = DictionaryMapping.load(configuration.terms_mapping)
+        # TODO Example for 'Ontology term to resource mapping could be loaded from a Hjson string or an URL'.
+        self.term_resource_mapping = DictionaryMapping.load(configuration.term_resource_mapping)
         with Path(configuration.source).open() as f:
             self.ontology = json.load(f)
 
@@ -25,4 +25,4 @@ class DemoResolver(OntologyResolver):
             selected = ordered[0][1]
         else:
             selected = [x[1] for x in ordered]
-        return DictionaryMapper(None).map(selected, self.terms_mapping)
+        return DictionaryMapper(None).map(selected, self.term_resource_mapping)

@@ -16,7 +16,7 @@ class DemoStore(Store):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        # TODO Example for 'Files mapping could be loaded from a Hjson string, a file, or an URL'.
+        # TODO Example for 'File to resource mapping could be loaded from a Hjson string, a file, or an URL'.
         # TODO Example for a store using 'bucket' and 'token'.
         self._data = {}
         self._archives = {}
