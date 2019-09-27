@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.typing import DirPath, Hjson, ManagedData, URL, dispatch
 from kgforge.core.resources import Resource, Resources
 from kgforge.core.storing.store import Store
+from kgforge.core.transforming import Mapping
 
 
 class Model(ABC):
@@ -33,6 +34,14 @@ class Model(ABC):
         # POLICY The order is then, recursively: 'type', 'id', properties sorted alphabetically.
         # POLICY The value of 'type' and the properties should be compacted (i.e. not IRI nor CURIE).
         pass
+
+    def mappings(self, data_source: str) -> Dict[str, List[str]]:
+        # POLICY Keys should be managed types with mappings for the given data source.
+        # POLICY Values should be available mapping types for the resource type.
+        not_supported()
+
+    def mapping(self, type: str, data_source: str, mapping_type: Optional[str]) -> Mapping:
+        not_supported()
 
     def validate(self, data: ManagedData) -> None:
         # POLICY Resource _last_action and _validated should be updated.

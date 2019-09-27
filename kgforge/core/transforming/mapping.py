@@ -5,6 +5,7 @@ from typing import Any
 
 class Mapping(ABC):
 
+    # TODO Add mapping type.
     # TODO Add used versions of the forge and the model.
     # TODO Add used mappings for ontology terms and files.
     # TODO Add used formatter for identifiers.
@@ -26,7 +27,9 @@ class Mapping(ABC):
     def save(self, path: str) -> None:
         # POLICY Should save the mapping in a normalized representation.
         normalized = self._normalize_rules(self.rules)
-        Path(path).write_text(normalized)
+        filepath = Path(path)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        filepath.write_text(normalized)
 
     @abstractmethod
     def _load_rules(self, mapping: str) -> Any:

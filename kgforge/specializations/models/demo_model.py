@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Callable, Dict, List, Union
 
 import hjson
 
@@ -11,6 +11,7 @@ from kgforge.core.commons.typing import Hjson
 from kgforge.core.modeling.exceptions import ValidationError
 from kgforge.core.modeling.model import Model
 from kgforge.core.resources import Resource, Resources
+from kgforge.core.transforming import Mapping
 
 
 class DemoModel(Model):
@@ -39,6 +40,18 @@ class DemoModel(Model):
             schema = self._schema(type_expanded)
             schema_compacted = self._compact(schema)
             return hjson.dumps(schema_compacted, indent=4, item_sort_key=sort_attributes)
+
+    def mappings(self, source: str) -> Dict[str, List[str]]:
+        dirpath = Path(self.source, "mappings", source)
+        mappings = {}
+        if dirpath.is_dir():
+            for x in dirpath.glob("*/*.hjson"):
+                mappings.setdefault(x.stem, []).append(x.parent.name)
+        return mappings
+
+    def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
+        filepath = Path(self.source, "mappings", data_source, mapping_type.__name__, f"{type}.hjson")
+        return mapping_type.load(filepath)
 
     def _validate_many(self, resources: Resources) -> None:
         # TODO Example of an optimization for bulk validation.
