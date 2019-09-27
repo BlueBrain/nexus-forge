@@ -27,9 +27,9 @@ class DemoModel(Model):
             return json.load(f)
 
     def types(self) -> List[str]:
-        with (self.source / "schemas.json").open() as f:
-            schemas = json.load(f)
-            return [self._compact(x) for x in schemas.keys()]
+        with (self.source / "core.json").open() as f:
+            loaded = json.load(f)
+            return [x["label"] for x in loaded["Class"]]
 
     def template(self, type: str, only_required: bool = False) -> Hjson:
         if only_required:
