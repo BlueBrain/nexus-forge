@@ -26,7 +26,7 @@ class Dataset(Resource):
         keep = ["type", "id", "name", "distribution.contentUrl"]
         self.hasPart = self._forge.transforming.reshape(resources, keep, versioned)
 
-    def files(self) -> Union[Optional["DatasetFiles"], LazyAction]:
+    def files(self) -> Optional[Union["DatasetFiles", LazyAction]]:
         """Returns files part of the dataset (schema:distribution) in an handler."""
         if hasattr(self, "hasPart"):
             if isinstance(self.hasPart, LazyAction):
