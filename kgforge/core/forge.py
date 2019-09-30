@@ -51,7 +51,7 @@ class KnowledgeGraphForge:
         #
         # Model:
         #   name: <a class name in specializations/models, imported in the module __init__.py>
-        #   source: <a directory path, an URL, or the model name>
+        #   source: <a directory path, an URL, or the store name>
         #
         # Store:
         #   name: <a class name in specializations/stores, imported in the module __init__.py>
