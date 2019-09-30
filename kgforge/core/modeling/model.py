@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Union
 
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.typing import DirPath, Hjson, ManagedData, URL, dispatch
@@ -40,7 +40,7 @@ class Model(ABC):
         # POLICY Values should be available mapping types for the resource type.
         not_supported()
 
-    def mapping(self, type: str, data_source: str, mapping_type: Optional[str]) -> Mapping:
+    def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
         not_supported()
 
     def validate(self, data: ManagedData) -> None:
