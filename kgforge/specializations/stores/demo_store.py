@@ -122,8 +122,6 @@ class DemoStore(Store):
         for x in filters:
             path = ".".join(x.path)
             condition = f"r.{path}.{x.operator}({x.value!r})"
-
-
             records = [r for r in records
                        if eval(condition, {}, {"x": x, "r": DictWrapper._wrap(r["data"])})]
         resources = Resources(self._to_resource(y) for y in records)
