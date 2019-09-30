@@ -28,6 +28,7 @@ setup(
         "hjson",
         "poyo",
         "pandas",
+        "nexus-sdk"
     ],
     extras_require={
         "dev": ["pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],

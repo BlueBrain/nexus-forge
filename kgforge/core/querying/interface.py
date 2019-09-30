@@ -10,15 +10,15 @@ class QueryingInterface:
         self.forge = forge
 
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
-        return self.forge.store.retrieve(id, version)
+        return self.forge._store.retrieve(id, version)
 
     def search(self, *filters, **params) -> Resources:
         revolvers = self.forge.ontologies
-        return self.forge.store.search(revolvers, *filters, **params)
+        return self.forge._store.search(revolvers, *filters, **params)
 
     def sparql(self, query: str) -> Resources:
         prefixes = self.forge.modeling.prefixes()
-        return self.forge.store.sparql(prefixes, query)
+        return self.forge._store.sparql(prefixes, query)
 
     def download(self, data: ManagedData, follow: str, path: str) -> None:
-        self.forge.store.download(data, follow, path)
+        self.forge._store.download(data, follow, path)

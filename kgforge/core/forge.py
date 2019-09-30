@@ -31,16 +31,16 @@ class KnowledgeGraphForge:
         #   > Identifiers
         #       - formatter: str
         # Model.
-        self.model: Model = model(model_source)
+        self._model: Model = model(model_source)
         # Store.
-        self.store: Store = store(**kwargs)
+        self._store: Store = store(**kwargs)
         # Handlers.
         self.ontologies = OntologiesHandler(kwargs["ontologies"]) if "ontologies" in kwargs else None
         self.identifiers = IdentifiersHandler(kwargs["formatter"]) if "formatter" in kwargs else None
-        self.files = FilesHandler(self.store)
+        self.files = FilesHandler(self._store)
         # Interfaces.
-        self.modeling = ModelingInterface(self.model)
-        self.storing = StoringInterface(self.store)
+        self.modeling = ModelingInterface(self._model)
+        self.storing = StoringInterface(self._store)
         self.querying = QueryingInterface(self)
         self.transforming = TransformingInterface(self)
 

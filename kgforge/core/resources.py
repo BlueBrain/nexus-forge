@@ -12,7 +12,7 @@ class Resource:
     # See datasets.py in kgforge/specializations/resources for a specialization.
     # Specializations should pass tests/core/resources/resource.feature tests.
 
-    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata"}
+    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_context"}
 
     def __init__(self, **properties) -> None:
         check_collisions(self._RESERVED, properties.keys())

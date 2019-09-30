@@ -15,7 +15,7 @@ class Reshaper:
         # POLICY Resource _last_action and _store_metadata should be None.
         # POLICY Resource _validated and _synchronized should be False.
         if versioned:
-            self.forge.store.freeze(data)
+            self.forge._store.freeze(data)
         return dispatch(data, self._reshape_many, self._reshape_one, keep)
 
     def _reshape_many(self, resources: Resources, keep: List[str]) -> Resources:

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from kgforge.core.commons.attributes import not_supported
+from kgforge.core.commons.attributes import not_supported, repr_
 from kgforge.core.commons.exceptions import catch
 from kgforge.core.commons.typing import ManagedData, dispatch
 from kgforge.core.resources import Resource, Resources
@@ -19,6 +19,9 @@ class Store(ABC):
         self.token = kwargs.get("token", None)
         # File to resource mapping could be loaded from a Hjson string, a file, or an URL.
         self.file_resource_mapping = kwargs.get("file_resource_mapping", None)
+
+    def __repr__(self) -> str:
+        return repr_(self)
 
     # [C]RUD
 
