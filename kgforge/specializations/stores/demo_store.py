@@ -1,4 +1,3 @@
-from collections import namedtuple
 from typing import Dict, Optional, Union
 
 from kgforge.core.commons.actions import run

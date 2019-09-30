@@ -70,7 +70,7 @@ class KnowledgeGraphForge:
         # Identifiers:
         #   formatter: <a string with replacement fields delimited by braces, i.e. '{}'>
 
-        def load_onto_config(name, x:Dict) -> OntologyConfiguration:
+        def load_onto_config(name, x: Dict) -> OntologyConfiguration:
             resolver = getattr(resolvers, x["resolver"])
             return OntologyConfiguration(name, x["source"], resolver, x["term_resource_mapping"])
 

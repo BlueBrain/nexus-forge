@@ -26,7 +26,7 @@ def sort_attributes(kv: Tuple[str, str]) -> Tuple[int, str]:
     ordered = ["_last_action", "_validated", "_synchronized", "_store_metadata", "type", "id"]
     orders = {x: i for i, x in enumerate(ordered)}
     next_order = len(ordered) + 1
-    return (orders.get(kv[0], next_order), kv[0])
+    return orders.get(kv[0], next_order), kv[0]
 
 
 def repr_(obj: object) -> str:

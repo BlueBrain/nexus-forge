@@ -18,7 +18,7 @@ class Resource:
         check_collisions(self._RESERVED, properties.keys())
         self.__dict__.update(properties)
         # Status of the last modifying action performed on the resource.
-        self._last_action: "Optional[Action]" = None
+        self._last_action: Optional["Action"] = None
         # True if the resource has been validated.
         # False if the resource has not been validated yet or a modification has been done since
         # the last validation.
