@@ -1,13 +1,24 @@
 # High priorities
 
 Converters:
-	- Implement as_jsonld().
+	- NEW Add as_graph() -> rdflib.Graph.
+	- NEW Add as_rdf(format: str = "n3") -> str.
+	- Implement as_jsonld(). NEW Use as_rdf(format="json-ld").
+	- CHANGE Rename as_triples() into as_triplets(). Implement. NEW Use as_rdf().
 	- Implement as_dataframe().
-	- Implement as_triples().
 
 Dataset:
 	- Helpers: refine contribution and derivation.
 	- Helpers: implement generation, invalidation, others?
+	- CHANGE Replace 'contributor' by 'contribution'.
+	- ?TBD? Go from plural to singular for method names.
+	- CHANGE Have files() and with_files() refering to the root distribution (i.e. not the hasPart one).
+	- CHANGE Have with_parts(data: Union[ManagedData, DirPath], versioned: bool = True).
+	- CHANGE Move current with_files() logic to the new with_parts().
+	- ?TBD? Have parts() -> Optional[List[Union[Resources, "DatasetFiles"]], LazyAction].
+		=> Cumbersome.
+	- ?TBD? Move current files() logic to the new parts().
+	- NEW Add media_type as argument of the with_files() methods.
 
 Model implementations:
 	- Neuroshapes:
@@ -25,7 +36,11 @@ Lida's use case notebook:
 # Medium priorities
 
 Forge:
-	- Add possibility to configure default resolver and term_resource_mapping.
+	- NEW Add possibility to configure 'bucket' for when 'source' is the store (i.e. for Model and Ontologies).
+	- Add possibility to configure default resolver.
+	- Add possibility to configure default term_resource_mapping.
+	- ?TBD? Make 'ontology' optional (and an IRI) in the arguments of OntologiesHandler.resolve().
+		=> Without 'ontologies', how would the Forge know which ontology to target and how to load it?!
 
 Mapping:
 	- Add mapping type.
