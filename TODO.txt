@@ -1,0 +1,73 @@
+# High priorities
+
+Converters:
+	- Implement as_jsonld().
+	- Implement as_dataframe().
+	- Implement as_triples().
+
+Dataset:
+	- Helpers: refine contribution and derivation.
+	- Helpers: implement generation, invalidation, others?
+
+Model implementations:
+	- Neuroshapes:
+		* Implement.
+
+Store implementations:
+	- BlueBrainNexus:
+		* Implement.
+
+Lida's use case notebook:
+	- Fix inaccurate data model image.
+	- Fix discrepancies between used dataset properties and Neuroshapes ones.
+
+
+# Medium priorities
+
+Forge:
+	- Add possibility to configure default resolver and term_resource_mapping.
+
+Mapping:
+	- Add mapping type.
+	- Add used versions of the forge and the model.
+	- Add used formatter for identifiers.
+	- Add used mappings for ontology terms and files.
+
+Store implementations:
+	- RdfLibGraph:
+		* Implement.
+	- DemoStore:
+		* Use forge.transforming.as_jsonld(resource, compacted=False, store_metadata=False) for resource to store data mapping.
+		* Example for query rewriting with resolving ("exact", "fuzzy") and lookup ("current", "children") parameters.
+		* Example for query rewriting in sparql().
+		* Example for processing first values of type LazyAction in register().
+		* Example for file store metadata to resource mapping in upload().
+		* Example for file metadata use to download files in download().
+
+Mapper implementations:
+	- TableMapper:
+		* Implement.
+
+
+# Low priorities
+
+DictWrapper:
+	- Make it immutable.
+
+Mapper implementations:
+	- ResourceMapper:
+		* Implement.
+
+DictionaryMapper:
+	- Add support for the full syntax of JSONPath.
+
+Model implementations:
+	- DemoModel:
+		* Example for only_required=True in template().
+		* Example for including nested typed resource templates in requested template in template().
+		* Example of an optimization for bulk validation in _validate_many().
+		* Example of source changes aware caching of schemas.
+
+Store implementations:
+	- DemoStore:
+		* Example of an optimization for bulk registration in _register_many().
