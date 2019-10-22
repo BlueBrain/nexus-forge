@@ -1,0 +1,87 @@
+-----------------------------------------------------------------------------
+                        The MIT License (MIT)
+applies to:
+- Mako, Copyright (c), 2019 Mike Bayer https://www.makotemplates.org/
+- atomicwrites, Copyright (c), 2019 Markus Unterwaditzer https://github.com/untitaker/python-atomicwrites
+- attrs, Copyright (c), 2019 Hynek Schlawack https://www.attrs.org/
+- more-itertools, Copyright (c), 2019 Erik Rose https://github.com/erikrose/more-itertools
+- poyo, Copyright (c), 2019 Raphael Pierzina https://github.com/hackebrot/poyo
+- puremagic, Copyright (c), 2019 Chris Griffith https://github.com/cdgriffith/puremagic
+- pytest-cov, Copyright (c), 2019 Marc Schlaich https://github.com/pytest-dev/pytest-cov
+- pytest-mock, Copyright (c), 2019 Bruno Oliveira https://github.com/pytest-dev/pytest-mock/
+- pytz, Copyright (c), 2019 Stuart Bishop http://pythonhosted.org/pytz
+- six, Copyright (c), 2019 Benjamin Peterson https://github.com/benjaminp/six
+- urllib3, Copyright (c), 2019 Andrey Petrov https://urllib3.readthedocs.io/
+- wcwidth, Copyright (c), 2019 Jeff Quast https://github.com/jquast/wcwidth
+- wheel, Copyright (c), 2019 Daniel Holth https://github.com/pypa/wheel
+- hjson, Copyright (c), 2019 Christian Zangl http://github.com/hjson/hjson-py
+- pyparsing, Copyright (c), 2019 Paul McGuire https://github.com/pyparsing/pyparsing/
+- pluggy, Copyright (c), 2019 Holger Krekel https://github.com/pytest-dev/pluggy
+- py, Copyright (c), 2019 holger krekel, Ronny Pfannschmidt, Benjamin Peterson and others http://py.readthedocs.io/
+- pytest, Copyright (c), 2019 Holger Krekel, Bruno Oliveira, Ronny Pfannschmidt, Floris Bruynooghe,
+Brianna Laugher, Florian Bruhin and others https://docs.pytest.org/en/latest/
+- pytest-bdd, Copyright (c), 2019 Oleg Pidsadnyi, Anatoly Bubenkov and others https://github.com/pytest-dev/pytest-bdd
+-----------------------------------------------------------------------------
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+-----------------------------------------------------------------------------
+                        Apache 2.0 License
+applies to:
+- coverage, Copyright (c), 2019 Ned Batchelder and 100 others https://github.com/nedbat/coveragepy
+- requests, Copyright (c), 2019 Kenneth Reitz http://python-requests.org
+- nexus-sdk, Copyright (c), 2019 UNKNOWN https://github.com/BlueBrain/nexus-python-sdk
+- importlib-metadata, Copyright (c),2019 Barry Warsaw http://importlib-metadata.readthedocs.io/
+-----------------------------------------------------------------------------
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-----------------------------------------------------------------------------
+                        BSD License
+applies to:
+- glob2, Copyright (c), 2019 Michael Elsdoerfer http://github.com/miracle2k/python-glob2/
+- numpy, Copyright (c), 2019 Travis E. Oliphant et al. https://www.numpy.org
+- pandas, Copyright (c), 2019 http://pandas.pydata.org
+- parse-type, Copyright (c), 2019 Jens Engel https://github.com/jenisys/parse_type
+-----------------------------------------------------------------------------
+
+Copyright (c) 2019 Listed above
+All rights reserved.
+
+Redistribution and use in source and binary forms are permitted
+provided that the above copyright notice and this paragraph are
+duplicated in all such forms and that any documentation,
+advertising materials, and other materials related to such
+distribution and use acknowledge that the software was developed
+by the above mentioned. The name of the
+<organization> may not be used to endorse or promote products derived
+from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.

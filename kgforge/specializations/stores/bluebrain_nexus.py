@@ -1,15 +1,28 @@
+#
+# Knowledge Graph Forge is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# Knowledge Graph Forge is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import json
 import re
-from urllib.parse import quote_plus
 from collections import namedtuple
 from enum import Enum
 from typing import Optional, Union, Dict, List, Callable
+from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
 from aiohttp import ClientSession
-
 from kgforge.core import Resource, Resources
 from kgforge.core.commons.actions import run, Actions, Action
 from kgforge.core.commons.attributes import not_supported
