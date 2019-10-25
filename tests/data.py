@@ -1,14 +1,14 @@
 from kgforge.core import Resource
 
 """
-All examples only consider we json-ld COMPACTED as Nexus does
+All examples only consider we json-ld COMPACTED
 TODO: implement transformations for other RDF formats
 """
 CONTEXT_1 = {
     "name": "http://schema.org/name",
     "description": "http://schema.org/description",
     "image": "http://schema.org/image",
-    "Building" : "http://schema.org/Building",
+    "Building": "http://schema.org/Building",
     "geo": "http://schema.org/geo",
     "latitude": {
         "@id": "http://schema.org/latitude",
@@ -158,8 +158,8 @@ JSON_LD_5 = {
     "_incoming": "https://nexus/v1/resources/bbp_test/kgforge/_/b684ed06-9404-4f3e-8b11-f5ebded1dbbd/incoming",
     "_outgoing": "https://nexus/v1/resources/bbp_test/kgforge/_/b684ed06-9404-4f3e-8b11-f5ebded1dbbd/outgoing"
 }
-RESOURCE_5 = Resource(id="https://data.org/b684ed06-9404-4f3e-8b11-f5ebded1dbbd", type="Publication", title="My publication",
-                      author=Resource(type="Person", name="First Author"))
+RESOURCE_5 = Resource(id="https://data.org/b684ed06-9404-4f3e-8b11-f5ebded1dbbd", type="Publication",
+                      title="My publication", author=Resource(type="Person", name="First Author"))
 RESOURCE_5._context = {
     "@base": "https://data.org/",
     "@vocab": "https://vocab.org/",

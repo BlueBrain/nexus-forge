@@ -7,7 +7,6 @@ BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org/"
 TOKEN = "token"
 
-
 @pytest.fixture
 def nexus_store():
     # FIXME mock Nexus for unittests

@@ -28,7 +28,9 @@ setup(
         "hjson",
         "poyo",
         "pandas",
-        "nexus-sdk"
+        "nexus-sdk",
+        "aiohttp",
+        "nest_asyncio"
     ],
     extras_require={
         "dev": ["pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
