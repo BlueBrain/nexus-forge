@@ -20,6 +20,7 @@ from kgforge.core.commons.exceptions import DownloadingError
 from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
+from tests.conftest import do
 from tests.data import *
 
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.

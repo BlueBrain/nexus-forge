@@ -1,6 +1,6 @@
 Model:
-  name: DemoModel
-  source: ../../../tests/data/demo-model
+  name: ShaclModel
+  source: ../../../tests/data/shacl-model
 
 Store:
   name: BlueBrainNexus

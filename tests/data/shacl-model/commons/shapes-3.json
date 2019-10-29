@@ -1,0 +1,86 @@
+{
+  "@context": {
+    "this": "http://www.example.com/",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "schema": "http://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "nodeKind": {
+      "@id": "sh:nodeKind",
+      "@type": "@id"
+    },
+    "node": {
+      "@id": "sh:node",
+      "@type": "@id"
+    },
+    "targetClass": {
+      "@id": "sh:targetClass",
+      "@type": "@id"
+    },
+    "path": {
+      "@id": "sh:path",
+      "@type": "@id"
+    },
+    "datatype": {
+      "@id": "sh:datatype",
+      "@type": "@id"
+    },
+    "property": {
+      "@id": "sh:property",
+      "@type": "@id"
+    },
+    "class": {
+      "@id": "sh:class",
+      "@type": "@id"
+    },
+    "minCount": {
+      "@id": "sh:minCount"
+    },
+    "maxCount": {
+      "@id": "sh:maxCount"
+    }
+  },
+  "this:shapes": [
+    {
+      "@id": "this:GeoShape",
+      "@type": "sh:NodeShape",
+      "closed" : true,
+      "property": [
+        {
+          "path": "schema:latitude",
+          "datatype": "xsd:float",
+          "minCount": 1
+        },
+        {
+          "path": "schema:longitude",
+          "datatype": "xsd:float",
+          "minCount": 1
+        }
+      ]
+    },
+    {
+      "@id": "this:BuildingShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "schema:Building",
+      "property": [
+        {
+          "path": "schema:name",
+          "datatype": "xsd:string",
+          "minCount": 1
+        },
+        {
+          "path": "schema:description",
+          "datatype": "xsd:string",
+          "minCount": 1
+        },
+        {
+          "path": "schema:geo",
+          "node": "this:GeoShape"
+        }
+      ]
+    }
+  ]
+}
+
+

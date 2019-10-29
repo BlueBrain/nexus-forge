@@ -44,7 +44,9 @@ setup(
         "pandas",
         "nexus-sdk",
         "aiohttp",
-        "nest_asyncio"
+        "nest_asyncio",
+        "rdflib",
+        "pyshacl"
     ],
     extras_require={
         "dev": ["pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],

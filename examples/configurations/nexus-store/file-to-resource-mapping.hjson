@@ -7,8 +7,8 @@
     }
     digest:
     {
-        algorithm: x._digest["_algorithm"]
-        value: x._digest["_value"]
+        algorithm: x._digest._algorithm
+        value: x._digest._value
     }
     encodingFormat: x._mediaType
     name: x._filename
