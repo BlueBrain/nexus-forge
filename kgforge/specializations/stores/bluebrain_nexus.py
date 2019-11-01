@@ -3,12 +3,12 @@
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Knowledge Graph Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
@@ -27,9 +27,10 @@ from kgforge.core import Resource, Resources
 from kgforge.core.commons.actions import run, Actions, Action
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.exceptions import catch
-from kgforge.core.commons.typing import ManagedData, dispatch
+from kgforge.core.commons.typing import ManagedData, dispatch, do
 from kgforge.core.commons.wrappers import DictWrapper
-from kgforge.core.storing.exceptions import RegistrationError, DeprecationError, RetrievalError, TaggingError
+from kgforge.core.storing.exceptions import (RegistrationError, DeprecationError, RetrievalError,
+                                             TaggingError, FreezingError)
 from kgforge.core.storing.store import Store
 from kgforge.core.transforming.converters import Converters
 
@@ -89,20 +90,24 @@ class BlueBrainNexus(Store):
                         resources_without_context.append(result.resource)
                 if resources_without_context:
                     ids_resources = {r.id: r for r in resources_without_context}
-                    remote_succeed, remote_fail = self._batch(list(ids_resources.keys()), action=BatchAction.FETCH)
+                    remote_succeed, remote_fail = self._batch(list(ids_resources.keys()),
+                                                              action=BatchAction.FETCH)
                     if remote_succeed:
                         for remote in remote_succeed:
                             ids_resources[remote.resource.id]._context = remote.resource._context
-                            actions.append(self._synchronize_resource(ids_resources[remote.resource.id],
-                                                                      remote.response, action_name, True, True))
+                            actions.append(
+                                self._synchronize_resource(
+                                    ids_resources[remote.resource.id], remote.response,
+                                    action_name, True, True))
                     if remote_fail:
                         for remote in remote_fail:
                             try:
                                 identifier = remote.resource.id
                             except AttributeError:
                                 identifier = remote.resource
-                            actions.append(self._synchronize_resource(ids_resources[identifier], remote.response,
-                                                                      action_name, True, False))
+                            actions.append(self._synchronize_resource(
+                                ids_resources[identifier], remote.response, action_name, True,
+                                False))
                 else:
                     actions.extend(self._synchronize_resources(succeeded, action_name, True, True))
         if failures:
@@ -128,7 +133,8 @@ class BlueBrainNexus(Store):
                 self._sync_metadata(resource, response)
         else:
             try:
-                response = nexus.resources.create(org_label=self.organisation, project_label=self.project, data=data)
+                response = nexus.resources.create(org_label=self.organisation,
+                                                  project_label=self.project, data=data)
             except nexus.HTTPError as e:
                 self._raise_nexus_http_error(e, RegistrationError)
             else:
@@ -145,10 +151,12 @@ class BlueBrainNexus(Store):
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
         try:
             if isinstance(version, int):
-                response = nexus.resources.fetch(org_label=self.organisation, project_label=self.project,
+                response = nexus.resources.fetch(org_label=self.organisation,
+                                                 project_label=self.project,
                                                  resource_id=id, rev=version)
             else:
-                response = nexus.resources.fetch(org_label=self.organisation, project_label=self.project,
+                response = nexus.resources.fetch(org_label=self.organisation,
+                                                 project_label=self.project,
                                                  resource_id=id, tag=version)
         except nexus.HTTPError as e:
             self._raise_nexus_http_error(e, RetrievalError)
@@ -222,6 +230,25 @@ class BlueBrainNexus(Store):
     def search(self, resolvers: "OntologiesHandler", *filters, **params) -> Resources:
         not_supported()
 
+    # Versioning
+
+    def freeze(self, data: ManagedData) -> None:
+        run(self._freeze_one, data, propagate=True)
+
+    def _freeze_one(self, resource: Resource) -> None:
+        for k, v in resource.__dict__.items():
+            do(self._freeze_one, v, error=False)
+        if hasattr(resource, "id"):
+            r_id = resource.id
+            try:
+                r_version = resource._store_metadata._rev
+            except (AttributeError, TypeError):
+                raise FreezingError("resource not yet registered")
+            else:
+                resource.id = f"{r_id}?rev={r_version}"
+
+    # Misc
+
     @classmethod
     def _to_resource(cls, data: Dict) -> Resource:
         # FIXME: ideally a rdf-native solution
@@ -239,7 +266,8 @@ class BlueBrainNexus(Store):
                         setattr(rec, k, create_resource(v, ctx_base))
                     elif isinstance(v, list):
                         setattr(rec, k,
-                                [create_resource(item, ctx_base) if isinstance(item, dict) else item for item in v])
+                                [create_resource(item, ctx_base) if isinstance(item, dict) else item
+                                 for item in v])
                     else:
                         setattr(rec, k, v)
             return rec
@@ -261,7 +289,8 @@ class BlueBrainNexus(Store):
                                succeeded: bool, synchronized: bool) -> Actions:
         actions = list()
         for result in results:
-            action = self._synchronize_resource(result.resource, result.response, action_name, succeeded, synchronized)
+            action = self._synchronize_resource(
+                result.resource, result.response, action_name, succeeded, synchronized)
             actions.append(action)
         return Actions(actions)
 
@@ -275,7 +304,8 @@ class BlueBrainNexus(Store):
             self._sync_metadata(resource, response)
         return action
 
-    def _batch(self, resources: Union[Resources, List], action: BatchAction, **kwargs) -> (BatchResults, BatchResults):
+    def _batch(self, resources: Union[Resources, List],
+               action: BatchAction, **kwargs) -> (BatchResults, BatchResults):
         loop = asyncio.get_event_loop()
         failure = list()
         success = list()
@@ -289,7 +319,8 @@ class BlueBrainNexus(Store):
                         try:
                             rid = resource.id
                         except AttributeError:
-                            response = {"@type": "BadPayload", "reason": "can't update resources that doesn't have id"}
+                            response = {"@type": "BadPayload",
+                                        "reason": "can't update resources that doesn't have id"}
                             failure.append(BatchResult(resource, response))
                             continue
                     if action == action.CREATE:
@@ -300,27 +331,31 @@ class BlueBrainNexus(Store):
                     if action == action.UPDATE:
                         url = "/".join((self.url_requests, quote_plus(rid)))
                         if resource._synchronized:
-                            response = {"@type": "Unchanged", "reason": "Resource unchanged, update didn't happened"}
+                            response = {"@type": "Unchanged",
+                                        "reason": "Resource unchanged, update didn't happened"}
                             failure.append(BatchResult(resource, response))
                             continue
-                        params = {"rev": resource._store_metadata["_rev"]}
+                        params = {"rev": resource._store_metadata._rev}
                         payload = Converters.as_jsonld(resource)
                         request = asyncio.ensure_future(
                             queue_put(semaphore=semaphore, session=session,
                                       url=url, resource=resource, payload=payload, params=params))
                     if action == action.TAG:
                         url = "/".join((self.url_requests, quote_plus(rid), "tags"))
-                        rev = resource._store_metadata["_rev"]
+                        rev = resource._store_metadata._rev
                         params = {"rev": rev}
                         payload = {"tag": kwargs.get("tag"), "rev": rev}
-                        request = asyncio.ensure_future(queue_post(semaphore=semaphore, session=session,
+                        request = asyncio.ensure_future(queue_post(semaphore=semaphore,
+                                                                   session=session,
                                                                    url=url, resource=resource,
                                                                    payload=payload, params=params))
                     if action == action.DEPRECATE:
                         url = "/".join((self.url_requests, quote_plus(rid)))
-                        params = {"rev": resource._store_metadata["_rev"]}
-                        request = asyncio.ensure_future(queue_delete(semaphore=semaphore, session=session,
-                                                                     url=url, resource=resource, params=params))
+                        params = {"rev": resource._store_metadata._rev}
+                        request = asyncio.ensure_future(queue_delete(semaphore=semaphore,
+                                                                     session=session,
+                                                                     url=url, resource=resource,
+                                                                     params=params))
                     futures.append(request)
                 await asyncio.gather(*futures)
 
@@ -340,11 +375,13 @@ class BlueBrainNexus(Store):
 
         async def queue_post(semaphore, session, url, resource, payload, params=None):
             async with semaphore:
-                await post(session=session, url=url, resource=resource, payload=payload, params=params)
+                await post(session=session, url=url, resource=resource, payload=payload,
+                           params=params)
 
         async def queue_put(semaphore, session, url, resource, payload, params=None):
             async with semaphore:
-                await put(session=session, url=url, resource=resource, payload=payload, params=params)
+                await put(session=session, url=url, resource=resource, payload=payload,
+                          params=params)
 
         async def queue_get(semaphore, session, url, resource):
             async with semaphore:
@@ -355,7 +392,8 @@ class BlueBrainNexus(Store):
                 await delete(session=session, url=url, resource=resource, params=params)
 
         async def post(session, url, resource, payload, params):
-            async with session.post(url, headers=self.headers, data=json.dumps(payload), params=params) as response:
+            async with session.post(
+                    url, headers=self.headers, data=json.dumps(payload), params=params) as response:
                 content = await response.json()
                 if response.status == 201:
                     success.append(BatchResult(resource, content))
@@ -363,7 +401,8 @@ class BlueBrainNexus(Store):
                     failure.append(BatchResult(resource, content))
 
         async def put(session, url, resource, payload, params):
-            async with session.put(url, headers=self.headers, data=json.dumps(payload), params=params) as response:
+            async with session.put(
+                    url, headers=self.headers, data=json.dumps(payload), params=params) as response:
                 content = await response.json()
                 if response.status == 200:
                     success.append(BatchResult(resource, content))
