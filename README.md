@@ -197,3 +197,7 @@ twine upload dist/*
 # Clean
 rm -R build dist *.egg-info
 ```
+
+## Acknowledgements
+
+This framework was supported by the [Blue Brain Project](https://www.epfl.ch/research/domains/bluebrain/) funding, a research center of the Ecole polytechnique fédérale de Lausanne, from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
