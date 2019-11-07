@@ -32,7 +32,7 @@ class DictionaryMapper(Mapper):
     def _map_one(self, record: Dict, mapping: Mapping) -> Resource:
         variables = {
             "forge": self.forge,
-            "x": DictWrapper(record),
+            "x": DictWrapper._wrap(record),
         }
         return self._map_dict(mapping.rules, variables)
 

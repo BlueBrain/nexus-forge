@@ -17,22 +17,32 @@ import json
 import re
 from collections import namedtuple
 from enum import Enum
-from typing import Optional, Union, Dict, List, Callable
+from typing import Optional, Union, Dict, List, Callable, Tuple
 from urllib.parse import quote_plus
+from urllib.request import urlopen
 
 import nest_asyncio
 import nexussdk as nexus
 from aiohttp import ClientSession
+from urllib.error import URLError
+
+from hjson import HjsonDecodeError
+
 from kgforge.core import Resource, Resources
-from kgforge.core.commons.actions import run, Actions, Action
+from kgforge.core.commons.actions import run, Actions, Action, LazyAction
 from kgforge.core.commons.attributes import not_supported
 from kgforge.core.commons.exceptions import catch
 from kgforge.core.commons.typing import ManagedData, dispatch, do
 from kgforge.core.commons.wrappers import DictWrapper
 from kgforge.core.storing.exceptions import (RegistrationError, DeprecationError, RetrievalError,
-                                             TaggingError, FreezingError)
+                                             TaggingError, FreezingError, UploadingError,
+                                             DownloadingError)
 from kgforge.core.storing.store import Store
 from kgforge.core.transforming.converters import Converters
+from pathlib import Path
+
+from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.specializations.mappings import DictionaryMapping
 
 
 class BatchAction(Enum):
@@ -41,6 +51,8 @@ class BatchAction(Enum):
     DEPRECATE = "deprecate"
     UPDATE = "update"
     TAG = "tag"
+    UPLOAD = "upload"
+    DOWNLOAD = "download"
 
 
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
@@ -56,6 +68,10 @@ class BlueBrainNexus(Store):
         except ValueError:
             raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
         else:
+            # FIXME Should use Nexus namespace
+            self._metadata_fields = ("_storage", "_self", "_constrainedBy", "_project", "_rev",
+                                     "_deprecated", "_createdAt", "_createdBy", "_updatedAt",
+                                     "_updatedBy", "_incoming", "_outgoing")
             nexus.config.set_environment(self.endpoint)
             nexus.config.set_token(self.token)
             self.max_connections = 50
@@ -121,6 +137,7 @@ class BlueBrainNexus(Store):
     def _register(self, resource: Resource, update: bool) -> None:
         if update and not hasattr(resource, "id"):
             raise RegistrationError(f"Can't update a resource that does not have an id")
+        self._perform_lazy_actions(resource)
         data = Converters.as_jsonld(resource, True, True)
         if update:
             if resource._synchronized:
@@ -145,6 +162,32 @@ class BlueBrainNexus(Store):
                     resource._context = remote._context
                 self._sync_metadata(resource, response)
 
+    @catch
+    def upload(self, path: str) -> ManagedData:
+        p = Path(path)
+        return self._upload_many(p) if p.is_dir() else self._upload_one(p)
+
+    def _upload_one(self, filepath: Path) -> Resource:
+        if self.file_resource_mapping is None:
+            raise UploadingError("File to resource mapping is missing")
+        else:
+            try:
+                mapping = self._resolve_file_resource_mapping()
+            except Exception as e:
+                raise UploadingError(f"Unable to read file_resource_mapping, {e}")
+        try:
+            response = nexus.files.create(self.organisation, self.project, str(filepath.absolute()))
+        except nexus.HTTPError as e:
+            self._raise_nexus_http_error(e, UploadingError)
+        else:
+            resource = DictionaryMapper(None).map(response, mapping)
+            # TODO: the DictionaryMapping should provide the context since is the one creating
+            #  the resource from file_resource_mapping !!
+            # resource._context = response["@context"]
+            return resource
+
+
+
     # C[R]UD
 
     @catch
@@ -165,6 +208,23 @@ class BlueBrainNexus(Store):
             resource._synchronized = True
             self._sync_metadata(resource, response)
             return resource
+
+    @catch
+    def download(self, data: ManagedData, follow: str, path: str) -> None:
+        files = self._collect_files(data, follow)
+        for f in files:
+            self._download_one(f, path)
+
+    def _download_one(self, file: str, path: str) -> None:
+        try:
+            # this is a hack since _self and _id have the same uuid
+            file_id = file.split("/")[-1]
+            if len(file_id) < 1:
+                raise DownloadingError("Invalid file name")
+            nexus.files.fetch(org_label=self.organisation, project_label=self.project,
+                              file_id=file_id, out_filepath=path)
+        except nexus.HTTPError as e:
+            self._raise_nexus_http_error(e, DownloadingError)
 
     # CR[U]D
 
@@ -252,7 +312,6 @@ class BlueBrainNexus(Store):
     @classmethod
     def _to_resource(cls, data: Dict) -> Resource:
         # FIXME: ideally a rdf-native solution
-
         def create_resource(dictionary: dict, ctx_base: str) -> Resource:
             rec = Resource()
             if "@id" in dictionary:
@@ -279,10 +338,8 @@ class BlueBrainNexus(Store):
             resource._context = context
         return resource
 
-    @staticmethod
-    def _sync_metadata(resource: Resource, result: Dict) -> None:
-        # TODO: use nexus namespace to properly identify its metadata
-        metadata = {k: v for k, v in result.items() if k.startswith("_")}
+    def _sync_metadata(self, resource: Resource, result: Dict) -> None:
+        metadata = {k: v for k, v in result.items() if k in self._metadata_fields}
         resource._store_metadata = DictWrapper._wrap(metadata)
 
     def _synchronize_resources(self, results: BatchResults, action_name: str,
@@ -303,6 +360,16 @@ class BlueBrainNexus(Store):
         if succeeded:
             self._sync_metadata(resource, response)
         return action
+
+    def _resolve_file_resource_mapping(self):
+        try:
+            content = urlopen(self.file_resource_mapping).read()
+            return DictionaryMapping(content)
+        except (ValueError, URLError):
+            try:
+                return DictionaryMapping.load(self.file_resource_mapping)
+            except (FileNotFoundError, OSError):
+                return DictionaryMapping(self.file_resource_mapping)
 
     def _batch(self, resources: Union[Resources, List],
                action: BatchAction, **kwargs) -> (BatchResults, BatchResults):
@@ -435,6 +502,47 @@ class BlueBrainNexus(Store):
         }
         loop.run_until_complete(action_func.get(action, not_supported)())
         return success, failure
+
+    @classmethod
+    def _perform_lazy_actions(cls, resource):
+        lazy_actions = cls._collect_lazy_actions(resource)
+        for rsc, attr, lazy_action in lazy_actions:
+            resp = lazy_action.execute()
+            setattr(rsc, attr, resp)
+
+    @classmethod
+    def _collect_lazy_actions(cls, resource: Resource) -> List[Tuple[Resource, str, LazyAction]]:
+        actions = list()
+        for k, v in resource.__dict__.items():
+            if isinstance(v, LazyAction):
+                actions.append((resource, k, v))
+            elif isinstance(v, Resource):
+                actions.extend(cls._collect_lazy_actions(v))
+            elif isinstance(v, Resources):
+                for r in v:
+                    actions.extend(cls._collect_lazy_actions(r))
+        return actions
+
+    @staticmethod
+    def _collect_files(data: ManagedData, follow: str) -> List:
+        def _extract(managed: ManagedData, paths: list):
+            files = list()
+            try:
+                first = paths[0]
+                if isinstance(managed, Resource):
+                    if hasattr(managed, first):
+                        v = getattr(managed, first)
+                        if isinstance(v, (Resources, Resource)):
+                            files.extend(_extract(v, paths[1:]))
+                        else:
+                            files.append(v)
+                else:
+                    for r in managed:
+                        files.extend(_extract(r, paths))
+            except IndexError:
+                pass
+            return files
+        return _extract(data, follow.split("."))
 
     @staticmethod
     def _raise_nexus_http_error(error: nexus.HTTPError, error_type: Callable):

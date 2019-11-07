@@ -11,10 +11,13 @@
 # 
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
+import os
 
+import hjson
 import pytest
-from kgforge.core import Resources
 
+from kgforge.core import Resources
+from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.typing import do
 from kgforge.core.commons.wrappers import DictWrapper
 from kgforge.core.storing.exceptions import FreezingError
@@ -25,10 +28,14 @@ BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org/"
 TOKEN = "token"
 
+
 @pytest.fixture
 def nexus_store():
     # FIXME mock Nexus for unittests
-    return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token=TOKEN)
+    file_to_resource_mapping = os.sep.join(
+        (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson"))
+    return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token=TOKEN,
+                          file_resource_mapping=file_to_resource_mapping)
 
 
 @pytest.fixture
@@ -88,6 +95,36 @@ def test_freeze_nested(nexus_store, nested_registered_resource):
 def test_response_to_resource(nexus_store, data, expected):
     resource = nexus_store._to_resource(data)
     assert_equal(expected, resource), "resource is not as the expected"
+
+
+def test_extract_properties(nexus_store):
+    simple = Resource(type="Experiment", url="file.gz")
+    r = nexus_store._collect_files(simple, "url")
+    assert simple.url in r, "url should be in the list"
+    deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
+    r = nexus_store._collect_files(deep, "level1.level2.url")
+    assert deep.level1.level2.url in r, "url should be in the list"
+    files = Resources([Resource(type="Experiment", url=f"file{i}") for i in range(3)])
+    r = nexus_store._collect_files(files, "url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    data_set = Resource(type="Dataset", hasPart=files)
+    r = nexus_store._collect_files(data_set, "hasPart.url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    r = nexus_store._collect_files(data_set, "fake.path")
+    assert len(r) == 0, "list is empty"
+
+
+def test_collect_lazy_actions(nexus_store):
+    resource = Resource(file1=LazyAction(None),
+                        level2=Resources(
+                            [Resource(file2=LazyAction(None)), Resource(file3=LazyAction(None))]))
+    actions = nexus_store._collect_lazy_actions(resource)
+    assert len(actions) == 3, "there should be three lazzy actions"
+
+
+def test_resolve_file_resource_mapping_from_file(nexus_store):
+    mapping = hjson.loads(str(nexus_store._resolve_file_resource_mapping()))
+    assert mapping["type"] == "DataDownload"
 
 
 def assert_equal(first, second):
