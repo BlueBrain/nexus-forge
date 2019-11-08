@@ -18,7 +18,7 @@ from typing import Dict, Optional, Union
 
 from kgforge.core.commons.attributes import not_supported, repr_
 from kgforge.core.commons.exceptions import catch
-from kgforge.core.commons.typing import ManagedData, dispatch
+from kgforge.core.commons.typing import DirPath, FilePath, ManagedData, dispatch
 from kgforge.core.resources import Resource, Resources
 
 
@@ -58,7 +58,7 @@ class Store(ABC):
         pass
 
     @catch
-    def upload(self, path: str) -> ManagedData:
+    def upload(self, path: Union[FilePath, DirPath]) -> ManagedData:
         # TODO Example implementation in DemoStore.
         # TODO The logic is the same as what DemoResolver.resolve() do with terms_resource_mapping.
         # POLICY Should use self.file_resource_mapping to map Store metadata to Model metadata.
@@ -85,7 +85,7 @@ class Store(ABC):
         pass
 
     @catch
-    def download(self, data: ManagedData, follow: str, path: str) -> None:
+    def download(self, data: ManagedData, follow: str, path: DirPath) -> None:
         # TODO Example implementation in DemoStore.
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()

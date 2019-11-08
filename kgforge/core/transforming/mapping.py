@@ -16,6 +16,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+from kgforge.core.commons.typing import FilePath
+
 
 class Mapping(ABC):
 
@@ -35,10 +37,10 @@ class Mapping(ABC):
 
     @staticmethod
     @abstractmethod
-    def load(path: str) -> "Mapping":
+    def load(path: FilePath) -> "Mapping":
         pass
 
-    def save(self, path: str) -> None:
+    def save(self, path: FilePath) -> None:
         # POLICY Should save the mapping in a normalized representation.
         normalized = self._normalize_rules(self.rules)
         filepath = Path(path)

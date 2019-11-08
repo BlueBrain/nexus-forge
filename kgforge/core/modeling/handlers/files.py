@@ -12,7 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Union
+
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.typing import DirPath, FilePath
 from kgforge.core.storing.store import Store
 
 
@@ -21,5 +24,5 @@ class FilesHandler:
     def __init__(self, store: Store) -> None:
         self._store = store
 
-    def as_resource(self, path: str) -> LazyAction:
+    def as_resource(self, path: Union[FilePath, DirPath]) -> LazyAction:
         return LazyAction(self._store.upload, path)

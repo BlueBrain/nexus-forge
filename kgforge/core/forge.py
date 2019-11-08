@@ -18,7 +18,7 @@ from typing import Callable, Dict, Optional, Union
 
 from poyo import parse_string
 
-from kgforge.core.commons.typing import DirPath, URL
+from kgforge.core.commons.typing import DirPath, FilePath, URL
 from kgforge.core.modeling import Model
 from kgforge.core.modeling.handlers.files import FilesHandler
 from kgforge.core.modeling.handlers.identifiers import IdentifiersHandler
@@ -59,7 +59,7 @@ class KnowledgeGraphForge:
         self.transforming = TransformingInterface(self)
 
     @staticmethod
-    def from_config(path: str, bucket: Optional[str] = None, token: Optional[str] = None) -> "KnowledgeGraphForge":
+    def from_config(path: FilePath, bucket: Optional[str] = None, token: Optional[str] = None) -> "KnowledgeGraphForge":
         # POLICY The configuration file is in YAML and has the following structure.
         # See demo-forge.yml in examples/ for an example.
         #

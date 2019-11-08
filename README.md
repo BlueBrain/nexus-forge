@@ -49,7 +49,7 @@ See `examples` folder for notebooks and what a configuration file looks like.
 ```bash
 # Forge
 
-KnowledgeGraphForge.from_config(path: str, bucket: Optional[str] = None, token: Optional[str] = None)
+KnowledgeGraphForge.from_config(path: FilePath, bucket: Optional[str] = None, token: Optional[str] = None)
 
 
 # Resource(s)
@@ -82,7 +82,7 @@ paths(type: str) -> PathsWrapper
 Identifiers: format(*args) -> str
 Ontologies: resolve(label: str, ontology: str, type: str = "Class",
     strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource
-Files: as_resource(path: str) -> LazyAction
+Files: as_resource(path: Union[FilePath, DirPath]) -> LazyAction
 
 
 # Storing
@@ -98,7 +98,7 @@ deprecate(data: ManagedData) -> None
 retrieve(id: str, version: Optional[Union[int, str]] = None) -> Resource
 search(*filters, **params) -> Resources
 sparql(query: str) -> Resources
-download(data: ManagedData, follow: str, path: str) -> None
+download(data: ManagedData, follow: str, path: DirPath) -> None
 
 
 # Specializations
@@ -115,8 +115,8 @@ Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
 
 Mapper(forge: KnowledgeGraphForge)
 Mapping(mapping: str)
-  load(path: str)
-  save(path: str)
+  load(path: FilePath)
+  save(path: FilePath)
 
 Model(source: Union[DirPath, URL, Store])
 OntologyResolver(configuration: OntologyConfiguration)
