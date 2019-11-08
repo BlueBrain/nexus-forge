@@ -39,17 +39,18 @@ class Mapper(ABC):
         # Data could be loaded from a directory, a file, a collection or an object.
         if isinstance(data, str):
             path = Path(data)
+            reader = self._reader()
             if path.is_dir():
                 # Could be optimized by overriding the method in the specialization.
                 records = []
                 for x in path.iterdir():
                     with x.open() as f:
-                        record = self._reader(f)
+                        record = reader(f)
                         records.append(record)
                 return self._map_many(records, mapping)
             else:
                 with path.open() as f:
-                    record = self._reader(f)
+                    record = reader(f)
                     return self._map_one(record, mapping)
         elif isinstance(data, (Sequence, Iterator)):
             return self._map_many(data, mapping)
@@ -58,8 +59,8 @@ class Mapper(ABC):
 
     def _map_many(self, records: Union[Sequence, Iterator], mapping: Mapping) -> Resources:
         # Could be optimized by overriding the method in the specialization.
-        mapped = [self._map_one(x, mapping) for x in records]
-        return Resources(mapped)
+        mapped = (self._map_one(x, mapping) for x in records)
+        return Resources(*mapped)
 
     @abstractmethod
     def _map_one(self, record: Any, mapping: Mapping) -> Resource:
