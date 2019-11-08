@@ -46,7 +46,7 @@ def resources(collection):
 
 @given("I create a Resources object from existing resources.", target_fixture="resources")
 def resources_():
-    return Resources(*_resources())
+    return Resources(_resources())
 
 
 @then("I should be able to count the number of resources with len().")

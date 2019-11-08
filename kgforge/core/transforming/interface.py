@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from pandas import DataFrame
 
@@ -48,3 +48,20 @@ class TransformingInterface:
     @staticmethod
     def as_dataframe(data: ManagedData, store_metadata: bool = False) -> DataFrame:
         return Converters.as_dataframe(data, store_metadata)
+
+    @staticmethod
+    def from_json(data: Union[Dict, List[Dict]]) -> ManagedData:
+        return Converters.from_json(data)
+
+    @staticmethod
+    def from_jsonld(data: Union[Dict, List[Dict]]) -> ManagedData:
+        return Converters.from_jsonld(data)
+
+    @staticmethod
+    def from_triples(data: List[Tuple[str, str, str]]) -> ManagedData:
+        return Converters.from_triples(data)
+
+    @staticmethod
+    def from_dataframe(data: DataFrame, na: Optional[str] = None,
+                       nesting: str = ".") -> ManagedData:
+        return Converters.from_dataframe(data, na, nesting)

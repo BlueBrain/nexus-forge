@@ -137,7 +137,8 @@ class DemoStore(Store):
             condition = f"r.{path}.{x.operator}({x.value!r})"
             records = [r for r in records
                        if eval(condition, {}, {"x": x, "r": DictWrapper._wrap(r["data"])})]
-        resources = Resources(self._to_resource(y) for y in records)
+        mapped = (self._to_resource(y) for y in records)
+        resources = Resources(mapped)
         return resources
 
     # Versioning
@@ -172,7 +173,7 @@ class DemoStore(Store):
         # TODO Use forge.transforming.as_jsonld(resource, compacted=False, store_metadata=False) for data.
         def as_data(resource: Resource) -> Dict:
             return {k: as_data(v) if isinstance(v, Resource) else v
-                    for k, v in resource.__dict__.items() if not k in resource._RESERVED}
+                    for k, v in resource.__dict__.items() if k not in resource._RESERVED}
         return {
             "data": as_data(resource),
             "version": version,

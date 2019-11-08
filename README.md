@@ -66,6 +66,10 @@ as_json(data: ManagedData, expanded: bool = False, store_metadata: bool = False)
 as_jsonld(data: ManagedData, compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]
 as_triples(data: ManagedData, store_metadata: bool = False) -> List[Tuple[str, str, str]]
 as_dataframe(data: ManagedData, store_metadata: bool = False) -> DataFrame
+from_json(data: Union[Dict, List[Dict]]) -> ManagedData
+from_jsonld(data: Union[Dict, List[Dict]]) -> ManagedData
+from_triples(data: List[Tuple[str, str, str]]) -> ManagedData
+from_dataframe(data: DataFrame, na: Union[None, str] = None, nesting: str = ".") -> ManagedData
 
 
 # Modeling
@@ -105,18 +109,22 @@ download(data: ManagedData, follow: str, path: DirPath) -> None
 
 > Resource
 Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
-  parts() -> Optional[Resources]
-  with_parts(resources: ManagedData, versioned: bool = True) -> None
-  files() -> Union[Optional["DatasetFiles"], LazyAction]
-  with_files(path: DirPath) -> None
+  add_parts(self, resources: Resources, versioned: bool = True) -> None
+  add_distribution(self, path: FilePath) -> None
+  add_contribution(self, agent: IRI, **kwargs) -> None
+  add_generation(self, **kwargs) -> None
+  add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None
+  add_invalidation(self, **kwargs) -> None
+  add_files(self, path: DirPath) -> None
+  download(self, source: str, path: DirPath) -> None
 
 
 # Archetypes
 
 Mapper(forge: KnowledgeGraphForge)
 Mapping(mapping: str)
-  load(path: FilePath)
-  save(path: FilePath)
+  load(path: FilePath) -> Mapping
+  save(path: FilePath) -> None
 
 Model(source: Union[DirPath, URL, Store])
 OntologyResolver(configuration: OntologyConfiguration)

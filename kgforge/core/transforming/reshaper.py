@@ -33,7 +33,8 @@ class Reshaper:
         return dispatch(data, self._reshape_many, self._reshape_one, keep)
 
     def _reshape_many(self, resources: Resources, keep: List[str]) -> Resources:
-        return Resources(self._reshape(x, keep) for x in resources)
+        reshaped = (self._reshape(x, keep) for x in resources)
+        return Resources(reshaped)
 
     def _reshape_one(self, resource: Resource, keep: List[str]) -> Resource:
         return self._reshape(resource, keep)

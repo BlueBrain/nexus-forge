@@ -60,7 +60,7 @@ class Mapper(ABC):
     def _map_many(self, records: Union[Sequence, Iterator], mapping: Mapping) -> Resources:
         # Could be optimized by overriding the method in the specialization.
         mapped = (self._map_one(x, mapping) for x in records)
-        return Resources(*mapped)
+        return Resources(mapped)
 
     @abstractmethod
     def _map_one(self, record: Any, mapping: Mapping) -> Resource:

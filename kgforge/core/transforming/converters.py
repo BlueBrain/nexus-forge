@@ -13,7 +13,7 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import hjson
 from pandas import DataFrame
@@ -21,12 +21,14 @@ from pandas import DataFrame
 from kgforge.core.commons.attributes import check_collisions, sort_attributes
 from kgforge.core.commons.exceptions import catch
 from kgforge.core.commons.typing import ManagedData, dispatch
-from kgforge.core.resources import Resources, Resource, _encode
+from kgforge.core.resources import Resource, Resources, _encode
 
 
 class Converters:
 
     # POLICY Converters should be decorated with exceptions.catch() to deal with exceptions.
+
+    # Resource to others.
 
     @classmethod
     @catch
@@ -58,7 +60,8 @@ class Converters:
 
     @classmethod
     @catch
-    def as_dataframe(cls, data: ManagedData, store_metadata: bool = False) -> DataFrame:
+    def as_dataframe(cls, data: ManagedData, store_metadata: bool = False,
+                     na: Optional[str] = None, nesting: str = ".") -> DataFrame:
         # FIXME Implement.
         raise NotImplementedError("TODO Implement")
 
@@ -112,3 +115,26 @@ class Converters:
                 if key in ctx:
                     return ctx[key]
         return value
+
+    # Others to Resource.
+
+    @staticmethod
+    @catch
+    def from_json(data: Union[Dict, List[Dict]]) -> ManagedData:
+        raise NotImplementedError("TODO Implement")
+
+    @staticmethod
+    @catch
+    def from_jsonld(data: Union[Dict, List[Dict]]) -> ManagedData:
+        raise NotImplementedError("TODO Implement")
+
+    @staticmethod
+    @catch
+    def from_triples(data: List[Tuple[str, str, str]]) -> ManagedData:
+        raise NotImplementedError("TODO Implement")
+
+    @staticmethod
+    @catch
+    def from_dataframe(data: DataFrame, na: Optional[str] = None,
+                       nesting: str = ".") -> ManagedData:
+        raise NotImplementedError("TODO Implement")

@@ -1,0 +1,3 @@
+id	type	agent__type	agent__name	agent__gender__id	agent__gender__type	agent__gender__label	distribution
+https://knowledgegraph.domain.ch/associations/15	Association	Person	Albert Einstein	http://purl.obolibrary.org/obo/PATO_0000384	LabeledOntologyEntity	male	./scientists-database/file.ext
+NA	Association	Person	Peter Higgs	http://purl.obolibrary.org/obo/PATO_0000384	LabeledOntologyEntity	male	./scientists-database/file.ext

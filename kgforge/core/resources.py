@@ -63,8 +63,7 @@ class Resource:
 
 class Resources(list):
 
-    def __init__(self, data: Union[Resource, Iterable[Resource]], *resources) -> None:
-        resources = [data, *resources] if resources else data
+    def __init__(self, resources: Iterable[Resource]) -> None:
         super().__init__(resources)
 
     def __str__(self) -> str:

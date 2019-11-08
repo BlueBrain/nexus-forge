@@ -38,7 +38,7 @@ def resource(valid: bool, index: int = 0) -> Resource:
 def resources(valid: bool) -> Resources:
     r1 = resource(valid, 0)
     r2 = resource(valid, 1)
-    return Resources(r1, r2)
+    return Resources([r1, r2])
 
 
 @given("A valid resource.", target_fixture="data")
