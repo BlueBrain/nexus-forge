@@ -16,6 +16,9 @@ from enum import Enum, auto
 
 
 class ResolvingStrategy(Enum):
-    ALL = auto()
-    # POLICY With ResolvingStrategy.BEST_MATCH, returns a unique result.
+    # POLICY Return all results, exact or fuzzy matches.
+    ALL_MATCHES = auto()
+    # POLICY Return a unique result, the closest match.
     BEST_MATCH = auto()
+    # POLICY Return a unique result, the exact match.
+    EXACT_MATCH = auto()

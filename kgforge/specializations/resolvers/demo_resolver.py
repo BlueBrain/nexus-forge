@@ -13,23 +13,23 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 import json
+from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, Iterator, List, Optional
 
-from kgforge.core.archetypes import OntologyResolver, Store
-from kgforge.core.resolving import ResolvingStrategy
+from kgforge.core.archetypes import Resolver
+from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
 
-# FIXME To be refactored while applying the resolving API refactoring. DKE-105, DKE-128.
-
-
-class DemoResolver(OntologyResolver):
+class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
 
-    def __init__(self, name: str, source: Union[str, Store], term_resource_mapping: str) -> None:
-        super().__init__(name, source, term_resource_mapping)
+    def __init__(self, targets: List[Dict[str, str]], source: str,
+                 result_resource_mapping: str) -> None:
+        super().__init__(targets, source, result_resource_mapping)
 
     @property
     def mapping(self) -> Callable:
@@ -39,23 +39,54 @@ class DemoResolver(OntologyResolver):
     def mapper(self) -> Callable:
         return DictionaryMapper
 
-    def _resolve(self, label: str, type: str, strategy: ResolvingStrategy) -> List[Dict[str, str]]:
-        resolved = [(len(x["label"]) - len(label), x) for x in self.service
-                    if label in x["label"]]
-        ordered = sorted(resolved, key=lambda x: x[0])
-        n = 1 if strategy == ResolvingStrategy.BEST_MATCH else len(ordered)
-        return [x[1] for x in ordered[:n]]
+    def _resolve(self, text: str, target: Optional[str], type: Optional[str],
+                 strategy: ResolvingStrategy) -> Optional[List[Dict[str, str]]]:
+        if target is not None:
+            data = self.service[target]
+        else:
+            data = chain.from_iterable(self.service.values())
+
+        if type is not None:
+            data = (x for x in data if x.get("type", None) == type)
+
+        if strategy == ResolvingStrategy.EXACT_MATCH:
+            try:
+                return next(x for x in data
+                            if text == x["label"] or ("acronym" in x and text == x["acronym"]))
+            except StopIteration:
+                return None
+        else:
+            results = [(_dist(x["label"], text), x) for x in data
+                       if text and text in x["label"] or ("acronym" in x and text in x["acronym"])]
+            if results:
+                ordered = sorted(results, key=lambda x: x[0])
+                if strategy == ResolvingStrategy.BEST_MATCH:
+                    return ordered[0][1]
+                else:
+                    # Case: ResolvingStrategy.ALL_MATCHES.
+                    return [x[1] for x in ordered]
+            else:
+                return None
 
     @staticmethod
-    def _initialize(source: Union[str, Store]) -> Dict[str, str]:
-        # TODO.
-        msg = "DemoResolver supports only ontology data from a file for now."
+    def _initialize(source: str, targets: Dict[str, str]) -> Dict[str, List[Dict[str, str]]]:
         try:
-            filepath = Path(source)
+            dirpath = Path(source)
         except TypeError:
-            raise NotImplementedError(msg)
+            # TODO.
+            raise NotImplementedError("DemoResolver supports only resolver data from files"
+                                      "in a directory for now.")
         else:
-            if not filepath.is_file():
-                raise NotImplementedError(msg)
-            with filepath.open() as f:
-                return json.load(f)
+            return {target: list(_load(dirpath, filename)) for target, filename in targets.items()}
+
+
+def _dist(x: str, y: str) -> int:
+    return len(x) - len(y)
+
+
+def _load(dirpath: Path, filename: str) -> Iterator[Dict[str, str]]:
+    filepath = dirpath / filename
+    if not filepath.is_file():
+        raise ConfigurationError("<source>/<bucket> should be a valid file path")
+    with filepath.open() as f:
+        yield from json.load(f)

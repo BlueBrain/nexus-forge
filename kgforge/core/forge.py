@@ -1,36 +1,38 @@
-# 
+#
 # Knowledge Graph Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Knowledge Graph Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import codecs
 from copy import deepcopy
 from importlib import import_module
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import yaml
 from pandas import DataFrame
-from poyo import parse_string
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model, OntologyResolver, Store
+from kgforge.core.archetypes import Mapping, Model, Resolver, Store
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.exceptions import ResolvingError
+from kgforge.core.commons.execution import catch
+from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.conversions.jsonld import as_jsonld, from_jsonld
 from kgforge.core.conversions.triples import as_triples, from_triples
 from kgforge.core.reshaping import Reshaper
-from kgforge.core.resolving import ResolvingStrategy
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappings import DictionaryMapping
 
@@ -39,71 +41,84 @@ class KnowledgeGraphForge:
 
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
-        # FIXME To be refactored while applying the resolving + mapping API refactoring.
-        #  DKE-105, DKE-128, DKE-104.
+        # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
 
+        # Keyword arguments could be used to override the configuration provided for the Store.
+        #
         # The configuration could be provided either as:
         #
-        #   - a path to a YAML file with the following structure:
-        #     (see demo-forge.yml in kgforge/examples/configurations/ for an example)
+        #   - A path to a YAML file with the following structure.
+        #     Class names should be imported in the corresponding module __init__.py.
+        #     Values using braces with something inside should be quoted with double quotes.
+        #     See demo-forge.yml in kgforge/examples/configurations/ for an example.
         #
         # Model:
-        #   name: <a class name in specializations/models, imported in the module __init__.py>  # Required.
-        #   source: <a directory path, an URL, or the store name>  # Required.
+        #   name: <a class name in kgforge/specializations/models>  # Required.
+        #   source: <a directory path, an URL, or the value in Store:name below>  # Required.
+        #   bucket: <a bucket as a string>
         #
         # Store:
-        #   name: <a class name in specializations/stores, imported in the module __init__.py>  # Required.
+        #   name: <a class name in kgforge/specializations/stores>  # Required.
         #   endpoint: <an URL>
         #   bucket: <a bucket as a string>
         #   token: <a token as a string>
         #   versioned_id_template: <a string template using 'x' to access resource fields>,
         #   file_resource_mapping: <an Hjson string, a file path, or an URL>
         #
-        # Ontologies:
-        #   <ontology name>:
-        #       source: <a file path, an URL, or the store name>
-        #       resolver: <a class name in specializations/resolvers, imported in the module __init__.py>
-        #       term_resource_mapping: <an Hjson string, a file path, or an URL>
+        # Resolvers:
+        #   <scope>:
+        #     - resolver: <a class name in kgforge/specializations/resolvers>
+        #       result_resource_mapping: <an Hjson string, a file path, or an URL>
+        #       source: <a directory path, an endpoint URL, or the value in Store:name above>
+        #       targets:
+        #         - identifier: <a name, or an IRI>
+        #           bucket: <a file name, an URL path, or a bucket in the configured store>
         #
         # Formatters:
         #   identifier: <a string template with replacement fields delimited by braces, i.e. '{}'>
         #
-        #   - a Python dictionary with the following structure:
+        #   - A Python dictionary with the following structure.
         #
         # {
         #     "Model": {
-        #         "name": <Callable>,  # Required.
-        #         "source": <Union[str, Store]>,  # Required.
+        #         "name": <str>,  # Required.
+        #         "source": <str>,  # Required.
+        #         "bucket": <str>,
         #     },
         #     "Store": {
-        #         "name": <Callable>>,  # Required.
+        #         "name": <str>>,  # Required.
         #         "endpoint": <str>,
         #         "bucket": <str>,
         #         "token": <str>,
         #         "versioned_id_template": <str>,
         #         "file_resource_mapping": <str>,
         #     },
-        #     "Ontologies": {
-        #         "name": {
-        #             "source": <Union[str, Store]>,
-        #             "resolver": <Callable>,
-        #             "term_resource_mapping": <str>,
-        #         },
-        #         ...,
+        #     "Resolvers": {
+        #         "<scope>": [
+        #             {
+        #                 "resolver": <str>,
+        #                 "result_resource_mapping": <str>,
+        #                 "source": <str>,
+        #                 "targets": [
+        #                     {
+        #                         "identifier": <str>,
+        #                         "bucket": <str>,
+        #                     },
+        #                     ...,
+        #                 ]
+        #             }
+        #             ...,
+        #         ]
         #     },
         #     "Formatters": {
         #         "<name>": <str>,
         #         ...,
         #     },
         # }
-        #
-        # Note:
-        # Keyword arguments could be used to override provided Store configuration.
 
         if isinstance(configuration, str):
-            with codecs.open(configuration, encoding="utf-8") as f:
-                yaml = f.read()
-                config = parse_string(yaml)
+            with Path(configuration).open(encoding="utf-8") as f:
+                config = yaml.safe_load(f)
         else:
             config = deepcopy(configuration)
 
@@ -126,24 +141,25 @@ class KnowledgeGraphForge:
 
         # Resolvers.
 
-        # FIXME Planned to be removed while applying the resolving API refactoring.
-        #  DKE-105, DKE-128.
-        def _(ontology: str, conf: Dict) -> OntologyResolver:
-            resolver_name = conf.pop("resolver")
+        def prepare_resolver(resolver_config: Dict) -> Tuple[str, Resolver]:
+            resolver_name = resolver_config.pop("resolver")
             resolver = getattr(resolvers, resolver_name)
-            c = {"name": ontology, **conf}
-            return resolver(**c)
+            return resolver_name, resolver(**resolver_config)
 
-        if "Ontologies" in config:
+        self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = None
+
+        if "Resolvers" in config:
             resolvers = import_module("kgforge.specializations.resolvers")
-            resolvers_config = config.pop("Ontologies")
-            self._resolvers: Dict[str, OntologyResolver] = {k: _(k, v)
-                                                            for k, v in resolvers_config.items()}
+            resolvers_config = config.pop("Resolvers")
+            self._resolvers = {scope: dict(prepare_resolver(x) for x in configs)
+                               for scope, configs in resolvers_config.items()}
 
         # Formatters.
 
+        self._formatters: Optional[Dict[str, str]] = None
+
         if "Formatters" in config:
-            self._formatters: Dict[str, str] = config.pop("Formatters")
+            self._formatters = config.pop("Formatters")
 
     # Modeling User Interface.
 
@@ -163,11 +179,36 @@ class KnowledgeGraphForge:
 
     # Resolving User Interface.
 
-    # FIXME To be refactored while applying the resolving API refactoring. DKE-105, DKE-128.
-    def resolve(self, label: str, ontology: str, type: str = "Class",
-                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Union[Resource, List[Resource]]:
-        resolver = self._resolvers[ontology]
-        return resolver.resolve(label, type, strategy)
+    @catch
+    def resolve(self, text: str, scope: Optional[str] = None, resolver: Optional[str] = None,
+                target: Optional[str] = None, type: Optional[str] = None,
+                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH
+                ) -> Optional[Union[Resource, List[Resource]]]:
+        if self._resolvers is not None:
+            if scope is not None:
+                if resolver is not None:
+                    rov = self._resolvers[scope][resolver]
+                else:
+                    scope_resolvers = list(self._resolvers[scope].values())
+                    if len(scope_resolvers) == 1:
+                        rov = scope_resolvers[0]
+                    else:
+                        raise ResolvingError("resolver name should be specified")
+            else:
+                scopes_resolvers = list(self._resolvers.values())
+                if resolver is not None:
+                    if len(self._resolvers) == 1:
+                        rov = scopes_resolvers[0][resolver]
+                    else:
+                        raise ResolvingError("resolving scope should be specified")
+                else:
+                    if len(self._resolvers) == 1 and len(scopes_resolvers[0]) == 1:
+                        rov = list(scopes_resolvers[0].values())[0]
+                    else:
+                        raise ResolvingError("resolving scope or resolver name should be specified")
+            return rov.resolve(text, target, type, strategy)
+        else:
+            raise ResolvingError("no resolvers have been configured")
 
     # Formatting User Interface.
 
@@ -206,7 +247,7 @@ class KnowledgeGraphForge:
         return wrap_paths(template)
 
     def search(self, *filters, **params) -> List[Resource]:
-        resolvers = list(self._resolvers.values())
+        resolvers = list(self._resolvers.values()) if self._resolvers is not None else None
         return self._store.search(resolvers, *filters, **params)
 
     def sparql(self, query: str) -> List[Resource]:

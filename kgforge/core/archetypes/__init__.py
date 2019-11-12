@@ -18,4 +18,4 @@ from .mapping import Mapping
 from .mapper import Mapper
 from .store import Store
 from .model import Model
-from .resolver import OntologyResolver
+from .resolver import Resolver

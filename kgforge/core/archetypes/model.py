@@ -13,7 +13,7 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import hjson
 
@@ -31,16 +31,17 @@ class Model(ABC):
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/models/__init__.py.
-    # POLICY Implementations should not add methods in the derived class.
+    # POLICY Implementations should not add methods but private functions in the file.
     # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Implementations should pass tests/specializations/models/demo_model.feature tests.
 
-    def __init__(self, source: Union[str, Store]) -> None:
+    def __init__(self, source: Union[str, Store], bucket: Optional[str] = None) -> None:
         # source: Union[DirPath, URL, Store].
         # POLICY Model data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
-        self.source: Union[str, Store] = source
-        self.service: Any = self._initialize(self.source)
+        self.source: Union[str, Store] = source  # FIXME DKE-144.
+        self.bucket: str = bucket  # FIXME DKE-144.
+        self.service: Any = self._initialize(self.source)  # FIXME DKE-144.
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -103,8 +104,8 @@ class Model(ABC):
     # Utils.
 
     @abstractmethod
-    def _initialize(self, source: Union[str, Store]) -> Any:
+    def _initialize(self, source: Union[str, Store]) -> Any:  # FIXME DKE-144.
         # source: Union[DirPath, URL, Store].
         # POLICY Should initialize the access to the model data according to the source type.
-        # Model data could be loaded from a directory, an URL, or the store.
+        # Model data could be loaded from a directory, an URL, or the configured store.
         pass

@@ -13,36 +13,33 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Store
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.execution import catch
-from kgforge.core.resolving import ResolvingStrategy
+from kgforge.core.commons.strategies import ResolvingStrategy
 
 
-# FIXME To be refactored while applying the resolving API refactoring. DKE-128 + DKE-105.
-
-
-class OntologyResolver(ABC):
+class Resolver(ABC):
 
     # See demo_resolver.py in kgforge/specializations/resolvers/ for a reference implementation.
 
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/resolvers/__init__.py.
-    # POLICY Implementations should not add methods in the derived class.
+    # POLICY Implementations should not add methods but private functions in the file.
     # TODO Create a generic parameterizable test suite for resolvers. DKE-135.
     # POLICY Implementations should pass tests/specializations/resolvers/test_resolvers.py.
 
-    def __init__(self, name: str, source: Union[str, Store], term_resource_mapping: str) -> None:
+    def __init__(self, targets: List[Dict[str, str]], source: str,
+                 result_resource_mapping: str) -> None:
         # POLICY Resolver data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
-        self.name: str = name
-        self.source: Union[str, Store] = source
-        self.service: Any = self._initialize(self.source)
-        self.term_mapping: Any = self.mapping.load(term_resource_mapping)
+        self.targets: Dict[str, str] = {x["identifier"]: x["bucket"] for x in targets}
+        self.source: str = source  # FIXME DKE-144.
+        self.service: Any = self._initialize(self.source, self.targets)
+        self.result_mapping: Any = self.mapping.load(result_resource_mapping)
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -50,34 +47,37 @@ class OntologyResolver(ABC):
     @property
     @abstractmethod
     def mapping(self) -> Callable:
-        """Mapping class to load term_resource_mapping."""
+        """Mapping class to load result_resource_mapping."""
         pass
 
     @property
     @abstractmethod
     def mapper(self) -> Callable:
-        """Mapper class to map term or entity metadata to a Resource with term_resource_mapping."""
+        """Mapper class to map the result data to a Resource with result_resource_mapping."""
         pass
 
     @catch
-    def resolve(self, label: str, type: str,
-                strategy: ResolvingStrategy) -> Union[Resource, List[Resource]]:
+    def resolve(self, text: str, target: Optional[str], type: Optional[str],
+                strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]:
         # The resolving strategy cannot be abstracted as it should be managed by the service.
-        resolved = self._resolve(label, type, strategy)
-        if len(resolved) == 1:
-            resolved = resolved[0]
-        return self.mapper().map(resolved, self.term_mapping)
+        resolved = self._resolve(text, target, type, strategy)
+        if resolved is not None:
+            if len(resolved) == 1:
+                resolved = resolved[0]
+            return self.mapper().map(resolved, self.result_mapping)
+        else:
+            return None
 
     @abstractmethod
-    def _resolve(self, label: str, type: str, strategy: ResolvingStrategy) -> List[Any]:
+    def _resolve(self, text: str, target: Optional[str], type: Optional[str],
+                 strategy: ResolvingStrategy) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 
     @staticmethod
     @abstractmethod
-    def _initialize(ontology_source: Union[str, Store]) -> Any:
-        # ontology_source: Union[FilePath, URL, Store].
-        # POLICY Should initialize the access to the ontology data according to the source type.
-        # Ontology data could be loaded from a file, an URL, or the store.
+    def _initialize(source: str, targets: Dict[str, str]) -> Any:
+        # POLICY Should initialize the access to the resolver data according to the source type.
+        # Resolver data could be accessed from a directory, a web service, or the configured store.
         # TODO Some operations might be abstracted here when other resolvers will be implemented.
         pass

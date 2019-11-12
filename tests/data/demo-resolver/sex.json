@@ -1,10 +1,12 @@
 [
   {
-    "label": "male",
-    "id": "http://purl.obolibrary.org/obo/PATO_0000384"
+    "id": "http://purl.obolibrary.org/obo/PATO_0000384",
+    "type": "Class",
+    "label": "male"
   },
   {
-    "label": "female",
-    "id": "http://purl.obolibrary.org/obo/PATO_0000383"
+    "id": "http://purl.obolibrary.org/obo/PATO_0000383",
+    "type": "Class",
+    "label": "female"
   }
 ]

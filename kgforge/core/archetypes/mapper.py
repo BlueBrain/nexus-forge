@@ -32,7 +32,7 @@ class Mapper(ABC):
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/mappers/__init__.py.
-    # POLICY Implementations should not add methods. They could be functions in the created file.
+    # POLICY Implementations should not add methods but private functions in the file.
     # TODO Create a generic parameterizable test suite for mappers. DKE-135.
     # POLICY Implementations should pass tests/specializations/mappers/test_mappers.py.
 

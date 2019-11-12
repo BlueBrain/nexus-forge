@@ -31,7 +31,7 @@ class Mapping(ABC):
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/mappings/__init__.py.
-    # POLICY Implementations should not add methods in the derived class.
+    # POLICY Implementations should not add methods but private functions in the file.
     # TODO Create a generic parameterizable test suite for mappings. DKE-135.
     # POLICY Implementations should pass tests/specializations/mappings/test_mappings.py.
 

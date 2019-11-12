@@ -82,7 +82,7 @@ validate(data: Union[Resource, List[Resource]]) -> None
 Resolving
 
 ```bash
-resolve(label: str, ontology: str, type: str = "Class", strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Union[Resource, List[Resource]]
+resolve(text: str, scope: Optional[str] = None, resolver: Optional[str] = None, target: Optional[str] = None, type: Optional[str] = None, strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Optional[Union[Resource, List[Resource]]]
 ```
 
 Formatting
@@ -180,11 +180,11 @@ Model(source: Union[str, Store])
   validate(data: Union[Resource, List[Resource]]) -> None
 ```
 
-OntologyResolver
+Resolver
 
 ```bash
-OntologyResolver(name: str, source: Union[str, Store], term_resource_mapping: str)
-  resolve(label: str, type: str, strategy: ResolvingStrategy) -> Union[Resource, List[Resource]]
+Resolver(targets: List[Dict[str, str]], source: str, result_resource_mapping: str)
+  resolve(text: str, target: Optional[str], type: Optional[str], strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]
 ```
 
 Store
@@ -198,7 +198,7 @@ Store(endpoint: Optional[str] = None, bucket: Optional[str] = None, token: Optio
   update(data: Union[Resource, List[Resource]]) -> None
   tag(data: Union[Resource, List[Resource]], value: str) -> None
   deprecate(data: Union[Resource, List[Resource]]) -> None
-  search(resolvers: List[OntologyResolver], *filters, **params) -> List[Resource]
+  search(resolvers: List[Resolver], *filters, **params) -> List[Resource]
   sparql(prefixes: Dict[str, str], query: str) -> List[Resource]
   freeze(data: Union[Resource, List[Resource]]) -> None
 ```

@@ -40,7 +40,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "hjson",
-        "poyo",
+        "pyyaml",
         "pandas",
         "nexus-sdk",
         "aiohttp",

@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Union
 from uuid import uuid4
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import OntologyResolver, Store
+from kgforge.core.archetypes import Resolver, Store
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
 from kgforge.core.commons.execution import catch
@@ -56,7 +56,7 @@ class DemoStore(Store):
         except StoreLibrary.RecordMissing:
             raise RetrievalError("resource not found")
         else:
-            return to_resource(record)
+            return _to_resource(record)
 
     # CR[U]D.
 
@@ -98,7 +98,7 @@ class DemoStore(Store):
     # Querying.
 
     @catch
-    def search(self, resolvers: List[OntologyResolver], *filters, **params) -> List[Resource]:
+    def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.
@@ -108,7 +108,7 @@ class DemoStore(Store):
             print("DemoStore does not support 'resolving' and 'lookup' parameters for now.")
         conditions = [f"x.{'.'.join(x.path)}.{x.operator}({x.value!r})" for x in filters]
         records = self.service.find(conditions)
-        return [to_resource(x) for x in records]
+        return [_to_resource(x) for x in records]
 
     # Utils.
 
@@ -117,7 +117,7 @@ class DemoStore(Store):
         return StoreLibrary()
 
 
-def to_resource(record: Dict) -> Resource:
+def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
     resource = from_json(record["data"])
     resource._store_metadata = wrap_dict(record["metadata"])

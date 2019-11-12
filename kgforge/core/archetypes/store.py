@@ -25,7 +25,7 @@ from kgforge.core.commons.execution import catch, not_supported, run
 from kgforge.core.reshaping import collect_values
 
 
-# NB: Do not 'from kgforge.core.archetypes import OntologyResolver' to avoid cyclic dependency.
+# NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
 
 
 class Store(ABC):
@@ -35,7 +35,7 @@ class Store(ABC):
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/stores/__init__.py.
-    # POLICY Implementations should not add methods in the derived class.
+    # POLICY Implementations should not add methods but private functions in the file.
     # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Implementations should pass tests/specializations/stores/demo_store.feature tests.
 
@@ -204,7 +204,7 @@ class Store(ABC):
     # Querying.
 
     @catch
-    def search(self, resolvers: List["OntologyResolver"], *filters, **params) -> List[Resource]:
+    def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py.
         # Keyword arguments in 'params' could be:
         #   - resolving: str, with values in ('exact', 'fuzzy'),

@@ -3,6 +3,6 @@
     id: forge.identifiers.format("subjects", x.donor__id)
     identifier: x.donor__id
     name: x.donor__name
-    sex: forge.ontologies.resolve(x.donor__sex, "sex")
+    sex: forge.ontologies.resolve(x.donor__sex, scope="terms")
     species: forge.ontologies.resolve(x.donor__species, "species")
 }

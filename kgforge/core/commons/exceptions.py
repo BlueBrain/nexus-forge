@@ -13,6 +13,12 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 
+# Forge operations.
+
+class ConfigurationError(Exception):
+    pass
+
+
 # Model operations.
 
 

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "https://www.grid.ac/institutes/grid.5333.6",
+    "type": "Organization",
+    "label": "École Polytechnique Fédérale de Lausanne",
+    "acronym": "EPFL"
+  },
+  {
+    "id": "https://www.grid.ac/institutes/grid.8591.5",
+    "type": "Organization",
+    "label": "University of Geneva",
+    "acronym": "UNIGE"
+  }
+]

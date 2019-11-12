@@ -4,7 +4,7 @@
     agent:
     {
         type: Person
-        gender: forge.resolve("male", "sex")
+        gender: forge.resolve("male", scope="terms")
         name: x.name
     }
     distribution: forge.attach("./scientists-database/file.ext")
