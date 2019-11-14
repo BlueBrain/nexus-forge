@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -22,8 +22,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError,
                                              RegistrationError, TaggingError, UpdatingError,
                                              UploadingError)
 from kgforge.core.commons.execution import catch, not_supported, run
-from kgforge.core.conversions.json import as_json
-from kgforge.core.reshaping import Reshaper
+from kgforge.core.reshaping import collect_values
 
 
 # NB: Do not 'from kgforge.core.archetypes import OntologyResolver' to avoid cyclic dependency.
@@ -125,21 +124,7 @@ class Store(ABC):
     @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
-        # TODO Use an implementation of JSONPath for Python instead to get 'urls'. DKE-147.
-        def _collect(things: List) -> Iterator[str]:
-            for t in things:
-                if isinstance(t, Dict):
-                    for k, v in t.items():
-                        if isinstance(v, List):
-                            yield from _collect(v)
-                        elif isinstance(v, Dict):
-                            yield from _collect([v])
-                        else:
-                            yield v
-        x = Reshaper("").reshape(data, [follow], False)
-        y = as_json(x, False, False)
-        z = y if isinstance(y, List) else [y]
-        urls = list(_collect(z))
+        urls = collect_values(data, follow, DownloadingError)
         size = len(urls)
         p = Path(path)
         p.mkdir(parents=True, exist_ok=True)

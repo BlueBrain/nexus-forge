@@ -143,9 +143,6 @@ class BlueBrainNexus(Store):
             self._sync_metadata(resource, response)
 
     def _upload_one(self, filepath: Path) -> Dict:
-        # TODO: the DictionaryMapping should provide the context since is the one creating
-        #  the resource from file_resource_mapping !!
-        # resource._context = response["@context"]
         try:
             response = nexus.files.create(self.organisation, self.project,
                                           str(filepath.absolute()))

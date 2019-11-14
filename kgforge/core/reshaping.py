@@ -12,11 +12,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import List, Union
+from typing import Callable, Dict, Iterator, List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.execution import catch, dispatch
+from kgforge.core.conversions.json import as_json
 
 
 class Reshaper:
@@ -68,3 +69,26 @@ class Reshaper:
                     new_value = value
             setattr(new, root, new_value)
         return new
+
+
+# TODO Use an implementation of JSONPath for Python instead to get values. DKE-147.
+def collect_values(data: Union[Resource, List[Resource]],  follow: str,
+                   exception: Callable = Exception) -> List[str]:
+    def _collect(things: List) -> Iterator[str]:
+        for x in things:
+            if isinstance(x, Dict):
+                for k, v in x.items():
+                    if isinstance(v, List):
+                        yield from _collect(v)
+                    elif isinstance(v, Dict):
+                        yield from _collect([v])
+                    else:
+                        yield v
+    try:
+        r = Reshaper("")
+        reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
+        jsoned = as_json(reshaped, False, False)
+        prepared = jsoned if isinstance(jsoned, List) else [jsoned]
+        return list(_collect(prepared))
+    except AttributeError:
+        raise exception("path to follow is incorrect")

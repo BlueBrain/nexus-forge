@@ -16,6 +16,8 @@ import os
 
 import pytest
 
+from kgforge.core.commons.exceptions import DownloadingError
+from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 from tests.data import *
@@ -98,22 +100,21 @@ def test_response_to_resource(nexus_store, data, expected):
     assert_equal(expected, resource), "resource is not as the expected"
 
 
-# FIXME Migrate to v0.2.0.
-# def test_extract_properties(nexus_store):
-#     simple = Resource(type="Experiment", url="file.gz")
-#     r = nexus_store._collect_files(simple, "url")
-#     assert simple.url in r, "url should be in the list"
-#     deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
-#     r = nexus_store._collect_files(deep, "level1.level2.url")
-#     assert deep.level1.level2.url in r, "url should be in the list"
-#     files = Resources([Resource(type="Experiment", url=f"file{i}") for i in range(3)])
-#     r = nexus_store._collect_files(files, "url")
-#     assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
-#     data_set = Resource(type="Dataset", hasPart=files)
-#     r = nexus_store._collect_files(data_set, "hasPart.url")
-#     assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
-#     r = nexus_store._collect_files(data_set, "fake.path")
-#     assert len(r) == 0, "list is empty"
+def test_extract_properties(nexus_store):
+    simple = Resource(type="Experiment", url="file.gz")
+    r = collect_values(simple, "url")
+    assert simple.url in r, "url should be in the list"
+    deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
+    r = collect_values(deep, "level1.level2.url")
+    assert deep.level1.level2.url in r, "url should be in the list"
+    files = [Resource(type="Experiment", url=f"file{i}") for i in range(3)]
+    r = collect_values(files, "url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    data_set = Resource(type="Dataset", hasPart=files)
+    r = collect_values(data_set, "hasPart.url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    with pytest.raises(DownloadingError):
+        collect_values(data_set, "fake.path", DownloadingError)
 
 
 # FIXME Migrate to v0.2.0.
