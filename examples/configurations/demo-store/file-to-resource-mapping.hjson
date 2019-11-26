@@ -1,0 +1,5 @@
+{
+    type: DataDownload
+    name: x.filename
+    contentUrl: x.link
+}

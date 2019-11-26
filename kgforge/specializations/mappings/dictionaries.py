@@ -13,13 +13,11 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from collections import OrderedDict
-from pathlib import Path
 
 import hjson
 
-from kgforge.core.commons.attributes import sort_attributes
-from kgforge.core.commons.typing import FilePath
-from kgforge.core.transforming.mapping import Mapping
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.commons.attributes import sort_attrs
 
 
 class DictionaryMapping(Mapping):
@@ -28,12 +26,9 @@ class DictionaryMapping(Mapping):
         super().__init__(mapping)
 
     @staticmethod
-    def load(path: FilePath) -> "DictionaryMapping":
-        text = Path(path).read_text()
-        return DictionaryMapping(text)
-
-    def _load_rules(self, mapping: str) -> OrderedDict:
+    def _load_rules(mapping: str) -> OrderedDict:
         return hjson.loads(mapping)
 
-    def _normalize_rules(self, rules: OrderedDict) -> str:
-        return hjson.dumps(rules, indent=4, item_sort_key=sort_attributes)
+    @staticmethod
+    def _normalize_rules(rules: OrderedDict) -> str:
+        return hjson.dumps(rules, indent=4, item_sort_key=sort_attrs)

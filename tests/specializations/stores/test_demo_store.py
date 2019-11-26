@@ -14,9 +14,11 @@
 
 from pytest_bdd import given, parsers, scenarios, then, when
 
-from kgforge.core.commons.typing import do
 from kgforge.specializations.stores.demo_store import DemoStore
-from tests.conftest import check_report
+from tests.conftest import check_report, do
+
+# TODO To be port to the generic parameterizable test suite for stores in test_stores.py.
+
 
 scenarios("demo_store.feature")
 
@@ -28,37 +30,37 @@ def store():
 
 @given("An already registered resource.", target_fixture="data")
 def registered_resource(store, valid_resource):
-    store.register(valid_resource, False)
-    assert valid_resource._synchronized == True
+    store.register(valid_resource)
+    assert valid_resource._synchronized is True
     return valid_resource
 
 
 @given("Already registered resources.", target_fixture="data")
 def registered_resources(store, valid_resources):
-    store.register(valid_resources, False)
+    store.register(valid_resources)
     for x in valid_resources:
-        assert x._synchronized == True
+        assert x._synchronized is True
         assert x._store_metadata == {'version': 1, 'deprecated': False}
     return valid_resources
 
 
 @when(parsers.re("I register the resource(?P<rc>s?)."
-                 " The printed report does(?P<err> not)? mention an error(: '(?P<msg>[a-zA-Z0-9 ]+)')?."))
+                 " The printed report does(?P<err> not)? mention an error(: '(?P<msg>[a-zA-Z0-9: ]+)')?."))
 def register(capsys, store, data, rc, err, msg):
-    store.register(data, False)
-    check_report(capsys, rc, err, msg, "_register")
+    store.register(data)
+    check_report(capsys, rc, err, msg, "_register_one")
 
 
-@when("I register the resource. An exception is raised. The printed report does mention an error: 'exception raised'.")
+@when("I register the resource. An exception is raised. The printed report does mention an error: 'Exception: exception raised'.")
 def register_exception(monkeypatch, capsys, store, data):
-    def _register(_, x, y): raise Exception("exception raised")
-    monkeypatch.setattr("kgforge.specializations.stores.demo_store.DemoStore._register", _register)
-    store.register(data, False)
+    def _register_one(_, x): raise Exception("exception raised")
+    monkeypatch.setattr("kgforge.specializations.stores.demo_store.DemoStore._register_one", _register_one)
+    store.register(data)
     out = capsys.readouterr().out[:-1]
-    assert out == f"<action> _register\n<succeeded> False\n<error> exception raised"
+    assert out == f"<action> _register_one\n<succeeded> False\n<error> Exception: exception raised"
 
 
 @then(parsers.parse("The store metadata of a resource should be '{metadata}'."))
 def check_metadata(data, metadata):
     def fun(x): assert str(x._store_metadata) == metadata
-    do(fun, data, error=True)
+    do(fun, data)

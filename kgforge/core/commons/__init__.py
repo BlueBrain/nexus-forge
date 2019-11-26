@@ -12,3 +12,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
+# Expected to be empty.

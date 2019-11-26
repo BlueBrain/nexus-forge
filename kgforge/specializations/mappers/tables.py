@@ -12,12 +12,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from kgforge.core.transforming.mapper import Mapper
-
-
-class TableMapper(Mapper):
-
-    def __init__(self, forge: "KnowledgeGraphForge") -> None:
-        super().__init__(forge)
-
-    # TODO Implement.
+# Placeholder.

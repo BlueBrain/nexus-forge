@@ -12,8 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-import inspect
-from typing import Any, KeysView, Optional, Set, Tuple
+from typing import KeysView, Set, Tuple
 
 
 def check_collisions(reserved: Set[str], new: KeysView[str]) -> None:
@@ -22,20 +21,7 @@ def check_collisions(reserved: Set[str], new: KeysView[str]) -> None:
         raise NotImplementedError(f"some names of the given properties are reserved: {intersect}")
 
 
-def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
-    # POLICY Should be called in methods in core which could be not implemented by specializations.
-    frame = inspect.currentframe().f_back
-    try:
-        self_ = frame.f_locals["self"]
-        class_name = type(self_).__name__
-        method_name = inspect.getframeinfo(frame).function
-        tail = f" with {arg[0]}={arg[1]}" if arg else ""
-        print(f"{class_name} is not supporting {method_name}(){tail}")
-    finally:
-        del frame
-
-
-def sort_attributes(kv: Tuple[str, str]) -> Tuple[int, str]:
+def sort_attrs(kv: Tuple[str, str]) -> Tuple[int, str]:
     # POLICY Should be called to sort attributes of resources, templates, mappings, ...
     ordered = ["_last_action", "_validated", "_synchronized", "_store_metadata", "id", "type"]
     orders = {x: i for i, x in enumerate(ordered)}
@@ -43,6 +29,13 @@ def sort_attributes(kv: Tuple[str, str]) -> Tuple[int, str]:
     return orders.get(kv[0], next_order), kv[0]
 
 
-def repr_(obj: object) -> str:
-    attributes = (f"{k}={repr(v)}" for k, v in obj.__dict__.items())
-    return f"{obj.__class__.__name__}({', '.join(attributes)})"
+def repr_class(self: object) -> str:
+    ordered = sorted(self.__dict__.items(), key=sort_attrs)
+    attributes = (f"{k}={v!r}" for k, v in ordered)
+    attributes_str = ", ".join(attributes)
+    class_name = self.__class__.__name__
+    return f"{class_name}({attributes_str})"
+
+
+def eq_class(self: object, other: object) -> bool:
+    return self.__dict__ == other.__dict__ if type(other) is type(self) else False

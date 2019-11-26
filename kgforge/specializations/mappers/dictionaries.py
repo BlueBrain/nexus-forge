@@ -13,45 +13,47 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 import json
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
-from kgforge.core.commons.wrappers import DictWrapper
-from kgforge.core.resources import Resource
-from kgforge.core.transforming.mapper import Mapper
-from kgforge.core.transforming.mapping import Mapping
+from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core.archetypes import Mapper, Mapping
+from kgforge.core.wrappings.dict import wrap_dict
 
 
 class DictionaryMapper(Mapper):
 
-    def __init__(self, forge: "KnowledgeGraphForge") -> None:
+    def __init__(self, forge: Optional[KnowledgeGraphForge] = None) -> None:
         super().__init__(forge)
 
-    def _reader(self) -> Callable:
+    @property
+    def reader(self) -> Callable:
         return json.load
 
     def _map_one(self, record: Dict, mapping: Mapping) -> Resource:
         variables = {
             "forge": self.forge,
-            "x": DictWrapper._wrap(record),
+            "x": wrap_dict(record),
         }
-        return self._map_dict(mapping.rules, variables)
+        return _map_dict(mapping.rules, variables)
 
-    def _map_dict(self, rules: Dict, variables: Dict) -> Resource:
-        properties = {k: self._map_value(v, variables) for k, v in rules.items()}
-        return Resource(**properties)
 
-    def _map_value(self, value: Any, variables: Dict) -> Any:
-        if isinstance(value, List):
-            return [self._map_dict(x, variables) for x in value]
-        elif isinstance(value, Dict):
-            return self._map_dict(value, variables)
-        else:
-            return self._apply_rule(value, variables)
+def _map_dict(rules: Dict, variables: Dict) -> Resource:
+    properties = {k: _map_value(v, variables) for k, v in rules.items()}
+    return Resource(**properties)
 
-    @staticmethod
-    def _apply_rule(rule: Any, variables: Dict) -> Any:
-        # TODO Add support for the full syntax of JSONPath. Need some thinking on the consequences.
-        try:
-            return eval(rule, {}, variables)
-        except (TypeError, NameError, SyntaxError):
-            return rule
+
+def _map_value(value: Any, variables: Dict) -> Any:
+    if isinstance(value, List):
+        return [_map_dict(x, variables) for x in value]
+    elif isinstance(value, Dict):
+        return _map_dict(value, variables)
+    else:
+        return _apply_rule(value, variables)
+
+
+def _apply_rule(rule: Any, variables: Dict) -> Any:
+    # TODO Add support for the full syntax of JSONPath. Need some thinking on the consequences.
+    try:
+        return eval(rule, {}, variables)
+    except (TypeError, NameError, SyntaxError):
+        return rule

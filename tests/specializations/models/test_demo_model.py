@@ -17,6 +17,9 @@ from pytest_bdd import given, parsers, scenarios, when
 from kgforge.specializations.models.demo_model import DemoModel
 from tests.conftest import check_report
 
+# TODO To be port to the generic parameterizable test suite for models in test_models.py.
+
+
 scenarios("demo_model.feature")
 
 
@@ -33,16 +36,16 @@ def validated_resource(model, valid_resource):
 
 
 @when(parsers.re("I validate the resource(?P<rc>s?)."
-                 " The printed report does(?P<err> not)? mention an error(: '(?P<msg>[a-zA-Z0-9 ]+)')?."))
+                 " The printed report does(?P<err> not)? mention an error(: '(?P<msg>[a-zA-Z0-9: ]+)')?."))
 def validate(capsys, model, data, rc, err, msg):
     model.validate(data)
-    check_report(capsys, rc, err, msg, "_validate")
+    check_report(capsys, rc, err, msg, "_validate_one")
 
 
-@when("I validate the resource. An exception is raised. The printed report mentions an error: 'exception raised'.")
+@when("I validate the resource. An exception is raised. The printed report mentions an error: 'Exception: exception raised'.")
 def validate_exception(monkeypatch, capsys, model, data):
-    def _validate(_, x): raise Exception("exception raised")
-    monkeypatch.setattr("kgforge.specializations.models.demo_model.DemoModel._validate", _validate)
+    def _validate_one(_, x): raise Exception("exception raised")
+    monkeypatch.setattr("kgforge.specializations.models.demo_model.DemoModel._validate_one", _validate_one)
     model.validate(data)
     out = capsys.readouterr().out[:-1]
-    assert out == f"<action> _validate\n<succeeded> False\n<error> exception raised"
+    assert out == f"<action> _validate_one\n<succeeded> False\n<error> Exception: exception raised"

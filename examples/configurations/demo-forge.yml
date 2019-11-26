@@ -1,0 +1,16 @@
+Model:
+  name: DemoModel
+  source: ../../../tests/data/demo-model
+
+Store:
+  name: DemoStore
+  versioned_id_template: {x.id}_version={x._store_metadata.version}
+
+Ontologies:
+  sex:
+    source: ../../../tests/data/demo-resolver/sex.json
+    resolver: DemoResolver
+    term_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
+
+Formatters:
+  identifier: https://kg.example.ch/{}/{}

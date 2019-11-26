@@ -79,14 +79,14 @@ types() -> List[str]
 template(type: str, only_required: bool = False) -> None
 mappings(self, source: str) -> Dict[str, List[str]]
 mapping(self, type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
-validate(data: ManagedData) -> None
+check(data: ManagedData) -> None
 paths(type: str) -> PathsWrapper
 
 > Handlers
 Identifiers: format(*args) -> str
 Ontologies: resolve(label: str, ontology: str, type: str = "Class",
     strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource
-Files: as_resource(path: Union[FilePath, DirPath]) -> LazyAction
+Files: attach(path: Union[FilePath, DirPath]) -> LazyAction
 
 
 # Storing

@@ -16,7 +16,7 @@ import os
 
 from setuptools import setup
 
-VERSION = "0.1.0"
+VERSION = "0.2.0.dev"
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -37,7 +37,7 @@ setup(
     keywords="data knowledge scientists graph",
     url="https://github.com/BlueBrain/kgforge",
     packages=["kgforge"],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "hjson",
         "poyo",

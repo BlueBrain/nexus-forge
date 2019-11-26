@@ -1,11 +1,11 @@
 {
     type: Association
-    id: forge.identifiers.format("associations", len(x.name))
+    id: forge.format("identifier", "associations", x.id)
     agent:
     {
         type: Person
         name: x.name
-        gender: forge.ontologies.resolve("male", "sex")
+        gender: forge.resolve("male", "sex")
     }
-    distribution: forge.files.as_resource("./scientists-database/file.ext")
+    distribution: forge.attach("./scientists-database/file.ext")
 }

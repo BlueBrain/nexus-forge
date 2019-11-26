@@ -13,5 +13,3 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from .dictionaries import DictionaryMapper
-from .resources import ResourceMapper
-from .tables import TableMapper

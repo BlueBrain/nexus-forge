@@ -13,4 +13,3 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from .demo_model import DemoModel
-from .neuroshapes import Neuroshapes

@@ -14,28 +14,47 @@
 
 import json
 from pathlib import Path
+from typing import Callable, Dict, List, Union
 
-from kgforge.core.commons.typing import ManagedData
-from kgforge.core.modeling.resolvers import (OntologyConfiguration, OntologyResolver,
-                                             ResolvingStrategy)
-from kgforge.specializations.mappers.dictionaries import DictionaryMapper
-from kgforge.specializations.mappings.dictionaries import DictionaryMapping
+from kgforge.core.archetypes import OntologyResolver, Store
+from kgforge.core.resolving import ResolvingStrategy
+from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.specializations.mappings import DictionaryMapping
+
+
+# FIXME To be refactored while applying the resolving API refactoring.
 
 
 class DemoResolver(OntologyResolver):
+    """An example to show how to implement a Resolver and to demonstrate how it is used."""
 
-    def __init__(self, configuration: OntologyConfiguration) -> None:
-        super().__init__()
-        self.name = configuration.name
-        self.term_resource_mapping = DictionaryMapping.load(configuration.term_resource_mapping)
-        with Path(configuration.source).open() as f:
-            self.ontology = json.load(f)
+    def __init__(self, name: str, source: Union[str, Store], term_resource_mapping: str) -> None:
+        super().__init__(name, source, term_resource_mapping)
 
-    def resolve(self, label: str, type: str, strategy: ResolvingStrategy) -> ManagedData:
-        resolved = [(len(x["label"]) - len(label), x) for x in self.ontology if label in x["label"]]
+    @property
+    def mapping(self) -> Callable:
+        return DictionaryMapping
+
+    @property
+    def mapper(self) -> Callable:
+        return DictionaryMapper
+
+    def _resolve(self, label: str, type: str, strategy: ResolvingStrategy) -> List[Dict[str, str]]:
+        resolved = [(len(x["label"]) - len(label), x) for x in self.service
+                    if label in x["label"]]
         ordered = sorted(resolved, key=lambda x: x[0])
-        if strategy == ResolvingStrategy.BEST_MATCH:
-            selected = ordered[0][1]
+        n = 1 if strategy == ResolvingStrategy.BEST_MATCH else len(ordered)
+        return [x[1] for x in ordered[:n]]
+
+    @staticmethod
+    def _initialize(source: Union[str, Store]) -> Dict[str, str]:
+        msg = "DemoResolver supports only ontology data from a file for now."  # TODO
+        try:
+            filepath = Path(source)
+        except TypeError:
+            raise NotImplementedError(msg)
         else:
-            selected = [x[1] for x in ordered]
-        return DictionaryMapper(None).map(selected, self.term_resource_mapping)
+            if not filepath.is_file():
+                raise NotImplementedError(msg)
+            with filepath.open() as f:
+                return json.load(f)

@@ -12,37 +12,39 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Union
+from typing import List, Union
 
+from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
-from kgforge.core.commons.typing import DirPath, FilePath, IRI, ManagedData
 from kgforge.core.forge import KnowledgeGraphForge
-from kgforge.core.resources import Resource, Resources
 
 
 class Dataset(Resource):
     """An opinionated high-level class based on Resource to handle datasets."""
 
     _RESERVED = {"_forge", "add_parts", "add_distribution", "add_contribution", "add_generation",
-                 "add_derivation", "add_invalidation", "add_files", "download"} | Resource._RESERVED
+                 "add_derivation", "add_invalidation", "add_files",
+                 "download"} | Resource._RESERVED
 
     def __init__(self, forge: KnowledgeGraphForge, type: str = "Dataset", **properties) -> None:
         super().__init__(**properties)
-        self._forge = forge
-        self.type = type
+        self._forge: KnowledgeGraphForge = forge
+        self.type: str = type
 
-    def add_parts(self, resources: Resources, versioned: bool = True) -> None:
+    def add_parts(self, resources: List[Resource], versioned: bool = True) -> None:
         """Make resources part of the dataset."""
         keep = ["id", "type", "name", "distribution.contentUrl"]
-        reshaped = self._forge.transforming.reshape(resources, keep, versioned)
+        reshaped = self._forge.reshape(resources, keep, versioned)
         _set(self, "hasPart", reshaped)
 
-    def add_distribution(self, path: FilePath) -> None:
+    def add_distribution(self, path: str) -> None:
+        # path: FilePath.
         """Add a downloadable form of the dataset."""
-        action = self._forge.files.as_resource(path)
+        action = self._forge.attach(path)
         _set(self, "distribution", action)
 
-    def add_contribution(self, agent: IRI, **kwargs) -> None:
+    def add_contribution(self, agent: str, **kwargs) -> None:
+        # agent: IRI.
         """Add information on the contribution of an agent during the generation of the dataset."""
         agent = Resource(type="Agent", id=agent)
         resource = Resource(type="Contribution", agent=agent, **kwargs)
@@ -58,7 +60,7 @@ class Dataset(Resource):
     def add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None:
         """Add information on the derivation of an entity resulting in the dataset."""
         keep = ["id", "type", "name"]
-        entity = self._forge.transforming.reshape(resource, keep, versioned)
+        entity = self._forge.reshape(resource, keep, versioned)
         qualified = Resource(type="Derivation", entity=entity, **kwargs)
         _set(self, "derivation", qualified)
 
@@ -69,12 +71,14 @@ class Dataset(Resource):
         resource = Resource(type="Invalidation", **kwargs)
         _set(self, "invalidation", resource)
 
-    def add_files(self, path: DirPath) -> None:
+    def add_files(self, path: str) -> None:
+        # path: DirPath.
         """Add (different) files as parts of the dataset."""
-        action = self._forge.files.as_resource(path)
+        action = self._forge.attach(path)
         _set(self, "hasPart", action)
 
-    def download(self, source: str, path: DirPath) -> None:
+    def download(self, source: str, path: str) -> None:
+        # path: DirPath.
         """Download the distributions of the dataset or the files part of the dataset."""
         if source == "distributions":
             follow = "distribution.contentUrl"
@@ -82,22 +86,22 @@ class Dataset(Resource):
             follow = "hasPart.distribution.contentUrl"
         else:
             raise ValueError("unrecognized source")
-        self._forge.querying.download(self, follow, path)
+        self._forge.download(self, follow, path)
 
 
-def _set(dataset: Dataset, attr: str, data: Union[ManagedData, LazyAction]) -> None:
+def _set(dataset: Dataset, attr: str, data: Union[Resource, List[Resource], LazyAction]) -> None:
     if hasattr(dataset, attr):
         value = getattr(dataset, attr)
-        if isinstance(value, Resources):
-            if isinstance(data, Resources):
+        if isinstance(value, List):
+            if isinstance(data, List):
                 value.extend(data)
             else:
                 value.append(data)
         else:
-            if isinstance(data, Resources):
-                new = Resources((value, *data))
+            if isinstance(data, List):
+                new = [value, *data]
             else:
-                new = Resources((value, data))
+                new = [value, data]
             setattr(dataset, attr, new)
     else:
         setattr(dataset, attr, data)

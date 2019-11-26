@@ -12,184 +12,227 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Dict, Optional, Union
+from __future__ import annotations
 
-from kgforge.core.commons.actions import run
-from kgforge.core.commons.exceptions import catch
-from kgforge.core.commons.typing import ManagedData, do
-from kgforge.core.commons.wrappers import DictWrapper
-from kgforge.core.resources import Resource, Resources
-from kgforge.core.storing.exceptions import (DeprecationError, FreezingError, RegistrationError,
-                                             RetrievalError, TaggingError)
-from kgforge.core.storing.store import Store
+from copy import deepcopy
+from typing import Dict, List, Optional, Union
+from uuid import uuid4
+
+from kgforge.core import Resource
+from kgforge.core.archetypes import OntologyResolver, Store
+from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
+                                             RetrievalError, TaggingError, UpdatingError)
+from kgforge.core.commons.execution import catch
+from kgforge.core.conversions.json import as_json, from_json
+from kgforge.core.wrappings.dict import wrap_dict
 
 
 class DemoStore(Store):
-    """This is an implementation of a Store to perform tests and help implement specializations."""
+    """An example to show how to implement a Store and to demonstrate how it is used."""
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._data = {}
-        self._archives = {}
-        self._tags = {}
-        self._last_id = -1
+    def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
+                 token: Optional[str] = None, versioned_id_template: Optional[str] = None,
+                 file_resource_mapping: Optional[str] = None) -> None:
+        super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping)
 
-    def _new_id(self):
-        next_id = self._last_id + 1
-        self._last_id = next_id
-        return next_id
+    # [C]RUD.
 
-    # [C]RUD
-
-    def _register_many(self, resources: Resources, update: bool) -> None:
-        # TODO Example of an optimization for bulk registration.
-        run(self._register, resources, status="_synchronized", update=update)
-
-    def _register_one(self, resource: Resource, update: bool) -> None:
-        run(self._register, resource, status="_synchronized", update=update)
-
-    def _register(self, resource: Resource, update: bool) -> None:
-        # TODO Example for "Values of type LazyAction should be processed first".
+    def _register_one(self, resource: Resource) -> None:
+        data = as_json(resource, expanded=False, store_metadata=False)
         try:
-            rid = resource.id
-        except AttributeError:
-            rid = self._new_id()
-            resource.id = rid
-        finally:
-            if rid in self._data.keys():
-                if update:
-                    record = self._data[rid]
-                    if record["deprecated"]:
-                        raise RegistrationError("resource is deprecated")
-                    key = self._key_archives(rid, record["version"])
-                    self._archives[key] = record
-                    new_record = self._from_resource(resource, record["version"] + 1)
-                    self._data[rid] = new_record
-                    self._set_metadata(resource, new_record)
-                else:
-                    raise RegistrationError("resource already exists")
-            else:
-                record = self._from_resource(resource, 1)
-                self._data[rid] = record
-                self._set_metadata(resource, record)
+            record = self.service.create(data)
+        except StoreLibrary.RecordExists:
+            raise RegistrationError("resource already exists")
+        else:
+            resource.id = record["data"]["id"]
+            resource._store_metadata = wrap_dict(record["metadata"])
 
-    # C[R]UD
+    # C[R]UD.
 
     @catch
-    def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
+    def retrieve(self, id: str, version: Optional[Union[int, str]]) -> Resource:
         try:
-            if version:
-                if isinstance(version, str):
-                    tkey = self._key_tags(id, version)
-                    version = self._tags[tkey]
-                akey = self._key_archives(id, version)
-                record = self._archives[akey]
-            else:
-                record = self._data[id]
-        except KeyError:
+            record = self.service.read(id, version)
+        except StoreLibrary.RecordMissing:
             raise RetrievalError("resource not found")
         else:
-            return self._to_resource(record)
+            return to_resource(record)
 
-    # CR[U]D
+    # CR[U]D.
 
-    def tag(self, data: ManagedData, value: str) -> None:
-        run(self._tag_one, data, value=value)
+    def _update_one(self, resource: Resource) -> None:
+        data = as_json(resource, expanded=False, store_metadata=False)
+        try:
+            record = self.service.update(data)
+        except StoreLibrary.RecordMissing:
+            raise UpdatingError("resource not registered yet")
+        except StoreLibrary.RecordDeprecated:
+            raise UpdatingError("resource is deprecated")
+        else:
+            resource._store_metadata = wrap_dict(record["metadata"])
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        if resource._synchronized:
-            key = self._key_tags(resource.id, value)
-            if key in self._tags:
-                raise TaggingError("resource version already tagged")
-            else:
-                self._tags[key] = resource._store_metadata.version
-        else:
+        # Chosen case: tagging does not modify the resource.
+        rid = getattr(resource, "id", None)
+        version = resource._store_metadata.version
+        try:
+            self.service.tag(rid, version, value)
+        except StoreLibrary.TagExists:
+            raise TaggingError("resource version already tagged")
+        except StoreLibrary.RecordMissing:
             raise TaggingError("resource not synchronized")
 
-    # CRU[D]
-
-    def deprecate(self, data: ManagedData) -> None:
-        run(self._deprecate_one, data)
+    # CRU[D].
 
     def _deprecate_one(self, resource: Resource) -> None:
-        if resource._synchronized:
-            rid = resource.id
-            record = self._data[rid]
-            if record["deprecated"]:
-                raise DeprecationError("resource already deprecated")
-            else:
-                key = self._key_archives(rid, record["version"])
-                self._archives[key] = record
-                new_record = self._from_resource(resource, record["version"] + 1, True)
-                self._data[rid] = new_record
-                self._set_metadata(resource, new_record)
-        else:
+        rid = getattr(resource, "id", None)
+        try:
+            record = self.service.deprecate(rid)
+        except StoreLibrary.RecordMissing:
             raise DeprecationError("resource not synchronized")
+        except StoreLibrary.RecordDeprecated:
+            raise DeprecationError("resource already deprecated")
+        else:
+            resource._store_metadata = wrap_dict(record["metadata"])
 
-    # Query
+    # Querying.
 
     @catch
-    def search(self, resolvers: "OntologiesHandler", *filters, **params) -> Resources:
-        # TODO Example for 'Accepted parameters: resolving ("exact", "fuzzy"), lookup ("current", "children")".
-        records = [x for x in self._data.values()]
-        for x in filters:
-            path = ".".join(x.path)
-            condition = f"r.{path}.{x.operator}({x.value!r})"
-            records = [r for r in records
-                       if eval(condition, {}, {"x": x, "r": DictWrapper._wrap(r["data"])})]
-        mapped = (self._to_resource(y) for y in records)
-        resources = Resources(mapped)
-        return resources
+    def search(self, resolvers: List[OntologyResolver], *filters, **params) -> List[Resource]:
+        print("<info> DemoStore does not support handling of errors with QueryingError for now.")  # TODO
+        print("<info> DemoStore does not support traversing lists for now.")  # TODO
+        if params:
+            print("DemoStore does not support 'resolving' and 'lookup' parameters for now.")  # TODO
+        conditions = [f"x.{'.'.join(x.path)}.{x.operator}({x.value!r})" for x in filters]
+        records = self.service.find(conditions)
+        return [to_resource(x) for x in records]
 
-    # Versioning
+    # Utils.
 
-    def freeze(self, data: ManagedData) -> None:
-        run(self._freeze_one, data, propagate=True)
+    def _initialize(self, endpoint: Optional[str], bucket: Optional[str],
+                    token: Optional[str]) -> StoreLibrary:
+        return StoreLibrary()
 
-    def _freeze_one(self, resource: Resource) -> None:
-        for k, v in resource.__dict__.items():
-            do(self._freeze_one, v, error=False)
-        if hasattr(resource, "id"):
-            rid = resource.id
-            try:
-                rver = resource._store_metadata.version
-            except AttributeError:
-                raise FreezingError("resource not yet registered")
+
+def to_resource(record: Dict) -> Resource:
+    # TODO This operation might be abstracted in core when other stores will be implemented.
+    resource = from_json(record["data"])
+    resource._store_metadata = wrap_dict(record["metadata"])
+    resource._synchronized = True
+    return resource
+
+
+class StoreLibrary:
+    """Simulate a third-party library handling interactions with the database used by the store."""
+
+    def __init__(self):
+        self.records: Dict[str, Dict] = {}
+        self.archives: Dict[str, Dict] = {}
+        self.tags: Dict[str, int] = {}
+
+    def create(self, data: Dict) -> Dict:
+        record = self._record(data, 1, False)
+        rid = record["data"]["id"]
+        if rid in self.records.keys():
+            raise self.RecordExists
+        self.records[rid] = record
+        return record
+
+    def read(self, rid: str, version: Optional[Union[int, str]]) -> Dict:
+        try:
+            if version is not None:
+                if isinstance(version, str):
+                    tkey = self._tag_id(rid, version)
+                    version = self.tags[tkey]
+                akey = self._archive_id(rid, version)
+                record = self.archives[akey]
             else:
-                resource.id = self._key_archives(rid, rver)
+                record = self.records[rid]
+        except KeyError:
+            raise self.RecordMissing
+        else:
+            return record
 
-    # Internals
+    def update(self, data: Dict) -> Dict:
+        rid = data.get("id", None)
+        try:
+            record = self.records[rid]
+        except KeyError:
+            raise self.RecordMissing
+        else:
+            metadata = record["metadata"]
+            if metadata["deprecated"]:
+                raise self.RecordDeprecated
+            version = metadata["version"]
+            key = self._archive_id(rid, version)
+            self.archives[key] = record
+            new_record = self._record(data, version + 1, False)
+            self.records[rid] = new_record
+            return new_record
 
-    @staticmethod
-    def _key_archives(id: str, version: int) -> str:
-        return f"{id}_version={version}"
+    def deprecate(self, rid: str) -> Dict:
+        try:
+            record = self.records[rid]
+        except KeyError:
+            raise self.RecordMissing
+        else:
+            metadata = record["metadata"]
+            if metadata["deprecated"]:
+                raise self.RecordDeprecated
+            version = metadata["version"]
+            key = self._archive_id(rid, version)
+            self.archives[key] = record
+            data = record["data"]
+            new_record = self._record(data, version + 1, True)
+            self.records[rid] = new_record
+            return new_record
 
-    @staticmethod
-    def _key_tags(id: str, tag: str) -> str:
-        return f"{id}_tag={tag}"
+    def tag(self, rid: str, version: int, value: str) -> None:
+        if rid in self.records:
+            key = self._tag_id(rid, value)
+            if key in self.tags:
+                raise self.TagExists
+            else:
+                self.tags[key] = version
+        else:
+            raise self.RecordMissing
 
-    @staticmethod
-    def _from_resource(resource: Resource, version: int, deprecated: bool = False) -> Dict:
-        # TODO Use forge.transforming.as_jsonld(resource, compacted=False, store_metadata=False) for data.
-        def as_data(resource: Resource) -> Dict:
-            return {k: as_data(v) if isinstance(v, Resource) else v
-                    for k, v in resource.__dict__.items() if k not in resource._RESERVED}
+    def find(self, conditions: List[str]) -> List[Dict]:
+        return [r for r in self.records.values()
+                if all(eval(c, {}, {"x": wrap_dict(r["data"])}) for c in conditions)]
+
+    def _record(self, data: Dict, version: int, deprecated: bool) -> Dict:
+        copy = deepcopy(data)
+        if "id" not in copy:
+            copy["id"] = self._new_id()
         return {
-            "data": as_data(resource),
-            "version": version,
-            "deprecated": deprecated,
+            "data": copy,
+            "metadata": {
+                "version": version,
+                "deprecated": deprecated,
+            },
         }
 
-    def _to_resource(self, record: Dict) -> Resource:
-        def as_resource(data: Dict) -> Resource:
-            properties = {k: as_resource(v) if isinstance(v, Dict) else v for k, v in data.items()}
-            return Resource(**properties)
-        resource = as_resource(record["data"])
-        self._set_metadata(resource, record)
-        return resource
+    @staticmethod
+    def _new_id() -> str:
+        return str(uuid4())
 
     @staticmethod
-    def _set_metadata(resource: Resource, record: Dict) -> None:
-        metadata = {k: v for k, v in record.items() if k != "data"}
-        resource._synchronized = True
-        resource._store_metadata = DictWrapper._wrap(metadata)
+    def _archive_id(rid: str, version: int) -> str:
+        return f"{rid}_version={version}"
+
+    @staticmethod
+    def _tag_id(rid: str, tag: str) -> str:
+        return f"{rid}_tag={tag}"
+
+    class RecordExists(Exception):
+        pass
+
+    class RecordMissing(Exception):
+        pass
+
+    class RecordDeprecated(Exception):
+        pass
+
+    class TagExists(Exception):
+        pass
