@@ -37,8 +37,7 @@ from kgforge.specializations.mappings import DictionaryMapping
 
 class KnowledgeGraphForge:
 
-    def __init__(self, configuration: Union[str, Dict], bucket: Optional[str] = None,
-                 token: Optional[str] = None) -> None:
+    def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
         # FIXME To be refactored while applying the resolving + mapping API refactoring.
 
@@ -78,6 +77,8 @@ class KnowledgeGraphForge:
         #     "Store": {
         #         "name": <Callable>>,  # Required.
         #         "endpoint": <str>,
+        #         "bucket": <str>,
+        #         "token": <str>,
         #         "versioned_id_template": <str>,
         #         "file_resource_mapping": <str>,
         #     },
@@ -95,6 +96,8 @@ class KnowledgeGraphForge:
         #     },
         # }
         #
+        # Note:
+        # Keyword arguments could be used to override provided Store configuration.
 
         if isinstance(configuration, str):
             with codecs.open(configuration, encoding="utf-8") as f:
@@ -115,7 +118,7 @@ class KnowledgeGraphForge:
 
         stores = import_module("kgforge.specializations.stores")
         store_config = config.pop("Store")
-        store_config.update(bucket=bucket, token=token)
+        store_config.update(kwargs)
         store_name = store_config.pop("name")
         store = getattr(stores, store_name)
         self._store: Store = store(**store_config)
