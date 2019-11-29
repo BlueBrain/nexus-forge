@@ -18,7 +18,7 @@ import re
 from collections import namedtuple
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import quote_plus
 
 import nest_asyncio
@@ -27,11 +27,11 @@ from aiohttp import ClientSession
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
-from kgforge.core.commons.actions import Action, Actions
+from kgforge.core.commons.actions import Action
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
                                              RetrievalError, TaggingError,
                                              UploadingError)
-from kgforge.core.commons.execution import catch, not_supported
+from kgforge.core.commons.execution import catch, not_supported, run
 from kgforge.core.conversions.jsonld import as_jsonld, find_in_context
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.mappers import DictionaryMapper
@@ -63,11 +63,11 @@ class BlueBrainNexus(Store):
         except ValueError:
             raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
         else:
-            # FIXME Should use Nexus namespace
+            # FIXME Should use Nexus namespace. DKE-130.
             self._metadata_fields = ("_storage", "_self", "_constrainedBy", "_project", "_rev",
                                      "_deprecated", "_createdAt", "_createdBy", "_updatedAt",
                                      "_updatedBy", "_incoming", "_outgoing")
-            # FIXME Migrate to self.service.
+            # TODO Migrate to self.service.
             nexus.config.set_environment(self.endpoint)
             nexus.config.set_token(self.token)
             self.max_connections = 50
@@ -91,10 +91,12 @@ class BlueBrainNexus(Store):
     def mapper(self) -> Optional[Callable]:
         return DictionaryMapper
 
+    def register(self, data: Union[Resource, List[Resource]]) -> None:
+        run(self._register_one, self._register_many, data, status="_synchronized")
+
     def _register_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.CREATE)
         action_name = f"{self._register_many.__name__}: {BatchAction.CREATE}"
-        actions = list()
         if succeeded:
             resources_without_context = list()
             for result in succeeded:
@@ -108,24 +110,21 @@ class BlueBrainNexus(Store):
                 if remote_succeed:
                     for remote in remote_succeed:
                         ids_resources[remote.resource.id]._context = remote.resource._context
-                        actions.append(
-                            self._synchronize_resource(ids_resources[remote.resource.id],
-                                                       remote.response, action_name, True, True))
+                        self._synchronize_resource(ids_resources[remote.resource.id],
+                                                   remote.response, action_name, True, True)
                 if remote_fail:
                     for remote in remote_fail:
                         try:
                             identifier = remote.resource.id
                         except AttributeError:
                             identifier = remote.resource
-                        actions.append(self._synchronize_resource(ids_resources[identifier],
-                                                                  remote.response, action_name,
-                                                                  True, False))
+                        self._synchronize_resource(ids_resources[identifier], remote.response,
+                                                   action_name, True, False)
             else:
-                actions.extend(self._synchronize_resources(succeeded, action_name, True, True))
+                self._synchronize_resources(succeeded, action_name, True, True)
         if failures:
-            actions.extend(self._synchronize_resources(results=failures, action_name=action_name,
-                                                       succeeded=False, synchronized=False))
-        print(Actions(actions))
+            self._synchronize_resources(results=failures, action_name=action_name, succeeded=False,
+                                        synchronized=False)
 
     def _register_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
@@ -138,7 +137,7 @@ class BlueBrainNexus(Store):
             resource.id = response['@id']
             # If resource had no context, update it with the one provided by the store.
             if not hasattr(resource, '_context'):
-                remote = self.retrieve(resource.id)
+                remote = self.retrieve(resource.id, None)
                 resource._context = remote._context
             self._sync_metadata(resource, response)
 
@@ -175,29 +174,30 @@ class BlueBrainNexus(Store):
             self._sync_metadata(resource, response)
             return resource
 
-    def _download_one(self, url: str, path: str) -> None:
+    def _download_one(self, url: str, path: Path) -> None:
         try:
             # this is a hack since _self and _id have the same uuid
             file_id = url.split("/")[-1]
             if len(file_id) < 1:
                 raise DownloadingError("Invalid file name")
             nexus.files.fetch(org_label=self.organisation, project_label=self.project,
-                              file_id=file_id, out_filepath=path)
+                              file_id=file_id, out_filepath=str(path))
         except nexus.HTTPError as e:
             self._raise_nexus_http_error(e, DownloadingError)
 
     # CR[U]D.
 
+    def update(self, data: Union[Resource, List[Resource]]) -> None:
+        run(self._update_one, self._update_many, data, status="_synchronized", id_required=True)
+
     def _update_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.UPDATE)
         action_name = f"{self._register_many.__name__}: {BatchAction.UPDATE}"
-        actions = list()
         if succeeded:
-            actions.extend(self._synchronize_resources(succeeded, action_name, True, True))
+            self._synchronize_resources(succeeded, action_name, True, True)
         if failures:
-            actions.extend(self._synchronize_resources(results=failures, action_name=action_name,
-                                                       succeeded=False, synchronized=False))
-        print(Actions(actions))
+            self._synchronize_resources(results=failures, action_name=action_name, succeeded=False,
+                                        synchronized=False)
 
     def _update_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
@@ -210,15 +210,16 @@ class BlueBrainNexus(Store):
         else:
             self._sync_metadata(resource, response)
 
+    def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
+        run(self._tag_one, self._tag_many, data, value=value, id_required=True)
+
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.TAG, tag=value)
         action_name = f"{self._tag_many.__name__}: {BatchAction.TAG}"
-        actions = []
         if succeeded:
-            actions.extend(self._synchronize_resources(succeeded, action_name, True, True))
+            self._synchronize_resources(succeeded, action_name, True, True)
         if failures:
-            actions.extend(self._synchronize_resources(failures, action_name, False, False))
-        print(Actions(actions))
+            self._synchronize_resources(failures, action_name, False, False)
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         if resource._synchronized is False:
@@ -234,15 +235,17 @@ class BlueBrainNexus(Store):
 
     # CRU[D].
 
+    def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
+        run(self._deprecate_one, self._deprecate_many, data, status="_synchronized",
+            id_required=True)
+
     def _deprecate_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.DEPRECATE)
         action_name = f"{self._deprecate_many.__name__}: {BatchAction.DEPRECATE}"
-        actions = list()
         if succeeded:
-            actions.extend(self._synchronize_resources(succeeded, action_name, True, True))
+            self._synchronize_resources(succeeded, action_name, True, True)
         if failures:
-            actions.extend(self._synchronize_resources(failures, action_name, False, False))
-        print(Actions(actions))
+            self._synchronize_resources(failures, action_name, False, False)
 
     def _deprecate_one(self, resource: Resource) -> None:
         try:
@@ -255,8 +258,9 @@ class BlueBrainNexus(Store):
     # Utils.
 
     def _initialize(self, endpoint: Optional[str], bucket: Optional[str],
-                    token: Optional[str]):
-        pass  # FIXME FIXME Migrate to self.service. Change return type.
+                    token: Optional[str]) -> Any:
+        # TODO Migrate to self.service. Change return type.
+        pass
 
     # Misc
 
@@ -295,24 +299,20 @@ class BlueBrainNexus(Store):
         metadata = {k: v for k, v in result.items() if k in self._metadata_fields}
         resource._store_metadata = wrap_dict(metadata)
 
-    def _synchronize_resources(self, results: BatchResults, action_name: str,
-                               succeeded: bool, synchronized: bool) -> Actions:
-        actions = list()
+    def _synchronize_resources(self, results: BatchResults, action_name: str, succeeded: bool,
+                               synchronized: bool) -> None:
         for result in results:
-            action = self._synchronize_resource(
-                result.resource, result.response, action_name, succeeded, synchronized)
-            actions.append(action)
-        return Actions(actions)
+            self._synchronize_resource(result.resource, result.response, action_name, succeeded,
+                                       synchronized)
 
     def _synchronize_resource(self, resource: Resource, response: dict, action_name: str,
-                              succeeded: bool, synchronized: bool) -> Action:
+                              succeeded: bool, synchronized: bool) -> None:
         error = None if succeeded else f"{response['@type']}: {response['reason']}"
         action = Action(action_name, succeeded, error)
         resource._last_action = action
         resource._synchronized = synchronized
         if succeeded:
             self._sync_metadata(resource, response)
-        return action
 
     def _batch(self, resources: List[Resource],
                action: BatchAction, **kwargs) -> (BatchResults, BatchResults):
@@ -335,7 +335,7 @@ class BlueBrainNexus(Store):
                             failure.append(BatchResult(resource, response))
                             continue
                     if action == action.CREATE:
-                        payload = as_jsonld(resource)
+                        payload = as_jsonld(resource, True, True)
                         request = asyncio.ensure_future(
                             queue_post(semaphore=semaphore, session=session,
                                        url=self.url_requests, resource=resource, payload=payload))
@@ -348,7 +348,7 @@ class BlueBrainNexus(Store):
                             failure.append(BatchResult(resource, response))
                             continue
                         params = {"rev": resource._store_metadata._rev}
-                        payload = as_jsonld(resource)
+                        payload = as_jsonld(resource, True, True)
                         request = asyncio.ensure_future(
                             queue_put(semaphore=semaphore, session=session,
                                       url=url, resource=resource, payload=payload, params=params))

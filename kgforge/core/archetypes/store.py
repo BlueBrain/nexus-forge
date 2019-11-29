@@ -18,8 +18,9 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Unio
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.exceptions import FreezingError, UploadingError
+from kgforge.core.commons.exceptions import DownloadingError, FreezingError, UploadingError
 from kgforge.core.commons.execution import catch, not_supported, run
+from kgforge.core.conversions.json import as_json
 from kgforge.core.reshaping import Reshaper
 
 
@@ -34,7 +35,7 @@ class Store(ABC):
 
     # POLICY Implementations should be declared in kgforge/specializations/stores/__init__.py.
     # POLICY Implementations should not add methods in the derived class.
-    # TODO Move from BDD to classical testing to have a more parameterizable test suite.
+    # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Implementations should pass tests/specializations/stores/demo_store.feature tests.
 
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
@@ -94,7 +95,8 @@ class Store(ABC):
         # path: Union[FilePath, DirPath].
         p = Path(path)
         if p.is_dir():
-            return self._upload_many(x for x in p.iterdir() if x.is_file())
+            filepaths = (x for x in p.iterdir() if x.is_file() and not x.name.startswith("."))
+            return self._upload_many(filepaths)
         else:
             return self._upload_one(p)
 
@@ -121,28 +123,39 @@ class Store(ABC):
     @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
-        # TODO Use an implementation of JSONPath for Python instead of _collect() and Reshaper().
-        def _collect(resource: Resource, leaf: str) -> Iterator[str]:
-            for k, v in resource.__dict__.items():
-                if isinstance(v, List):
-                    for x in v:
-                        if isinstance(x, Resource):
-                            yield from _collect(x, leaf)
-                elif not isinstance(v, Dict):
-                    yield v
-        resources = Reshaper(None).reshape(data, [follow])
-        urls = list(_collect(resources, follow.rsplit(".", maxsplit=1)[1]))
+        # TODO Use an implementation of JSONPath for Python instead to get 'urls'. DKE-147.
+        def _collect(things: List) -> Iterator[str]:
+            for x in things:
+                if isinstance(x, Dict):
+                    for k, v in x.items():
+                        if isinstance(v, List):
+                            yield from _collect(v)
+                        elif isinstance(v, Dict):
+                            yield from _collect([v])
+                        else:
+                            yield v
+        x = Reshaper(None).reshape(data, [follow], False)
+        y = as_json(x, False, False)
+        z = y if isinstance(y, List) else [y]
+        urls = list(_collect(z))
         size = len(urls)
-        return self._download_many(urls, path) if size > 1 else self._download_one(urls[0], path)
+        p = Path(path)
+        p.mkdir(parents=True, exist_ok=True)
+        if size < 1:
+            raise DownloadingError("no URLs were found")
+        elif size > 1:
+            self._download_many(urls, p)
+        else:
+            self._download_one(urls[0], p)
 
-    def _download_many(self, urls: List[str], path: str) -> None:
+    def _download_many(self, urls: List[str], path: Path) -> None:
         # path: DirPath.
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
         for x in urls:
             self._download_one(x, path)
 
-    def _download_one(self, url: str, path: str) -> None:
+    def _download_one(self, url: str, path: Path) -> None:
         # path: DirPath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()
@@ -227,12 +240,13 @@ class Store(ABC):
     # Versioning.
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
-        run(self._freeze_one, self._freeze_many, data, id_required=True)
+        # Replace None by self._freeze_many to switch to optimized bulk freezing.
+        run(self._freeze_one, None, data, id_required=True)
 
     def _freeze_many(self, resources: List[Resource]) -> None:
         # Bulk freezing could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._freeze_one() behaviour.
-        # POLICY Should reproduce execution._run_one() behaviour with the given parameters.
+        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
         not_supported()
 
     def _freeze_one(self, resource: Resource) -> None:
@@ -241,7 +255,8 @@ class Store(ABC):
         for _, v in resource.__dict__.items():
             if isinstance(v, List):
                 for x in v:
-                    self._freeze_one(x)
+                    if isinstance(v, Resource):
+                        self._freeze_one(x)
             elif isinstance(v, Resource):
                 self._freeze_one(v)
         if hasattr(resource, "id"):

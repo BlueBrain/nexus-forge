@@ -5,8 +5,10 @@ Model:
 Store:
   name: BlueBrainNexus
   endpoint: https://staging.nexus.ocp.bbp.epfl.ch/v1
-  versioned_id_template: {x.id}?rev={x.store_metadata._rev}
-  file_resource_mapping: ../../configurations/demo-store/file-to-resource-mapping.hjson
+  versioned_id_template: {x.id}?rev={x._store_metadata._rev}
+  file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
+  token: <token>
+  bucket: <organization>/<project>
 
 Ontologies:
   sex:
