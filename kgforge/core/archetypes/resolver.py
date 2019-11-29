@@ -22,7 +22,7 @@ from kgforge.core.commons.execution import catch
 from kgforge.core.resolving import ResolvingStrategy
 
 
-# FIXME To be refactored while applying the resolving API refactoring.
+# FIXME To be refactored while applying the resolving API refactoring. DKE-128 + DKE-105.
 
 
 class OntologyResolver(ABC):
@@ -33,7 +33,7 @@ class OntologyResolver(ABC):
 
     # POLICY Implementations should be declared in kgforge/specializations/resolvers/__init__.py.
     # POLICY Implementations should not add methods in the derived class.
-    # TODO Create a generic parameterizable test suite for resolvers.
+    # TODO Create a generic parameterizable test suite for resolvers. DKE-135.
     # POLICY Implementations should pass tests/specializations/resolvers/test_resolvers.py.
 
     def __init__(self, name: str, source: Union[str, Store], term_resource_mapping: str) -> None:

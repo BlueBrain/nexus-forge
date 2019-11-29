@@ -22,7 +22,7 @@ from kgforge.core.commons.execution import catch, dispatch
 from kgforge.core.resource import Resource, encode
 
 
-# FIXME To be re-implemented with a RDF native solution.
+# FIXME To be re-implemented with a RDF native solution. DKE-130.
 
 
 @catch
@@ -44,7 +44,7 @@ def _as_jsonld_many(resources: List[Resource], compacted: bool,
 
 
 def _as_jsonld_one(resource: Resource, compacted: bool, store_metadata: bool) -> Dict:
-    # TODO: implement compacted = False
+    # TODO: Implement compacted = False. DKE-130.
     encoded = hjson.loads(hjson.dumps(resource, default=encode, item_sort_key=sort_attrs))
     context = getattr(resource, "_context", None)
     base = find_in_context(context, "@base")

@@ -99,10 +99,13 @@ class DemoStore(Store):
 
     @catch
     def search(self, resolvers: List[OntologyResolver], *filters, **params) -> List[Resource]:
-        print("<info> DemoStore does not support handling of errors with QueryingError for now.")  # TODO
-        print("<info> DemoStore does not support traversing lists for now.")  # TODO
+        # TODO DKE-145.
+        print("<info> DemoStore does not support handling of errors with QueryingError for now.")
+        # TODO DKE-145.
+        print("<info> DemoStore does not support traversing lists for now.")
         if params:
-            print("DemoStore does not support 'resolving' and 'lookup' parameters for now.")  # TODO
+            # TODO DKE-145.
+            print("DemoStore does not support 'resolving' and 'lookup' parameters for now.")
         conditions = [f"x.{'.'.join(x.path)}.{x.operator}({x.value!r})" for x in filters]
         records = self.service.find(conditions)
         return [to_resource(x) for x in records]

@@ -14,16 +14,13 @@
 
 import os
 
-import hjson
 import pytest
 
-from kgforge.core.commons.actions import LazyAction
-from kgforge.core.commons.exceptions import FreezingError
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 from tests.data import *
 
-# TODO To be port to the generic parameterizable test suite for stores in test_stores.py.
+# TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
 
 
 BUCKET = "test/kgforge"

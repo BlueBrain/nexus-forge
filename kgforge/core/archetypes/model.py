@@ -31,7 +31,7 @@ class Model(ABC):
 
     # POLICY Implementations should be declared in kgforge/specializations/models/__init__.py.
     # POLICY Implementations should not add methods in the derived class.
-    # TODO Move from BDD to classical testing to have a more parameterizable test suite.
+    # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Implementations should pass tests/specializations/models/demo_model.feature tests.
 
     def __init__(self, source: Union[str, Store]) -> None:
@@ -69,14 +69,14 @@ class Model(ABC):
 
     # Mappings.
 
-    # FIXME To be refactored while applying the mapping API refactoring.
+    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mappings(self, data_source: str) -> Dict[str, List[str]]:
         # The discovery strategy cannot be abstracted as it depends of the Model data organization.
         # POLICY Keys should be managed types with mappings for the given data source.
         # POLICY Values should be available mapping types for the resource type.
         not_supported()
 
-    # FIXME To be refactored while applying the mapping API refactoring.
+    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
         # The selection strategy cannot be abstracted as it depends of the Model data organization.
         not_supported()

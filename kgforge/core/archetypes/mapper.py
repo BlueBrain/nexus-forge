@@ -33,7 +33,7 @@ class Mapper(ABC):
 
     # POLICY Implementations should be declared in kgforge/specializations/mappers/__init__.py.
     # POLICY Implementations should not add methods. They could be functions in the created file.
-    # TODO Create a generic parameterizable test suite for mappers.
+    # TODO Create a generic parameterizable test suite for mappers. DKE-135.
     # POLICY Implementations should pass tests/specializations/mappers/test_mappers.py.
 
     def __init__(self, forge: Optional["KnowledgeGraphForge"] = None) -> None:

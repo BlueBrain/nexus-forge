@@ -22,7 +22,7 @@ from kgforge.core.commons.actions import Action, Actions, execute_lazy_actions
 
 def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
     # TODO When 'arg' is specified, compare with the value in the frame to know if it applies.
-    # TODO If this is the case but also in general, return from the calling method.
+    # TODO If this is the case but also in general, return from the calling method. DKE-183.
     # POLICY Should be called in methods in core which could be not implemented by specializations.
     frame = inspect.currentframe().f_back
     try:

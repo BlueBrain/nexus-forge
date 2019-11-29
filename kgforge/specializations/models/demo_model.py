@@ -50,10 +50,13 @@ class DemoModel(Model):
         return mapping_type.load(filepath)
 
     def _template(self, type: str, only_required: bool) -> Dict:
-        print("<info> DemoModel does not distinguish values and constraints in templates for now.")  # TODO
-        print("<info> DemoModel does not automatically include nested schemas for now.")  # TODO
+        # TODO DKE-148.
+        print("<info> DemoModel does not distinguish values and constraints in templates for now.")
+        # TODO DKE-148.
+        print("<info> DemoModel does not automatically include nested schemas for now.")
         if only_required:
-            print("<info> DemoModel does not support keeping only required properties for now.")  # TODO
+            # TODO DKE-148.
+            print("<info> DemoModel does not support keeping only required properties for now.")
         type_expanded = self.service.expand(type)
         schema = self.service.schema(type_expanded)
         return self.service.compact(schema)
@@ -68,7 +71,8 @@ class DemoModel(Model):
             raise ValidationError(reason)
 
     def _initialize(self, source: Union[str, Store]) -> ModelLibrary:
-        msg = "DemoModel supports only model data from a directory for now."  # TODO
+        # TODO DKE-148.
+        msg = "DemoModel supports only model data from a directory for now."
         try:
             dirpath = Path(self.source)
         except TypeError:

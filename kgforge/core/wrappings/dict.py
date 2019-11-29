@@ -17,7 +17,7 @@ from typing import Any, Dict
 
 class DictWrapper(dict):
 
-    # TODO Should be immutable.
+    # TODO Should be immutable. DKE-146.
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

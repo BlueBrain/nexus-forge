@@ -22,18 +22,18 @@ from kgforge.core.conversions.jsonld import as_jsonld
 @catch
 def as_json(data: Union[Resource, List[Resource]], expanded: bool,
             store_metadata: bool) -> Union[Dict, List[Dict]]:
-    # FIXME To be refactored after the '@' issue fix.
-    # FIXME To be refactored after the implementation of the RDF native conversion.
+    # FIXME To be refactored after the '@' issue fix. DKE-94.
+    # FIXME To be refactored after the implementation of the RDF native conversion. DKE-130.
     def del_context(x: Dict) -> None:
         if "@context" in x:
             del x["@context"]
     if expanded:
-        # FIXME Not implemented yet.
+        # FIXME Not implemented yet. DKE-130.
         return as_jsonld(data, False, store_metadata)
     else:
         data = as_jsonld(data, True, store_metadata)
         del_context(data) if not isinstance(data, List) else (del_context(x) for x in data)
-        # FIXME Hot fix to have DemoStore working before having the proper fix.
+        # FIXME Hot fix to have DemoStore working before having the proper fix. DKE-130.
         if "@id" in data:
             data["id"] = data.pop("@id")
         if "@type" in data:

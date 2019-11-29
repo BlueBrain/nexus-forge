@@ -19,6 +19,7 @@ from kgforge.core.commons.execution import catch
 
 
 # FIXME To be refactored after the planned introduction of as_graph(), as_rdf() and as_triplets().
+#  DKE-131, DKE-142, DKE-132.
 
 
 @catch

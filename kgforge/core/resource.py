@@ -28,7 +28,7 @@ class Resource:
     # See datasets.py in kgforge/specializations/resources/ for a reference specialization.
 
     # POLICY Specializations could add methods and attributes if they are added to _RESERVED.
-    # TODO Move from BDD to classical testing to have a more parameterizable test suite.
+    # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Specializations should pass tests/core/resources/resource.feature tests.
 
     _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_context"}

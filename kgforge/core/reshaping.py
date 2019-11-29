@@ -45,7 +45,7 @@ class Reshaper:
         return self._reshape(resource, keep, versioned)
 
     def _reshape(self, resource: Resource, keep: List[str], versioned: bool) -> Resource:
-        # TODO Use as base an implementation of JSONPath for Python.
+        # TODO Use as base an implementation of JSONPath for Python. DKE-147.
         levels = [x.split(".", maxsplit=1) for x in keep]
         roots = {x[0] for x in levels}
         new = Resource()

@@ -52,7 +52,7 @@ def _map_value(value: Any, variables: Dict) -> Any:
 
 
 def _apply_rule(rule: Any, variables: Dict) -> Any:
-    # TODO Add support for the full syntax of JSONPath. Need some thinking on the consequences.
+    # TODO Add support for the full syntax of JSONPath. DKE-147.
     try:
         return eval(rule, {}, variables)
     except (TypeError, NameError, SyntaxError):

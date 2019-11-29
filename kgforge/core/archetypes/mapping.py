@@ -21,7 +21,7 @@ from typing import Any
 import requests
 from requests import RequestException
 
-from kgforge.core.commons.attributes import eq_class, repr_class
+from kgforge.core.commons.attributes import repr_class
 
 
 class Mapping(ABC):
@@ -32,7 +32,7 @@ class Mapping(ABC):
 
     # POLICY Implementations should be declared in kgforge/specializations/mappings/__init__.py.
     # POLICY Implementations should not add methods in the derived class.
-    # TODO Create a generic parameterizable test suite for mappings.
+    # TODO Create a generic parameterizable test suite for mappings. DKE-135.
     # POLICY Implementations should pass tests/specializations/mappings/test_mappings.py.
 
     def __init__(self, mapping: str) -> None:
@@ -45,8 +45,9 @@ class Mapping(ABC):
         return self._normalize_rules(self.rules)
 
     def __eq__(self, other: object) -> bool:
-        # FIXME To properly work the loading of rules should normalize them.
-        return eq_class(self, other)
+        # FIXME To properly work the loading of rules should normalize them. DKE-184.
+        # return eq_class(self, other)
+        raise NotImplementedError
 
     @classmethod
     def load(cls, source: str) -> Mapping:

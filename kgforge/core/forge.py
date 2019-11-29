@@ -40,6 +40,7 @@ class KnowledgeGraphForge:
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
         # FIXME To be refactored while applying the resolving + mapping API refactoring.
+        #  DKE-105, DKE-128, DKE-104.
 
         # The configuration could be provided either as:
         #
@@ -126,6 +127,7 @@ class KnowledgeGraphForge:
         # Resolvers.
 
         # FIXME Planned to be removed while applying the resolving API refactoring.
+        #  DKE-105, DKE-128.
         def _(ontology: str, conf: Dict) -> OntologyResolver:
             resolver_name = conf.pop("resolver")
             resolver = getattr(resolvers, resolver_name)
@@ -160,7 +162,7 @@ class KnowledgeGraphForge:
 
     # Resolving User Interface.
 
-    # FIXME To be refactored while applying the resolving API refactoring.
+    # FIXME To be refactored while applying the resolving API refactoring. DKE-105, DKE-128.
     def resolve(self, label: str, ontology: str, type: str = "Class",
                 strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Union[Resource, List[Resource]]:
         resolver = self._resolvers[ontology]
@@ -173,11 +175,11 @@ class KnowledgeGraphForge:
 
     # Mapping User Interface.
 
-    # FIXME To be refactored while applying the mapping API refactoring.
+    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mappings(self, source: str) -> Dict[str, List[str]]:
         return self._model.mappings(source)
 
-    # FIXME To be refactored while applying the mapping API refactoring.
+    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mapping(self, type: str, source: str,
                 mapping_type: Callable = DictionaryMapping) -> Mapping:
         return self._model.mapping(type, source, mapping_type)
@@ -252,6 +254,7 @@ class KnowledgeGraphForge:
         return as_jsonld(data, compacted, store_metadata)
 
     # FIXME To be refactored after the introduction of as_graph(), as_rdf() and as_triplets().
+    #  DKE-131, DKE-142, DKE-132.
     @staticmethod
     def as_triples(data: Union[Resource, List[Resource]],
                    store_metadata: bool = False) -> List[Tuple[str, str, str]]:

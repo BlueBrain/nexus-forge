@@ -17,7 +17,7 @@ from pytest_bdd import given, parsers, scenarios, then, when
 from kgforge.specializations.stores.demo_store import DemoStore
 from tests.conftest import check_report, do
 
-# TODO To be port to the generic parameterizable test suite for stores in test_stores.py.
+# TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
 
 
 scenarios("demo_store.feature")

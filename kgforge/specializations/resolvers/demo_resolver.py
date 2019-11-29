@@ -22,7 +22,7 @@ from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
 
-# FIXME To be refactored while applying the resolving API refactoring.
+# FIXME To be refactored while applying the resolving API refactoring. DKE-105, DKE-128.
 
 
 class DemoResolver(OntologyResolver):
@@ -48,7 +48,8 @@ class DemoResolver(OntologyResolver):
 
     @staticmethod
     def _initialize(source: Union[str, Store]) -> Dict[str, str]:
-        msg = "DemoResolver supports only ontology data from a file for now."  # TODO
+        # TODO.
+        msg = "DemoResolver supports only ontology data from a file for now."
         try:
             filepath = Path(source)
         except TypeError:
