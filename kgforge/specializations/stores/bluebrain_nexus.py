@@ -29,7 +29,7 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
-                                             RetrievalError, TaggingError,
+                                             RetrievalError, TaggingError, UpdatingError,
                                              UploadingError)
 from kgforge.core.commons.execution import catch, not_supported, run
 from kgforge.core.conversions.jsonld import as_jsonld, find_in_context
@@ -202,16 +202,17 @@ class BlueBrainNexus(Store):
     def _update_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
         if resource._synchronized:
-            raise RegistrationError(f"Resource is synchronized, update has no effect")
+            raise UpdatingError(f"Resource is synchronized, update has no effect")
         try:
             response = nexus.resources.update(data)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, RegistrationError)
+            self._raise_nexus_http_error(e, UpdatingError)
         else:
             self._sync_metadata(resource, response)
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
-        run(self._tag_one, self._tag_many, data, value=value, id_required=True)
+        run(self._tag_one, self._tag_many, data, status='_synchronized', id_required=True,
+            value=value)
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.TAG, tag=value)

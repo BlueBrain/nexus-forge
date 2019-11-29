@@ -182,7 +182,7 @@ class Store(ABC):
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
         # POLICY If tagging modify the resource, run() should have status='_synchronized'.
-        run(self._tag_one, None, data, value=value, id_required=True)
+        run(self._tag_one, None, data, id_required=True, value=value)
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         # Bulk tagging could be optimized by overriding this method in the specialization.
