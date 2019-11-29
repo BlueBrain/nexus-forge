@@ -5,14 +5,14 @@
 # Knowledge Graph Forge
 
 The *Knowledge Graph Forge* is a **framework building a bridge** between
-data engineers, knowledge engineers, and (data) scientists in the context
+data engineers, knowledge engineers, and data)scientists in the context
 of knowledge graphs.
 
 This unified framework makes easier for:
 - **data engineers** to define, execute, share data transformations in a traceable way,
 - **knowledge engineers** to define and share knowledge representations of heterogeneous data,
-- **(data) scientists** to query and register data during their analysis without
-having to worry about the semantic formats and technologies,
+- **data scientists** to query and register data during their analysis
+without having to worry about the semantic formats and technologies,
 
 while guarantying the consistency of operations with a knowledge graph schema
 like [Neuroshapes](https://github.com/INCF/neuroshapes).
@@ -44,116 +44,201 @@ pip install git+https://github.com/BlueBrain/kgforge
 
 ## Getting Started
 
-See `examples` folder for notebooks and what a configuration file looks like.
+See in the directory `examples` for examples of usages, configurations, mappings.
+
+### User API
+
+Forge 
 
 ```bash
-# Forge
+KnowledgeGraphForge(configuration: Union[str, Dict], **kwargs)
+```
 
-KnowledgeGraphForge.from_config(path: FilePath, bucket: Optional[str] = None, token: Optional[str] = None)
+Resources
 
-
-# Resource(s)
-
+```bash
 Resource(**properties)
-Resources(data: Union[Resource, List[Resource]], *resources)
 
+Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
+  add_parts(resources: List[Resource], versioned: bool = True) -> None
+  add_distribution(path: str) -> None
+  add_contribution(agent: str, **kwargs) -> None
+  add_generation(**kwargs) -> None
+  add_derivation(resource: Resource, versioned: bool = True, **kwargs) -> None
+  add_invalidation(**kwargs) -> None
+  add_files(path: str) -> None
+  download(source: str, path: str) -> None
+```
 
-# Transforming
+Modeling
 
-map(data: Any, mapper: Callable, mapping: Mapping) -> ManagedData
-reshape(data: ManagedData, keep: List[str], versioned: bool = False) -> ManagedData
-as_json(data: ManagedData, expanded: bool = False, store_metadata: bool = False) -> Union[Dict, List[Dict]]
-as_jsonld(data: ManagedData, compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]
-as_triples(data: ManagedData, store_metadata: bool = False) -> List[Tuple[str, str, str]]
-as_dataframe(data: ManagedData, store_metadata: bool = False) -> DataFrame
-from_json(data: Union[Dict, List[Dict]]) -> ManagedData
-from_jsonld(data: Union[Dict, List[Dict]]) -> ManagedData
-from_triples(data: List[Tuple[str, str, str]]) -> ManagedData
-from_dataframe(data: DataFrame, na: Union[None, str] = None, nesting: str = ".") -> ManagedData
-
-
-# Modeling
-
+```bash
 prefixes() -> Dict[str, str]
 types() -> List[str]
 template(type: str, only_required: bool = False) -> None
-mappings(self, source: str) -> Dict[str, List[str]]
-mapping(self, type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
-check(data: ManagedData) -> None
-paths(type: str) -> PathsWrapper
+validate(data: Union[Resource, List[Resource]]) -> None
+```
 
-> Handlers
-Identifiers: format(*args) -> str
-Ontologies: resolve(label: str, ontology: str, type: str = "Class",
-    strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Resource
-Files: attach(path: Union[FilePath, DirPath]) -> LazyAction
+Resolving
 
+```bash
+resolve(label: str, ontology: str, type: str = "Class", strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Union[Resource, List[Resource]]
+```
 
-# Storing
+Formatting
 
-register(data: ManagedData) -> None
-update(data: ManagedData) -> None
-tag(data: ManagedData, value: str) -> None
-deprecate(data: ManagedData) -> None
+```bash
+format(what: str, *args) -> str
+```
 
+Mapping
 
-# Querying
+```bash
+mappings(source: str) -> Dict[str, List[str]]
+mapping(type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
+map(data: Any, mapper: Callable, mapping: Mapping) -> Union[Resource, List[Resource]]
+```
 
-retrieve(id: str, version: Optional[Union[int, str]] = None) -> Resource
-search(*filters, **params) -> Resources
-sparql(query: str) -> Resources
-download(data: ManagedData, follow: str, path: DirPath) -> None
+Reshaping
 
+```bash
+reshape(data: Union[Resource, List[Resource]], keep: List[str], versioned: bool = False) -> Union[Resource, List[Resource]]
+```
 
-# Specializations
+Querying
 
-> Resource
-Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
-  add_parts(self, resources: Resources, versioned: bool = True) -> None
-  add_distribution(self, path: FilePath) -> None
-  add_contribution(self, agent: IRI, **kwargs) -> None
-  add_generation(self, **kwargs) -> None
-  add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None
-  add_invalidation(self, **kwargs) -> None
-  add_files(self, path: DirPath) -> None
-  download(self, source: str, path: DirPath) -> None
+```bash
+retrieve(id: str, version: Optional[Union[int, str]] = None) -> Resource:
+paths(type: str) -> PathsWrapper:
+search(*filters, **params) -> List[Resource]
+sparql(query: str) -> List[Resource]
+download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
+```
 
+Storing
 
-# Archetypes
+```bash
+register(data: Union[Resource, List[Resource]]) -> None
+update(data: Union[Resource, List[Resource]]) -> None
+deprecate(data: Union[Resource, List[Resource]]) -> None
+```
 
-Mapper(forge: KnowledgeGraphForge)
+Versioning
+
+```bash
+tag(data: Union[Resource, List[Resource]], value: str) -> None
+freeze(data: Union[Resource, List[Resource]]) -> None
+```
+
+Files handling
+
+```bash
+attach(path: str) -> LazyAction
+```
+
+Converting
+
+```bash
+as_json(data: Union[Resource, List[Resource]], expanded: bool = False, store_metadata: bool = False) -> Union[Dict, List[Dict]]
+as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]
+as_triples(data: Union[Resource, List[Resource]], store_metadata: bool = False) -> List[Tuple[str, str, str]]
+as_dataframe(data: List[Resource], store_metadata: bool = False, na: Optional[str] = None, nesting: str = ".") -> DataFrame
+from_json(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]
+from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]
+from_triples(data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]
+from_dataframe(data: DataFrame, na: Optional[str] = None
+```
+
+### Internals
+
+**Archetypes**
+
+Mapper
+
+```bash
+Mapper(forge: Optional["KnowledgeGraphForge"] = None)
+  map(data: Any, mapping: Mapping) -> Union[Resource, List[Resource]]
+```
+
+Mapping
+
+```bash
 Mapping(mapping: str)
-  load(path: FilePath) -> Mapping
-  save(path: FilePath) -> None
+  load(source: str) -> Mapping
+  save(path: str) -> None
+```
 
-Model(source: Union[DirPath, URL, Store])
-OntologyResolver(configuration: OntologyConfiguration)
+Model
 
-Store(endpoint: Optional[URL], bucket: Optional[str], token: Optional[str],
-    file_resource_mapping: Optional[Union[Hjson, FilePath, URL]])
+```bash
+Model(source: Union[str, Store])
+  prefixes() -> Dict[str, str]
+  types() -> List[str]
+  template(type: str, only_required: bool) -> str
+  mappings(data_source: str) -> Dict[str, List[str]]
+  mapping(type: str, data_source: str, mapping_type: Callable) -> Mapping
+  validate(data: Union[Resource, List[Resource]]) -> None
+```
 
+OntologyResolver
 
-# Archetypes implementations
+```bash
+OntologyResolver(name: str, source: Union[str, Store], term_resource_mapping: str)
+  resolve(label: str, type: str, strategy: ResolvingStrategy) -> Union[Resource, List[Resource]]
+```
 
-> Mapping
-DictionaryMapping
+Store
 
-> Mapper
+```bash
+Store(endpoint: Optional[str] = None, bucket: Optional[str] = None, token: Optional[str] = None, versioned_id_template: Optional[str] = None, file_resource_mapping: Optional[str] = None))
+  register(data: Union[Resource, List[Resource]]) -> None
+  upload(path: str) -> Union[Resource, List[Resource]]
+  retrieve(id: str, version: Optional[Union[int, str]]) -> Resource
+  download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
+  update(data: Union[Resource, List[Resource]]) -> None
+  tag(data: Union[Resource, List[Resource]], value: str) -> None
+  deprecate(data: Union[Resource, List[Resource]]) -> None
+  search(resolvers: List[OntologyResolver], *filters, **params) -> List[Resource]
+  sparql(prefixes: Dict[str, str], query: str) -> List[Resource]
+  freeze(data: Union[Resource, List[Resource]]) -> None
+```
+
+**Archetype specializations**
+
+Mappers
+
+```bash
 DictionaryMapper
-ResourceMapper [TODO]
-TableMapper [TODO]
+[TODO] R2RmlMapper
+[TODO] ResourceMapper
+[TODO] TableMapper
+```
 
-> Model
+Mappings
+
+```bash
+DictionaryMapping
+```
+
+Models
+
+```bash
 DemoModel
-Neuroshapes [TODO]
+[Work In Progress] Neuroshapes
+```
 
-> OntologyResolver
+Resolvers
+
+```bash
 DemoResolver
+```
 
-> Store
+Stores
+
+```bash
 DemoStore
-RdfLibGraph [TODO]
-BlueBrainNexus[TODO]
+[TODO] RdfLibGraph
+[Work In Progress] BlueBrainNexus
 ```
 
 ## Contributing
@@ -167,7 +252,7 @@ git clone https://github.com/BlueBrain/kgforge
 pip install --editable kgforge[dev]
 ```
 
-Manual check before committing
+Checks before committing
 
 ```bash
 tox
