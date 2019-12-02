@@ -92,7 +92,8 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
 
     def register(self, data: Union[Resource, List[Resource]]) -> None:
-        run(self._register_one, self._register_many, data, status="_synchronized")
+        run(self._register_one, self._register_many, data, required_synchronized=False,
+            execute_actions=True, exception=RegistrationError, monitored_status="_synchronized")
 
     def _register_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.CREATE)
@@ -188,7 +189,9 @@ class BlueBrainNexus(Store):
     # CR[U]D.
 
     def update(self, data: Union[Resource, List[Resource]]) -> None:
-        run(self._update_one, self._update_many, data, status="_synchronized", id_required=True)
+        run(self._update_one, self._update_many, data, id_required=True,
+            required_synchronized=False, execute_actions=True, exception=UpdatingError,
+            monitored_status="_synchronized")
 
     def _update_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.UPDATE)
@@ -201,8 +204,6 @@ class BlueBrainNexus(Store):
 
     def _update_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
-        if resource._synchronized:
-            raise UpdatingError(f"Resource is synchronized, update has no effect")
         try:
             response = nexus.resources.update(data)
         except nexus.HTTPError as e:
@@ -211,8 +212,8 @@ class BlueBrainNexus(Store):
             self._sync_metadata(resource, response)
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
-        run(self._tag_one, self._tag_many, data, status='_synchronized', id_required=True,
-            value=value)
+        run(self._tag_one, self._tag_many, data, id_required=True, required_synchronized=True,
+            exception=TaggingError, value=value)
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.TAG, tag=value)
@@ -223,10 +224,8 @@ class BlueBrainNexus(Store):
             self._synchronize_resources(failures, action_name, False, False)
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        if resource._synchronized is False:
-            raise TaggingError("The resource has changes that have not being registered")
-        if resource._last_action.operation == "_tag" and resource._last_action.succeeded:
-            raise TaggingError(f"The current version of the resource has being already tagged")
+        if resource._last_action.operation == "_tag_one" and resource._last_action.succeeded:
+            raise TaggingError("The current version of the resource has being already tagged")
         try:
             payload = as_jsonld(resource, True, True)
             response = nexus.resources.tag(payload, value)
@@ -237,8 +236,9 @@ class BlueBrainNexus(Store):
     # CRU[D].
 
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
-        run(self._deprecate_one, self._deprecate_many, data, status="_synchronized",
-            id_required=True)
+        run(self._deprecate_one, self._deprecate_many, data, id_required=True,
+            required_synchronized=True, exception=DeprecationError,
+            monitored_status="_synchronized")
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
         succeeded, failures = self._batch(resources, action=BatchAction.DEPRECATE)

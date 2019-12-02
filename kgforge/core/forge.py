@@ -157,8 +157,9 @@ class KnowledgeGraphForge:
         template = self._model.template(type, only_required)
         print(template)
 
-    def validate(self, data: Union[Resource, List[Resource]]) -> None:
-        self._model.validate(data)
+    def validate(self, data: Union[Resource, List[Resource]],
+                 execute_actions_before: bool = False) -> None:
+        self._model.validate(data, execute_actions_before)
 
     # Resolving User Interface.
 

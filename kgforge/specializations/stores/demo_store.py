@@ -65,7 +65,7 @@ class DemoStore(Store):
         try:
             record = self.service.update(data)
         except StoreLibrary.RecordMissing:
-            raise UpdatingError("resource not registered yet")
+            raise UpdatingError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise UpdatingError("resource is deprecated")
         else:
@@ -73,23 +73,23 @@ class DemoStore(Store):
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         # Chosen case: tagging does not modify the resource.
-        rid = getattr(resource, "id", None)
+        rid = resource.id
         version = resource._store_metadata.version
         try:
             self.service.tag(rid, version, value)
         except StoreLibrary.TagExists:
             raise TaggingError("resource version already tagged")
         except StoreLibrary.RecordMissing:
-            raise TaggingError("resource not synchronized")
+            raise TaggingError("resource not found")
 
     # CRU[D].
 
     def _deprecate_one(self, resource: Resource) -> None:
-        rid = getattr(resource, "id", None)
+        rid = resource.id
         try:
             record = self.service.deprecate(rid)
         except StoreLibrary.RecordMissing:
-            raise DeprecationError("resource not synchronized")
+            raise DeprecationError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise DeprecationError("resource already deprecated")
         else:

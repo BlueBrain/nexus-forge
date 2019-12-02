@@ -81,10 +81,9 @@ class LazyAction:
         return self.operation(*self.args)
 
 
-def execute_lazy_actions(resource: Resource) -> None:
-    paths = _collect_lazy_actions(resource, "x")
+def execute_lazy_actions(resource: Resource, lazy_actions: List[str]) -> None:
     # TODO Use as base an implementation of JSONPath for Python. DKE-147.
-    for path in paths:
+    for path in lazy_actions:
         lazy_action = eval(path, {}, {"x": resource})
         result = lazy_action.execute()
         rc_path, rc_prop = path.rsplit(".", maxsplit=1)
@@ -93,6 +92,10 @@ def execute_lazy_actions(resource: Resource) -> None:
             setattr(rc, rc_prop, result)
         else:
             exec(f"{path} = result", {}, {"x": resource, "result": result})
+
+
+def collect_lazy_actions(resource: Resource) -> List[str]:
+    return list(_collect_lazy_actions(resource, "x"))
 
 
 def _collect_lazy_actions(data: Any, root: str) -> Iterator[str]:

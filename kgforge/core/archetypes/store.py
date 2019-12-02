@@ -18,7 +18,9 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Unio
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.exceptions import DownloadingError, FreezingError, UploadingError
+from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, FreezingError,
+                                             RegistrationError, TaggingError, UpdatingError,
+                                             UploadingError)
 from kgforge.core.commons.execution import catch, not_supported, run
 from kgforge.core.conversions.json import as_json
 from kgforge.core.reshaping import Reshaper
@@ -67,12 +69,12 @@ class Store(ABC):
 
     def register(self, data: Union[Resource, List[Resource]]) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
-        run(self._register_one, None, data, status="_synchronized")
+        run(self._register_one, None, data, required_synchronized=False, execute_actions=True,
+            exception=RegistrationError, monitored_status="_synchronized")
 
     def _register_many(self, resources: List[Resource]) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._register_one() policies.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
@@ -125,16 +127,16 @@ class Store(ABC):
         # path: DirPath.
         # TODO Use an implementation of JSONPath for Python instead to get 'urls'. DKE-147.
         def _collect(things: List) -> Iterator[str]:
-            for x in things:
-                if isinstance(x, Dict):
-                    for k, v in x.items():
+            for t in things:
+                if isinstance(t, Dict):
+                    for k, v in t.items():
                         if isinstance(v, List):
                             yield from _collect(v)
                         elif isinstance(v, Dict):
                             yield from _collect([v])
                         else:
                             yield v
-        x = Reshaper(None).reshape(data, [follow], False)
+        x = Reshaper("").reshape(data, [follow], False)
         y = as_json(x, False, False)
         z = y if isinstance(y, List) else [y]
         urls = list(_collect(z))
@@ -164,12 +166,12 @@ class Store(ABC):
 
     def update(self, data: Union[Resource, List[Resource]]) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
-        run(self._update_one, None, data, status="_synchronized", id_required=True)
+        run(self._update_one, None, data, id_required=True, required_synchronized=False,
+            execute_actions=True, exception=UpdatingError, monitored_status="_synchronized")
 
     def _update_many(self, resources: List[Resource]) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._update_one() policies.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
@@ -182,12 +184,12 @@ class Store(ABC):
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
         # POLICY If tagging modify the resource, run() should have status='_synchronized'.
-        run(self._tag_one, None, data, id_required=True, value=value)
+        run(self._tag_one, None, data, id_required=True, required_synchronized=True,
+            exception=TaggingError, value=value)
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         # Bulk tagging could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._tag_one() policies.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._tag_one() and execution._run_one() behaviours.
         # POLICY If tagging modify the resource, it should be done with status='_synchronized'.
         not_supported()
 
@@ -200,12 +202,12 @@ class Store(ABC):
 
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
         # Replace None by self._deprecate_many to switch to optimized bulk deprecation.
-        run(self._deprecate_one, None, data, status="_synchronized", id_required=True)
+        run(self._deprecate_one, None, data, id_required=True, required_synchronized=True,
+            exception=DeprecationError, monitored_status="_synchronized")
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
         # Bulk deprecation could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._deprecate_one() policies.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._deprecate_one() and execution._run_one() behaviours.
         not_supported()
 
     def _deprecate_one(self, resource: Resource) -> None:
@@ -241,12 +243,12 @@ class Store(ABC):
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
         # Replace None by self._freeze_many to switch to optimized bulk freezing.
-        run(self._freeze_one, None, data, id_required=True)
+        run(self._freeze_one, None, data, id_required=True, required_synchronized=True,
+            exception=FreezingError)
 
     def _freeze_many(self, resources: List[Resource]) -> None:
         # Bulk freezing could be optimized by overriding this method in the specialization.
-        # POLICY Should reproduce self._freeze_one() behaviour.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._freeze_one() and execution._run_one() behaviours.
         not_supported()
 
     def _freeze_one(self, resource: Resource) -> None:
@@ -260,10 +262,7 @@ class Store(ABC):
             elif isinstance(v, Resource):
                 self._freeze_one(v)
         if hasattr(resource, "id"):
-            try:
-                resource.id = self.versioned_id_template.format(x=resource)
-            except AttributeError:
-                raise FreezingError("resource not yet registered")
+            resource.id = self.versioned_id_template.format(x=resource)
 
     # Utils.
 

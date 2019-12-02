@@ -17,7 +17,8 @@ from functools import wraps
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 from kgforge.core import Resource
-from kgforge.core.commons.actions import Action, Actions, execute_lazy_actions
+from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
+                                          execute_lazy_actions)
 
 
 def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
@@ -62,50 +63,64 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
 
 
 def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],
-        **kwargs) -> None:
+        exception: Callable, id_required: bool = False,
+        required_synchronized: Optional[bool] = None, execute_actions: bool = False,
+        monitored_status: Optional[str] = None, catch_exceptions: bool = True, **kwargs) -> None:
     # POLICY Should be called for operations on resources where recovering from errors is needed.
-    status: Optional[str] = kwargs.pop("status", None)
-    propagate: bool = kwargs.pop("propagate", False)
-    id_required: bool = kwargs.pop("id_required", False)
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:
-            _run_many(fun_one, data, status, propagate, id_required, **kwargs)
+            _run_many(fun_one, data, exception, id_required, required_synchronized,
+                      execute_actions, monitored_status, catch_exceptions, **kwargs)
         else:
             fun_many(data, **kwargs)
         actions = Actions.from_resources(data)
         print(actions)
     elif isinstance(data, Resource):
-        _run_one(fun_one, data, status, propagate, id_required, **kwargs)
+        _run_one(fun_one, data, exception, id_required, required_synchronized, execute_actions,
+                 monitored_status, catch_exceptions, **kwargs)
         action = data._last_action
         print(action)
     else:
         raise TypeError("not a Resource nor a list of Resource")
 
 
-def _run_many(fun: Callable, resources: List[Resource], status: Optional[str], propagate: bool,
-              id_required: bool, **kwargs) -> None:
+def _run_many(fun: Callable, resources: List[Resource], *args, **kwargs) -> None:
     for x in resources:
-        _run_one(fun, x, status, propagate, id_required, **kwargs)
+        _run_one(fun, x, *args, **kwargs)
 
 
-def _run_one(fun: Callable, resource: Resource, status: Optional[str], propagate: bool,
-             id_required: bool, **kwargs) -> None:
+def _run_one(fun: Callable, resource: Resource, exception: Callable, id_required: bool,
+             required_synchronized: Optional[bool], execute_actions: bool,
+             monitored_status: Optional[str], catch_exceptions: bool, **kwargs) -> None:
     try:
         if id_required and not hasattr(resource, "id"):
-            raise Exception("resource does not have an id")
-        execute_lazy_actions(resource)
+            raise exception("resource should have an id")
+
+        synchronized = resource._synchronized
+        if required_synchronized is not None and synchronized is not required_synchronized:
+            be_or_not_be = "be" if required_synchronized is True else "not be"
+            raise exception(f"resource should {be_or_not_be} synchronized")
+
+        lazy_actions = collect_lazy_actions(resource)
+        if execute_actions:
+            execute_lazy_actions(resource, lazy_actions)
+        elif lazy_actions:
+            raise exception("resource has lazy actions which need to be executed before")
+
         result = fun(resource, **kwargs)
     except Exception as e:
-        status_value = False
+        status = False
         succeeded = False
-        error = e
+        exception = e
     else:
-        status_value = True if not isinstance(result, bool) else result
+        status = True if not isinstance(result, bool) else result
         succeeded = True
-        error = None
+        exception = None
     finally:
-        if status:
-            setattr(resource, status, status_value)
-        resource._last_action = Action(fun.__name__, succeeded, error)
-        if propagate and error:
-            raise error
+        if monitored_status:
+            setattr(resource, monitored_status, status)
+
+        resource._last_action = Action(fun.__name__, succeeded, exception)
+
+        if not catch_exceptions and exception:
+            raise exception

@@ -20,6 +20,7 @@ import hjson
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Store
 from kgforge.core.commons.attributes import repr_class, sort_attrs
+from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import not_supported, run
 
 
@@ -83,14 +84,15 @@ class Model(ABC):
 
     # Validation.
 
-    def validate(self, data: Union[Resource, List[Resource]]) -> None:
+    def validate(self, data: Union[Resource, List[Resource]],
+                 execute_actions_before: bool) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
-        run(self._validate_one, None, data, status="_validated")
+        run(self._validate_one, None, data, execute_actions=execute_actions_before,
+            exception=ValidationError, monitored_status="_validated")
 
     def _validate_many(self, resources: List[Resource]) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._validate_one() policies.
-        # POLICY Should reproduce execution._run_one() behaviour with the arguments given to run().
+        # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
