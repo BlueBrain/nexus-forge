@@ -27,7 +27,7 @@ Feature: Store
   Scenario: The registration of a resource fails.
     Given A store instance.
     And An already registered resource.
-    When I register the resource. The printed report does mention an error: 'RegistrationError: resource already exists'.
+    When I register the resource. The printed report does mention an error: 'RegistrationError: resource should not be synchronized'.
     Then The '_synchronized' status of the resource should be 'False'.
     And The store metadata of a resource should be '{'version': 1, 'deprecated': False}'.
     And I should be able to access the report of the action on a resource.
@@ -38,7 +38,7 @@ Feature: Store
   Scenario: The registration of resources fails.
     Given A store instance.
     And Already registered resources.
-    When I register the resources. The printed report does mention an error: 'RegistrationError: resource already exists'.
+    When I register the resources. The printed report does mention an error: 'RegistrationError: resource should not be synchronized'.
     Then The '_synchronized' status of a resource should be 'False'.
     And The store metadata of a resource should be '{'version': 1, 'deprecated': False}'.
     And I should be able to access the report of the action on a resource.

@@ -15,7 +15,7 @@
 # Placeholder for the test suite for actions.
 
 from kgforge.core import Resource
-from kgforge.core.commons.actions import LazyAction, execute_lazy_actions
+from kgforge.core.commons.actions import LazyAction, collect_lazy_actions, execute_lazy_actions
 
 
 def test_execute_lazy_actions():
@@ -28,7 +28,8 @@ def test_execute_lazy_actions():
                        123,
                        Resource(pd1=LazyAction(fun, "pd1 executed")),
                        "string"])
-    execute_lazy_actions(ra)
+    la = collect_lazy_actions(ra)
+    execute_lazy_actions(ra, la)
     assert ra.pa1 == "pa1"
     assert ra.pa2.pb1 == "pb1"
     assert ra.pa3 == "pa3 executed"

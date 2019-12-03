@@ -30,7 +30,7 @@ def model():
 
 @given("A validated resource.", target_fixture="data")
 def validated_resource(model, valid_resource):
-    model.validate(valid_resource)
+    model.validate(valid_resource, execute_actions_before=False)
     assert valid_resource._validated == True
     return valid_resource
 
@@ -38,7 +38,7 @@ def validated_resource(model, valid_resource):
 @when(parsers.re("I validate the resource(?P<rc>s?)."
                  " The printed report does(?P<err> not)? mention an error(: '(?P<msg>[a-zA-Z0-9: ]+)')?."))
 def validate(capsys, model, data, rc, err, msg):
-    model.validate(data)
+    model.validate(data, execute_actions_before=False)
     check_report(capsys, rc, err, msg, "_validate_one")
 
 
@@ -46,6 +46,6 @@ def validate(capsys, model, data, rc, err, msg):
 def validate_exception(monkeypatch, capsys, model, data):
     def _validate_one(_, x): raise Exception("exception raised")
     monkeypatch.setattr("kgforge.specializations.models.demo_model.DemoModel._validate_one", _validate_one)
-    model.validate(data)
+    model.validate(data, execute_actions_before=False)
     out = capsys.readouterr().out[:-1]
     assert out == f"<action> _validate_one\n<succeeded> False\n<error> Exception: exception raised"
