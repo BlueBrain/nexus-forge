@@ -14,7 +14,7 @@
 
 import os
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 VERSION = "0.2.0.dev"
 
@@ -36,7 +36,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords="data knowledge scientists graph",
     url="https://github.com/BlueBrain/kgforge",
-    packages=["kgforge"],
+    packages=find_packages(),
     python_requires=">=3.7",
     install_requires=[
         "hjson",
