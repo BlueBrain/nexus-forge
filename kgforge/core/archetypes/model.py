@@ -60,13 +60,14 @@ class Model(ABC):
 
     def template(self, type: str, only_required: bool) -> str:
         # Return Hjson.
-        # POLICY Each nested typed resource should have its template included.
-        # POLICY The value of 'type' and properties should be compacted (i.e. not IRI nor CURIE).
         schema = self._template(type, only_required)
         return hjson.dumps(schema, indent=4, item_sort_key=sort_attrs)
 
     @abstractmethod
     def _template(self, type: str, only_required: bool) -> Dict:
+        # POLICY Should raise ValueError if 'type' is not managed by the Model.
+        # POLICY Each nested typed resource should have its template included.
+        # POLICY The value of 'type' and properties should be compacted (i.e. not IRI nor CURIE).
         pass
 
     # Mappings.
@@ -74,12 +75,14 @@ class Model(ABC):
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mappings(self, data_source: str) -> Dict[str, List[str]]:
         # The discovery strategy cannot be abstracted as it depends of the Model data organization.
+        # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
         # POLICY Keys should be managed types with mappings for the given data source.
         # POLICY Values should be available mapping types for the resource type.
         not_supported()
 
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
+        # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
         # The selection strategy cannot be abstracted as it depends of the Model data organization.
         not_supported()
 
