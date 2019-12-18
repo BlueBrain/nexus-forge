@@ -25,6 +25,7 @@ from pandas import DataFrame
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
 from kgforge.core.commons.strategies import ResolvingStrategy
@@ -43,6 +44,7 @@ class KnowledgeGraphForge:
 
         # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
 
+        # Required minimal configuration: Model:name, Model:source, Store:name.
         # Keyword arguments could be used to override the configuration provided for the Store.
         #
         # The configuration could be provided either as:
@@ -53,12 +55,14 @@ class KnowledgeGraphForge:
         #     See demo-forge.yml in kgforge/examples/configurations/ for an example.
         #
         # Model:
-        #   name: <a class name in kgforge/specializations/models>  # Required.
-        #   source: <a directory path, an URL, or the value in Store:name below>  # Required.
-        #   bucket: <a bucket as a string>
+        #   name: <a class name in kgforge/specializations/models>
+        #   source: <a directory path, an URL, or a the class name of a Store>
+        #   bucket: <a Store bucket>
+        #   endpoint: <a Store endpoint, default to Store:endpoint>
+        #   token: <a Store token, default to Store:token>
         #
         # Store:
-        #   name: <a class name in kgforge/specializations/stores>  # Required.
+        #   name: <a class name in kgforge/specializations/stores>
         #   endpoint: <an URL>
         #   bucket: <a bucket as a string>
         #   token: <a token as a string>
@@ -69,10 +73,12 @@ class KnowledgeGraphForge:
         #   <scope>:
         #     - resolver: <a class name in kgforge/specializations/resolvers>
         #       result_resource_mapping: <an Hjson string, a file path, or an URL>
-        #       source: <a directory path, an endpoint URL, or the value in Store:name above>
+        #       source: <a directory path, an endpoint URL, or a the class name of a Store>
+        #       endpoint: <a Store endpoint, default to Store:endpoint>
+        #       token: <a Store token, default to Store:token>
         #       targets:
         #         - identifier: <a name, or an IRI>
-        #           bucket: <a file name, an URL path, or a bucket in the configured store>
+        #           bucket: <a file name, an URL path, or a Store bucket>
         #
         # Formatters:
         #   identifier: <a string template with replacement fields delimited by braces, i.e. '{}'>
@@ -81,12 +87,14 @@ class KnowledgeGraphForge:
         #
         # {
         #     "Model": {
-        #         "name": <str>,  # Required.
-        #         "source": <str>,  # Required.
+        #         "name": <str>,
+        #         "source": <str>,
         #         "bucket": <str>,
+        #         "endpoint": <str>,
+        #         "token": <str>,
         #     },
         #     "Store": {
-        #         "name": <str>>,  # Required.
+        #         "name": <str>,
         #         "endpoint": <str>,
         #         "bucket": <str>,
         #         "token": <str>,
@@ -99,6 +107,8 @@ class KnowledgeGraphForge:
         #                 "resolver": <str>,
         #                 "result_resource_mapping": <str>,
         #                 "source": <str>,
+        #                 "endpoint": <str>,
+        #                 "token": <str>,
         #                 "targets": [
         #                     {
         #                         "identifier": <str>,
@@ -122,14 +132,6 @@ class KnowledgeGraphForge:
         else:
             config = deepcopy(configuration)
 
-        # Model.
-
-        models = import_module("kgforge.specializations.models")
-        model_config = config.pop("Model")
-        model_name = model_config.pop("name")
-        model = getattr(models, model_name)
-        self._model: Model = model(**model_config)
-
         # Store.
 
         stores = import_module("kgforge.specializations.stores")
@@ -139,11 +141,24 @@ class KnowledgeGraphForge:
         store = getattr(stores, store_name)
         self._store: Store = store(**store_config)
 
+        # Model.
+
+        models = import_module("kgforge.specializations.models")
+        model_config = config.pop("Model")
+        model_name = model_config.pop("name")
+        model = getattr(models, model_name)
+        if hasattr(stores, model_config["source"]):
+            model_config = with_defaults(model_config, store_config, ["endpoint", "token"])
+        self._model: Model = model(**model_config)
+
         # Resolvers.
 
         def prepare_resolver(resolver_config: Dict) -> Tuple[str, Resolver]:
             resolver_name = resolver_config.pop("resolver")
             resolver = getattr(resolvers, resolver_name)
+            if hasattr(stores, resolver_config["source"]):
+                resolver_config = with_defaults(resolver_config, store_config,
+                                                ["endpoint", "token"])
             return resolver_name, resolver(**resolver_config)
 
         self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = None
@@ -205,7 +220,8 @@ class KnowledgeGraphForge:
                     if len(self._resolvers) == 1 and len(scopes_resolvers[0]) == 1:
                         rov = list(scopes_resolvers[0].values())[0]
                     else:
-                        raise ResolvingError("resolving scope or resolver name should be specified")
+                        raise ResolvingError("resolving scope or resolver name should be"
+                                             "specified")
             return rov.resolve(text, target, type, strategy)
         else:
             raise ResolvingError("no resolvers have been configured")

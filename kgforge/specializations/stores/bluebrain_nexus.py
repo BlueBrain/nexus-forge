@@ -255,8 +255,8 @@ class BlueBrainNexus(Store):
 
     # Utils.
 
-    def _initialize(self, endpoint: Optional[str], bucket: Optional[str],
-                    token: Optional[str]) -> Any:
+    def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
+                            token: Optional[str]) -> Any:
         # TODO Migrate to self.service. Change return type.
         pass
 

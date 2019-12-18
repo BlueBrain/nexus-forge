@@ -27,9 +27,9 @@ from kgforge.specializations.mappings import DictionaryMapping
 class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
 
-    def __init__(self, targets: List[Dict[str, str]], source: str,
-                 result_resource_mapping: str) -> None:
-        super().__init__(targets, source, result_resource_mapping)
+    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+                 **source_config) -> None:
+        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -69,15 +69,9 @@ class DemoResolver(Resolver):
                 return None
 
     @staticmethod
-    def _initialize(source: str, targets: Dict[str, str]) -> Dict[str, List[Dict[str, str]]]:
-        try:
-            dirpath = Path(source)
-        except TypeError:
-            # TODO.
-            raise NotImplementedError("DemoResolver supports only resolver data from files"
-                                      "in a directory for now.")
-        else:
-            return {target: list(_load(dirpath, filename)) for target, filename in targets.items()}
+    def _service_from_directory(dirpath: Path, targets: Dict[str, str]
+                                ) -> Dict[str, List[Dict[str, str]]]:
+        return {target: list(_load(dirpath, filename)) for target, filename in targets.items()}
 
 
 def _dist(x: str, y: str) -> int:
@@ -86,7 +80,8 @@ def _dist(x: str, y: str) -> int:
 
 def _load(dirpath: Path, filename: str) -> Iterator[Dict[str, str]]:
     filepath = dirpath / filename
-    if not filepath.is_file():
+    if filepath.is_file():
+        with filepath.open() as f:
+            yield from json.load(f)
+    else:
         raise ConfigurationError("<source>/<bucket> should be a valid file path")
-    with filepath.open() as f:
-        yield from json.load(f)

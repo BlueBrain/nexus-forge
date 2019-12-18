@@ -171,7 +171,7 @@ Mapping(mapping: str)
 Model
 
 ```bash
-Model(source: Union[str, Store])
+Model(source: str, **source_config)
   prefixes() -> Dict[str, str]
   types() -> List[str]
   template(type: str, only_required: bool) -> str
@@ -183,7 +183,7 @@ Model(source: Union[str, Store])
 Resolver
 
 ```bash
-Resolver(targets: List[Dict[str, str]], source: str, result_resource_mapping: str)
+Resolver(source: str, targets: List[Dict[str, str]], result_resource_mapping: str, **source_config)
   resolve(text: str, target: Optional[str], type: Optional[str], strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]
 ```
 

@@ -20,15 +20,15 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model, Store
+from kgforge.core.archetypes import Mapping, Model
 from kgforge.core.commons.exceptions import ValidationError
 
 
 class DemoModel(Model):
     """An example to show how to implement a Model and to demonstrate how it is used."""
 
-    def __init__(self, source: Union[str, Store]) -> None:
-        super().__init__(source)
+    def __init__(self, source: str, **source_config) -> None:
+        super().__init__(source, **source_config)
 
     def prefixes(self) -> Dict[str, str]:
         return self.service.namespaces
@@ -70,17 +70,11 @@ class DemoModel(Model):
         if reason is not None:
             raise ValidationError(reason)
 
-    def _initialize(self, source: Union[str, Store]) -> ModelLibrary:
-        # TODO DKE-148.
-        msg = "DemoModel supports only model data from a directory for now."
-        try:
-            dirpath = Path(self.source)
-        except TypeError:
-            raise NotImplementedError(msg)
-        else:
-            if not dirpath.is_dir():
-                raise NotImplementedError(msg)
-            return ModelLibrary(dirpath)
+    # Utils.
+
+    @staticmethod
+    def _service_from_directory(dirpath: Path) -> ModelLibrary:
+        return ModelLibrary(dirpath)
 
 
 class ModelLibrary:

@@ -13,11 +13,14 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from importlib import import_module
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.execution import catch
+from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 
 
@@ -32,14 +35,14 @@ class Resolver(ABC):
     # TODO Create a generic parameterizable test suite for resolvers. DKE-135.
     # POLICY Implementations should pass tests/specializations/resolvers/test_resolvers.py.
 
-    def __init__(self, targets: List[Dict[str, str]], source: str,
-                 result_resource_mapping: str) -> None:
+    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+                 **source_config) -> None:
         # POLICY Resolver data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
+        self.source: str = source
         self.targets: Dict[str, str] = {x["identifier"]: x["bucket"] for x in targets}
-        self.source: str = source  # FIXME DKE-144.
-        self.service: Any = self._initialize(self.source, self.targets)
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
+        self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -74,10 +77,35 @@ class Resolver(ABC):
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 
+    # Utils.
+
+    def _initialize_service(self, source: str, targets: Dict[str, str], **source_config) -> Any:
+        # Resolver data could be accessed from a directory, a web service, or a Store.
+        # Initialize the access to the resolver data according to the source type.
+        # POLICY Should not use 'self'. This is not a function only for the specialization to work.
+        stores = import_module("kgforge.specializations.stores")
+        if hasattr(stores, source):
+            return self._service_from_store(source, targets, **source_config)
+        else:
+            try:
+                dirpath = Path(source)
+            except TypeError:
+                return self._service_from_url(source, targets)
+            else:
+                if dirpath.is_dir():
+                    return self._service_from_directory(dirpath, targets)
+                else:
+                    raise ConfigurationError("source should be a valid directory path")
+
     @staticmethod
     @abstractmethod
-    def _initialize(source: str, targets: Dict[str, str]) -> Any:
-        # POLICY Should initialize the access to the resolver data according to the source type.
-        # Resolver data could be accessed from a directory, a web service, or the configured store.
-        # TODO Some operations might be abstracted here when other resolvers will be implemented.
-        pass
+    def _service_from_directory(dirpath: Path, targets: Dict[str, str]) -> Any:
+        not_supported()
+
+    @staticmethod
+    def _service_from_url(url: str, targets: Dict[str, str]) -> Any:
+        not_supported()
+
+    @staticmethod
+    def _service_from_store(store_name: str, targets: Dict[str, str], **store_config) -> Any:
+        not_supported()

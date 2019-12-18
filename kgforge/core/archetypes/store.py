@@ -46,10 +46,10 @@ class Store(ABC):
         self.endpoint: Optional[str] = endpoint
         self.bucket: Optional[str] = bucket
         self.token: Optional[str] = token
-        self.service: Any = self._initialize(self.endpoint, self.bucket, self.token)
         self.versioned_id_template: Optional[str] = versioned_id_template
         loaded = self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         self.file_mapping: Optional[Any] = loaded
+        self.service: Any = self._initialize_service(self.endpoint, self.bucket, self.token)
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -252,7 +252,7 @@ class Store(ABC):
     # Utils.
 
     @abstractmethod
-    def _initialize(self, endpoint: Optional[str], bucket: Optional[str],
-                    token: Optional[str]) -> Any:
+    def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
+                            token: Optional[str]) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
