@@ -86,7 +86,7 @@ def collect_values(data: Union[Resource, List[Resource]],  follow: str,
     try:
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
-        jsoned = as_json(reshaped, False, False)
+        jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))
     except AttributeError:

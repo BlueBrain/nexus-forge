@@ -31,7 +31,8 @@ class Resource:
     # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Specializations should pass tests/core/resources/resource.feature tests.
 
-    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_context"}
+    # FIXME remove "_forge" from _RESERVED and implement a "cast" of derived classes to Resource
+    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_forge"}
 
     def __init__(self, **properties) -> None:
         check_collisions(self._RESERVED, properties.keys())

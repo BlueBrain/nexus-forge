@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import yaml
 from pandas import DataFrame
+from rdflib import Graph
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
@@ -32,8 +33,7 @@ from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
-from kgforge.core.conversions.jsonld import as_jsonld, from_jsonld
-from kgforge.core.conversions.triples import as_triples, from_triples
+from kgforge.core.conversions.rdf import as_jsonld, from_jsonld, as_graph, from_graph, Form
 from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappers import DictionaryMapper
@@ -108,6 +108,12 @@ class KnowledgeGraphForge:
         #         "bucket": <str>,
         #         "endpoint": <str>,
         #         "token": <str>,
+        #         "context": {
+        #               "iri": <str>,
+        #               "bucket": <str>,
+        #               "endpoint": <str>,
+        #               "token": <str>,
+        #         }
         #     },
         #     "Store": {
         #         "name": <str>,
@@ -142,7 +148,6 @@ class KnowledgeGraphForge:
         #         ...,
         #     },
         # }
-
         if isinstance(configuration, str):
             with Path(configuration).open(encoding="utf-8") as f:
                 config = yaml.safe_load(f)
@@ -156,10 +161,6 @@ class KnowledgeGraphForge:
         # Store.
 
         store_config = config.pop("Store")
-        store_config.update(kwargs)
-        store_name = store_config.pop("name")
-        store = import_class(store_name, "stores")
-        self._store: Store = store(**store_config)
 
         # Model.
 
@@ -169,6 +170,14 @@ class KnowledgeGraphForge:
         model_name = model_config.pop("name")
         model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
+
+        # Store.
+
+        store_config.update(kwargs)
+        store_config.update(model_context=self._model.context())
+        store_name = store_config.pop("name")
+        store = import_class(store_name, "stores")
+        self._store: Store = store(**store_config)
 
         # Resolvers.
 
@@ -282,12 +291,12 @@ class KnowledgeGraphForge:
     @catch
     def search(self, *filters, **params) -> List[Resource]:
         resolvers = list(self._resolvers.values()) if self._resolvers is not None else None
-        return self._store.search(resolvers, *filters, **params)
+        return self._store.search(self._model.context(), resolvers, *filters, **params)
 
     @catch
     def sparql(self, query: str, debug: bool = False) -> List[Resource]:
         # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
-        context = self._model.context()
+        context = self._model.context().document
         prefixes = self._model.prefixes(pretty=False)
         return self._store.sparql(query, context, prefixes, debug)
 
@@ -332,25 +341,25 @@ class KnowledgeGraphForge:
     @catch
     def as_json(self, data: Union[Resource, List[Resource]], expanded: bool = False,
                 store_metadata: bool = False) -> Union[Dict, List[Dict]]:
-        return as_json(data, expanded, store_metadata)
+        return as_json(data, expanded, store_metadata, self._model.context(),
+                       self._store.metadata_context, self._model.resolve_context)
 
     @catch
-    def as_jsonld(self, data: Union[Resource, List[Resource]], compacted: bool = True,
+    def as_jsonld(self, data: Union[Resource, List[Resource]], form: str = Form.COMPACTED.value,
                   store_metadata: bool = False) -> Union[Dict, List[Dict]]:
-        return as_jsonld(data, compacted, store_metadata)
-
-    # FIXME To be refactored after the introduction of as_graph(), as_rdf() and as_triplets().
-    #  DKE-131, DKE-142, DKE-132.
-    @catch
-    def as_triples(self, data: Union[Resource, List[Resource]], store_metadata: bool = False
-                   ) -> List[Tuple[str, str, str]]:
-        return as_triples(data, store_metadata)
+        return as_jsonld(data, form, store_metadata, self._model.context(),
+                         self._store.metadata_context, self._model.resolve_context)
 
     @catch
-    def as_dataframe(self, data: List[Resource], na: Union[Any, List[Any]] = [None],
-                     nesting: str = ".", expanded: bool = False, store_metadata: bool = False
-                     ) -> DataFrame:
-        return as_dataframe(data, na, nesting, expanded, store_metadata)
+    def as_graph(self, data: Union[Resource, List[Resource]], store_metadata: bool) -> Graph:
+        return as_graph(data, store_metadata, self._model.context(), self._store.context,
+                        self._store.metadata_context, self._model.resolve_context)
+
+    @catch
+    def as_dataframe(self, data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",
+                     expanded: bool = False, store_metadata: bool = False) -> DataFrame:
+        return as_dataframe(data, na, nesting, expanded, store_metadata, self._model.context(),
+                            self._store.metadata_context, self._model.resolve_context)
 
     @catch
     def from_json(self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
@@ -362,8 +371,8 @@ class KnowledgeGraphForge:
         return from_jsonld(data)
 
     @catch
-    def from_triples(self, data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]:
-        return from_triples(data)
+    def from_graph(self, data: Graph) -> Union[Resource, List[Resource]]:
+        return from_graph(data)
 
     @catch
     def from_dataframe(self, data: DataFrame, na: Union[Any, List[Any]] = np.nan,

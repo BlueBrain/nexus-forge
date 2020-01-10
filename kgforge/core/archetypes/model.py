@@ -22,6 +22,7 @@ from pandas import DataFrame
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
 from kgforge.core.commons.attributes import repr_class, sort_attrs
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.commons.imports import import_class
@@ -74,8 +75,16 @@ class Model(ABC):
         # POLICY Should return managed types in their compacted form (i.e. not IRI nor CURIE).
         pass
 
-    # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
-    def context(self) -> Dict[str, Dict]:
+    def context(self) -> Context:
+        # POLICY Should return the context of the Model.
+        pass
+
+    def resolve_context(self, iri: str) -> Dict:
+        # POLICY Should retrieve the resolved context as dictionary
+        not_supported()
+
+    def _generate_context(self) -> Dict:
+        # POLICY Should generate the Context from the Model data.
         not_supported()
 
     # Templates.
@@ -162,26 +171,29 @@ class Model(ABC):
         # Initialize the access to the model data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
         origin = source_config.pop("origin")
+        context_config = source_config.pop("context", {})
+        context_iri = context_config.pop("iri", None)
         if origin == "directory":
             dirpath = Path(source)
-            return self._service_from_directory(dirpath)
+            return self._service_from_directory(dirpath, context_iri)
         elif origin == "url":
-            return self._service_from_url(source)
+            return self._service_from_url(source, context_iri)
         elif origin == "store":
             store = import_class(source, "stores")
-            return self._service_from_store(store, **source_config)
+            return self._service_from_store(store, context_config, **source_config)
         else:
             raise ConfigurationError(f"unrecognized Model origin '{origin}'")
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path) -> Any:
+    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
         pass
 
     @staticmethod
-    def _service_from_url(url: str) -> Any:
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, **store_config) -> Any:
+    def _service_from_store(store: Callable, context_iri: Optional[str],
+                            context_config: Optional[Dict]) -> Any:
         not_supported()

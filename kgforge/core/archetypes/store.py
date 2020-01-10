@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, Iterable, List, Match, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, FreezingError,
                                              RegistrationError, TaggingError, UpdatingError,
                                              UploadingError)
@@ -42,7 +43,8 @@ class Store(ABC):
 
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None) -> None:
+                 file_resource_mapping: Optional[str] = None,
+                 model_context: Optional[Context] = None) -> None:
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
         # POLICY There could be data caching but it should be aware of changes made in the source.
         self.endpoint: Optional[str] = endpoint
@@ -51,7 +53,10 @@ class Store(ABC):
         self.versioned_id_template: Optional[str] = versioned_id_template
         loaded = self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         self.file_mapping: Optional[Any] = loaded
+        self.model_context: Optional[Context] = model_context
         self.service: Any = self._initialize_service(self.endpoint, self.bucket, self.token)
+        self.context: Context = self.service.context if hasattr(self.service, "context") else None
+        self.metadata_context: Context = self.service.metadata_context if hasattr(self.service, "metadata_context") else None
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -203,7 +208,8 @@ class Store(ABC):
 
     # Querying.
 
-    def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
+    def search(self, context: Context, resolvers: Optional[List["Resolver"]], *filters,
+               **params) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py.
         # Keyword arguments in 'params' could be:
         #   - resolving: str, with values in ('exact', 'fuzzy'),

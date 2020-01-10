@@ -21,6 +21,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 
 
@@ -38,10 +39,9 @@ class DemoModel(Model):
     def _types(self) -> List[str]:
         return [x["label"] for x in self.service.vocabulary["Class"]]
 
-    # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
-    def context(self) -> Dict[str, Dict]:
+    def context(self) -> Context:
         ctx = {x["label"]: x["id"] for k, v in self.service.vocabulary.items() for x in v}
-        return {"@context": ctx}
+        return Context({"@context": ctx})
 
     # Templates.
 
@@ -95,7 +95,7 @@ class DemoModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path) -> ModelLibrary:
+    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> ModelLibrary:
         return ModelLibrary(dirpath)
 
 

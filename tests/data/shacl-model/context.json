@@ -1,0 +1,102 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "http://schema.org/",
+    "Activity": {
+      "@id": "prov:Activity"
+    },
+    "Address": {
+      "@id": "schema:Address"
+    },
+    "Building": {
+      "@id": "schema:Building"
+    },
+    "Organization": {
+      "@id": "schema:Organization"
+    },
+    "Person": {
+      "@id": "schema:Person"
+    },
+    "address": {
+      "@id": "schema:address"
+    },
+    "birthDate": {
+      "@id": "schema:birthDate"
+    },
+    "citation": {
+      "@id": "schema:citation"
+    },
+    "contractor": {
+      "@id": "schema:contractor"
+    },
+    "deathDate": {
+      "@id": "schema:deathDate"
+    },
+    "department": {
+      "@id": "schema:department"
+    },
+    "description": {
+      "@id": "schema:description"
+    },
+    "endedAtTime": {
+      "@id": "prov:endedAtTime"
+    },
+    "founder": {
+      "@id": "schema:founder"
+    },
+    "gender": {
+      "@id": "schema:gender"
+    },
+    "generated": {
+      "@id": "prov:generated"
+    },
+    "geo": {
+      "@id": "schema:geo"
+    },
+    "givenName": {
+      "@id": "schema:givenName"
+    },
+    "image": {
+      "@id": "schema:image",
+      "@type" : "@id"
+    },
+    "latitude": {
+      "@id": "schema:latitude"
+    },
+    "longitude": {
+      "@id": "schema:longitude"
+    },
+    "name": {
+      "@id": "schema:name"
+    },
+    "postalCode": {
+      "@id": "schema:postalCode"
+    },
+    "startDate": {
+      "@id": "schema:startDate"
+    },
+    "startedAtTime": {
+      "@id": "prov:startedAtTime"
+    },
+    "status": {
+      "@id": "schema:status"
+    },
+    "streetAddress": {
+      "@id": "schema:streetAddress"
+    },
+    "supervisor": {
+      "@id": "schema:supervisor",
+      "@type": "@id"
+    },
+    "used": {
+      "@id": "prov:used"
+    },
+    "validated": {
+      "@id": "schema:validated"
+    },
+    "wasStartedBy": {
+      "@id": "prov:wasStartedBy",
+      "@type": "@id"
+    }
+  }
+}

@@ -24,7 +24,7 @@ from pyshacl.shape import Shape
 from rdflib import RDF
 from rdflib.term import URIRef, BNode
 
-from kgforge.specializations.models.shacl.node_properties import NodeProperties
+from kgforge.specializations.models.rdf.node_properties import NodeProperties
 
 
 class Collector(ABC):

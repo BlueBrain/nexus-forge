@@ -1,9 +1,7 @@
 Model:
   name: RdfModel
   origin: directory
-  source: ../../../../data/shacl-model
-  context:
-    iri: "file:../../../tests/data/shacl-model/context.json"
+  source: ../../../../neuroshapes/shapes/
 
 Store:
   name: BlueBrainNexus
