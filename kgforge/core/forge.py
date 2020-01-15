@@ -19,6 +19,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import yaml
 from pandas import DataFrame
 
@@ -319,9 +320,9 @@ class KnowledgeGraphForge:
         return as_triples(data, store_metadata)
 
     @staticmethod
-    def as_dataframe(data: List[Resource], store_metadata: bool = False, na: Optional[str] = None,
-                     nesting: str = ".") -> DataFrame:
-        return as_dataframe(data, store_metadata, na, nesting)
+    def as_dataframe(data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",
+                     expanded: bool = False, store_metadata: bool = False) -> DataFrame:
+        return as_dataframe(data, na, nesting, expanded, store_metadata)
 
     @staticmethod
     def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
@@ -337,6 +338,6 @@ class KnowledgeGraphForge:
         return from_triples(data)
 
     @staticmethod
-    def from_dataframe(data: DataFrame, na: Optional[str] = None,
-                       nesting: str = ".") -> List[Resource]:
+    def from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
+                       ) -> Union[Resource, List[Resource]]:
         return from_dataframe(data, na, nesting)
