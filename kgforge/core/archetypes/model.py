@@ -127,7 +127,7 @@ class Model(ABC):
     @staticmethod
     @abstractmethod
     def _service_from_directory(dirpath: Path) -> Any:
-        not_supported()
+        pass
 
     @staticmethod
     def _service_from_url(url: str) -> Any:

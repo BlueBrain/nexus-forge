@@ -100,7 +100,7 @@ class Resolver(ABC):
     @staticmethod
     @abstractmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, str]) -> Any:
-        not_supported()
+        pass
 
     @staticmethod
     def _service_from_url(url: str, targets: Dict[str, str]) -> Any:

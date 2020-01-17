@@ -30,11 +30,29 @@ class DemoModel(Model):
     def __init__(self, source: str, **source_config) -> None:
         super().__init__(source, **source_config)
 
+    # Vocabulary.
+
     def prefixes(self) -> Dict[str, str]:
         return self.service.namespaces
 
     def types(self) -> List[str]:
         return [x["label"] for x in self.service.vocabulary["Class"]]
+
+    # Templates.
+
+    def _template(self, type: str, only_required: bool) -> Dict:
+        # TODO DKE-148.
+        print("<info> DemoModel does not distinguish values and constraints in templates for now.")
+        # TODO DKE-148.
+        print("<info> DemoModel does not automatically include nested schemas for now.")
+        if only_required:
+            # TODO DKE-148.
+            print("<info> DemoModel does not support keeping only required properties for now.")
+        type_expanded = self.service.expand(type)
+        schema = self.service.schema(type_expanded)
+        return self.service.compact(schema)
+
+    # Mappings.
 
     def mappings(self, data_source: str) -> Dict[str, List[str]]:
         dirpath = Path(self.source, "mappings", data_source)
@@ -49,17 +67,7 @@ class DemoModel(Model):
         filepath = Path(self.source, "mappings", data_source, mapping_type.__name__, filename)
         return mapping_type.load(filepath)
 
-    def _template(self, type: str, only_required: bool) -> Dict:
-        # TODO DKE-148.
-        print("<info> DemoModel does not distinguish values and constraints in templates for now.")
-        # TODO DKE-148.
-        print("<info> DemoModel does not automatically include nested schemas for now.")
-        if only_required:
-            # TODO DKE-148.
-            print("<info> DemoModel does not support keeping only required properties for now.")
-        type_expanded = self.service.expand(type)
-        schema = self.service.schema(type_expanded)
-        return self.service.compact(schema)
+    # Validation.
 
     def _validate_one(self, resource: Resource) -> None:
         # If the resource is not typed, AttributeError is raised: run() sets _validated to False.

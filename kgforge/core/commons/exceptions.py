@@ -19,6 +19,10 @@ class ConfigurationError(Exception):
     pass
 
 
+class NotSupportedError(Exception):
+    pass
+
+
 # Model operations.
 
 

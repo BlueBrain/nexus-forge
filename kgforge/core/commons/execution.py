@@ -19,11 +19,11 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 from kgforge.core import Resource
 from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
                                           execute_lazy_actions)
+from kgforge.core.commons.exceptions import NotSupportedError
 
 
 def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
     # TODO When 'arg' is specified, compare with the value in the frame to know if it applies.
-    # TODO If this is the case but also in general, return from the calling method. DKE-183.
     # POLICY Should be called in methods in core which could be not implemented by specializations.
     frame = inspect.currentframe().f_back
     try:
@@ -31,7 +31,11 @@ def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
         class_name = type(self_).__name__
         method_name = inspect.getframeinfo(frame).function
         tail = f" with {arg[0]}={arg[1]}" if arg else ""
-        print(f"{class_name} is not supporting {method_name}(){tail}\n")
+        msg = f"{class_name} is not supporting {method_name}(){tail}"
+    except Exception as e:
+        raise e
+    else:
+        raise NotSupportedError(msg)
     finally:
         del frame
 
