@@ -119,7 +119,7 @@ class DemoStore(Store):
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
-    resource = from_json(record["data"])
+    resource = from_json(record["data"], None)
     resource._store_metadata = wrap_dict(record["metadata"])
     resource._synchronized = True
     return resource

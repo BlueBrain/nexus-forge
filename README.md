@@ -143,7 +143,7 @@ as_json(data: Union[Resource, List[Resource]], expanded: bool = False, store_met
 as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]
 as_triples(data: Union[Resource, List[Resource]], store_metadata: bool = False) -> List[Tuple[str, str, str]]
 as_dataframe(data: List[Resource], store_metadata: bool = False, na: Optional[str] = None, nesting: str = ".") -> DataFrame
-from_json(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]
+from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
 from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]
 from_triples(data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]
 from_dataframe(data: DataFrame, na: Optional[str] = None

@@ -42,20 +42,17 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool,
 
 
 @catch
-def from_json(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
-    if isinstance(data, List) and all(isinstance(x, Dict) for x in data):
-        return [from_json(x) for x in data]
+def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]
+              ) -> Union[Resource, List[Resource]]:
+    nas = na if isinstance(na, List) else [na]
+    return _from_json(data, nas)
+
+
+def _from_json(data: Union[Any, List[Any]], na: List[Any]) -> Any:
+    if isinstance(data, List):
+        return [_from_json(x, na) for x in data]
     elif isinstance(data, Dict):
-        properties = {k: _from_json(v) for k, v in data.items()}
+        properties = {k: _from_json(v, na) for k, v in data.items() if v not in na}
         return Resource(**properties)
     else:
-        raise TypeError("not a Dict nor a list of Dict")
-
-
-def _from_json(value: Any) -> Any:
-    if isinstance(value, List):
-        return [_from_json(x) for x in value]
-    elif isinstance(value, Dict):
-        return from_json(value)
-    else:
-        return value
+        return data
