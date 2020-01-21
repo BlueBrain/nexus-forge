@@ -14,8 +14,6 @@
 
 from typing import Any, Dict, List, Union
 
-import hjson
-
 from kgforge.core.commons.attributes import check_collisions, repr_class
 
 
@@ -76,10 +74,8 @@ class PathsWrapper(FilterMixin):
         self.__dict__ = paths
 
 
-def wrap_paths(template: str) -> PathsWrapper:
-    # template: Hjson.
-    loaded = hjson.loads(template)
-    return _wrap(loaded, [])
+def wrap_paths(template: Dict) -> PathsWrapper:
+    return _wrap(template, [])
 
 
 def _wrap(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:

@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import hjson
 
@@ -58,10 +58,16 @@ class Model(ABC):
 
     # Templates.
 
-    def template(self, type: str, only_required: bool) -> str:
-        # Return Hjson.
+    def template(self, type: str, only_required: bool, output: str) -> Optional[Dict]:
         schema = self._template(type, only_required)
-        return hjson.dumps(schema, indent=4, item_sort_key=sort_attrs)
+        if output == "hjson":
+            print(hjson.dumps(schema, indent=4, item_sort_key=sort_attrs))
+        elif output == "json":
+            print(hjson.dumpsJSON(schema, indent=4, item_sort_key=sort_attrs))
+        elif output == "dict":
+            return schema
+        else:
+            raise ValueError("unrecognized output")
 
     @abstractmethod
     def _template(self, type: str, only_required: bool) -> Dict:

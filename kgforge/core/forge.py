@@ -184,9 +184,9 @@ class KnowledgeGraphForge:
     def types(self) -> List[str]:
         return self._model.types()
 
-    def template(self, type: str, only_required: bool = False) -> None:
-        template = self._model.template(type, only_required)
-        print(template)
+    def template(self, type: str, only_required: bool = False, output: str = "hjson"
+                 ) -> Optional[Dict]:
+        return self._model.template(type, only_required, output)
 
     def validate(self, data: Union[Resource, List[Resource]],
                  execute_actions_before: bool = False) -> None:
@@ -259,7 +259,7 @@ class KnowledgeGraphForge:
         return self._store.retrieve(id, version)
 
     def paths(self, type: str) -> PathsWrapper:
-        template = self._model.template(type, False)
+        template = self._model.template(type, False, "dict")
         return wrap_paths(template)
 
     def search(self, *filters, **params) -> List[Resource]:
@@ -324,8 +324,9 @@ class KnowledgeGraphForge:
         return as_dataframe(data, store_metadata, na, nesting)
 
     @staticmethod
-    def from_json(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
-        return from_json(data)
+    def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
+                  ) -> Union[Resource, List[Resource]]:
+        return from_json(data, na)
 
     @staticmethod
     def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
