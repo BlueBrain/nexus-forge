@@ -7,5 +7,5 @@
         gender: forge.resolve("male", scope="terms")
         name: x.name
     }
-    distribution: forge.attach("./scientists-database/file.ext")
+    distribution: forge.attach(f"../../data/scientists-database/{'_'.join(x.name.lower().split())}.txt")
 }

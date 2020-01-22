@@ -1,3 +1,3 @@
 type,name,distribution
-Person,Albert Einstein,./scientists-database/file.ext
-Person,Peter Higgs,./scientists-database/file.ext
+Person,Albert Einstein,../../data/scientists-database/albert_einstein.txt
+Person,Peter Higgs,../../data/scientists-database/peter_higgs.txt
