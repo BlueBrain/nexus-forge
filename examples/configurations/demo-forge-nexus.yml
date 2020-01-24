@@ -1,30 +1,33 @@
 Model:
   name: ShaclModel
+  origin: directory
   source: ../../../tests/data/shacl-model
 
 Store:
   name: BlueBrainNexus
   endpoint: https://staging.nexus.ocp.bbp.epfl.ch/v1
+  bucket: <organization>/<project>
+  token: <token>
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
   file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
-  token: <token>
-  bucket: <organization>/<project>
 
 Resolvers:
   terms:
     - resolver: DemoResolver
-      result_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
+      origin: directory
       source: ../../../tests/data/demo-resolver/
       targets:
         - identifier: sex
           bucket: sex.json
+      result_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
   entities:
     - resolver: DemoResolver
-      result_resource_mapping: ../../configurations/demo-resolver/entity-to-resource-mapping.hjson
+      origin: directory
       source: ../../../tests/data/demo-resolver/
       targets:
         - identifier: agents
           bucket: agents.json
+      result_resource_mapping: ../../configurations/demo-resolver/entity-to-resource-mapping.hjson
 
 Formatters:
   identifier: https://kg.example.ch/{}/{}

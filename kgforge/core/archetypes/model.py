@@ -13,7 +13,6 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -24,6 +23,7 @@ from kgforge.core.archetypes import Mapping
 from kgforge.core.commons.attributes import repr_class, sort_attrs
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.imports import import_class
 
 
 class Model(ABC):
@@ -116,19 +116,17 @@ class Model(ABC):
         # Model data could be loaded from a directory, an URL, or a Store.
         # Initialize the access to the model data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
-        stores = import_module("kgforge.specializations.stores")
-        if hasattr(stores, source):
-            return self._service_from_store(source, **source_config)
+        origin = source_config.pop("origin")
+        if origin == "directory":
+            dirpath = Path(source)
+            return self._service_from_directory(dirpath)
+        elif origin == "url":
+            return self._service_from_url(source)
+        elif origin == "store":
+            store = import_class(source, "stores")
+            return self._service_from_store(store, **source_config)
         else:
-            try:
-                dirpath = Path(source)
-            except TypeError:
-                return self._service_from_url(source)
-            else:
-                if dirpath.is_dir():
-                    return self._service_from_directory(dirpath)
-                else:
-                    raise ConfigurationError("source should be a valid directory path")
+            raise ConfigurationError(f"unrecognized Model origin '{origin}'")
 
     @staticmethod
     @abstractmethod
@@ -140,5 +138,5 @@ class Model(ABC):
         not_supported()
 
     @staticmethod
-    def _service_from_store(store_name: str, **store_config) -> Any:
+    def _service_from_store(store: Callable, **store_config) -> Any:
         not_supported()

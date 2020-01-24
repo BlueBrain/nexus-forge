@@ -25,7 +25,7 @@ scenarios("demo_model.feature")
 
 @given("A model instance.")
 def model():
-    return DemoModel("tests/data/demo-model/")
+    return DemoModel("tests/data/demo-model/", origin="directory")
 
 
 @given("A validated resource.", target_fixture="data")

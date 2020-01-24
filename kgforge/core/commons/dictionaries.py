@@ -15,6 +15,9 @@
 from typing import Dict, List
 
 
-def with_defaults(data: Dict, other: Dict, keys: List[str]) -> Dict:
-    defaults = {k: other[k] for k in keys if k in other}
-    return {**data, **defaults}
+def with_defaults(original: Dict, other: Dict, key: str, keys: List[str]) -> None:
+    """Update 'original' with 'other' 'keys' unless 'key' is different in both dictionaries."""
+    cond = original[key] == other[key]
+    for x in keys:
+        if cond or x not in original:
+            original[x] = other[x]

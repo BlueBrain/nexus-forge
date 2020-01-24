@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from importlib import import_module
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -29,6 +28,7 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
+from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
@@ -41,45 +41,53 @@ from kgforge.specializations.mappings import DictionaryMapping
 
 class KnowledgeGraphForge:
 
+    # POLICY Class name should be imported in the corresponding module __init__.py.
+
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
         # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
 
-        # Required minimal configuration: Model:name, Model:source, Store:name.
+        # Required minimal configuration: name for Model and Store, origin and source for Model.
         # Keyword arguments could be used to override the configuration provided for the Store.
         #
         # The configuration could be provided either as:
         #
         #   - A path to a YAML file with the following structure.
-        #     Class names should be imported in the corresponding module __init__.py.
+        #     Class name could be provided in three formats:
+        #       * 'SomeClass',
+        #       * 'SomeClass from package.module',
+        #       * 'SomeClass from package.module.file'.
+        #     When the class is from this package, the first is used. Otherwise, the two others.
         #     Values using braces with something inside should be quoted with double quotes.
         #     See demo-forge.yml in kgforge/examples/configurations/ for an example.
         #
         # Model:
-        #   name: <a class name in kgforge/specializations/models>
-        #   source: <a directory path, an URL, or a the class name of a Store>
-        #   bucket: <a Store bucket>
-        #   endpoint: <a Store endpoint, default to Store:endpoint>
-        #   token: <a Store token, default to Store:token>
+        #   name: <a class name of a Model>
+        #   origin: <'directory', 'url', or 'store'>
+        #   source: <a directory path, an URL, or the class name of a Store>
+        #   bucket: <when 'origin' is 'store', a Store bucket>
+        #   endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
+        #   token: <when 'origin' is 'store', a Store token, default to Store:token>
         #
         # Store:
-        #   name: <a class name in kgforge/specializations/stores>
+        #   name: <a class name of a Store>
         #   endpoint: <an URL>
         #   bucket: <a bucket as a string>
         #   token: <a token as a string>
-        #   versioned_id_template: <a string template using 'x' to access resource fields>,
+        #   versioned_id_template: <a string template using 'x' to access resource fields>
         #   file_resource_mapping: <an Hjson string, a file path, or an URL>
         #
         # Resolvers:
         #   <scope>:
-        #     - resolver: <a class name in kgforge/specializations/resolvers>
-        #       result_resource_mapping: <an Hjson string, a file path, or an URL>
-        #       source: <a directory path, an endpoint URL, or a the class name of a Store>
-        #       endpoint: <a Store endpoint, default to Store:endpoint>
-        #       token: <a Store token, default to Store:token>
+        #     - resolver: <a class name of a Resolver>
+        #       origin: <'directory', 'web_service', or 'store'>
+        #       source: <a directory path, a web service endpoint, or the class name of a Store>
         #       targets:
         #         - identifier: <a name, or an IRI>
         #           bucket: <a file name, an URL path, or a Store bucket>
+        #       result_resource_mapping: <an Hjson string, a file path, or an URL>
+        #       endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
+        #       token: <when 'origin' is 'store', a Store token, default to Store:token>
         #
         # Formatters:
         #   identifier: <a string template with replacement fields delimited by braces, i.e. '{}'>
@@ -89,6 +97,7 @@ class KnowledgeGraphForge:
         # {
         #     "Model": {
         #         "name": <str>,
+        #         "origin": <str>,
         #         "source": <str>,
         #         "bucket": <str>,
         #         "endpoint": <str>,
@@ -106,20 +115,21 @@ class KnowledgeGraphForge:
         #         "<scope>": [
         #             {
         #                 "resolver": <str>,
-        #                 "result_resource_mapping": <str>,
+        #                 "origin": <str>,
         #                 "source": <str>,
-        #                 "endpoint": <str>,
-        #                 "token": <str>,
         #                 "targets": [
         #                     {
         #                         "identifier": <str>,
         #                         "bucket": <str>,
         #                     },
         #                     ...,
-        #                 ]
-        #             }
+        #                 ],
+        #                 "result_resource_mapping": <str>,
+        #                 "endpoint": <str>,
+        #                 "token": <str>,
+        #             },
         #             ...,
-        #         ]
+        #         ],
         #     },
         #     "Formatters": {
         #         "<name>": <str>,
@@ -135,47 +145,31 @@ class KnowledgeGraphForge:
 
         # Store.
 
-        stores = import_module("kgforge.specializations.stores")
         store_config = config.pop("Store")
         store_config.update(kwargs)
         store_name = store_config.pop("name")
-        store = getattr(stores, store_name)
+        store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
 
         # Model.
 
-        models = import_module("kgforge.specializations.models")
         model_config = config.pop("Model")
+        if model_config["origin"] == "store":
+            with_defaults(model_config, store_config, "name", ["endpoint", "token"])
         model_name = model_config.pop("name")
-        model = getattr(models, model_name)
-        if hasattr(stores, model_config["source"]):
-            model_config = with_defaults(model_config, store_config, ["endpoint", "token"])
+        model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
 
         # Resolvers.
 
-        def prepare_resolver(resolver_config: Dict) -> Tuple[str, Resolver]:
-            resolver_name = resolver_config.pop("resolver")
-            resolver = getattr(resolvers, resolver_name)
-            if hasattr(stores, resolver_config["source"]):
-                resolver_config = with_defaults(resolver_config, store_config,
-                                                ["endpoint", "token"])
-            return resolver_name, resolver(**resolver_config)
-
-        self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = None
-
-        if "Resolvers" in config:
-            resolvers = import_module("kgforge.specializations.resolvers")
-            resolvers_config = config.pop("Resolvers")
-            self._resolvers = {scope: dict(prepare_resolver(x) for x in configs)
-                               for scope, configs in resolvers_config.items()}
+        resolvers_config = config.pop("Resolvers", None)
+        # Format: Optional[Dict[scope_name, Dict[resolver_name, Resolver]]].
+        self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = prepare_resolvers(
+            resolvers_config, store_config) if resolvers_config else None
 
         # Formatters.
 
-        self._formatters: Optional[Dict[str, str]] = None
-
-        if "Formatters" in config:
-            self._formatters = config.pop("Formatters")
+        self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
 
     # Modeling User Interface.
 
@@ -341,3 +335,16 @@ class KnowledgeGraphForge:
     def from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
                        ) -> Union[Resource, List[Resource]]:
         return from_dataframe(data, na, nesting)
+
+
+def prepare_resolvers(config: Dict, store_config: Dict) -> Dict[str, Dict[str, Resolver]]:
+    return {scope: dict(prepare_resolver(x, store_config) for x in configs)
+            for scope, configs in config.items()}
+
+
+def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
+    if config["origin"] == "store":
+        with_defaults(config, store_config, "name", ["endpoint", "token"])
+    resolver_name = config.pop("resolver")
+    resolver = import_class(resolver_name, "resolvers")
+    return resolver.__name__, resolver(**config)

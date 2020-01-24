@@ -93,7 +93,7 @@ BUILDING_MANDATORY = {
 
 @pytest.fixture(scope="session")
 def shacl_model():
-    return ShaclModel("tests/data/shacl-model/")
+    return ShaclModel("tests/data/shacl-model/", origin="directory")
 
 
 def test_get_types(shacl_model: ShaclModel):

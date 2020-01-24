@@ -34,7 +34,7 @@ def repr_class(self: object) -> str:
     ordered = sorted(self.__dict__.items(), key=sort_attrs)
     attributes = (f"{k}={v!r}" for k, v in ordered)
     attributes_str = ", ".join(attributes)
-    class_name = self.__class__.__name__
+    class_name = type(self).__name__
     return f"{class_name}({attributes_str})"
 
 
