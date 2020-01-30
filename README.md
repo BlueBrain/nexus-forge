@@ -1,26 +1,28 @@
-[Getting Started](#getting-started) |
 [Installation](#installation) |
-[Contributing](#contributing)
+[Getting Started](#getting-started) |
+[Contributing](#contributing) |
+[Acknowledgements](#acknowledgements)
 
 # Knowledge Graph Forge
 
-The *Knowledge Graph Forge* is a **framework building a bridge** between
-data engineers, knowledge engineers, and data)scientists in the context
-of knowledge graphs.
+A domain-agnostic, generic and extensible Python framework for **consistently**
+building and interacting with knowledge graphs in a data science context.
 
-This unified framework makes easier for:
-- **data engineers** to define, execute, share data transformations in a traceable way,
+This framework builds a **bridge** between data engineers, knowledge engineers,
+and data scientists in the context of knowledge graphs by making easier for:
+
+- **data engineers** to define, execute, and share data transformations in a traceable way,
 - **knowledge engineers** to define and share knowledge representations of heterogeneous data,
-- **data scientists** to query and register data during their analysis
-without having to worry about the semantic formats and technologies,
+- **data scientists** to query and register data during their analysis without
+having to worry about the semantic formats and technologies,
 
-while guarantying the consistency of operations with a knowledge graph schema
-like [Neuroshapes](https://github.com/INCF/neuroshapes).
+while guaranteeing the consistency of operations with a **knowledge graph
+schema** like [Neuroshapes](https://github.com/INCF/neuroshapes).
 
-The **architectural design choices**:
- 1) be generic on where it brings flexibility for adaptation to multiple ecosystems,
+The architectural design choices:
+ 1) be generic on where it brings **flexibility** for adaptation to multiple ecosystems,
  2) be opinionated on where it simplifies the complexity,
- 3) have strong separation of concern with delegation to the lowest level for modularity.
+ 3) have strong separation of concern with delegation to the lowest level for **modularity**.
 
 ## Installation
 
@@ -293,4 +295,7 @@ rm -R build dist *.egg-info
 
 ## Acknowledgements
 
-This framework was supported by the [Blue Brain Project](https://www.epfl.ch/research/domains/bluebrain/) funding, a research center of the Ecole polytechnique fédérale de Lausanne, from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology.
+This project has received funding from the EPFL Blue Brain Project (funded by
+the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology)
+and from the European Union’s Horizon 2020 Framework Programme for Research and
+Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SGA2).
