@@ -15,11 +15,9 @@
 from typing import Any, Dict, List, Union
 
 from kgforge.core import Resource
-from kgforge.core.commons.execution import catch
 from kgforge.core.conversions.jsonld import as_jsonld
 
 
-@catch
 def as_json(data: Union[Resource, List[Resource]], expanded: bool,
             store_metadata: bool) -> Union[Dict, List[Dict]]:
     # FIXME To be refactored after the '@' issue fix. DKE-94.
@@ -41,7 +39,6 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool,
         return data
 
 
-@catch
 def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]
               ) -> Union[Resource, List[Resource]]:
     nas = na if isinstance(na, List) else [na]

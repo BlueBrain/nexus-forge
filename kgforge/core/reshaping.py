@@ -16,7 +16,7 @@ from typing import Callable, Dict, Iterator, List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.execution import catch, dispatch
+from kgforge.core.commons.execution import dispatch
 from kgforge.core.conversions.json import as_json
 
 
@@ -30,7 +30,6 @@ class Reshaper:
     def __repr__(self) -> str:
         return repr_class(self)
 
-    @catch
     def reshape(self, data: Union[Resource, List[Resource]], keep: List[str],
                 versioned: bool) -> Union[Resource, List[Resource]]:
         # POLICY Resource _last_action and _store_metadata should be None.

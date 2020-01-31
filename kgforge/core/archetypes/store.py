@@ -21,7 +21,7 @@ from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, FreezingError,
                                              RegistrationError, TaggingError, UpdatingError,
                                              UploadingError)
-from kgforge.core.commons.execution import catch, not_supported, run
+from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.reshaping import collect_values
 
 
@@ -112,7 +112,6 @@ class Store(ABC):
 
     # C[R]UD.
 
-    @catch
     @abstractmethod
     def retrieve(self, id: str, version: Optional[Union[int, str]]) -> Resource:
         # POLICY Should notify of failures with exception RetrievalError including a message.
@@ -121,7 +120,6 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         pass
 
-    @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
         urls = collect_values(data, follow, DownloadingError)
@@ -203,7 +201,6 @@ class Store(ABC):
 
     # Querying.
 
-    @catch
     def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py.
         # Keyword arguments in 'params' could be:
@@ -216,7 +213,6 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         not_supported()
 
-    @catch
     def sparql(self, prefixes: Dict[str, str], query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().

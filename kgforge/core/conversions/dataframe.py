@@ -18,11 +18,9 @@ import numpy as np
 from pandas import DataFrame, Series
 
 from kgforge.core import Resource
-from kgforge.core.commons.execution import catch
 from kgforge.core.conversions.json import as_json, from_json
 
 
-@catch
 def as_dataframe(data: List[Resource], na: Union[Any, List[Any]], nesting: str, expanded: bool,
                  store_metadata: bool) -> DataFrame:
     dicts = as_json(data, expanded, store_metadata)
@@ -47,7 +45,6 @@ def _flatten(data: Dict, sep: str, path: List[str]) -> Iterator[Tuple[str, Any]]
             yield sep.join(p), v
 
 
-@catch
 def from_dataframe(data: DataFrame, na: Union[Any, List[Any]], nesting: str
                    ) -> Union[Resource, List[Resource]]:
     converted = [_from_dataframe(x, na, nesting) for _, x in data.iterrows()]

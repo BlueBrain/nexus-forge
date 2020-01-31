@@ -28,6 +28,7 @@ class Mapping(ABC):
 
     # See dictionaries.py in kgforge/specializations/mappings/ for a reference implementation.
 
+    # POLICY Exceptions should not be catched so that the KnowledgeGraphForge initialization fails.
     # POLICY Methods of archetypes, except __init__, should not have optional arguments.
 
     # POLICY Implementations should be declared in kgforge/specializations/mappings/__init__.py.

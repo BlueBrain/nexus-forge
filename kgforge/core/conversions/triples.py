@@ -15,19 +15,16 @@
 from typing import List, Tuple, Union
 
 from kgforge.core import Resource
-from kgforge.core.commons.execution import catch
 
 
 # FIXME To be refactored after the planned introduction of as_graph(), as_rdf() and as_triplets().
 #  DKE-131, DKE-142, DKE-132.
 
 
-@catch
 def as_triples(data: Union[Resource, List[Resource]],
                store_metadata: bool) -> List[Tuple[str, str, str]]:
     raise NotImplementedError("not implemented yet")
 
 
-@catch
 def from_triples(data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]:
     raise NotImplementedError("not implemented yet")

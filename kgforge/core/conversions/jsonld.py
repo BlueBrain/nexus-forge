@@ -18,14 +18,13 @@ from typing import Any, Dict, List, Tuple, Union
 import hjson
 
 from kgforge.core.commons.attributes import check_collisions, sort_attrs
-from kgforge.core.commons.execution import catch, dispatch
+from kgforge.core.commons.execution import dispatch
 from kgforge.core.resource import Resource, encode
 
 
 # FIXME To be re-implemented with a RDF native solution. DKE-130.
 
 
-@catch
 def as_jsonld(data: Union[Resource, List[Resource]], compacted: bool,
               store_metadata: bool) -> Union[Dict, List[Dict]]:
     if compacted is False:
@@ -33,7 +32,6 @@ def as_jsonld(data: Union[Resource, List[Resource]], compacted: bool,
     return dispatch(data, _as_jsonld_many, _as_jsonld_one, compacted, store_metadata)
 
 
-@catch
 def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
     raise NotImplementedError("not implemented yet")
 

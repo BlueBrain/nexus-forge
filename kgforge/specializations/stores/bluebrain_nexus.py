@@ -31,7 +31,7 @@ from kgforge.core.commons.actions import Action
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError,
                                              UploadingError)
-from kgforge.core.commons.execution import catch, not_supported, run
+from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.conversions.jsonld import as_jsonld, find_in_context
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.mappers import DictionaryMapper
@@ -153,7 +153,6 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
-    @catch
     def retrieve(self, id: str, version: Optional[Union[int, str]]) -> Resource:
         try:
             if isinstance(version, int):
