@@ -29,12 +29,11 @@ setup(
     author="BlueBrain DKE",
     author_email="bbp-ou-dke@groupes.epfl.ch",
     version=VERSION,
-    description="Framework building a bridge between data engineers,"
-                "knowledge engineers, and (data) scientists in the context of"
-                "knowledge graphs",
+    description="A domain-agnostic, generic and extensible Python framework for consistently"
+                "building and interacting with knowledge graphs in a data science context.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    keywords="data knowledge scientists graph",
+    keywords="framework knowledge graph data science",
     url="https://github.com/BlueBrain/kgforge",
     packages=find_packages(),
     python_requires=">=3.7",
