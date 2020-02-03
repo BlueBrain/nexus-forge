@@ -48,7 +48,7 @@ setup(
         "pyshacl"
     ],
     extras_require={
-        "dev": ["pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
+        "dev": ["tox", "pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
