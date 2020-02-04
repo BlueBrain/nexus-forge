@@ -19,7 +19,6 @@ from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.execution import catch
 
 
 # NB: Do not 'from kgforge.core import KnowledgeGraphForge' to avoid cyclic dependency.
@@ -47,7 +46,6 @@ class Mapper(ABC):
     def reader(self) -> Callable:
         pass
 
-    @catch
     def map(self, data: Any, mapping: Mapping) -> Union[Resource, List[Resource]]:
         # Data could be loaded from a directory, a file, a collection or an object.
         if isinstance(data, str):

@@ -22,7 +22,6 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver, Store
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
-from kgforge.core.commons.execution import catch
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
 
@@ -49,7 +48,6 @@ class DemoStore(Store):
 
     # C[R]UD.
 
-    @catch
     def retrieve(self, id: str, version: Optional[Union[int, str]]) -> Resource:
         try:
             record = self.service.read(id, version)
@@ -97,7 +95,6 @@ class DemoStore(Store):
 
     # Querying.
 
-    @catch
     def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")

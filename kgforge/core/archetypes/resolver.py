@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError
-from kgforge.core.commons.execution import catch, not_supported
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 
@@ -59,7 +59,6 @@ class Resolver(ABC):
         """Mapper class to map the result data to a Resource with result_resource_mapping."""
         pass
 
-    @catch
     def resolve(self, text: str, target: Optional[str], type: Optional[str],
                 strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]:
         # The resolving strategy cannot be abstracted as it should be managed by the service.

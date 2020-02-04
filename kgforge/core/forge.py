@@ -43,6 +43,7 @@ class KnowledgeGraphForge:
 
     # POLICY Class name should be imported in the corresponding module __init__.py.
 
+    # No catching of exceptions so that no KnowledgeGraphForge instance is created.
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
         # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
@@ -173,16 +174,20 @@ class KnowledgeGraphForge:
 
     # Modeling User Interface.
 
+    @catch
     def prefixes(self) -> Dict[str, str]:
         return self._model.prefixes()
 
+    @catch
     def types(self) -> List[str]:
         return self._model.types()
 
+    @catch
     def template(self, type: str, only_required: bool = False, output: str = "hjson"
                  ) -> Optional[Dict]:
         return self._model.template(type, only_required, output)
 
+    # No @catch because the error handling is done by execution.run().
     def validate(self, data: Union[Resource, List[Resource]],
                  execute_actions_before: bool = False) -> None:
         self._model.validate(data, execute_actions_before)
@@ -223,20 +228,24 @@ class KnowledgeGraphForge:
 
     # Formatting User Interface.
 
+    @catch
     def format(self, what: str, *args) -> str:
         return self._formatters[what].format(*args)
 
     # Mapping User Interface.
 
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
+    @catch
     def mappings(self, source: str) -> Dict[str, List[str]]:
         return self._model.mappings(source)
 
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
+    @catch
     def mapping(self, type: str, source: str,
                 mapping_type: Callable = DictionaryMapping) -> Mapping:
         return self._model.mapping(type, source, mapping_type)
 
+    @catch
     def map(self, data: Any, mapper: Callable,
             mapping: Mapping) -> Union[Resource, List[Resource]]:
         # There is no need to cache mappers as for collections map() is directly called on them.
@@ -244,52 +253,64 @@ class KnowledgeGraphForge:
 
     # Reshaping User Interface.
 
+    @catch
     def reshape(self, data: Union[Resource, List[Resource]], keep: List[str],
                 versioned: bool = False) -> Union[Resource, List[Resource]]:
         return Reshaper(self._store.versioned_id_template).reshape(data, keep, versioned)
 
     # Querying User Interface.
 
+    @catch
     def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
         return self._store.retrieve(id, version)
 
+    @catch
     def paths(self, type: str) -> PathsWrapper:
         template = self._model.template(type, False, "dict")
         return wrap_paths(template)
 
+    @catch
     def search(self, *filters, **params) -> List[Resource]:
         resolvers = list(self._resolvers.values()) if self._resolvers is not None else None
         return self._store.search(resolvers, *filters, **params)
 
+    @catch
     def sparql(self, query: str) -> List[Resource]:
         prefixes = self._model.prefixes()
         return self._store.sparql(prefixes, query)
 
+    @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
         self._store.download(data, follow, path)
 
     # Storing User Interface.
 
+    # No @catch because the error handling is done by execution.run().
     def register(self, data: Union[Resource, List[Resource]]) -> None:
         self._store.register(data)
 
+    # No @catch because the error handling is done by execution.run().
     def update(self, data: Union[Resource, List[Resource]]) -> None:
         self._store.update(data)
 
+    # No @catch because the error handling is done by execution.run().
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
         self._store.deprecate(data)
 
     # Versioning User Interface.
 
+    # No @catch because the error handling is done by execution.run().
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         self._store.tag(data, value)
 
+    # No @catch because the error handling is done by execution.run().
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
         self._store.freeze(data)
 
     # Files Handling User Interface.
 
+    @catch
     def attach(self, path: str) -> LazyAction:
         # path: Union[FilePath, DirPath].
         return LazyAction(self._store.upload, path)
@@ -297,11 +318,13 @@ class KnowledgeGraphForge:
     # Converting User Interface.
 
     @staticmethod
+    @catch
     def as_json(data: Union[Resource, List[Resource]], expanded: bool = False,
                 store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         return as_json(data, expanded, store_metadata)
 
     @staticmethod
+    @catch
     def as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True,
                   store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         return as_jsonld(data, compacted, store_metadata)
@@ -309,29 +332,35 @@ class KnowledgeGraphForge:
     # FIXME To be refactored after the introduction of as_graph(), as_rdf() and as_triplets().
     #  DKE-131, DKE-142, DKE-132.
     @staticmethod
+    @catch
     def as_triples(data: Union[Resource, List[Resource]],
                    store_metadata: bool = False) -> List[Tuple[str, str, str]]:
         return as_triples(data, store_metadata)
 
     @staticmethod
+    @catch
     def as_dataframe(data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",
                      expanded: bool = False, store_metadata: bool = False) -> DataFrame:
         return as_dataframe(data, na, nesting, expanded, store_metadata)
 
     @staticmethod
+    @catch
     def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
                   ) -> Union[Resource, List[Resource]]:
         return from_json(data, na)
 
     @staticmethod
+    @catch
     def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
         return from_jsonld(data)
 
     @staticmethod
+    @catch
     def from_triples(data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]:
         return from_triples(data)
 
     @staticmethod
+    @catch
     def from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
                        ) -> Union[Resource, List[Resource]]:
         return from_dataframe(data, na, nesting)
