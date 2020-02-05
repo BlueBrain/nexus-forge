@@ -50,18 +50,17 @@ class Mapper(ABC):
         # Data could be loaded from a directory, a file, a collection or an object.
         if isinstance(data, str):
             path = Path(data)
-            reader = self.reader()
             if path.is_dir():
                 # Could be optimized by overriding the method in the specialization.
                 records = []
                 for x in path.iterdir():
                     with x.open() as f:
-                        record = reader(f)
+                        record = self.reader(f)
                         records.append(record)
                 return self._map_many(records, mapping)
             else:
                 with path.open() as f:
-                    record = reader(f)
+                    record = self.reader(f)
                     return self._map_one(record, mapping)
         elif isinstance(data, (Sequence, Iterator)):
             # NB: Do not use 'Iterable' for checking type because a Dict is an Iterable.
