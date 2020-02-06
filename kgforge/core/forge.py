@@ -43,7 +43,8 @@ class KnowledgeGraphForge:
 
     # POLICY Class name should be imported in the corresponding module __init__.py.
 
-    # No catching of exceptions so that no KnowledgeGraphForge instance is created.
+    # No catching of exceptions so that no incomplete instance is created if an error occurs.
+    # This is a best practice in Python for __init__().
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
 
         # FIXME To be refactored while applying the mapping API refactoring. DKE-104.

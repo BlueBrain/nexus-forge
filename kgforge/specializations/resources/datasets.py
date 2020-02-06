@@ -16,7 +16,11 @@ from typing import List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.execution import catch
 from kgforge.core.forge import KnowledgeGraphForge
+
+
+# POLICY _set() should be only called as the last statement to ensure atomicity in case of errors.
 
 
 class Dataset(Resource):
@@ -26,57 +30,67 @@ class Dataset(Resource):
                  "add_derivation", "add_invalidation", "add_files",
                  "download"} | Resource._RESERVED
 
+    # No catching of exceptions so that no incomplete instance is created if an error occurs.
+    # This is a best practice in Python for __init__().
     def __init__(self, forge: KnowledgeGraphForge, type: str = "Dataset", **properties) -> None:
         super().__init__(**properties)
         self._forge: KnowledgeGraphForge = forge
         self.type: str = type
 
+    @catch
     def add_parts(self, resources: List[Resource], versioned: bool = True) -> None:
         """Make resources part of the dataset."""
         keep = ["id", "type", "name", "distribution.contentUrl"]
-        reshaped = self._forge.reshape(resources, keep, versioned)
-        _set(self, "hasPart", reshaped)
+        parts = self._forge.reshape(resources, keep, versioned)
+        _set(self, "hasPart", parts)
 
+    @catch
     def add_distribution(self, path: str) -> None:
         # path: FilePath.
         """Add a downloadable form of the dataset."""
         action = self._forge.attach(path)
         _set(self, "distribution", action)
 
-    def add_contribution(self, agent: str, **kwargs) -> None:
+    @catch
+    def add_contribution(self, agent_id: str, **kwargs) -> None:
         # agent: IRI.
         """Add information on the contribution of an agent during the generation of the dataset."""
-        agent = Resource(type="Agent", id=agent)
-        resource = Resource(type="Contribution", agent=agent, **kwargs)
-        _set(self, "contribution", resource)
+        agent = Resource(type="Agent", id=agent_id)
+        contribution = Resource(type="Contribution", agent=agent, **kwargs)
+        _set(self, "contribution", contribution)
 
+    @catch
     def add_generation(self, **kwargs) -> None:
         """Add information on the activity which has resulted in the generation of the dataset."""
         if not kwargs:
             raise TypeError("at least one argument should be given")
-        resource = Resource(type="Generation", **kwargs)
-        _set(self, "generation", resource)
+        generation = Resource(type="Generation", **kwargs)
+        _set(self, "generation", generation)
 
+    @catch
     def add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None:
         """Add information on the derivation of an entity resulting in the dataset."""
         keep = ["id", "type", "name"]
         entity = self._forge.reshape(resource, keep, versioned)
-        qualified = Resource(type="Derivation", entity=entity, **kwargs)
-        _set(self, "derivation", qualified)
+        derivation = Resource(type="Derivation", entity=entity, **kwargs)
+        _set(self, "derivation", derivation)
 
+    @catch
     def add_invalidation(self, **kwargs) -> None:
         """Add information on the invalidation of the dataset."""
         if not kwargs:
             raise TypeError("at least one argument should be given")
-        resource = Resource(type="Invalidation", **kwargs)
-        _set(self, "invalidation", resource)
+        invalidation = Resource(type="Invalidation", **kwargs)
+        _set(self, "invalidation", invalidation)
 
+    @catch
     def add_files(self, path: str) -> None:
         # path: DirPath.
         """Add (different) files as parts of the dataset."""
         action = self._forge.attach(path)
         _set(self, "hasPart", action)
 
+    @catch
     def download(self, source: str, path: str) -> None:
         # path: DirPath.
         """Download the distributions of the dataset or the files part of the dataset."""
