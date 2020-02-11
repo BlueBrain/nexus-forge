@@ -13,11 +13,13 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 import json
-from typing import Any, Callable, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.core.archetypes import Mapper, Mapping
-from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.core.conversions.json import from_json
+from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 
 
 class DictionaryMapper(Mapper):
@@ -25,35 +27,33 @@ class DictionaryMapper(Mapper):
     def __init__(self, forge: Optional[KnowledgeGraphForge] = None) -> None:
         super().__init__(forge)
 
-    @property
-    def reader(self) -> Callable:
-        return json.load
-
-    def _map_one(self, record: Dict, mapping: Mapping) -> Resource:
+    def _map_one(self, data: Union[Path, Dict], mappings: List[Mapping], nas: List[Any]
+                 ) -> List[Resource]:
         variables = {
             "forge": self.forge,
-            "x": wrap_dict(record),
+            "x": self._load_one(data),
         }
-        return _map_dict(mapping.rules, variables)
+        mapped = (_apply_rules(x.rules, variables) for x in mappings)
+        return [from_json(x, nas) for x in mapped]
+
+    @staticmethod
+    def _load_one(data: Union[Path, Dict]) -> DictWrapper:
+        if isinstance(data, Path):
+            with data.open() as f:
+                record = json.load(f)
+                return wrap_dict(record)
+        else:
+            return wrap_dict(data)
 
 
-def _map_dict(rules: Dict, variables: Dict) -> Resource:
-    properties = {k: _map_value(v, variables) for k, v in rules.items()}
-    return Resource(**properties)
-
-
-def _map_value(value: Any, variables: Dict) -> Any:
-    if isinstance(value, List):
-        return [_map_dict(x, variables) for x in value]
-    elif isinstance(value, Dict):
-        return _map_dict(value, variables)
+def _apply_rules(value: Any, variables: Dict) -> Union[Dict, List[Dict]]:
+    if isinstance(value, Dict):
+        return {k: _apply_rules(v, variables) for k, v in value.items()}
+    elif isinstance(value, List):
+        return [_apply_rules(x, variables) for x in value]
     else:
-        return _apply_rule(value, variables)
-
-
-def _apply_rule(rule: Any, variables: Dict) -> Any:
-    # TODO Add support for the full syntax of JSONPath. DKE-147.
-    try:
-        return eval(rule, {}, variables)
-    except (TypeError, NameError, SyntaxError):
-        return rule
+        # TODO Add support for the full syntax of JSONPath. DKE-147.
+        try:
+            return eval(value, {}, variables)
+        except (TypeError, NameError, SyntaxError):
+            return value

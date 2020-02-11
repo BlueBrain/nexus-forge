@@ -88,7 +88,7 @@ class Store(ABC):
         # path: Union[FilePath, DirPath].
         if self.file_mapping is not None:
             uploaded = self._upload(path)
-            return self.mapper().map(uploaded, self.file_mapping)
+            return self.mapper().map(uploaded, self.file_mapping, None)
         else:
             raise UploadingError("no file_resource_mapping has been configured")
 

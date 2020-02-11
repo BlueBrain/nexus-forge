@@ -247,10 +247,9 @@ class KnowledgeGraphForge:
         return self._model.mapping(type, source, mapping_type)
 
     @catch
-    def map(self, data: Any, mapper: Callable,
-            mapping: Mapping) -> Union[Resource, List[Resource]]:
-        # There is no need to cache mappers as for collections map() is directly called on them.
-        return mapper(self).map(data, mapping)
+    def map(self, data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable,
+            na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]:
+        return mapper(self).map(data, mapping, na)
 
     # Reshaping User Interface.
 

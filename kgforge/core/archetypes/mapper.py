@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Sequence, Union
+from typing import Any, Iterable, Iterator, List, Optional, Sequence, Union
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
@@ -41,39 +41,48 @@ class Mapper(ABC):
     def __repr__(self) -> str:
         return repr_class(self)
 
-    @property
-    @abstractmethod
-    def reader(self) -> Callable:
-        pass
-
-    def map(self, data: Any, mapping: Mapping) -> Union[Resource, List[Resource]]:
-        # Data could be loaded from a directory, a file, a collection or an object.
+    def map(self, data: Any, mapping: Union[Mapping, List[Mapping]], na: Union[Any, List[Any]]
+            ) -> Union[Resource, List[Resource]]:
+        # Data could be loaded from a directory, a file, a collection, or an object.
+        mappings = mapping if isinstance(mapping, List) else [mapping]
+        nas = na if isinstance(na, List) else [na]
         if isinstance(data, str):
             path = Path(data)
             if path.is_dir():
-                # Could be optimized by overriding the method in the specialization.
-                records = []
-                for x in path.iterdir():
-                    with x.open() as f:
-                        record = self.reader(f)
-                        records.append(record)
-                return self._map_many(records, mapping)
+                paths = path.iterdir()
+                mapped = self._map_many(paths, mappings, nas)
             else:
-                with path.open() as f:
-                    record = self.reader(f)
-                    return self._map_one(record, mapping)
+                mapped = self._map_one(path, mappings, nas)
         elif isinstance(data, (Sequence, Iterator)):
             # NB: Do not use 'Iterable' for checking type because a Dict is an Iterable.
-            return self._map_many(data, mapping)
+            mapped = self._map_many(data, mappings, nas)
         else:
-            return self._map_one(data, mapping)
+            mapped = self._map_one(data, mappings, nas)
+        return mapped[0] if len(mapped) == 1 else mapped
 
-    def _map_many(self, records: Iterable, mapping: Mapping) -> List[Resource]:
-        # Could be optimized by overriding the method in the specialization.
-        return [self._map_one(x, mapping) for x in records]
+    def _map_many(self, data: Iterable[Union[Path, Any]], mappings: List[Mapping], nas: List[Any]
+                  ) -> List[Resource]:
+        # Bulk mapping could be optimized by overriding this method in the specialization.
+        # POLICY Should follow self._map_one() policies.
+        # POLICY Should not separate records loading for proper parallel / distributed processing.
+        return [y for x in data for y in self._map_one(x, mappings, nas)]
 
     @abstractmethod
-    def _map_one(self, record: Any, mapping: Mapping) -> Resource:
-        # POLICY Should give the rules access to the forge as 'forge' and the record as 'x'.
-        # TODO Some operations might be abstracted here when other mappers will be implemented.
+    def _map_one(self, data: Union[Path, Any], mappings: List[Mapping], nas: List[Any]
+                 ) -> List[Resource]:
+        # Method to change to handle a new type of mapping to apply.
+        # POLICY Should load the record only one time with self._load_one().
+        # POLICY Should not include as Resource properties elements with values in 'na'.
+        # POLICY Could make the KnowledgeGraphForge instance available as 'forge'.
+        # POLICY Could make the record instance available as 'x'.
+        pass
+
+    # No _load_many() for proper parallel / distributed processing directly in self._map_many().
+
+    @staticmethod
+    @abstractmethod
+    def _load_one(data: Union[Path, Any]) -> Any:
+        # Method to change to handle a new type of data to map.
+        # POLICY Should prepare the record according to how the rules are using it.
+        # The loading cannot be abstracted as it depends on the reader and the rules.
         pass

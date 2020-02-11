@@ -80,7 +80,7 @@ class Model(ABC):
 
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mappings(self, data_source: str) -> Dict[str, List[str]]:
-        # The discovery strategy cannot be abstracted as it depends of the Model data organization.
+        # The discovery strategy cannot be abstracted as it depends on the Model data organization.
         # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
         # POLICY Keys should be managed types with mappings for the given data source.
         # POLICY Values should be available mapping types for the resource type.
@@ -89,7 +89,7 @@ class Model(ABC):
     # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
         # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
-        # The selection strategy cannot be abstracted as it depends of the Model data organization.
+        # The selection strategy cannot be abstracted as it depends on the Model data organization.
         not_supported()
 
     # Validation.

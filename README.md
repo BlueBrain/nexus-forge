@@ -98,7 +98,7 @@ Mapping
 ```bash
 mappings(source: str) -> Dict[str, List[str]]
 mapping(type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
-map(data: Any, mapper: Callable, mapping: Mapping) -> Union[Resource, List[Resource]]
+map(data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable, na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
 ```
 
 Reshaping
@@ -159,7 +159,7 @@ Mapper
 
 ```bash
 Mapper(forge: Optional["KnowledgeGraphForge"] = None)
-  map(data: Any, mapping: Mapping) -> Union[Resource, List[Resource]]
+  map(data: Any, mapping: Union[Mapping, List[Mapping]], na: Union[Any, List[Any]]) -> Union[Resource, List[Resource]]
 ```
 
 Mapping

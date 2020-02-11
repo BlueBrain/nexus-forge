@@ -66,7 +66,7 @@ class Resolver(ABC):
         if resolved is not None:
             if len(resolved) == 1:
                 resolved = resolved[0]
-            return self.mapper().map(resolved, self.result_mapping)
+            return self.mapper().map(resolved, self.result_mapping, None)
         else:
             return None
 
