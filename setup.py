@@ -16,8 +16,6 @@ import os
 
 from setuptools import find_packages, setup
 
-VERSION = "0.2.0.dev"
-
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the README file.
@@ -28,7 +26,10 @@ setup(
     name="kgforge",
     author="BlueBrain DKE",
     author_email="bbp-ou-dke@groupes.epfl.ch",
-    version=VERSION,
+    use_scm_version={
+        "write_to": "kgforge/version.py",
+        "write_to_template": "__version__ = '{version}'\n",
+    },
     description="A domain-agnostic, generic and extensible Python framework for consistently"
                 "building and interacting with knowledge graphs in a data science context.",
     long_description=long_description,
@@ -37,6 +38,9 @@ setup(
     url="https://github.com/BlueBrain/kgforge",
     packages=find_packages(),
     python_requires=">=3.7",
+    setup_requires=[
+        "setuptools_scm",
+    ],
     install_requires=[
         "hjson",
         "pyyaml",
