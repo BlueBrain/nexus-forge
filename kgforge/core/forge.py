@@ -92,7 +92,7 @@ class KnowledgeGraphForge:
         #       token: <when 'origin' is 'store', a Store token, default to Store:token>
         #
         # Formatters:
-        #   identifier: <a string template with replacement fields delimited by braces, i.e. '{}'>
+        #   <identifier>: <a string template with replacement fields delimited by braces, i.e. '{}'>
         #
         #   - A Python dictionary with the following structure.
         #
