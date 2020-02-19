@@ -70,6 +70,11 @@ class KnowledgeGraphForge:
         #   bucket: <when 'origin' is 'store', a Store bucket>
         #   endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
         #   token: <when 'origin' is 'store', a Store token, default to Store:token>
+        #   context:
+        #     iri: <an IRI>
+        #     bucket: <when 'origin' is 'store', a Store bucket, default to Model:bucket>
+        #     endpoint: <when 'origin' is 'store', a Store endpoint, default to Model:endpoint>
+        #     token: <when 'origin' is 'store', a Store token, default to Model:token>
         #
         # Store:
         #   name: <a class name of a Store>
