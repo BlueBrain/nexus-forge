@@ -43,6 +43,7 @@ class Store(ABC):
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None) -> None:
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
+        # POLICY There could be data caching but it should be aware of changes made in the source.
         self.endpoint: Optional[str] = endpoint
         self.bucket: Optional[str] = bucket
         self.token: Optional[str] = token
