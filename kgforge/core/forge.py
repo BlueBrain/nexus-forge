@@ -150,6 +150,10 @@ class KnowledgeGraphForge:
         else:
             config = deepcopy(configuration)
 
+        # Debugging.
+
+        self._debug = kwargs.pop("debug", False)
+
         # Store.
 
         store_config = config.pop("Store")
@@ -226,7 +230,7 @@ class KnowledgeGraphForge:
                     if len(self._resolvers) == 1 and len(scopes_resolvers[0]) == 1:
                         rov = list(scopes_resolvers[0].values())[0]
                     else:
-                        raise ResolvingError("resolving scope or resolver name should be"
+                        raise ResolvingError("resolving scope or resolver name should be "
                                              "specified")
             return rov.resolve(text, target, type, strategy)
         else:
@@ -322,52 +326,45 @@ class KnowledgeGraphForge:
 
     # Converting User Interface.
 
-    @staticmethod
     @catch
-    def as_json(data: Union[Resource, List[Resource]], expanded: bool = False,
+    def as_json(self, data: Union[Resource, List[Resource]], expanded: bool = False,
                 store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         return as_json(data, expanded, store_metadata)
 
-    @staticmethod
     @catch
-    def as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True,
+    def as_jsonld(self, data: Union[Resource, List[Resource]], compacted: bool = True,
                   store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         return as_jsonld(data, compacted, store_metadata)
 
     # FIXME To be refactored after the introduction of as_graph(), as_rdf() and as_triplets().
     #  DKE-131, DKE-142, DKE-132.
-    @staticmethod
     @catch
-    def as_triples(data: Union[Resource, List[Resource]],
-                   store_metadata: bool = False) -> List[Tuple[str, str, str]]:
+    def as_triples(self, data: Union[Resource, List[Resource]], store_metadata: bool = False
+                   ) -> List[Tuple[str, str, str]]:
         return as_triples(data, store_metadata)
 
-    @staticmethod
     @catch
-    def as_dataframe(data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",
-                     expanded: bool = False, store_metadata: bool = False) -> DataFrame:
+    def as_dataframe(self, data: List[Resource], na: Union[Any, List[Any]] = [None],
+                     nesting: str = ".", expanded: bool = False, store_metadata: bool = False
+                     ) -> DataFrame:
         return as_dataframe(data, na, nesting, expanded, store_metadata)
 
-    @staticmethod
     @catch
-    def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
+    def from_json(self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
                   ) -> Union[Resource, List[Resource]]:
         return from_json(data, na)
 
-    @staticmethod
     @catch
-    def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
+    def from_jsonld(self, data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
         return from_jsonld(data)
 
-    @staticmethod
     @catch
-    def from_triples(data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]:
+    def from_triples(self, data: List[Tuple[str, str, str]]) -> Union[Resource, List[Resource]]:
         return from_triples(data)
 
-    @staticmethod
     @catch
-    def from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
-                       ) -> Union[Resource, List[Resource]]:
+    def from_dataframe(self, data: DataFrame, na: Union[Any, List[Any]] = np.nan,
+                       nesting: str = ".") -> Union[Resource, List[Resource]]:
         return from_dataframe(data, na, nesting)
 
 
