@@ -22,7 +22,7 @@ from pyshacl.constraints.core.value_constraints import SH_class, SH_nodeKind, SH
 from pyshacl.consts import SH_property, SH_node, SH_IRI
 from pyshacl.shape import Shape
 from rdflib import RDF
-from rdflib.term import URIRef
+from rdflib.term import URIRef, BNode
 
 from kgforge.specializations.models.shacl.node_properties import NodeProperties
 
@@ -239,11 +239,12 @@ class PropertyCollector(Collector):
                 predecessors.add(ps.node)
                 props, attrs = ps.traverse(predecessors)
                 if ps.path() is not None:
-                    attrs["path"] = ps.path()
-                    if props:
-                        attrs["properties"] = props
-                    p = NodeProperties(**attrs)
-                    properties.append(p)
+                    if not isinstance(ps.path(), BNode):
+                        attrs["path"] = ps.path()
+                        if props:
+                            attrs["properties"] = props
+                        p = NodeProperties(**attrs)
+                        properties.append(p)
         return properties, None
 
 
@@ -271,7 +272,8 @@ class AndCollector(Collector):
                     p, a = and_shape.traverse(predecessors)
                     if a is not None:
                         if and_shape.path() is not None:
-                            a["path"] = and_shape.path()
+                            if not isinstance(and_shape.path(), BNode):
+                                a["path"] = and_shape.path()
                         if len(p) > 0:
                             a["properties"] = p
                         node = NodeProperties(**a)
@@ -310,7 +312,8 @@ class OrCollector(Collector):
                     p, a = or_shape.traverse(predecessors)
                     if a is not None:
                         if or_shape.path() is not None:
-                            a["path"] = or_shape.path()
+                            if not isinstance(or_shape.path(), BNode):
+                                a["path"] = or_shape.path()
                             node = NodeProperties(**a)
                             properties.append(node)
                             if len(p) > 0:
@@ -352,11 +355,12 @@ class XoneCollector(Collector):
                     p, a = xone_shape.traverse(predecessors)
                     if a is not None:
                         if xone_shape.path() is not None:
-                            a["path"] = xone_shape.path()
-                            node = NodeProperties(**a)
-                            properties.append(node)
-                            if len(p) > 0:
-                                a["properties"] = p
+                            if not isinstance(xone_shape.path(), BNode):
+                                a["path"] = xone_shape.path()
+                                node = NodeProperties(**a)
+                                properties.append(node)
+                                if len(p) > 0:
+                                    a["properties"] = p
                         else:
                             merge_dicts(attributes, a)
                     elif p is not None:
