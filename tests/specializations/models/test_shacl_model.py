@@ -90,6 +90,14 @@ BUILDING_MANDATORY = {
     "name": ""
 }
 
+TYPES_SCHEMAS_MAP = {
+    "Activity": "http://www.example.com/ActivityShape",
+    "Address": "http://schema.org/Address",
+    "Building": "http://www.example.com/BuildingShape",
+    "Employee": "http://www.example.com/EmployeeShape",
+    "Person": "http://www.example.com/PersonShape"
+}
+
 
 @pytest.fixture(scope="session")
 def shacl_model():
@@ -98,13 +106,12 @@ def shacl_model():
 
 def test_get_types(shacl_model: ShaclModel):
     types = shacl_model.types()
-    all_types = ("Person", "Address", "Employee", "Activity", "Building")
-    assert set(types) == set(all_types)
-    assert shacl_model.service.types_shapes_map["Activity"] == URIRef("http://www.example.com/ActivityShape")
-    assert shacl_model.service.types_shapes_map["Building"] == URIRef("http://www.example.com/BuildingShape")
-    assert shacl_model.service.types_shapes_map["Person"] == URIRef("http://www.example.com/PersonShape")
-    assert shacl_model.service.types_shapes_map["Address"] == URIRef("http://schema.org/Address")
-    assert shacl_model.service.types_shapes_map["Employee"] == URIRef("http://www.example.com/EmployeeShape")
+    assert types == list(TYPES_SCHEMAS_MAP.keys())
+
+
+@pytest.mark.parametrize("type_,", TYPES_SCHEMAS_MAP.keys())
+def test_schema_id(shacl_model: ShaclModel, type_):
+    assert shacl_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]
 
 
 def test_request_invalid_type(shacl_model: ShaclModel):
