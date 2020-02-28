@@ -247,7 +247,7 @@ class Store(ABC):
         for _, v in resource.__dict__.items():
             if isinstance(v, List):
                 for x in v:
-                    if isinstance(v, Resource):
+                    if isinstance(x, Resource):
                         self._freeze_one(x)
             elif isinstance(v, Resource):
                 self._freeze_one(v)

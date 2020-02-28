@@ -15,12 +15,14 @@
 import os
 
 import pytest
+from typing import Callable, Union, List
 
-from kgforge.core.commons.exceptions import DownloadingError
-from kgforge.core.reshaping import collect_values
+from unittest import mock
+
+from kgforge.core.archetypes import Store
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
-from tests.conftest import do
+from kgforge.specializations.stores.nexus.service import to_resource
 from tests.data import *
 
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
@@ -30,33 +32,34 @@ BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org/"
 TOKEN = "token"
 
+VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
+FILE_RESOURCE_MAPPING = os.sep.join((os.path.curdir, "tests", "data", "nexus-store",
+                                     "file-to-resource-mapping.hjson"))
+
+NEXUS_PROJECT_CONTEXT = {"base": "http://data.net/", "vocab": "http://vocab.net/"}
+
 
 @pytest.fixture
-def nexus_store():
+@mock.patch('nexussdk.projects.fetch', return_value=NEXUS_PROJECT_CONTEXT)
+def nexus_store(nexus_patch):
     # FIXME mock Nexus for unittests
-    file_to_resource_mapping = os.sep.join(
-        (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson"))
     return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token=TOKEN,
-                          file_resource_mapping=file_to_resource_mapping)
-
-
-@pytest.fixture
-def nexus_store_unauthorized():
-    return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token="invalid token")
+                          file_resource_mapping=FILE_RESOURCE_MAPPING,
+                          versioned_id_template=VERSIONED_TEMPLATE)
 
 
 @pytest.fixture
 def nested_resource():
-    contributions = Resources([Resource(title=f"contribution {i}") for i in range(3)])
+    contributions = [Resource(title=f"contribution {i}") for i in range(3)]
     return Resource(type="Agent", name="someone", contributions=contributions)
 
 
 @pytest.fixture
 def nested_registered_resource(nested_resource):
-    ingredients = Resources([Resource(id=i, type='Ingredient') for i in range(3)])
+    ingredients = [Resource(id=i, type='Ingredient') for i in range(3)]
     resource = Resource(id="a_recipe", type="Recipe", ingridients=ingredients,
                         author=Resource(id="a_person", type="Person"))
-    add_meta_recursive(resource)
+    do_recursive(add_metadata, resource)
     return resource
 
 
@@ -71,23 +74,17 @@ def test_config(nexus_store):
     assert nexus_store.endpoint == NEXUS
 
 
-# FIXME Migrate to v0.2.0.
-# def test_freeze_fail(nexus_store, nested_resource):
-#     with pytest.raises(FreezingError):
-#         nested_resource.id = "abc"
-#         nexus_store.freeze(nested_resource)
+def test_freeze_fail(nexus_store: Store, nested_resource):
+    """nested resource is not registered, thus freeze will fail"""
+    nexus_store.versioned_id_template = "{x.id}?rev={x._store_metadata._rev}"
+    nested_resource.id = "abc"
+    add_metadata(nested_resource)
 
 
-# FIXME Migrate to v0.2.0.
-# def test_freeze_nested(nexus_store, nested_registered_resource):
-#     nexus_store.freeze(nested_registered_resource)
-#     check_frozen_id(nested_registered_resource)
-#     for k, v in nested_registered_resource.__dict__.items():
-#         if isinstance(v, list):
-#             for r in v:
-#                 do(check_frozen_id, r, False)
-#         else:
-#             do(check_frozen_id, v, False)
+def test_freeze_nested(nexus_store: Store, nested_registered_resource):
+    nexus_store.versioned_id_template = "{x.id}?rev={x._store_metadata._rev}"
+    nexus_store.freeze(nested_registered_resource)
+    do_recursive(check_frozen_id, nested_registered_resource)
 
 
 @pytest.mark.parametrize("data, expected", [
@@ -96,41 +93,9 @@ def test_config(nexus_store):
     pytest.param(JSON_LD_3, RESOURCE_3, id="local-context-list-1"),
     pytest.param(JSON_LD_5, RESOURCE_5, id="context-and-meta")
 ])
-def test_response_to_resource(nexus_store, data, expected):
-    resource = nexus_store._to_resource(data)
+def test_to_resource(data, expected):
+    resource = to_resource(data)
     assert_equal(expected, resource), "resource is not as the expected"
-
-
-def test_extract_properties(nexus_store):
-    simple = Resource(type="Experiment", url="file.gz")
-    r = collect_values(simple, "url")
-    assert simple.url in r, "url should be in the list"
-    deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
-    r = collect_values(deep, "level1.level2.url")
-    assert deep.level1.level2.url in r, "url should be in the list"
-    files = [Resource(type="Experiment", url=f"file{i}") for i in range(3)]
-    r = collect_values(files, "url")
-    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
-    data_set = Resource(type="Dataset", hasPart=files)
-    r = collect_values(data_set, "hasPart.url")
-    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
-    with pytest.raises(DownloadingError):
-        collect_values(data_set, "fake.path", DownloadingError)
-
-
-# FIXME Migrate to v0.2.0.
-# def test_collect_lazy_actions(nexus_store):
-#     resource = Resource(file1=LazyAction(None),
-#                         level2=Resources(
-#                             [Resource(file2=LazyAction(None)), Resource(file3=LazyAction(None))]))
-#     actions = nexus_store._collect_lazy_actions(resource)
-#     assert len(actions) == 3, "there should be three lazzy actions"
-
-
-# FIXME Migrate to v0.2.0.
-# def test_resolve_file_resource_mapping_from_file(nexus_store):
-#     mapping = hjson.loads(str(nexus_store._resolve_file_resource_mapping()))
-#     assert mapping["type"] == "DataDownload"
 
 
 def assert_equal(first, second):
@@ -142,7 +107,7 @@ def check_frozen_id(resource: Resource):
     assert resource.id.endswith('?rev=' + str(resource._store_metadata['_rev']))
 
 
-def add_meta_recursive(resource: Resource):
+def add_metadata(resource: Resource):
     metadata = {
         "_self": resource.id,
         "_constrainedBy": "https://bluebrain.github.io/nexus/schemas/unconstrained.json",
@@ -158,14 +123,21 @@ def add_meta_recursive(resource: Resource):
     }
     resource._synchronized = True
     resource._validated = True
-    add_meta(resource, metadata)
-    for k, v in resource.__dict__.items():
-        if isinstance(v, list):
-            for elem in v:
-                do(add_meta, elem, False, metadata)
-        else:
-            do(add_meta, v, False, metadata)
+    resource._store_metadata = wrap_dict(metadata)
 
 
 def add_meta(r, m):
     r._store_metadata = wrap_dict(m)
+
+
+def do_recursive(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
+    if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
+        for x in data:
+            fun(x, *args)
+    elif isinstance(data, Resource):
+        fun(data, *args)
+        for _, v in data.__dict__.items():
+            if isinstance(v, (Resource, List)):
+                do_recursive(fun, v, *args)
+    else:
+        raise TypeError("not a Resource nor a list of Resource")

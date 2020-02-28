@@ -12,45 +12,29 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-import asyncio
-import json
-import re
-from collections import namedtuple
-from enum import Enum
+import mimetypes
+from asyncio import Task
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-from urllib.parse import quote_plus
+from typing import Any, Callable, List, Optional, Union, Dict
 
-import nest_asyncio
 import nexussdk as nexus
+import re
+
 import requests
-from aiohttp import ClientSession
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
-from kgforge.core.commons.actions import Action
-from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, QueryingError,
-                                             RegistrationError, RetrievalError, TaggingError,
-                                             UpdatingError, UploadingError)
-from kgforge.core.commons.execution import not_supported, run
-from kgforge.core.conversions.jsonld import as_jsonld, find_in_context
+from kgforge.core.commons.actions import collect_lazy_actions, execute_lazy_actions, Action
+from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
+                                             RetrievalError, TaggingError, UpdatingError,
+                                             UploadingError, QueryingError)
+from kgforge.core.commons.execution import run
+from kgforge.core.conversions.jsonld import as_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-
-
-class BatchAction(Enum):
-    CREATE = "create"
-    FETCH = "fetch"
-    DEPRECATE = "deprecate"
-    UPDATE = "update"
-    TAG = "tag"
-    UPLOAD = "upload"
-    DOWNLOAD = "download"
-
-
-BatchResult = namedtuple("BatchResult", ["resource", "response"])
-BatchResults = List[BatchResult]
+from kgforge.specializations.stores.nexus.service import (Service, to_resource, METADATA_FIELDS,
+                                                          BatchAction)
 
 
 class BlueBrainNexus(Store):
@@ -59,30 +43,6 @@ class BlueBrainNexus(Store):
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping)
-        try:
-            self.organisation, self.project = self.bucket.split('/')
-        except ValueError:
-            raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
-        else:
-            # FIXME Should use Nexus namespace. DKE-130.
-            self._metadata_fields = ("_storage", "_self", "_constrainedBy", "_project", "_rev",
-                                     "_deprecated", "_createdAt", "_createdBy", "_updatedAt",
-                                     "_updatedBy", "_incoming", "_outgoing")
-            # TODO Migrate to self.service.
-            nexus.config.set_environment(self.endpoint)
-            nexus.config.set_token(self.token)
-            self.max_connections = 50
-            self.headers = {
-                "Authorization": "Bearer " + self.token,
-                "Content-Type": "application/ld+json",
-                "Accept": "application/ld+json"
-            }
-            self.url_requests = '/'.join((self.endpoint,
-                                          'resources',
-                                          quote_plus(self.organisation),
-                                          quote_plus(self.project), '_'))
-            # This is to make async working on the jupyter notebook
-            nest_asyncio.apply()
 
     @property
     def mapping(self) -> Optional[Callable]:
@@ -92,41 +52,30 @@ class BlueBrainNexus(Store):
     def mapper(self) -> Optional[Callable]:
         return DictionaryMapper
 
+    # [C]RUD.
+
     def register(self, data: Union[Resource, List[Resource]]) -> None:
         run(self._register_one, self._register_many, data, required_synchronized=False,
             execute_actions=True, exception=RegistrationError, monitored_status="_synchronized")
 
     def _register_many(self, resources: List[Resource]) -> None:
-        succeeded, failures = self._batch(resources, action=BatchAction.CREATE)
-        action_name = f"{self._register_many.__name__}: {BatchAction.CREATE}"
-        if succeeded:
-            resources_without_context = list()
-            for result in succeeded:
+
+        def register_callback(task: Task):
+            result = task.result()
+            if isinstance(result.response, Exception):
+                _synchronize_resource(
+                    result.resource, result.response, self._register_many.__name__, False, False)
+            else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, '_context'):
-                    resources_without_context.append(result.resource)
-            if resources_without_context:
-                ids_resources = {r.id: r for r in resources_without_context}
-                remote_succeed, remote_fail = self._batch(list(ids_resources.keys()),
-                                                          action=BatchAction.FETCH)
-                if remote_succeed:
-                    for remote in remote_succeed:
-                        ids_resources[remote.resource.id]._context = remote.resource._context
-                        self._synchronize_resource(ids_resources[remote.resource.id],
-                                                   remote.response, action_name, True, True)
-                if remote_fail:
-                    for remote in remote_fail:
-                        try:
-                            identifier = remote.resource.id
-                        except AttributeError:
-                            identifier = remote.resource
-                        self._synchronize_resource(ids_resources[identifier], remote.response,
-                                                   action_name, True, False)
-            else:
-                self._synchronize_resources(succeeded, action_name, True, True)
-        if failures:
-            self._synchronize_resources(results=failures, action_name=action_name, succeeded=False,
-                                        synchronized=False)
+                    result.resource._context = self.service.project_context
+                    _synchronize_resource(
+                        result.resource, result.response, self._register_many.__name__, True, True)
+
+        validated = _validate(resources, self._register_many.__name__, RegistrationError,
+                              id_required=False, required_synchronized=False, execute_actions=True)
+        self.service.batch_request(
+            validated, BatchAction.CREATE, register_callback, RegistrationError)
 
     def _register_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
@@ -134,21 +83,25 @@ class BlueBrainNexus(Store):
             response = nexus.resources.create(org_label=self.organisation,
                                               project_label=self.project, data=data)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, RegistrationError)
+            raise RegistrationError(_error_message(e))
         else:
             resource.id = response['@id']
             # If resource had no context, update it with the one provided by the store.
             if not hasattr(resource, '_context'):
                 remote = self.retrieve(resource.id, None)
                 resource._context = remote._context
-            self._sync_metadata(resource, response)
+            _sync_metadata(resource, response)
 
     def _upload_one(self, filepath: Path) -> Dict:
+        file = str(filepath.absolute())
+        mime_type, _ = mimetypes.guess_type(file, True)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
         try:
-            response = nexus.files.create(self.organisation, self.project,
-                                          str(filepath.absolute()))
+            response = nexus.files.create(self.organisation, self.project, file,
+                                          content_type=mime_type)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, UploadingError)
+            raise UploadingError(_error_message(e))
         else:
             return response
 
@@ -165,11 +118,11 @@ class BlueBrainNexus(Store):
                                                  project_label=self.project,
                                                  resource_id=id, tag=version)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, RetrievalError)
+            raise RetrievalError(_error_message(e))
         else:
-            resource = self._to_resource(response)
+            resource = to_resource(response)
             resource._synchronized = True
-            self._sync_metadata(resource, response)
+            _sync_metadata(resource, response)
             return resource
 
     def _download_one(self, url: str, path: Path) -> None:
@@ -181,7 +134,7 @@ class BlueBrainNexus(Store):
             nexus.files.fetch(org_label=self.organisation, project_label=self.project,
                               file_id=file_id, out_filepath=str(path))
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, DownloadingError)
+            raise DownloadingError(_error_message(e))
 
     # CR[U]D.
 
@@ -191,34 +144,30 @@ class BlueBrainNexus(Store):
             monitored_status="_synchronized")
 
     def _update_many(self, resources: List[Resource]) -> None:
-        succeeded, failures = self._batch(resources, action=BatchAction.UPDATE)
-        action_name = f"{self._register_many.__name__}: {BatchAction.UPDATE}"
-        if succeeded:
-            self._synchronize_resources(succeeded, action_name, True, True)
-        if failures:
-            self._synchronize_resources(results=failures, action_name=action_name, succeeded=False,
-                                        synchronized=False)
+        update_callback = _default_callback(self._update_many.__name__)
+        validated = _validate(resources, self._update_many.__name__, UpdatingError,
+                              id_required=True, required_synchronized=False, execute_actions=True)
+        self.service.batch_request(validated, BatchAction.UPDATE, update_callback, UpdatingError)
 
     def _update_one(self, resource: Resource) -> None:
         data = as_jsonld(resource, True, True)
         try:
             response = nexus.resources.update(data)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, UpdatingError)
+            raise UpdatingError(_error_message(e))
         else:
-            self._sync_metadata(resource, response)
+            _sync_metadata(resource, response)
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(self._tag_one, self._tag_many, data, id_required=True, required_synchronized=True,
             exception=TaggingError, value=value)
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
-        succeeded, failures = self._batch(resources, action=BatchAction.TAG, tag=value)
-        action_name = f"{self._tag_many.__name__}: {BatchAction.TAG}"
-        if succeeded:
-            self._synchronize_resources(succeeded, action_name, True, True)
-        if failures:
-            self._synchronize_resources(failures, action_name, False, False)
+        tag_callback = _default_callback(self._tag_many.__name__)
+        validated = _validate(resources, self._tag_many.__name__, TaggingError, id_required=True,
+                              required_synchronized=True, execute_actions=False)
+        self.service.batch_request(
+            validated, BatchAction.TAG, tag_callback, TaggingError, tag=value)
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         if resource._last_action.operation == "_tag_one" and resource._last_action.succeeded:
@@ -226,9 +175,9 @@ class BlueBrainNexus(Store):
         try:
             payload = as_jsonld(resource, True, True)
             response = nexus.resources.tag(payload, value)
-            self._sync_metadata(resource, response)
+            _sync_metadata(resource, response)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, TaggingError)
+            raise TaggingError(_error_message(e))
 
     # CRU[D].
 
@@ -238,20 +187,19 @@ class BlueBrainNexus(Store):
             monitored_status="_synchronized")
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
-        succeeded, failures = self._batch(resources, action=BatchAction.DEPRECATE)
-        action_name = f"{self._deprecate_many.__name__}: {BatchAction.DEPRECATE}"
-        if succeeded:
-            self._synchronize_resources(succeeded, action_name, True, True)
-        if failures:
-            self._synchronize_resources(failures, action_name, False, False)
+        deprecate_callback = _default_callback(self._deprecate_many.__name__)
+        validated = _validate(resources, self._deprecate_many.__name__, DeprecationError,
+                              id_required=True, required_synchronized=True, execute_actions=False)
+        self.service.batch_request(
+            validated, BatchAction.DEPRECATE, deprecate_callback, DeprecationError)
 
     def _deprecate_one(self, resource: Resource) -> None:
         try:
             payload = as_jsonld(resource, True, True)
             response = nexus.resources.deprecate(payload)
-            self._sync_metadata(resource, response)
+            _sync_metadata(resource, response)
         except nexus.HTTPError as e:
-            self._raise_nexus_http_error(e, DeprecationError)
+            raise DeprecationError(_error_message(e))
 
     # Querying.
 
@@ -276,202 +224,76 @@ class BlueBrainNexus(Store):
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
                             token: Optional[str]) -> Any:
-        # TODO Migrate to self.service. Change return type.
-        pass
-
-    # Misc
-
-    @classmethod
-    def _to_resource(cls, data: Dict) -> Resource:
-        # FIXME: ideally a rdf-native solution
-        def create_resource(dictionary: dict, ctx_base: str) -> Resource:
-            rec = Resource()
-            if "@id" in dictionary:
-                rec.id = f"{ctx_base}{dictionary.pop('@id')}" if ctx_base else dictionary.pop(
-                    "@id")
-            if "@type" in dictionary:
-                rec.type = dictionary.pop("@type")
-            for k, v in dictionary.items():
-                if not re.match(r"^_|@", k):
-                    # TODO: use nexus namespace to properly identify metadata
-                    if isinstance(v, dict):
-                        setattr(rec, k, create_resource(v, ctx_base))
-                    elif isinstance(v, list):
-                        setattr(rec, k,
-                                [create_resource(item, ctx_base) if isinstance(item,
-                                                                               dict) else item
-                                 for item in v])
-                    else:
-                        setattr(rec, k, v)
-            return rec
-
-        context = data.pop("@context", None)
-        base = find_in_context(context, "@base") if context is not None else None
-        resource = create_resource(data, base)
-        if context is not None:
-            resource._context = context
-        return resource
-
-    def _sync_metadata(self, resource: Resource, result: Dict) -> None:
-        metadata = {k: v for k, v in result.items() if k in self._metadata_fields}
-        resource._store_metadata = wrap_dict(metadata)
-
-    def _synchronize_resources(self, results: BatchResults, action_name: str, succeeded: bool,
-                               synchronized: bool) -> None:
-        for result in results:
-            self._synchronize_resource(result.resource, result.response, action_name, succeeded,
-                                       synchronized)
-
-    def _synchronize_resource(self, resource: Resource, response: dict, action_name: str,
-                              succeeded: bool, synchronized: bool) -> None:
-        error = None if succeeded else f"{response['@type']}: {response['reason']}"
-        action = Action(action_name, succeeded, error)
-        resource._last_action = action
-        resource._synchronized = synchronized
-        if succeeded:
-            self._sync_metadata(resource, response)
-
-    def _batch(self, resources: List[Resource],
-               action: BatchAction, **kwargs) -> (BatchResults, BatchResults):
-        loop = asyncio.get_event_loop()
-        failure = list()
-        success = list()
-
-        async def dispatch_action():
-            futures = []
-            semaphore = asyncio.Semaphore(self.max_connections)
-            async with ClientSession() as session:
-                for resource in resources:
-                    if action in [action.UPDATE, action.TAG, action.DEPRECATE]:
-                        try:
-                            rid = resource.id
-                        except AttributeError:
-                            response = {"@type": "BadPayload",
-                                        "reason": "can't update resources that doesn't have id"
-                                        }
-                            failure.append(BatchResult(resource, response))
-                            continue
-                    if action == action.CREATE:
-                        payload = as_jsonld(resource, True, True)
-                        request = asyncio.ensure_future(
-                            queue_post(semaphore=semaphore, session=session,
-                                       url=self.url_requests, resource=resource, payload=payload))
-                    if action == action.UPDATE:
-                        url = "/".join((self.url_requests, quote_plus(rid)))
-                        if resource._synchronized:
-                            response = {"@type": "Unchanged",
-                                        "reason": "Resource unchanged, update didn't happened"
-                                        }
-                            failure.append(BatchResult(resource, response))
-                            continue
-                        params = {"rev": resource._store_metadata._rev}
-                        payload = as_jsonld(resource, True, True)
-                        request = asyncio.ensure_future(
-                            queue_put(semaphore=semaphore, session=session,
-                                      url=url, resource=resource, payload=payload, params=params))
-                    if action == action.TAG:
-                        url = "/".join((self.url_requests, quote_plus(rid), "tags"))
-                        rev = resource._store_metadata._rev
-                        params = {"rev": rev}
-                        payload = {"tag": kwargs.get("tag"), "rev": rev}
-                        request = asyncio.ensure_future(queue_post(semaphore=semaphore,
-                                                                   session=session,
-                                                                   url=url, resource=resource,
-                                                                   payload=payload, params=params))
-                    if action == action.DEPRECATE:
-                        url = "/".join((self.url_requests, quote_plus(rid)))
-                        params = {"rev": resource._store_metadata._rev}
-                        request = asyncio.ensure_future(queue_delete(semaphore=semaphore,
-                                                                     session=session,
-                                                                     url=url, resource=resource,
-                                                                     params=params))
-                    futures.append(request)
-                await asyncio.gather(*futures)
-
-        async def fetch():
-            futures = list()
-            semaphore = asyncio.Semaphore(self.max_connections)
-            async with ClientSession() as session:
-                for resource in resources:
-                    try:
-                        identifier = resource.id
-                    except AttributeError:
-                        identifier = resource
-                    url = "/".join((self.url_requests, quote_plus(identifier)))
-                    request = asyncio.ensure_future(queue_get(semaphore, session, url, resource))
-                    futures.append(request)
-                await asyncio.gather(*futures)
-
-        async def queue_post(semaphore, session, url, resource, payload, params=None):
-            async with semaphore:
-                await post(session=session, url=url, resource=resource, payload=payload,
-                           params=params)
-
-        async def queue_put(semaphore, session, url, resource, payload, params=None):
-            async with semaphore:
-                await put(session=session, url=url, resource=resource, payload=payload,
-                          params=params)
-
-        async def queue_get(semaphore, session, url, resource):
-            async with semaphore:
-                await get(session, url, resource)
-
-        async def queue_delete(semaphore, session, url, resource, params):
-            async with semaphore:
-                await delete(session=session, url=url, resource=resource, params=params)
-
-        async def post(session, url, resource, payload, params):
-            async with session.post(
-                    url, headers=self.headers, data=json.dumps(payload),
-                    params=params) as response:
-                content = await response.json()
-                if response.status == 201:
-                    success.append(BatchResult(resource, content))
-                else:
-                    failure.append(BatchResult(resource, content))
-
-        async def put(session, url, resource, payload, params):
-            async with session.put(
-                    url, headers=self.headers, data=json.dumps(payload),
-                    params=params) as response:
-                content = await response.json()
-                if response.status == 200:
-                    success.append(BatchResult(resource, content))
-                else:
-                    failure.append(BatchResult(resource, content))
-
-        async def get(session, url, resource):
-            async with session.get(url, headers=self.headers) as response:
-                response_content = await response.json()
-                if response.status == 200:
-                    resource = self._to_resource(response_content)
-                    success.append(BatchResult(resource, response_content))
-                else:
-                    failure.append(BatchResult(resource, response_content))
-
-        async def delete(session, url, resource, params):
-            async with session.delete(url, headers=self.headers, params=params) as response:
-                response_content = await response.json()
-                if response.status == 200:
-                    success.append(BatchResult(resource, response_content))
-                else:
-                    failure.append(BatchResult(resource, response_content))
-
-        action_func = {
-            BatchAction.CREATE: dispatch_action,
-            BatchAction.UPDATE: dispatch_action,
-            BatchAction.FETCH: fetch,
-            BatchAction.TAG: dispatch_action,
-            BatchAction.DEPRECATE: dispatch_action
-        }
-        loop.run_until_complete(action_func.get(action, not_supported)())
-        return success, failure
-
-    @staticmethod
-    def _raise_nexus_http_error(error: nexus.HTTPError, error_type: Callable):
         try:
-            reason = error.response.json()["reason"]
-        except IndexError:
-            reason = error.response.text()
-        finally:
-            raise error_type(reason)
+            self.organisation, self.project = self.bucket.split('/')
+        except ValueError:
+            raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
+        else:
+            return Service(endpoint, self.organisation, self.project, token, 200)
+
+
+def _default_callback(fun_name: str) -> Callable:
+    def callback(task: Task):
+        result = task.result()
+        if isinstance(result.response, Exception):
+            _synchronize_resource(
+                result.resource, result.response, fun_name, False, False)
+        else:
+            _synchronize_resource(
+                result.resource, result.response, fun_name, True, True)
+    return callback
+
+
+def _error_message(error: nexus.HTTPError) -> str:
+    try:
+        content = error.response.json()
+        return " ".join(re.findall('[A-Z][^A-Z]*', content["@type"])).lower()
+    except AttributeError:
+        pass
+    try:
+        return error.response.text()
+    except AttributeError:
+        return str(error)
+
+
+def _validate(resources:  List[Resource], function_name, exception: Callable, id_required: bool,
+              required_synchronized: bool, execute_actions: bool) -> List[Resource]:
+    valid = list()
+    for resource in resources:
+        if id_required and not hasattr(resource, "id"):
+            error = exception("resource should have an id")
+            _synchronize_resource(resource, error, function_name, False, False)
+            continue
+        if required_synchronized is not None:
+            synchronized = resource._synchronized
+            if synchronized is not required_synchronized:
+                be_or_not_be = "be" if required_synchronized is True else "not be"
+                error = exception(f"resource should {be_or_not_be} synchronized")
+                _synchronize_resource(resource, error, function_name, False, False)
+                continue
+        if execute_actions:
+            lazy_actions = collect_lazy_actions(resource)
+            if lazy_actions is not None:
+                try:
+                    execute_lazy_actions(resource, lazy_actions)
+                except Exception as e:
+                    _synchronize_resource(resource, exception(e), function_name, False, False)
+                    continue
+        valid.append(resource)
+    return valid
+
+
+def _sync_metadata(resource: Resource, result: Dict) -> None:
+    metadata = {k: v for k, v in result.items() if k in METADATA_FIELDS}
+    resource._store_metadata = wrap_dict(metadata)
+
+
+def _synchronize_resource(resource: Resource, response: Union[Exception, Dict], action_name: str,
+                          succeeded: bool, synchronized: bool) -> None:
+    if succeeded:
+        action = Action(action_name, succeeded, None)
+        _sync_metadata(resource, response)
+    else:
+        action = Action(action_name, succeeded, response)
+    resource._last_action = action
+    resource._synchronized = synchronized

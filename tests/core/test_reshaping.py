@@ -13,3 +13,23 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 # Placeholder for the test suite for reshaping.
+import pytest
+from kgforge.core import Resource
+from kgforge.core.reshaping import collect_values
+
+
+def test_collect_values():
+    simple = Resource(type="Experiment", url="file.gz")
+    r = collect_values(simple, "url")
+    assert simple.url in r, "url should be in the list"
+    deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
+    r = collect_values(deep, "level1.level2.url")
+    assert deep.level1.level2.url in r, "url should be in the list"
+    files = [Resource(type="Experiment", url=f"file{i}") for i in range(3)]
+    r = collect_values(files, "url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    data_set = Resource(type="Dataset", hasPart=files)
+    r = collect_values(data_set, "hasPart.url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    with pytest.raises(ValueError):
+        collect_values(data_set, "fake.path", ValueError)

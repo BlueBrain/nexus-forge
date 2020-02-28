@@ -25,12 +25,17 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool,
     def del_context(x: Dict) -> None:
         if "@context" in x:
             del x["@context"]
+
     if expanded:
         # FIXME Not implemented yet. DKE-130.
         return as_jsonld(data, False, store_metadata)
     else:
         data = as_jsonld(data, True, store_metadata)
-        del_context(data) if not isinstance(data, List) else (del_context(x) for x in data)
+        if isinstance(data, List):
+            for x in data:
+                del_context(x)
+        else:
+            del_context(data)
         # FIXME Hot fix to have DemoStore working before having the proper fix. DKE-130.
         if "@id" in data:
             data["id"] = data.pop("@id")
