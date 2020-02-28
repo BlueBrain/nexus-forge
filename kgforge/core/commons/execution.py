@@ -13,6 +13,7 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 import inspect
+import traceback
 from functools import wraps
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -20,6 +21,9 @@ from kgforge.core import Resource
 from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
                                           execute_lazy_actions)
 from kgforge.core.commons.exceptions import NotSupportedError
+
+
+# POLICY Should have only one function called 'wrapper'. See catch().
 
 
 def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
@@ -41,16 +45,43 @@ def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
 
 
 def catch(fun):
-    # POLICY Should wrap operations on resources where recovering from errors is not needed.
-    # POLICY Otherwise, use execution.run().
+    # POLICY Should decorate methods operating on Resource instances.
+    # POLICY If recovering from errors is needed, use execution.run().
+    # NB: The class of the methods should have only one KnowledgeGraphForge instance as attribute.
+
     @wraps(fun)
     def wrapper(*args, **kwargs):
+
+        class_name = "KnowledgeGraphForge"
+        self = args[0]
+        if type(self).__name__ == class_name:
+            forge = self
+        else:
+            forge = next(x for x in self.__dict__.values() if type(x).__name__ == class_name)
+        debug = forge._debug
+
         try:
             return fun(*args, **kwargs)
         except Exception as e:
-            print(f"<action> {fun.__name__}"
-                  f"\n<error> {type(e).__name__}: {e}\n")
-            return None
+            stack = traceback.extract_stack()
+            it = (x for x in stack if x.name == "wrapper" and x.filename == stack[-1].filename)
+            next(it)
+            try:
+                next(it)
+            except StopIteration:
+                called_once = True
+            else:
+                called_once = False
+            finally:
+                if called_once and not debug:
+                    tb = e.__traceback__
+                    fs = traceback.extract_tb(tb)[-1]
+                    print(f"<action> {fs.name}"
+                          f"\n<error> {type(e).__name__}: {e}\n")
+                    return None
+                else:
+                    raise
+
     return wrapper
 
 
