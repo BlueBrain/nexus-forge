@@ -91,6 +91,12 @@ class ShaclModel(Model):
 
     # Validation.
 
+    def schema_id(self, type: str) -> str:
+        try:
+            return str(self.service.types_shapes_map[type])
+        except KeyError:
+            raise ValueError("type not found")
+
     def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated")

@@ -94,6 +94,10 @@ class Model(ABC):
 
     # Validation.
 
+    def schema_id(self, type: str) -> str:
+        # POLICY Should retrieve the schema id of the given type.
+        not_supported()
+
     def validate(self, data: Union[Resource, List[Resource]],
                  execute_actions_before: bool) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
