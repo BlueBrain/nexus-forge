@@ -75,8 +75,8 @@ Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
 Modeling
 
 ```bash
-prefixes() -> Dict[str, str]
-types() -> List[str]
+prefixes(pretty: bool = True) -> Optional[Dict[str, str]]
+types(pretty: bool = True) -> Optional[List[str]]
 template(type: str, only_required: bool = False) -> None
 validate(data: Union[Resource, List[Resource]]) -> None
 ```
@@ -96,9 +96,10 @@ format(what: str, *args) -> str
 Mapping
 
 ```bash
-mappings(source: str) -> Dict[str, List[str]]
-mapping(type: str, source: str, mapping_type: Callable = DictionaryMapping) -> Mapping
-map(data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable, na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
+sources(pretty: bool = True) -> Optional[List[str]]
+mappings(source: str, pretty: bool = True) -> Optional[Dict[str, List[str]]]
+mapping(entity: str, source: str, type: Callable = DictionaryMapping) -> Mapping
+map(data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable = DictionaryMapper, na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
 ```
 
 Reshaping
@@ -174,11 +175,12 @@ Model
 
 ```bash
 Model(source: str, **source_config)
-  prefixes() -> Dict[str, str]
-  types() -> List[str]
+  prefixes(pretty: bool) -> Optional[Dict[str, str]]
+  types(pretty: bool) -> Optional[List[str]]
   template(type: str, only_required: bool) -> str
-  mappings(data_source: str) -> Dict[str, List[str]]
-  mapping(type: str, data_source: str, mapping_type: Callable) -> Mapping
+  sources(pretty: bool) -> Optional[List[str]]
+  mappings(source: str, pretty) -> Optional[Dict[str, List[str]]]
+  mapping(entity: str, source: str, type: Callable) -> Mapping
   validate(data: Union[Resource, List[Resource]]) -> None
 ```
 

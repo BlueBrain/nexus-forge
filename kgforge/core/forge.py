@@ -36,6 +36,7 @@ from kgforge.core.conversions.jsonld import as_jsonld, from_jsonld
 from kgforge.core.conversions.triples import as_triples, from_triples
 from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
 
@@ -46,8 +47,6 @@ class KnowledgeGraphForge:
     # No catching of exceptions so that no incomplete instance is created if an error occurs.
     # This is a best practice in Python for __init__().
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
-
-        # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
 
         # Required minimal configuration: name for Model and Store, origin and source for Model.
         # Keyword arguments could be used to override the configuration provided for the Store.
@@ -185,12 +184,12 @@ class KnowledgeGraphForge:
     # Modeling User Interface.
 
     @catch
-    def prefixes(self) -> Dict[str, str]:
-        return self._model.prefixes()
+    def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
+        return self._model.prefixes(pretty)
 
     @catch
-    def types(self) -> List[str]:
-        return self._model.types()
+    def types(self, pretty: bool = True) -> Optional[List[str]]:
+        return self._model.types(pretty)
 
     @catch
     def template(self, type: str, only_required: bool = False, output: str = "hjson"
@@ -244,20 +243,22 @@ class KnowledgeGraphForge:
 
     # Mapping User Interface.
 
-    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
     @catch
-    def mappings(self, source: str) -> Dict[str, List[str]]:
-        return self._model.mappings(source)
-
-    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
-    @catch
-    def mapping(self, type: str, source: str,
-                mapping_type: Callable = DictionaryMapping) -> Mapping:
-        return self._model.mapping(type, source, mapping_type)
+    def sources(self, pretty: bool = True) -> Optional[List[str]]:
+        return self._model.sources(pretty)
 
     @catch
-    def map(self, data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable,
-            na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]:
+    def mappings(self, source: str, pretty: bool = True) -> Optional[Dict[str, List[str]]]:
+        return self._model.mappings(source, pretty)
+
+    @catch
+    def mapping(self, entity: str, source: str, type: Callable = DictionaryMapping) -> Mapping:
+        return self._model.mapping(entity, source, type)
+
+    @catch
+    def map(self, data: Any, mapping: Union[Mapping, List[Mapping]],
+            mapper: Callable = DictionaryMapper, na: Union[Any, List[Any]] = None
+            ) -> Union[Resource, List[Resource]]:
         return mapper(self).map(data, mapping, na)
 
     # Reshaping User Interface.
@@ -285,7 +286,7 @@ class KnowledgeGraphForge:
 
     @catch
     def sparql(self, query: str) -> List[Resource]:
-        prefixes = self._model.prefixes()
+        prefixes = self._model.prefixes(pretty=False)
         return self._store.sparql(prefixes, query)
 
     @catch

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import hjson
+from pandas import DataFrame
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
@@ -48,11 +49,28 @@ class Model(ABC):
 
     # Vocabulary.
 
-    def prefixes(self) -> Dict[str, str]:
+    def prefixes(self, pretty: bool) -> Optional[Dict[str, str]]:
+        prefixes = sorted(self._prefixes().items())
+        if pretty:
+            print("Used prefixes:")
+            df = DataFrame(prefixes)
+            formatters = {x: f"{{:<{df[x].str.len().max()}s}}".format for x in df.columns}
+            print(df.to_string(header=False, index=False, formatters=formatters))
+        else:
+            return dict(prefixes)
+
+    def _prefixes(self) -> Dict[str, str]:
         not_supported()
 
+    def types(self, pretty: bool) -> Optional[List[str]]:
+        types = sorted(self._types())
+        if pretty:
+            print(*["Managed entity types:", *types], sep="\n   - ")
+        else:
+            return types
+
     @abstractmethod
-    def types(self) -> List[str]:
+    def _types(self) -> List[str]:
         # POLICY Should return managed types in their compacted form (i.e. not IRI nor CURIE).
         pass
 
@@ -78,17 +96,36 @@ class Model(ABC):
 
     # Mappings.
 
-    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
-    def mappings(self, data_source: str) -> Dict[str, List[str]]:
+    def sources(self, pretty: bool) -> Optional[List[str]]:
+        sources = sorted(self._sources())
+        if pretty:
+            print(*["Data sources with managed mappings:", *sources], sep="\n   - ")
+        else:
+            return sources
+
+    def _sources(self) -> List[str]:
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
-        # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
-        # POLICY Keys should be managed types with mappings for the given data source.
-        # POLICY Values should be available mapping types for the resource type.
         not_supported()
 
-    # FIXME To be refactored while applying the mapping API refactoring. DKE-104.
-    def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
-        # POLICY Should raise ValueError if 'data_source' is not managed by the Model.
+    def mappings(self, source: str, pretty: bool) -> Optional[Dict[str, List[str]]]:
+        mappings = {k: sorted(v) for k, v in
+                    sorted(self._mappings(source).items(), key=lambda kv: kv[0])}
+        if pretty:
+            print("Managed mappings for the data source per entity type and mapping type:")
+            for k, v in mappings.items():
+                print(*[f"   - {k}:", *v], sep="\n        * ")
+        else:
+            return mappings
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        # POLICY Should raise ValueError if 'source' is not managed by the Model.
+        # POLICY Keys should be managed resource types with mappings for the given data source.
+        # POLICY Values should be available mapping types for the resource type.
+        # The discovery strategy cannot be abstracted as it depends on the Model data organization.
+        not_supported()
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        # POLICY Should raise ValueError if 'entity' or 'source' is not managed by the Model.
         # The selection strategy cannot be abstracted as it depends on the Model data organization.
         not_supported()
 

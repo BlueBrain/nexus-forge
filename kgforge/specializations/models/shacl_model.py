@@ -66,11 +66,11 @@ class ShaclModel(Model):
 
     # Vocabulary.
 
-    def prefixes(self) -> Dict[str, str]:
+    def _prefixes(self) -> Dict[str, str]:
         return self.service.namespaces
 
-    def types(self) -> List[str]:
-        return list(sorted(self.service.types_shapes_map.keys()))
+    def _types(self) -> List[str]:
+        return list(self.service.types_shapes_map.keys())
 
     # Templates.
 

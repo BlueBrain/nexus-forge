@@ -32,10 +32,10 @@ class DemoModel(Model):
 
     # Vocabulary.
 
-    def prefixes(self) -> Dict[str, str]:
+    def _prefixes(self) -> Dict[str, str]:
         return self.service.namespaces
 
-    def types(self) -> List[str]:
+    def _types(self) -> List[str]:
         return [x["label"] for x in self.service.vocabulary["Class"]]
 
     # Templates.
@@ -54,18 +54,27 @@ class DemoModel(Model):
 
     # Mappings.
 
-    def mappings(self, data_source: str) -> Dict[str, List[str]]:
-        dirpath = Path(self.source, "mappings", data_source)
+    def _sources(self) -> List[str]:
+        dirpath = Path(self.source, "mappings")
+        return [x.stem for x in dirpath.iterdir() if x.is_dir()]
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        dirpath = Path(self.source, "mappings", source)
         mappings = {}
         if dirpath.is_dir():
             for x in dirpath.glob("*/*.hjson"):
                 mappings.setdefault(x.stem, []).append(x.parent.name)
+        else:
+            raise ValueError("unrecognized source")
         return mappings
 
-    def mapping(self, type: str, data_source: str, mapping_type: Callable) -> Mapping:
-        filename = f"{type}.hjson"
-        filepath = Path(self.source, "mappings", data_source, mapping_type.__name__, filename)
-        return mapping_type.load(filepath)
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        filename = f"{entity}.hjson"
+        filepath = Path(self.source, "mappings", source, type.__name__, filename)
+        if filepath.is_file():
+            return type.load(filepath)
+        else:
+            raise ValueError("unrecognized entity type or source")
 
     # Validation.
 

@@ -1,10 +1,11 @@
 {
-    id: forge.format("identifier", "associations", x.id)
     type: Association
     agent:
     {
+        id: forge.format("identifier", "persons", x.id)
         type: Person
-        gender: forge.resolve("male", scope="terms")
+        additionalName: x.middle_name
+        gender: forge.resolve(x.gender, scope="terms")
         name: x.name
     }
     distribution: forge.attach(f"../../data/scientists-database/{'_'.join(x.name.lower().split())}.txt")

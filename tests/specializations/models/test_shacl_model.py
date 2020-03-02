@@ -105,7 +105,7 @@ def shacl_model():
 
 
 def test_get_types(shacl_model: ShaclModel):
-    types = shacl_model.types()
+    types = shacl_model.types(pretty=False)
     assert types == list(TYPES_SCHEMAS_MAP.keys())
 
 
