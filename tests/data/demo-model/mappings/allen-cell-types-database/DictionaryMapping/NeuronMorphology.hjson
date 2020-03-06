@@ -2,7 +2,7 @@
     # There is no NeuronMorphologyShape nor NeuronMorphology type in Neuroshapes at the moment (09.08.2019).
     # Using ReconstructedPatchedCellShape meanwhile.
     type: NeuronMorphology
-    id: forge.identifiers.format("neuronmorphologies", x.specimen__id)
+    id: forge.format("identifier", "neuronmorphologies", x.specimen__id)
     # This property is not part of the ReconstructedPatchedCell shape at the moment (09.08.2019).
     apicalDendrite: x.tag__apical
     brainLocation:
@@ -19,7 +19,7 @@
             valueY: x.csl__y
             valueZ: x.csl__z
         }
-        layer: forge.ontologies.resolve(f"layer {x.structure__layer}", "brain region")
+        layer: forge.resolve(f"layer {x.structure__layer}", scope="terms", target="brain regions")
     }
     contribution:
     {
@@ -39,7 +39,7 @@
             {
                 # 'Subject' is a subclass of 'Entity'.
                 type: Subject
-                id: x.donor__id
+                id: forge.format("identifier", "subjects", x.donor__id)
             }
         }
         {
@@ -48,17 +48,17 @@
             {
                 # 'PatchedCell' is a subclass of 'Entity'.
                 type: PatchedCell
-                id: x.specimen__id
+                id: forge.format("identifier", "patchedcells", x.specimen__id)
             }
         }
     ]
-    distribution: forge.files.attach(f"./allen_cell_types_db/specimen_{x.specimen__id}/reconstruction.swc")
+    distribution: forge.attach(f"./allen_cell_types_db/specimen_{x.specimen__id}/reconstruction.swc")
     identifier: x.specimen__id
     name: x.specimen__name
     # This property is not part of the ReconstructedPatchedCell shape at the moment (09.08.2019).
     subject:
     {
         type: Subject
-        id: x.donor__id
+        id: forge.format("identifier", "subjects", x.donor__id)
     }
 }

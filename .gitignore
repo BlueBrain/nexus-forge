@@ -9,3 +9,4 @@ doc/build
 .DS_Store
 **/.ipynb_checkpoints/*
 version.py
+examples/notebooks/getting-started/mappings/

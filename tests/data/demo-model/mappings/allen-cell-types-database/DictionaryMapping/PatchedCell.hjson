@@ -1,6 +1,6 @@
 {
     type: PatchedCell
-    id: forge.identifiers.format("patchedcells", x.specimen__id)
+    id: forge.format("identifier", "patchedcells", x.specimen__id)
     brainLocation:
     {
         type: BrainLocation
@@ -27,7 +27,7 @@
         {
             # 'Subject' is a subclass of 'Entity'.
             type: Subject
-            id: x.donor__id
+            id: forge.format("identifier", "subjects", x.donor__id)
         }
     }
     identifier: x.specimen__id
@@ -36,6 +36,6 @@
     subject:
     {
         type: Subject
-        id: x.donor__id
+        id: forge.format("identifier", "subjects", x.donor__id)
     }
 }
