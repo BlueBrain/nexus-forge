@@ -1,4 +1,4 @@
-# 
+ #
 # Knowledge Graph Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -53,7 +53,7 @@ def register(capsys, store, data, rc, err, msg):
 
 @when("I register the resource. An exception is raised. The printed report does mention an error: 'Exception: exception raised'.")
 def register_exception(monkeypatch, capsys, store, data):
-    def _register_one(_, x): raise Exception("exception raised")
+    def _register_one(_, x, schema_id): raise Exception("exception raised")
     monkeypatch.setattr("kgforge.specializations.stores.demo_store.DemoStore._register_one", _register_one)
     store.register(data)
     out = capsys.readouterr().out[:-1]

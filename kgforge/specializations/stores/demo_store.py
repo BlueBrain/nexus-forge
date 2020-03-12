@@ -36,7 +36,7 @@ class DemoStore(Store):
 
     # [C]RUD.
 
-    def _register_one(self, resource: Resource) -> None:
+    def _register_one(self, resource: Resource, schema_id: str) -> None:
         data = as_json(resource, expanded=False, store_metadata=False)
         try:
             record = self.service.create(data)

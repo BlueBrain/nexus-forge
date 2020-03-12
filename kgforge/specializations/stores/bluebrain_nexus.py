@@ -52,13 +52,13 @@ class BlueBrainNexus(Store):
     def mapper(self) -> Optional[Callable]:
         return DictionaryMapper
 
-    # [C]RUD.
+    def register(self, data: Union[Resource, List[Resource]], schema_id: str = None) -> None:
 
-    def register(self, data: Union[Resource, List[Resource]]) -> None:
         run(self._register_one, self._register_many, data, required_synchronized=False,
-            execute_actions=True, exception=RegistrationError, monitored_status="_synchronized")
+            execute_actions=True, exception=RegistrationError, monitored_status="_synchronized",
+            schema_id=schema_id)
 
-    def _register_many(self, resources: List[Resource]) -> None:
+    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
 
         def register_callback(task: Task):
             result = task.result()
@@ -67,21 +67,22 @@ class BlueBrainNexus(Store):
                     result.resource, result.response, self._register_many.__name__, False, False)
             else:
                 result.resource.id = result.response["@id"]
-                if not hasattr(result.resource, '_context'):
+                if not hasattr(result.resource, "_context"):
                     result.resource._context = self.service.project_context
-                    _synchronize_resource(
-                        result.resource, result.response, self._register_many.__name__, True, True)
+                _synchronize_resource(
+                    result.resource, result.response, self._register_many.__name__, True, True)
 
         validated = _validate(resources, self._register_many.__name__, RegistrationError,
                               id_required=False, required_synchronized=False, execute_actions=True)
         self.service.batch_request(
-            validated, BatchAction.CREATE, register_callback, RegistrationError)
+            validated, BatchAction.CREATE, register_callback, RegistrationError, schema_id=schema_id)
 
-    def _register_one(self, resource: Resource) -> None:
+    def _register_one(self, resource: Resource, schema_id: str) -> None:
         data = as_jsonld(resource, True, True)
         try:
             response = nexus.resources.create(org_label=self.organisation,
-                                              project_label=self.project, data=data)
+                                              project_label=self.project, data=data,
+                                              schema_id=schema_id)
         except nexus.HTTPError as e:
             raise RegistrationError(_error_message(e))
         else:

@@ -112,7 +112,7 @@ class ShapesMaterializer:
         self.sg = ShapesGraphWrapper(self.graph)
         self.shapes = self.sg.shapes
         self.types_shapes_map = self._build_types_shapes_map()
-        self.namespaces: Dict[str, str] = dict()
+        self.namespaces: Dict[str, str] = dict(self.sg.graph.namespace_manager.namespaces())
 
     def materialize(self, uri: URIRef) -> NodeProperties:
         """Trigers the collection of properties of a given Shape node

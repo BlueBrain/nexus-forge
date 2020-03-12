@@ -17,12 +17,11 @@ from pathlib import Path
 from typing import Dict, List, Union
 
 import hjson
-from rdflib import URIRef
+from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Model
-from kgforge.core.commons.attributes import sort_attrs
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.specializations.models.shacl.collectors import NodeProperties
@@ -73,12 +72,6 @@ class ShaclModel(Model):
         return list(self.service.types_shapes_map.keys())
 
     # Templates.
-
-    def template(self, type: str, only_required: bool, constraints: bool = False) -> str:
-        if constraints is True:
-            not_supported()
-        schema = self._template(type, only_required)
-        return hjson.dumps(schema, indent=4, item_sort_key=sort_attrs)
 
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
@@ -174,6 +167,8 @@ def default_value(value):
         return DEFAULT_VALUE[value]
     elif isinstance(value, URIRef):
         return as_term(value)
+    elif isinstance(value, Literal):
+        return value.toPython()
     else:
         return value
 

@@ -116,7 +116,7 @@ def test_schema_id(shacl_model: ShaclModel, type_):
 
 def test_request_invalid_type(shacl_model: ShaclModel):
     with pytest.raises(ValueError):
-        shacl_model.template("Invalid", False)
+        shacl_model._template("Invalid", False)
 
 
 @pytest.mark.parametrize("type_, expected", [
@@ -126,9 +126,8 @@ def test_request_invalid_type(shacl_model: ShaclModel):
     pytest.param("Building", BUILDING, id="building"),
 ])
 def test_create_templates(shacl_model: ShaclModel, type_, expected):
-    template = hjson.dumps(expected, indent=4)
-    result = shacl_model.template(type_, False)
-    assert result == template
+    result = shacl_model._template(type_, False)
+    assert result == expected
 
 
 @pytest.mark.parametrize("type_, expected", [
@@ -136,6 +135,5 @@ def test_create_templates(shacl_model: ShaclModel, type_, expected):
     pytest.param("Building", BUILDING_MANDATORY, id="building"),
 ])
 def test_create_templates_only_required(shacl_model: ShaclModel, type_, expected):
-    template = hjson.dumps(expected, indent=4)
-    result = shacl_model.template(type_, True)
-    assert result == template
+    result = shacl_model._template(type_, True)
+    assert result == expected

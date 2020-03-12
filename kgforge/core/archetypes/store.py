@@ -68,18 +68,18 @@ class Store(ABC):
 
     # [C]RUD.
 
-    def register(self, data: Union[Resource, List[Resource]]) -> None:
+    def register(self, data: Union[Resource, List[Resource]], schema_id: str = None) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
         run(self._register_one, None, data, required_synchronized=False, execute_actions=True,
-            exception=RegistrationError, monitored_status="_synchronized")
+            exception=RegistrationError, monitored_status="_synchronized", schema_id=schema_id)
 
-    def _register_many(self, resources: List[Resource]) -> None:
+    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
-    def _register_one(self, resource: Resource) -> None:
+    def _register_one(self, resource: Resource, schema_id: str) -> None:
         # POLICY Should notify of failures with exception RegistrationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # TODO This operation might be abstracted here when other stores will be implemented.
