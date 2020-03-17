@@ -57,6 +57,6 @@ def _apply_rules(value: Any, variables: Dict) -> Union[Dict, List[Dict]]:
     else:
         # TODO Add support for the full syntax of JSONPath. DKE-147.
         try:
-            return eval(value, {}, variables)
+            return eval(value, variables, variables)
         except (TypeError, NameError, SyntaxError):
             return value
