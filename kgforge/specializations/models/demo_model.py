@@ -38,6 +38,11 @@ class DemoModel(Model):
     def _types(self) -> List[str]:
         return [x["label"] for x in self.service.vocabulary["Class"]]
 
+    # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
+    def context(self) -> Dict[str, Dict]:
+        ctx = {x["label"]: x["id"] for k, v in self.service.vocabulary.items() for x in v}
+        return {"@context": ctx}
+
     # Templates.
 
     def _template(self, type: str, only_required: bool) -> Dict:

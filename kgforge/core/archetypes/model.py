@@ -74,6 +74,10 @@ class Model(ABC):
         # POLICY Should return managed types in their compacted form (i.e. not IRI nor CURIE).
         pass
 
+    # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
+    def context(self) -> Dict[str, Dict]:
+        not_supported()
+
     # Templates.
 
     def template(self, type: str, only_required: bool, output: str) -> Optional[Dict]:
