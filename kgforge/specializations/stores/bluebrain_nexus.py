@@ -23,14 +23,15 @@ from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
+import requests
 from aiohttp import ClientSession
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.actions import Action
-from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
-                                             RetrievalError, TaggingError, UpdatingError,
-                                             UploadingError)
+from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, QueryingError,
+                                             RegistrationError, RetrievalError, TaggingError,
+                                             UpdatingError, UploadingError)
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.conversions.jsonld import as_jsonld, find_in_context
 from kgforge.core.wrappings.dict import wrap_dict
@@ -251,6 +252,25 @@ class BlueBrainNexus(Store):
             self._sync_metadata(resource, response)
         except nexus.HTTPError as e:
             self._raise_nexus_http_error(e, DeprecationError)
+
+    # Querying.
+
+    def _sparql(self, query: str) -> List[Resource]:
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/sparql-query",
+        }
+        url = f"{self.endpoint}/views/{self.organisation}/{self.project}"
+        service = f"{url}/nxv:defaultSparqlIndex/sparql"
+        try:
+            response = requests.post(service, data=query, headers=headers)
+            response.raise_for_status()
+        except Exception as e:
+            raise QueryingError(e)
+        else:
+            returned = response.json()
+            return [Resource(**{k: v["value"] for k, v in x.items()})
+                    for x in returned["results"]["bindings"]]
 
     # Utils.
 
