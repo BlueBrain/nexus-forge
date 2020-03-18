@@ -12,9 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Match, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -214,11 +215,18 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         not_supported()
 
-    def sparql(self, prefixes: Dict[str, str], query: str) -> List[Resource]:
+    def sparql(self, query: str, context: Optional[Dict[str, Dict]],
+               prefixes: Optional[Dict[str, str]], debug: bool) -> List[Resource]:
+        qr = rewrite_sparql(query, context, prefixes) if context is not None else query
+        if debug:
+            print(*["Submitted query:", *qr.splitlines()], sep="\n   ")
+            print()
+        return self._sparql(qr)
+
+    def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # POLICY Resource _synchronized should be set to True.
-        # TODO These two operations might be abstracted here when other stores will be implemented.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
         not_supported()
 
     # Versioning.
@@ -253,3 +261,35 @@ class Store(ABC):
                             token: Optional[str]) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
+
+
+def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict[str, str]]
+                   ) -> str:
+    """Rewrite local property and type names from Model.template() as IRIs.
+
+    Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }}.
+    In the case of contexts using prefixed names, prefixes are added to the SPARQL query prologue.
+    """
+    ctx = {k: v["@id"] if isinstance(v, Dict) else v for k, v in context["@context"].items()}
+
+    def replace(match: Match) -> str:
+        m4 = match.group(4)
+        if m4 is None:
+            return match.group(0)
+        else:
+            v = ctx.get(m4, m4)
+            m5 = match.group(5)
+            return f"{v}{m5}"
+
+    g4 = r"([a-zA-Z_]+)"
+    g5 = r"([.;]?)"
+    g0 = rf"((?<=[\s,[(/|!^])((a|true|false)|{g4}){g5}(?=[\s,\])/|?*+]))"
+    g6 = r"(('[^']+')|('''[^\n\r]+''')|(\"[^\"]+\")|(\"\"\"[^\n\r]+\"\"\"))"
+    rx = rf"{g0}|{g6}"
+    qr = re.sub(rx, replace, query)
+
+    if prefixes is None:
+        return qr
+    else:
+        pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+        return f"{pfx}\n{qr}"

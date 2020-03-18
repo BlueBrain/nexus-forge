@@ -285,9 +285,11 @@ class KnowledgeGraphForge:
         return self._store.search(resolvers, *filters, **params)
 
     @catch
-    def sparql(self, query: str) -> List[Resource]:
+    def sparql(self, query: str, debug: bool = False) -> List[Resource]:
+        # FIXME DKE-168 (@context handling) will define the exact signature and logic, as agreed.
+        context = self._model.context()
         prefixes = self._model.prefixes(pretty=False)
-        return self._store.sparql(prefixes, query)
+        return self._store.sparql(query, context, prefixes, debug)
 
     @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
