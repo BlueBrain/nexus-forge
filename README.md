@@ -26,6 +26,9 @@ The architectural design choices:
 
 ## Installation
 
+It is recommended to use a virtual environment such as [venv](https://docs.python.org/3.7/library/venv.html) or 
+[conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html). 
+
 Stable version
 
 ```bash
@@ -46,7 +49,11 @@ pip install git+https://github.com/BlueBrain/kgforge
 
 ## Getting Started
 
-See in the directory `examples` for examples of usages, configurations, mappings.
+See in the directory `examples` for examples of usages, configurations, mappings. 
+
+Make sure that the `jupyter notebook|lab` is launched in the same virtual environment 
+where KGForge is installed. Alternatively, set up a specialized 
+[kernel](https://ipython.readthedocs.io/en/stable/install/kernel_install.html).
 
 ### User API
 
