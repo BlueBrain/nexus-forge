@@ -23,6 +23,7 @@ from urllib.parse import quote_plus
 import nexussdk as nexus
 import requests
 from requests import HTTPError
+from enum import Enum
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -35,7 +36,37 @@ from kgforge.core.commons.execution import run
 from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.stores.nexus.service import Service, BatchAction
+from kgforge.specializations.stores.nexus.service import Service, BatchAction, DEPRECATED_PROPERTY
+
+
+class CategoryDataType(Enum):
+    NUMBER = "number"
+    BOOLEAN = "boolean"
+    LITERAL = "literal"
+
+
+type_map = {
+    str: CategoryDataType.LITERAL,
+    bool:  CategoryDataType.BOOLEAN,
+    int: CategoryDataType.NUMBER,
+    float: CategoryDataType.NUMBER,
+    complex: CategoryDataType.NUMBER
+}
+
+format_type = {
+    CategoryDataType.NUMBER: lambda x: x,
+    CategoryDataType.LITERAL: lambda x: f"\"{x}\"",
+    CategoryDataType.BOOLEAN: lambda x: "true" if x is True else "false"
+}
+
+operator_map = {
+    "__lt__": "<",
+    "__le__": "<=",
+    "__eq__": "=",
+    "__ne__": "!=",
+    "__gt__": ">",
+    "__ge__": ">=",
+}
 
 
 class BlueBrainNexus(Store):
@@ -71,7 +102,7 @@ class BlueBrainNexus(Store):
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
                     context = self.model_context or self.context
-                    result.resource.context = context.iri or context.document["@context"]
+                    result.resource.context = context.iri if context.is_http_iri() else context.document["@context"]
                 self.service.synchronize_resource(
                     result.resource, result.response, self._register_many.__name__, True, True)
 
@@ -91,7 +122,6 @@ class BlueBrainNexus(Store):
                                               project_label=self.project, data=data,
                                               schema_id=schema_id)
         except nexus.HTTPError as e:
-
             raise RegistrationError(_error_message(e))
         else:
             resource.id = response['@id']
@@ -229,22 +259,51 @@ class BlueBrainNexus(Store):
 
     # Querying.
 
-    def _sparql(self, query: str) -> List[Resource]:
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/sparql-query",
-        }
-        url = f"{self.endpoint}/views/{self.organisation}/{self.project}"
-        service = f"{url}/nxv:defaultSparqlIndex/sparql"
+    def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
+
+        if self.model_context is None:
+            raise ValueError("context model missing")
+
+        debug = params.get("debug", False)
+        limit = params.get("limit", 100)
+        offset = params.get("offset", None)
+        deprecated = params.get("deprecated", False)
+        conditions = build_query_statements(self.model_context, filters)
+        conditions.insert(0, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
+        statements = "; ".join(conditions)
+
+        query = f"SELECT ?id WHERE {{ ?id {statements} }}"
+        resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
+        results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
+        resources = list()
+        for result in results:
+            resource = result.resource
+            try:
+                resource = self.service.to_resource(result.response)
+            except Exception as e:
+                self.service.synchronize_resource(
+                    resource, result.response, self.search.__name__, False, False)
+                raise ValueError(e)
+            finally:
+                self.service.synchronize_resource(
+                    resource, result.response, self.search.__name__, True, True)
+            resources.append(resource)
+        return resources
+
+    def _sparql(self, query: str, limit: int, offset: int = None) -> List[Resource]:
+        offset = "" if offset is None else f" OFFSET {offset}"
+        query = f"{query} LIMIT {limit}{offset}"
+
         try:
-            response = requests.post(service, data=query, headers=headers)
+            response = requests.post(
+                self.service.sparql_endpoint, data=query, headers=self.service.headers_sparql)
             response.raise_for_status()
         except Exception as e:
-            raise QueryingError(e)
+            raise QueryingError(_error_message(e))
         else:
-            returned = response.json()
-            return [Resource(**{k: v["value"] for k, v in x.items()})
-                    for x in returned["results"]["bindings"]]
+            data = response.json()
+            results = data["results"]["bindings"]
+            return [Resource(**{k: v["value"] for k, v in x.items()}) for x in results]
 
     # Utils.
 
@@ -270,8 +329,32 @@ def _error_message(error: HTTPError) -> str:
         return str(error)
 
 
+def build_query_statements(context: Context, *conditions) -> List:
+    statements = list()
+    filters = list()
+    for index, f in enumerate(*conditions):
+        value_type = type_map[type(f.value)]
+        property_path = "/".join(f.path)
+        try:
+            last_term = context.terms[f.path[-1]]
+        except KeyError:
+            last_term = ""
 
+        if f.path[-1] == "type" or last_term.type == "@id":
+            if f.operator == "__eq__":
+                statements.append(f"{property_path} {f.value}")
+            elif f.operator == "__ne__":
+                filters.append(f"{property_path} ?v{index} FILTER(?v{index} != {f.value})")
+            else:
+                raise NotImplementedError(f"operator '{f.operator}' is not supported in this query")
+        else:
+            value = format_type[value_type](f.value)
+            if value_type is CategoryDataType.LITERAL:
+                filters.append(f"{property_path} ?v{index} FILTER(?v{index} = {value})")
+                # filters.append(f"{property_path} ?v{index} FILTER regex(?v{index}, {value})")
+            else:
+                filters.append(
+                    f"{property_path} ?v{index} FILTER(?v{index} {operator_map[f.operator]} {value})")
 
-
-
+    return statements + filters
 

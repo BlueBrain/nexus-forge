@@ -110,7 +110,6 @@ class Service:
         self.sg = ShapesGraphWrapper(self.graph)
         self.shapes = self.sg.shapes
         self.class_to_shapes = self._build_shapes_map()
-        self.namespaces = {k: str(v) for k, v in self.graph.namespace_manager.namespaces()}
         self.types_shapes_map = {as_term(k): v for k, v in self.class_to_shapes.items()}
         self.context_cache = dict()
 

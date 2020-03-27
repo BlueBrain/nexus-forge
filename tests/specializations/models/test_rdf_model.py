@@ -93,18 +93,11 @@ TYPES_SCHEMAS_MAP = {
 @pytest.fixture()
 def namespaces_dict():
     return {
-        'xml': 'http://www.w3.org/XML/1998/namespace',
-        'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-        'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-        'xsd': 'http://www.w3.org/2001/XMLSchema#',
-        'prov': 'http://www.w3.org/ns/prov#',
-        'schema': 'http://schema.org/',
-        'dash': 'http://datashapes.org/dash#',
-        'ex': 'http://example.org/',
-        'sh': 'http://www.w3.org/ns/shacl#',
-        'shapes': 'http://www.example.com/',
-        'this': 'http://www.example.com/'
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "prov": "http://www.w3.org/ns/prov#",
+        "schema": "http://schema.org/"
     }
+
 
 
 @pytest.fixture()

@@ -22,12 +22,13 @@ import nexussdk
 import pytest
 from typing import Callable, Union, List
 
-
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
+from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
+from kgforge.core.wrappings.paths import Filter
+from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
@@ -41,14 +42,6 @@ NEXUS_PROJECT_CONTEXT = {"base": "http://data.net/", "vocab": "http://vocab.net/
 VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
 FILE_RESOURCE_MAPPING = os.sep.join((os.path.curdir, "tests", "data", "nexus-store",
                                      "file-to-resource-mapping.hjson"))
-
-#
-# @pytest.fixture
-# @mock.patch('nexussdk.projects.fetch', return_value=NEXUS_PROJECT_CONTEXT)
-# def nexus_store(nexus_patch):
-#     return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token=TOKEN,
-#                           file_resource_mapping=FILE_RESOURCE_MAPPING,
-#                           versioned_id_template=VERSIONED_TEMPLATE)
 
 
 @pytest.fixture
@@ -84,7 +77,8 @@ def store_metadata_value(metadata_data_compacted):
 
 @pytest.fixture
 def registered_building(building, model_context, store_metadata_value):
-    building.context = model_context.iri if model_context.is_http_iri() else model_context.document["@context"]
+    building.context = model_context.iri if model_context.is_http_iri() else model_context.document[
+        "@context"]
     if model_context.base:
         building.id = f"{model_context.base}{str(uuid4())}"
     else:
@@ -141,26 +135,89 @@ def test_freeze_fail(nexus_store: Store, nested_resource):
 def test_freeze_nested(nexus_store: Store, nested_registered_resource):
     nexus_store.versioned_id_template = "{x.id}?rev={x._store_metadata._rev}"
     nexus_store.freeze(nested_registered_resource)
-    do_recursive(check_frozen_id, nested_registered_resource)
+    do_recursive(assert_frozen_id, nested_registered_resource)
 
-#
-# @pytest.mark.parametrize("data, expected", [
-#     pytest.param(JSON_LD_1, RESOURCE_1, id="standard-json-ld"),
-#     pytest.param(JSON_LD_2, RESOURCE_2, id="no-context-"),
-#     pytest.param(JSON_LD_3, RESOURCE_3, id="local-context-list-1"),
-#     pytest.param(JSON_LD_5, RESOURCE_5, id="context-and-meta")
-# ])
-# def test_to_resource(data, expected):
-#     resource = to_resource(data)
-#     assert_equal(expected, resource), "resource is not as the expected"
-#
+
+def test_to_resource(nexus_store, registered_building, building_jsonld):
+    context = _merge_jsonld(registered_building.context, NEXUS_CONTEXT)
+    payload = building_jsonld(registered_building, "compacted", True, None)
+    payload["@context"] = context
+    result = nexus_store.service.to_resource(payload)
+    assert str(result) == str(registered_building)
+    assert getattr(result, "context") == registered_building.context
+    assert str(result._store_metadata) == str(registered_building._store_metadata)
+
+
+class TestQuerying:
+
+    @pytest.fixture
+    def context(self):
+        document = {
+            "@context": {
+                "contribution": {
+                    "@id": "https://neuroshapes.org/contribution",
+                    "@type": "@id"
+                },
+                "agent": {
+                    "@id": "http://www.w3.org/ns/prov#agent",
+                    "@type": "@id"
+                },
+                "Person": "http://schema.org/Person",
+                "address": "http://schema.org/address",
+                "name": "http://schema.org/name",
+                "postalCode": "http://schema.org/postalCode",
+                "streetAddress": "http://schema.org/streetAddress",
+                "deprecated": "https://bluebrain.github.io/nexus/vocabulary/deprecated"
+            }
+        }
+        return Context(document)
+
+    @pytest.mark.parametrize("filters,expected", [
+        pytest.param((Filter(["agent", "name"], "__eq__", "Allen Institute"),),
+                     ["agent/name ?v0 FILTER(?v0 = \"Allen Institute\")"],
+                     id="literal"),
+        pytest.param((Filter(["address", "postalCode"], "__lt__", 50070),),
+                     ["address/postalCode ?v0 FILTER(?v0 < 50070)"],
+                     id="number-lt"),
+        pytest.param((Filter(["address", "postalCode"], "__gt__", 50070),),
+                     ["address/postalCode ?v0 FILTER(?v0 > 50070)"],
+                     id="number-gt"),
+        pytest.param((Filter(["address", "postalCode"], "__ge__", 50070),),
+                     ["address/postalCode ?v0 FILTER(?v0 >= 50070)"],
+                     id="number-ge"),
+        pytest.param((Filter(["address", "postalCode"], "__le__", 50070),),
+                     ["address/postalCode ?v0 FILTER(?v0 <= 50070)"],
+                     id="number-le"),
+        pytest.param((Filter(["deprecated"], "__eq__", False),),
+                     ["deprecated ?v0 FILTER(?v0 = false)"],
+                     id="boolean-false"),
+        pytest.param((Filter(["deprecated"], "__eq__", True),),
+                     ["deprecated ?v0 FILTER(?v0 = true)"],
+                     id="boolean-true"),
+        pytest.param((Filter(["type"], "__eq__", "Person"),),
+                     ["type Person"],
+                     id="iri-eq"),
+        pytest.param((Filter(["type"], "__ne__", "Person"),),
+                     ["type ?v0 FILTER(?v0 != Person)"],
+                     id="iri-ne"),
+        pytest.param((Filter(["type"], "__ne__", "Person"), Filter(["name"], "__eq__", "toto")),
+                     ["type ?v0 FILTER(?v0 != Person)",
+                      "name ?v1 FILTER(?v1 = \"toto\")"],
+                     id="iri-ne-name-eq")
+    ])
+    def test_filter_to_query_statements(self, context, filters, expected):
+        statements = build_query_statements(context, filters)
+        assert statements == expected
+
+
+# Helpers
 
 def assert_equal(first, second):
     assert str(first) == str(second)
     assert getattr(first, "_context", None) == getattr(first, "_context", None)
 
 
-def check_frozen_id(resource: Resource):
+def assert_frozen_id(resource: Resource):
     assert resource.id.endswith('?rev=' + str(resource._store_metadata['_rev']))
 
 
@@ -198,13 +255,3 @@ def do_recursive(fun: Callable, data: Union[Resource, List[Resource]], *args) ->
                 do_recursive(fun, v, *args)
     else:
         raise TypeError("not a Resource nor a list of Resource")
-
-
-def test_to_resource(nexus_store, registered_building, building_jsonld):
-    context = _merge_jsonld(registered_building.context, NEXUS_CONTEXT)
-    payload = building_jsonld(registered_building, "compacted", True, None)
-    payload["@context"] = context
-    result = nexus_store.service.to_resource(payload)
-    assert str(result) == str(registered_building)
-    assert getattr(result, "context") == registered_building.context
-    assert str(result._store_metadata) == str(registered_building._store_metadata)

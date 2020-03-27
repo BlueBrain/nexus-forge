@@ -15,7 +15,7 @@
 import json
 from copy import deepcopy
 from typing import Union, Dict, List, Tuple, Optional, Callable
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 
 from enum import Enum
 from pyld import jsonld
@@ -98,7 +98,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         try:
             document = recursive_resolve(resource.context, context_resolver)
             context = Context(document, iri)
-        except NotSupportedError:
+        except (HTTPError, URLError, NotSupportedError):
             try:
                 context = Context(resource.context, iri)
             except URLError:
