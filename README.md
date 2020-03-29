@@ -22,7 +22,7 @@ schema** like [Neuroshapes](https://github.com/INCF/neuroshapes).
 The architectural design choices:
  1) be generic on where it brings **flexibility** for adaptation to multiple ecosystems,
  2) be opinionated on where it simplifies the complexity,
- 3) have strong separation of concern with delegation to the lowest level for **modularity**.
+ 3) have a strong separation of concern with delegation to the lowest level for **modularity**.
 
 ## Installation
 
@@ -35,7 +35,7 @@ Stable version
 pip install kgforge
 ```
 
-Upgrade to latest version
+Upgrade to the latest version
 
 ```bash
 pip install --upgrade kgforge
@@ -51,23 +51,34 @@ pip install git+https://github.com/BlueBrain/kgforge
 
 See in the directory `examples` for examples of usages, configurations, mappings. 
 
-Make sure that the `jupyter notebook|lab` is launched in the same virtual environment 
-where KGForge is installed. Alternatively, set up a specialized 
+Make sure that the `jupyter notebook|lab` is launched in the same virtual environment where KGForge is installed. Alternatively, set up a specialized 
 [kernel](https://ipython.readthedocs.io/en/stable/install/kernel_install.html).
 
 ### User API
 
-Forge 
+**Forge** 
+
+The forge is the main entry point to the features described next.
 
 ```bash
 KnowledgeGraphForge(configuration: Union[str, Dict], **kwargs)
 ```
 
-Resources
+**Resources**
+
+A _Resource_ is an identifiable data object with a set of properties. It is mainly identified by its _Type_, 
+which is a concept, such as, Person, Contributor, Organisation, Experiment, etc. Automatically recognized properties of a Resource are: `id`, `type` and `context`. 
 
 ```bash
 Resource(**properties)
+```
 
+**Dataset** 
+
+A _Dataset_ is a specialization of a Resource that can have Files (or distributions) associated. It captures relevant metadata 
+concerning its provenance.
+ 
+```
 Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
   add_parts(resources: List[Resource], versioned: bool = True) -> None
   add_distribution(path: str) -> None
@@ -79,28 +90,39 @@ Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
   download(source: str, path: str) -> None
 ```
 
-Modeling
+**Modeling**
+
+To create _Resources_, the user can make use of Modeling functions. The user can explore available _Types_ and the properties that describe them via _Templates_. Resources that are created using a template can be validated. 
 
 ```bash
+context() -> Optional[Dict]
 prefixes(pretty: bool = True) -> Optional[Dict[str, str]]
 types(pretty: bool = True) -> Optional[List[str]]
 template(type: str, only_required: bool = False) -> None
 validate(data: Union[Resource, List[Resource]]) -> None
 ```
 
-Resolving
+**Resolving**
+
+Resolvers are helpers to find commonly used resources that one may want to link to. For instance, one could have a set of pre-defined identifiers of Authors, and to make several references to the same Authors, a resolver can be used.
 
 ```bash
 resolve(text: str, scope: Optional[str] = None, resolver: Optional[str] = None, target: Optional[str] = None, type: Optional[str] = None, strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH) -> Optional[Union[Resource, List[Resource]]]
 ```
 
-Formatting
+**Formatting**
+
+A preconfigured set of string formats can be provided to ensure the consistency of data.
 
 ```bash
 format(what: str, *args) -> str
 ```
 
-Mapping
+**Mapping**
+
+Mappings are pre-defined configuration files that encode the logic on how to transform a specific data source into Resources
+that follow a template of a targeted Type. 
+For instance, when different versions of the same dataset is regularly integrated, one can make use of Mappers to specify how the coming data is going to be integrated using the corresponding typed _Resource_. 
 
 ```bash
 sources(pretty: bool = True) -> Optional[List[str]]
@@ -109,13 +131,17 @@ mapping(entity: str, source: str, type: Callable = DictionaryMapping) -> Mapping
 map(data: Any, mapping: Union[Mapping, List[Mapping]], mapper: Callable = DictionaryMapper, na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
 ```
 
-Reshaping
+**Reshaping**
+
+Reshaping allows trimming Resources by a specific set of properties.
 
 ```bash
 reshape(data: Union[Resource, List[Resource]], keep: List[str], versioned: bool = False) -> Union[Resource, List[Resource]]
 ```
 
-Querying
+**Querying**
+
+To retrieve Resources from the Store, the following functions are available.
 
 ```bash
 retrieve(id: str, version: Optional[Union[int, str]] = None) -> Resource:
@@ -125,7 +151,9 @@ sparql(query: str) -> List[Resource]
 download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
 ```
 
-Storing
+**Storing**
+
+Storing allows us to persist and manage Resources in the configured Store.
 
 ```bash
 register(data: Union[Resource, List[Resource]]) -> None
@@ -133,20 +161,26 @@ update(data: Union[Resource, List[Resource]]) -> None
 deprecate(data: Union[Resource, List[Resource]]) -> None
 ```
 
-Versioning
+**Versioning**
+
+If the store allows it the user can create versions of Resources.
 
 ```bash
 tag(data: Union[Resource, List[Resource]], value: str) -> None
 freeze(data: Union[Resource, List[Resource]]) -> None
 ```
 
-Files handling
+**Files handling**
+
+A resource can have files attached. This is a lower level of _Dataset_ usage. 
 
 ```bash
 attach(path: str) -> LazyAction
 ```
 
-Converting
+**Converting**
+
+To use Resources with other libraries such as pandas, different data conversion functions are available.
 
 ```bash
 as_json(data: Union[Resource, List[Resource]], expanded: bool = False, store_metadata: bool = False) -> Union[Dict, List[Dict]]
@@ -161,9 +195,11 @@ from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str
 
 ### Internals
 
-**Archetypes**
+The framework provides a set of archetypes that allows the extension of the different _Forge_ modules to work with different technologies. These are described next.
 
 Mapper
+
+The Mapper provides the interface to a technology to be used to do the transformation of data.
 
 ```bash
 Mapper(forge: Optional["KnowledgeGraphForge"] = None)
@@ -172,6 +208,8 @@ Mapper(forge: Optional["KnowledgeGraphForge"] = None)
 
 Mapping
 
+The mapping interface provides the interfaces to load and serialize mapping files.
+
 ```bash
 Mapping(mapping: str)
   load(source: str) -> Mapping
@@ -179,6 +217,8 @@ Mapping(mapping: str)
 ```
 
 Model
+
+The Model provides the interface for data modeling technologies to be implemented.
 
 ```bash
 Model(source: str, **source_config)
@@ -200,6 +240,8 @@ Resolver(source: str, targets: List[Dict[str, str]], result_resource_mapping: st
 
 Store
 
+The Store provides the interface of storage for different technologies to be implemented.
+
 ```bash
 Store(endpoint: Optional[str] = None, bucket: Optional[str] = None, token: Optional[str] = None, versioned_id_template: Optional[str] = None, file_resource_mapping: Optional[str] = None))
   register(data: Union[Resource, List[Resource]]) -> None
@@ -216,45 +258,39 @@ Store(endpoint: Optional[str] = None, bucket: Optional[str] = None, token: Optio
 
 **Archetype specializations**
 
+The following implementation of the above archetypes are (or will) be available as part of this repository. 
+
 Mappers
 
-```bash
-DictionaryMapper
-[TODO] R2RmlMapper
-[TODO] ResourceMapper
-[TODO] TableMapper
-```
+* DictionaryMapper
+* [TODO] R2RmlMapper
+* [TODO] ResourceMapper
+* [TODO] TableMapper
+
 
 Mappings
 
-```bash
-DictionaryMapping
-```
+* DictionaryMapping
 
 Models
 
-```bash
-DemoModel
-[Work In Progress] Neuroshapes
-```
+* DemoModel
+* RdfModel: currently supports [SHACL](https://www.w3.org/TR/shacl/) shapes.
 
 Resolvers
 
-```bash
-DemoResolver
-```
+* DemoResolver
 
 Stores
 
-```bash
-DemoStore
-[TODO] RdfLibGraph
-[Work In Progress] BlueBrainNexus
-```
+* DemoStore
+* [BlueBrainNexus](https://github.com/BlueBrain/nexus)
+* [TODO] RdfLibGraph 
+
 
 ## Contributing
 
-Please add `@pafonta` as reviewer if your Pull Request modifies `core`.
+Please add `@pafonta` as a reviewer if your Pull Request modifies `core`.
 
 Setup
 

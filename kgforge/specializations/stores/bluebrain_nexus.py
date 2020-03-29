@@ -70,7 +70,8 @@ class BlueBrainNexus(Store):
             else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
-                    result.resource.context = self.context.iri or self.context.document["@context"]
+                    context = self.model_context or self.context
+                    result.resource.context = context.iri or context.document["@context"]
                 self.service.synchronize_resource(
                     result.resource, result.response, self._register_many.__name__, True, True)
 

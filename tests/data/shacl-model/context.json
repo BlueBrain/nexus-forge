@@ -5,8 +5,11 @@
     "Activity": {
       "@id": "prov:Activity"
     },
-    "Address": {
-      "@id": "schema:Address"
+    "PostalAddress": {
+      "@id": "schema:PostalAddress"
+    },
+    "Association": {
+      "@id": "schema:Association"
     },
     "Building": {
       "@id": "schema:Building"
@@ -19,6 +22,9 @@
     },
     "address": {
       "@id": "schema:address"
+    },
+    "agent": {
+      "@id": "schema:agent"
     },
     "birthDate": {
       "@id": "schema:birthDate"

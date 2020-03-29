@@ -8,6 +8,15 @@
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
 
 
+
+
+shapes:AssociationShape
+    a              sh:NodeShape ;
+    sh:targetClass schema:Association;
+    sh:nodeKind    sh:IRI ;
+    sh:property    [ sh:path schema:agent ;
+                     sh:node shapes:PersonShape ] .
+
 shapes:PersonShape
     a              sh:NodeShape ;
     sh:targetClass schema:Person ;
@@ -27,9 +36,9 @@ shapes:PersonShape
                        sh:datatype xsd:date ;
                        sh:maxCount 1 ; ]
                      [ sh:path schema:address ;
-                       sh:node schema:Address ; ] ) .
+                       sh:node schema:PostalAddress ; ] ) .
 
-schema:Address
+schema:PostalAddress
     a           sh:NodeShape, rdfs:Class ;
     sh:closed   true ;
     sh:nodeKind sh:BlankNode ;

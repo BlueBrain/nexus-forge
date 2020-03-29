@@ -24,7 +24,7 @@ PERSON = {
     "type": "Person",
     "address":
         {
-            "type": "Address",
+            "type": "PostalAddress",
             "postalCode": "",
             "streetAddress": "",
         },
@@ -82,10 +82,11 @@ BUILDING_MANDATORY = {k: v for k, v in BUILDING.items() if k in ["id", "type", "
 
 TYPES_SCHEMAS_MAP = {
     "Activity": "http://www.example.com/ActivityShape",
-    "Address": "http://schema.org/Address",
+    "Association": "http://www.example.com/AssociationShape",
     "Building": "http://www.example.com/BuildingShape",
     "Employee": "http://www.example.com/EmployeeShape",
-    "Person": "http://www.example.com/PersonShape"
+    "Person": "http://www.example.com/PersonShape",
+    "PostalAddress": "http://schema.org/PostalAddress",
 }
 
 
