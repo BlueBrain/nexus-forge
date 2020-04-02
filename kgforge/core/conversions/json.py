@@ -12,42 +12,44 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Any, Dict, List, Union
+import json
+from typing import Any, Dict, List, Union, Optional, Callable
+
+import hjson
 
 from kgforge.core import Resource
-from kgforge.core.conversions.jsonld import as_jsonld
+from kgforge.core.commons.attributes import sort_attrs
+from kgforge.core.commons.context import Context
+from kgforge.core.conversions.rdf import as_jsonld
+from kgforge.core.resource import encode
 
 
-def as_json(data: Union[Resource, List[Resource]], expanded: bool,
-            store_metadata: bool) -> Union[Dict, List[Dict]]:
-    # FIXME To be refactored after the '@' issue fix. DKE-94.
-    # FIXME To be refactored after the implementation of the RDF native conversion. DKE-130.
-    def del_context(x: Dict) -> None:
-        if "@context" in x:
-            del x["@context"]
-
+def as_json(data: Union[Resource, List[Resource]], expanded: bool, store_metadata: bool,
+            model_context: Optional[Context], metadata_context: Optional[Context],
+            context_resolver: Optional[Callable]) -> Union[Dict, List[Dict]]:
     if expanded:
-        # FIXME Not implemented yet. DKE-130.
-        return as_jsonld(data, False, store_metadata)
+        return as_jsonld(data, "expanded", store_metadata, model_context=model_context,
+                         metadata_context=metadata_context, context_resolver=context_resolver)
     else:
-        data = as_jsonld(data, True, store_metadata)
-        if isinstance(data, List):
-            for x in data:
-                del_context(x)
+        if isinstance(data, Resource):
+            return _as_json(data, store_metadata)
         else:
-            del_context(data)
-        # FIXME Hot fix to have DemoStore working before having the proper fix. DKE-130.
-        if "@id" in data:
-            data["id"] = data.pop("@id")
-        if "@type" in data:
-            data["type"] = data.pop("@type")
-        return data
+            return [_as_json(x, store_metadata) for x in data]
 
 
 def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]
               ) -> Union[Resource, List[Resource]]:
     nas = na if isinstance(na, List) else [na]
     return _from_json(data, nas)
+
+
+def _as_json(resource: Resource, store_metadata: bool) -> Dict:
+    data = json.loads(hjson.dumpsJSON(resource, default=encode, item_sort_key=sort_attrs))
+    if "context" in data:
+        data.pop("context")
+    if store_metadata is True and resource._store_metadata:
+        data.update(json.loads(hjson.dumpsJSON(resource._store_metadata, item_sort_key=sort_attrs)))
+    return data
 
 
 def _from_json(data: Union[Any, List[Any]], na: List[Any]) -> Any:

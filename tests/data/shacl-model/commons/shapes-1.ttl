@@ -2,17 +2,17 @@
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <http://schema.org/> .
+@prefix ex:     <http://example.org/> .
 @prefix sh:     <http://www.w3.org/ns/shacl#> .
 @prefix shapes: <http://www.example.com/> .
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
-@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
 
 
 shapes:PersonShape
     a              sh:NodeShape ;
     sh:targetClass schema:Person ;
     sh:nodeKind    sh:IRI ;
-    sh:and         ( [ sh:xone ( [ sh:path     foaf:name ;
+    sh:and         ( [ sh:xone ( [ sh:path     schema:name ;
                                    sh:minCount 1 ; ]
                                  [ sh:path     schema:givenName ;
                                    sh:minCount 1 ; ] ) ]
@@ -42,18 +42,18 @@ schema:Address
 
 shapes:EmployeeShape
     a              sh:NodeShape ;
-    sh:targetClass schema:Employee ;
+    sh:targetClass ex:Employee ;
     sh:nodeKind    sh:IRI ;
     sh:and         ( [ sh:node shapes:PersonShape ]
                      [ sh:path     schema:startDate ;
                        sh:datatype xsd:date ;
                        sh:maxCount 1 ; ]
-                     [ sh:path  schema:supervisor ;
-                       sh:class schema:Employee ; ]
-                     [ sh:path schema:founder ;
+                     [ sh:path  schema:colleague ;
+                       sh:class schema:Person ; ]
+                     [ sh:path schema:worksFor ;
                        sh:or   ( [ sh:class schema:Person ]
                                  [ sh:class schema:Organization ] ) ; ]
-                     [ sh:or ( [ sh:path     foaf:contractor ;
+                     [ sh:or ( [ sh:path     schema:contractor ;
                                  sh:class    schema:Organization ;
                                  sh:minCount 1 ; ]
                                [ sh:path     schema:department ;

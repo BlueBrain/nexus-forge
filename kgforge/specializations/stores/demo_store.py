@@ -20,6 +20,7 @@ from uuid import uuid4
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver, Store
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
 from kgforge.core.conversions.json import as_json, from_json
@@ -31,13 +32,16 @@ class DemoStore(Store):
 
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None) -> None:
-        super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping)
+                 file_resource_mapping: Optional[str] = None,
+                 model_context: Optional[Context] = None) -> None:
+        super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
+                         model_context)
 
     # [C]RUD.
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        data = as_json(resource, expanded=False, store_metadata=False)
+        data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
+                       metadata_context=None, context_resolver=None)
         try:
             record = self.service.create(data)
         except StoreLibrary.RecordExists:
@@ -59,7 +63,8 @@ class DemoStore(Store):
     # CR[U]D.
 
     def _update_one(self, resource: Resource) -> None:
-        data = as_json(resource, expanded=False, store_metadata=False)
+        data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
+                       metadata_context=None, context_resolver=None)
         try:
             record = self.service.update(data)
         except StoreLibrary.RecordMissing:
@@ -95,7 +100,8 @@ class DemoStore(Store):
 
     # Querying.
 
-    def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
+    def search(self, context: Context, resolvers: Optional[List[Resolver]],
+               *filters, **params) -> List[Resource]:
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.

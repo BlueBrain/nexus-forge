@@ -70,6 +70,10 @@
           "minCount": 1
         },
         {
+          "path": "schema:image",
+          "nodeKind": "sh:IRI"
+        },
+        {
           "path": "schema:description",
           "datatype": "xsd:string",
           "minCount": 1

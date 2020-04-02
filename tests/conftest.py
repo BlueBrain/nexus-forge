@@ -12,13 +12,17 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Callable, List, Union
+import os
+from typing import Callable, List, Union, Dict, Optional
 from uuid import uuid4
 
+import pytest
 from pytest_bdd import given, parsers, then, when
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import Action
+from kgforge.core.commons.context import Context
+from kgforge.core.conversions.rdf import _merge_jsonld, Form
 
 
 def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
@@ -125,3 +129,142 @@ def check_action_success(data, value):
 def check_action_error(data, value):
     def fun(x): assert str(x._last_action.error) == value
     do(fun, data)
+
+
+# Fixtures for Resource to JSON-LD conversion and vice versa
+
+@pytest.fixture
+def custom_context():
+    return {
+        "@context": {
+            "@base": "http://example.org/",
+            "Person": "http://xmlns.com/foaf/0.1/Person",
+            "name": "http://xmlns.com/foaf/0.1/name",
+        }
+    }
+
+
+@pytest.fixture
+def metadata_context() -> Context:
+    document = {
+        "deprecated": "https://store.net/vocabulary/deprecated",
+        "version": "https://store.net/vocabulary/version"
+    }
+    return Context(document, "http://store.org/metadata.json")
+
+
+@pytest.fixture
+def metadata_data_compacted():
+    return {
+        "deprecated": False,
+        "version": 1
+    }
+
+
+@pytest.fixture
+def metadata_data_expanded():
+    return {
+        "https://store.net/vocabulary/deprecated": False,
+        "https://store.net/vocabulary/version": 1
+    }
+
+
+@pytest.fixture
+def person(custom_context):
+    return Resource(context=custom_context, type="Person", name="Jami Booth")
+
+
+@pytest.fixture
+def organization(registered_person_custom_context, store_metadata_value):
+    contribution = Resource(type="Organization", name="Reichel Inc",
+                            founder=registered_person_custom_context)
+    return contribution
+
+
+@pytest.fixture
+def building():
+    type_ = "Building"
+    name = "The Empire State Building"
+    description = "The Empire State Building is a 102-story landmark in New York City."
+    image = "http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg"
+    geo = {"latitude": "40.75"}
+    return Resource(type=type_, name=name, description=description, image=image, geo=geo)
+
+
+@pytest.fixture(scope="session")
+def context_file_path():
+    return os.sep.join((os.path.abspath("."), "tests/data/shacl-model/context.json"))
+
+
+@pytest.fixture(scope="session")
+def context_iri_file(context_file_path):
+    return f"file://{context_file_path}"
+
+
+@pytest.fixture(scope="session")
+def context_iri():
+    return f"http://example.org/context"
+
+
+@pytest.fixture(scope="session")
+def model_context(context_iri_file) -> Context:
+    return Context(context_iri_file, context_iri_file)
+
+
+@pytest.fixture
+def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_expanded):
+    def _make_jsonld_expanded(resource, store_metadata, context):
+        data = dict()
+        if hasattr(resource, "id"):
+            data["@id"] = resource.id
+        ctx = Context(resource.context) if hasattr(resource, "context") else Context(context)
+        latitude_term = ctx.terms.get("latitude")
+        if latitude_term.type:
+            latitude_node = {
+                "@type": latitude_term.type,
+                "@value": resource.geo["latitude"]
+            }
+        else:
+            latitude_node = resource.geo["latitude"]
+        geo_expanded = {
+            latitude_term.id: latitude_node
+        }
+        data.update({
+            "@type": ctx.expand(resource.type),
+            ctx.expand("description"): resource.description,
+            ctx.expand("geo"): geo_expanded,
+            ctx.expand("image"): {"@id": resource.image},
+            ctx.expand("name"): resource.name
+        })
+        if store_metadata and resource._store_metadata is not None:
+            data.update(metadata_data_expanded)
+        return data
+
+    def _make_jsonld_compacted(resource, store_metadata, context):
+        data = dict()
+        data_context = resource.context if hasattr(resource, "context") else context
+        if store_metadata and resource._store_metadata is not None:
+            metadata_context_output = metadata_context.iri if metadata_context.is_http_iri() else metadata_context.document["@context"]
+            data["@context"] = _merge_jsonld(data_context, metadata_context_output)
+        else:
+            data["@context"] = data_context
+        if hasattr(resource, "id"):
+            data["@id"] = resource.id
+        data.update({
+            "@type": resource.type,
+            "description": resource.description,
+            "geo": resource.geo,
+            "image": resource.image,
+            "name": resource.name
+        })
+        if store_metadata and resource._store_metadata is not None:
+            data.update(metadata_data_compacted)
+        return data
+
+    def _make_jsonld(rsrc: Resource, form: str, store_metadata: bool,
+                     context: Optional[Union[Dict, List, str]]):
+        if form is Form.COMPACTED.value:
+            return _make_jsonld_compacted(rsrc, store_metadata, context)
+        elif form is Form.EXPANDED.value:
+            return _make_jsonld_expanded(rsrc, store_metadata, context)
+    return _make_jsonld

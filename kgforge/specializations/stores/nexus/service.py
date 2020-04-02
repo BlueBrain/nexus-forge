@@ -15,9 +15,12 @@
 import asyncio
 import json
 import re
+from asyncio import Task
 from collections import namedtuple
+from copy import deepcopy
 from enum import Enum
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Union
+from urllib.error import URLError
 from urllib.parse import quote_plus
 
 import nest_asyncio
@@ -25,7 +28,10 @@ import nexussdk as nexus
 from aiohttp import ClientSession, hdrs
 
 from kgforge.core import Resource
-from kgforge.core.conversions.jsonld import find_in_context, as_jsonld
+from kgforge.core.commons.actions import Action, collect_lazy_actions, execute_lazy_actions
+from kgforge.core.commons.context import Context
+from kgforge.core.conversions.rdf import as_jsonld, _from_jsonld_one, _remove_ld_keys
+from kgforge.core.wrappings.dict import wrap_dict
 
 
 class BatchAction(Enum):
@@ -41,18 +47,23 @@ class BatchAction(Enum):
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
 BatchResults = List[BatchResult]
 
-# FIXME Should use Nexus namespace. DKE-130.
-METADATA_FIELDS = ("_storage", "_self", "_constrainedBy", "_project", "_rev", "_deprecated",
-                   "_createdAt", "_createdBy", "_updatedAt", "_updatedBy", "_incoming", "_outgoing")
+NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
+NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
 
 
 class Service:
 
-    def __init__(self, endpoint: str, org: str, prj: str, token: str, max_connections: int):
+    def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
+                 max_connections: int):
 
         nexus.config.set_environment(endpoint)
         nexus.config.set_token(token)
-        self.project_context = self.get_project_context(org, prj)
+        self.organisation = org
+        self.project = prj
+        self.model_context = model_context
+        self.context = Context(self.get_project_context())
+        self.context_cache: Dict = dict()
+        self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
         self.max_connections = max_connections
         self.headers = {
             "Authorization": "Bearer " + token,
@@ -64,14 +75,30 @@ class Service:
         # This async to work on jupyter notebooks
         nest_asyncio.apply()
 
-    @classmethod
-    def get_project_context(cls, organisation: str, project: str) -> Dict:
-        project_data = nexus.projects.fetch(organisation, project)
+    def get_project_context(self) -> Dict:
+        project_data = nexus.projects.fetch(self.organisation, self.project)
         context = {
             "@base": project_data["base"],
             "@vocab": project_data["vocab"]
         }
         return context
+
+    def resolve_context(self, iri: str) -> Dict:
+        if iri in self.context_cache:
+            return self.context_cache[iri]
+        try:
+            resource = nexus.resources.fetch(self.organisation, self.project, iri)
+        except nexus.HTTPError:
+            try:
+                context = Context(iri)
+            except URLError:
+                raise ValueError(f"{iri} is not resolvable")
+            else:
+                document = context.document["@context"]
+        else:
+            document = json.loads(json.dumps(resource["@context"]))
+        self.context_cache.update({iri: document})
+        return document
 
     def batch_request(self, resources: List[Resource], action: BatchAction, callback: Callable,
                       error_type: Callable, **kwargs) -> (BatchResults, BatchResults):
@@ -80,7 +107,10 @@ class Service:
             futures = []
             for resource in data:
                 if batch_action == batch_action.CREATE:
-                    payload = as_jsonld(resource, True, False)
+                    context = self.model_context or self.context
+                    payload = as_jsonld(resource, "compacted", False,
+                                        model_context=context, metadata_context=None,
+                                        context_resolver=self.resolve_context)
                     schema_id = kwargs.get("schema_id")
                     schema_id = "_" if schema_id is None else quote_plus(schema_id)
                     url = f"{self.url_resources}/{schema_id}"
@@ -91,7 +121,10 @@ class Service:
                 if batch_action == batch_action.UPDATE:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
                     params = {"rev": resource._store_metadata._rev}
-                    payload = as_jsonld(resource, True, False)
+                    payload = as_jsonld(resource, "compacted", False,
+                                        model_context=self.model_context,
+                                        metadata_context=None,
+                                        context_resolver=self.resolve_context)
                     prepared_request = asyncio.create_task(
                         queue(hdrs.METH_PUT, semaphore, session, url, resource, 200, error,
                               payload=payload, params=params))
@@ -138,7 +171,7 @@ class Service:
                     content = await response.json()
                     if response.status == success_code:
                         if method is hdrs.METH_GET:
-                            resource = to_resource(content)
+                            resource = self.to_resource(content)
                         return BatchResult(resource, content)
                     else:
                         if method is hdrs.METH_GET:
@@ -157,33 +190,92 @@ class Service:
 
         asyncio.run(dispatch_action())
 
+    def sync_metadata(self, resource: Resource, result: Dict) -> None:
+        metadata = {"id": resource.id}
+        keys = sorted(self.metadata_context.terms.keys())
+        only_meta = {k: v for k, v in result.items() if k in keys}
+        metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
+        resource._store_metadata = wrap_dict(metadata)
 
-def to_resource(data: Dict) -> Resource:
-    # FIXME: ideally a rdf-native solution
-    def create_resource(dictionary: dict, ctx_base: str) -> Resource:
-        rec = Resource()
-        if "@id" in dictionary:
-            rec.id = f"{ctx_base}{dictionary.pop('@id')}" if ctx_base else dictionary.pop(
-                "@id")
-        if "@type" in dictionary:
-            rec.type = dictionary.pop("@type")
-        for k, v in dictionary.items():
-            if not re.match(r"^_|@", k):
-                # TODO: use nexus namespace to properly identify metadata
-                if isinstance(v, dict):
-                    setattr(rec, k, create_resource(v, ctx_base))
-                elif isinstance(v, list):
-                    setattr(rec, k,
-                            [create_resource(item, ctx_base) if isinstance(item,
-                                                                           dict) else item
-                             for item in v])
-                else:
-                    setattr(rec, k, v)
-        return rec
+    def synchronize_resource(self, resource: Resource, response: Union[Exception, Dict],
+                             action_name: str, succeeded: bool, synchronized: bool) -> None:
+        if succeeded:
+            action = Action(action_name, succeeded, None)
+            self.sync_metadata(resource, response)
+        else:
+            action = Action(action_name, succeeded, response)
+        resource._last_action = action
+        resource._synchronized = synchronized
 
-    context = data.pop("@context", None)
-    base = find_in_context(context, "@base") if context is not None else None
-    resource = create_resource(data, base)
-    if context is not None:
-        resource._context = context
-    return resource
+    def default_callback(self, fun_name: str) -> Callable:
+        def callback(task: Task):
+            result = task.result()
+            if isinstance(result.response, Exception):
+                self.synchronize_resource(
+                    result.resource, result.response, fun_name, False, False)
+            else:
+                self.synchronize_resource(
+                    result.resource, result.response, fun_name, True, True)
+        return callback
+
+    def verify(self, resources:  List[Resource], function_name, exception: Callable,
+               id_required: bool, required_synchronized: bool, execute_actions: bool) -> List[Resource]:
+        valid = list()
+        for resource in resources:
+            if id_required and not hasattr(resource, "id"):
+                error = exception("resource should have an id")
+                self.synchronize_resource(resource, error, function_name, False, False)
+                continue
+            if required_synchronized is not None:
+                synchronized = resource._synchronized
+                if synchronized is not required_synchronized:
+                    be_or_not_be = "be" if required_synchronized is True else "not be"
+                    error = exception(f"resource should {be_or_not_be} synchronized")
+                    self.synchronize_resource(resource, error, function_name, False, False)
+                    continue
+            if execute_actions:
+                lazy_actions = collect_lazy_actions(resource)
+                if lazy_actions is not None:
+                    try:
+                        execute_lazy_actions(resource, lazy_actions)
+                    except Exception as e:
+                        self.synchronize_resource(
+                            resource, exception(e), function_name, False, False)
+                        continue
+            valid.append(resource)
+        return valid
+
+    def to_resource(self, payload: Dict) -> Resource:
+        data_context = deepcopy(payload["@context"])
+        data_context.remove(NEXUS_CONTEXT)
+        data_context = data_context[0] if len(data_context) == 1 else data_context
+        meta_keys = self.metadata_context.terms.keys()
+        metadata = dict()
+        data = dict()
+        for k, v in payload.items():
+            if k in meta_keys:
+                metadata[k] = v
+            else:
+                data[k] = v
+
+        # try to resolve the context
+        def resolve(ctx):
+            document = dict()
+            if isinstance(ctx, list):
+                for x in ctx:
+                    doc = resolve(x)
+                    document.update(doc)
+            elif isinstance(ctx, str):
+                return self.resolve_context(ctx)
+            elif isinstance(ctx, dict):
+                document.update(ctx)
+            return document
+
+        resolved_ctx = resolve(data_context)
+        data["@context"] = resolved_ctx
+        resource = _from_jsonld_one(data)
+        if isinstance(data_context, str):
+            resource.context = data_context
+        if len(metadata) > 0:
+            self.sync_metadata(resource, metadata)
+        return resource

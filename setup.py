@@ -48,8 +48,9 @@ setup(
         "nexus-sdk",
         "aiohttp",
         "nest_asyncio",
-        "rdflib",
-        "pyshacl"
+        "pyLD",
+        "pyshacl",
+        "rdflib-jsonld"
     ],
     extras_require={
         "dev": ["tox", "pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],

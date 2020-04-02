@@ -1,0 +1,350 @@
+#
+# Knowledge Graph Forge is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Knowledge Graph Forge is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
+# General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
+
+import json
+from copy import deepcopy
+from typing import Union, Dict, List, Tuple, Optional, Callable
+from urllib.error import URLError
+
+from enum import Enum
+from pyld import jsonld
+from rdflib import Graph
+
+from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.context import Context
+from kgforge.core.commons.exceptions import NotSupportedError
+from kgforge.core.commons.execution import dispatch
+from kgforge.core.resource import Resource
+
+
+class Form(Enum):
+    EXPANDED = "expanded"
+    COMPACTED = "compacted"
+
+
+def as_graph(data: Union[Resource, List[Resource]], store_metadata: bool,
+             model_context: Optional[Context], store_context: Optional[Context],
+             metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
+    raise NotImplementedError("not implemented yet")
+
+
+def as_jsonld(data: Union[Resource, List[Resource]], form: str, store_metadata: bool,
+              model_context: Optional[Context], metadata_context: Optional[Context],
+              context_resolver: Optional[Callable]) -> Union[Dict, List[Dict]]:
+    try:
+        valid_form = Form(form.lower())
+    except ValueError:
+        supported_forms = tuple(item.value for item in Form)
+        raise NotSupportedError(f"supported serialization forms are {supported_forms}")
+
+    return dispatch(
+        data, _as_jsonld_many, _as_jsonld_one, valid_form, store_metadata, model_context,
+        metadata_context, context_resolver)
+
+
+def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
+    if isinstance(data, List) and all(isinstance(x, Dict) for x in data):
+        return _from_jsonld_many(data)
+    elif isinstance(data, Dict):
+        return _from_jsonld_one(data)
+    else:
+        raise TypeError("not a dictionary nor a list of dictionaries")
+
+
+def from_graph(data: Graph) -> Union[Resource, List[Resource]]:
+    raise NotImplementedError("not implemented yet")
+
+
+def _from_jsonld_many(dataset: List[Dict]) -> List[Resource]:
+    return [_from_jsonld_one(data) for data in dataset]
+
+
+def _from_jsonld_one(data: Dict) -> Resource:
+    if "@context" in data:
+        try:
+            resolved_context = Context(data["@context"])
+        except URLError:
+            raise ValueError("context not resolvable")
+        else:
+            return _remove_ld_keys(data, resolved_context)
+    else:
+        raise NotImplementedError("not implemented yet (expanded json-ld)")
+
+
+def _as_jsonld_many(resources: List[Resource], form: Form, store_metadata: bool,
+                    model_context: Optional[Context], metadata_context: Optional[Context],
+                    context_resolver: Optional[Callable]) -> List[Dict]:
+    return [_as_jsonld_one(resource, form, store_metadata, model_context, metadata_context,
+                           context_resolver)
+            for resource in resources]
+
+
+def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
+                   model_context: Optional[Context], metadata_context: Optional[Context],
+                   context_resolver: Optional[Callable]) -> Dict:
+    if hasattr(resource, "context"):
+        iri = resource.context if isinstance(resource.context, str) else None
+        try:
+            document = recursive_resolve(resource.context, context_resolver)
+            context = Context(document, iri)
+        except NotSupportedError:
+            try:
+                context = Context(resource.context, iri)
+            except URLError:
+                raise ValueError(f"{resource.context} is not resolvable")
+    else:
+        context = model_context
+        
+    if context is None:
+        raise NotSupportedError("no available context")
+
+    resolved_context = context.document
+    output_context = context.iri if context.is_http_iri() else context.document["@context"]
+    if store_metadata and resource._store_metadata:
+        if metadata_context:
+            resolved_context = _merge_jsonld(resolved_context["@context"],
+                                             metadata_context.document["@context"])
+            if metadata_context.is_http_iri():
+                metadata_context_output = metadata_context.iri
+            else:
+                metadata_context_output = metadata_context.document["@context"]
+            output_context = _merge_jsonld(output_context, metadata_context_output)
+        else:
+            raise NotSupportedError("no available context in the metadata")
+    try:
+        data_graph, metadata_graph = _as_graph_one(resource, context, store_metadata, metadata_context)
+    except Exception as e:
+        raise ValueError(e)
+    data_expanded = json.loads(data_graph.serialize(format="json-ld").decode("utf-8"))
+    if hasattr(resource, "id"):
+        if context.base:
+            uri = context.resolve(resource.id)
+        else:
+            uri = str(data_graph.namespace_manager.absolutize(resource.id))
+        frame = {"@id": uri}
+    else:
+        frame = dict()
+        for k, v in resource.__dict__.items():
+            if k not in Resource._RESERVED and not isinstance(v, (Resource, dict, list)):
+                if k == "context":
+                    continue
+                elif k == "type":
+                    t = context.expand(v)
+                    if t:
+                        frame["@type"] = context.expand(v)
+                else:
+                    key = context.expand(k)
+                    if key and isinstance(v, str):
+                        frame[key] = v
+    data_framed = jsonld.frame(data_expanded, frame)
+    if store_metadata is True and len(metadata_graph) > 0:
+        metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
+        metadata_framed = jsonld.frame(metadata_expanded, {"@id": resource.id})
+        if form is Form.COMPACTED:
+            data_compacted = jsonld.compact(data_framed, resolved_context)
+            metadata_compacted = jsonld.compact(metadata_framed, resolved_context)
+            metadata_compacted = dict(sorted(metadata_compacted.items()))
+            data_and_meta = _merge_jsonld(data_compacted, metadata_compacted)
+            data_and_meta["@context"] = output_context
+            # this is to be able to register contexts documents
+            if len(data_compacted) == 1 and hasattr(resource, "id"):
+                data_compacted["@id"] = resource.id
+            return data_and_meta
+        elif form is Form.EXPANDED:
+            data_expanded = _unpack_from_list(data_framed)
+
+            metadata_expanded = _unpack_from_list(metadata_framed)
+            metadata_expanded = dict(sorted(metadata_expanded.items()))
+            return _merge_jsonld(data_expanded, metadata_expanded)
+    else:
+        if form is Form.COMPACTED:
+            compacted = jsonld.compact(data_framed, resolved_context)
+            compacted["@context"] = output_context
+            # this is to be able to register contexts documents
+            if len(compacted) == 1 and hasattr(resource, "id"):
+                compacted["@id"] = resource.id
+            return compacted
+        elif form is Form.EXPANDED:
+            return _unpack_from_list(data_framed)
+
+
+def recursive_resolve(context: Union[Dict, List, str], resolver: Optional[Callable]) -> Dict:
+    document = dict()
+    if isinstance(context, list):
+        for x in context:
+            document.update(recursive_resolve(x, resolver))
+    elif isinstance(context, str):
+        doc = resolver(context)
+        document.update(recursive_resolve(doc, resolver))
+    elif isinstance(context, dict):
+        document.update(context)
+    return document
+
+
+def _unpack_from_list(data):
+    if isinstance(data, list):
+        node = data
+    elif isinstance(data, dict):
+        if "@graph" in data:
+            node = data["@graph"]
+        else:
+            return data
+    else:
+        return data
+    if len(node) == 1:
+        return node[0]
+    else:
+        return node
+
+
+def _as_graph_one(resource: Resource, context: Context, store_metadata: bool,
+                  metadata_context: Context) -> Tuple[Graph, Graph]:
+    output_context = context.iri if context.is_http_iri() else context.document["@context"]
+    converted = _add_ld_keys(resource, output_context, context.base)
+    converted["@context"] = context.document["@context"]
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)
+
+
+def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
+                    metadata_context: Context) -> Tuple[Graph, Graph]:
+    json_str = json.dumps(data)
+    graph = Graph().parse(data=json_str, format="json-ld")
+    meta_data_graph = Graph()
+    if store_meta is True and metadata is not None:
+        if "id" not in metadata:
+            raise ValueError("no id in the metadata")
+        metadata = _add_ld_keys(metadata, None, None)
+        metadata["@context"] = metadata_context.document["@context"]
+        try:
+            meta_data_graph.parse(data=json.dumps(metadata), format="json-ld")
+        except Exception:
+            raise ValueError("generated an invalid json-ld")
+    return graph, meta_data_graph
+
+
+def _add_ld_keys(rsc: Resource, context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
+    local_attrs = dict()
+    ld_keys = {"id": "@id", "type": "@type"}
+    local_context = None
+    for k, v in rsc.__dict__.items():
+        if k not in Resource._RESERVED:
+            if k == "context":
+                if v != context:
+                    local_context = Context(v)
+                    base = local_context.base
+            else:
+                key = ld_keys.get(k, k)
+                if key == "@id" and local_context is not None:
+                    local_attrs[key] = local_context.resolve(v)
+                else:
+                    if isinstance(v, Resource):
+                        local_attrs[key] = _add_ld_keys(v, context, base)
+                    elif isinstance(v, list):
+                        local_attrs[key] = [_add_ld_keys(item, context, base)
+                                            if isinstance(item, Resource) else item for item in v]
+                    else:
+                        if isinstance(v, LazyAction):
+                            raise ValueError("can't convert, resource contains LazyActions")
+                        local_attrs[key] = v.replace(base, "") if base and isinstance(v, str) else v
+    return local_attrs
+
+
+def _remove_ld_keys(dictionary: dict, context: Context,
+                    to_resource: Optional[bool] = True) -> Union[Dict, Resource]:
+    local_attrs = dict()
+    for k, v in dictionary.items():
+        if k == "@context":
+            if v != context:
+                local_attrs["context"] = v
+        else:
+            if k == "@id":
+                local_attrs["id"] = context.resolve(v)
+            elif k.startswith("@"):
+                local_attrs[k[1:]] = v
+            else:
+                if isinstance(v, dict):
+                    local_attrs[k] = _remove_ld_keys(v, context, to_resource)
+                elif isinstance(v, list):
+                    local_attrs[k] = [_remove_ld_keys(item, context, to_resource)
+                                      if isinstance(item, dict) else item for item in v]
+                else:
+                    if k in context.terms:
+                        v = context.resolve(v) if context.terms[k].type == "@id" else v
+                    local_attrs[k] = v
+    if to_resource:
+        return Resource(**local_attrs)
+    else:
+        return local_attrs
+
+
+# Context
+
+
+def _merge_dict_into_list(list_: List, dictionary: Dict) -> List:
+    merged = False
+    for item in list_:
+        if isinstance(item, dict):
+            item.update(dictionary)
+            merged = True
+            break
+    if not merged:
+        list_.append(dictionary)
+
+
+def _merge_str_into_list(list_: List, string: str) -> List:
+    if string not in list_:
+        list_.append(string)
+
+
+def _merge_second_list_into_first(first: List, second: List) -> List:
+    for element in second:
+        if isinstance(element, str):
+            _merge_str_into_list(first, element)
+        elif isinstance(element, dict):
+            _merge_dict_into_list(first, element)
+
+
+def _merge_jsonld(first: Union[Dict, List, str], second: Union[Dict, List, str]) -> Union[Dict, List, str]:
+    result = None
+    if isinstance(first, str):
+        if isinstance(second, str):
+            if first != second:
+                result = [first, second]
+            else:
+                result = first
+        elif isinstance(second, dict):
+            result = [first, second]
+        elif isinstance(second, list):
+            result = [first]
+            for element in second:
+                if element != first:
+                    result.append(element)
+    if isinstance(first, list):
+        result = deepcopy(first)
+        if isinstance(second, str):
+            _merge_str_into_list(result, second)
+        if isinstance(second, dict):
+            _merge_dict_into_list(result, second)
+        if isinstance(second, list):
+            _merge_second_list_into_first(result, second)
+    if isinstance(first, dict):
+        if isinstance(second, str):
+            result = [deepcopy(first), deepcopy(second)]
+        elif isinstance(second, dict):
+            result = deepcopy(first)
+            result.update(second)
+        elif isinstance(second, list):
+            result = [deepcopy(first)]
+            _merge_second_list_into_first(result, second)
+    return result

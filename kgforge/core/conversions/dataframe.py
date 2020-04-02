@@ -12,18 +12,21 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Tuple, Union, Optional, Callable
 
 import numpy as np
 from pandas import DataFrame, Series
 
 from kgforge.core import Resource
+from kgforge.core.commons.context import Context
 from kgforge.core.conversions.json import as_json, from_json
 
 
 def as_dataframe(data: List[Resource], na: Union[Any, List[Any]], nesting: str, expanded: bool,
-                 store_metadata: bool) -> DataFrame:
-    dicts = as_json(data, expanded, store_metadata)
+                 store_metadata: bool, model_context: Optional[Context],
+                 metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> DataFrame:
+    dicts = as_json(data, expanded, store_metadata, model_context=model_context,
+                    metadata_context=metadata_context, context_resolver=context_resolver)
     # NB: Do not use json_normalize(). It does not respect how the dictionaries are ordered.
     flattened = (flatten(x, nesting) for x in dicts)
     df = DataFrame(flattened)
