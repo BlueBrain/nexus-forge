@@ -8,7 +8,7 @@ Model:
 Store:
   name: BlueBrainNexus
   endpoint: https://staging.nexus.ocp.bbp.epfl.ch/v1
-  bucket: <organization>/<project>
+  bucket: "dke/kgforge_tests"
   token: <token>
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
   file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
