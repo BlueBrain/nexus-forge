@@ -96,6 +96,8 @@ class Dataset(Resource):
         """Download the distributions of the dataset or the files part of the dataset."""
         if source == "distributions":
             follow = "distribution.contentUrl"
+        elif source == "files":
+            follow = "hasPart.contentUrl"
         elif source == "parts":
             follow = "hasPart.distribution.contentUrl"
         else:
