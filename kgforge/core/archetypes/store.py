@@ -278,6 +278,12 @@ def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict
     """
     ctx = {k: v["@id"] if isinstance(v, Dict) else v for k, v in context["@context"].items()}
 
+    if ctx.get("type") == "@type":
+        if "rdf" in prefixes:
+            ctx["type"] = "rdf:type"
+        else:
+            ctx["type"] = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+
     def replace(match: Match) -> str:
         m4 = match.group(4)
         if m4 is None:
@@ -285,7 +291,10 @@ def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict
         else:
             v = ctx.get(m4, m4)
             m5 = match.group(5)
-            return f"{v}{m5}"
+            if "//" in v:
+                return f"<{v}>{m5}"
+            else:
+                return f"{v}{m5}"
 
     g4 = r"([a-zA-Z_]+)"
     g5 = r"([.;]?)"
