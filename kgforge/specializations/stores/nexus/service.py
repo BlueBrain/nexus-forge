@@ -30,7 +30,8 @@ from aiohttp import ClientSession, hdrs
 from kgforge.core import Resource
 from kgforge.core.commons.actions import Action, collect_lazy_actions, execute_lazy_actions
 from kgforge.core.commons.context import Context
-from kgforge.core.conversions.rdf import as_jsonld, _from_jsonld_one, _remove_ld_keys
+from kgforge.core.conversions.rdf import (as_jsonld, _remove_ld_keys, _from_jsonld_one,
+                                          recursive_resolve)
 from kgforge.core.wrappings.dict import wrap_dict
 
 
@@ -49,6 +50,7 @@ BatchResults = List[BatchResult]
 
 NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
 NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
+DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
 
 
 class Service:
@@ -70,8 +72,15 @@ class Service:
             "Content-Type": "application/ld+json",
             "Accept": "application/ld+json"
         }
-        self.url_resources = '/'.join((endpoint, 'resources', quote_plus(org), quote_plus(prj)))
-        self.url_files = '/'.join((endpoint, 'files', quote_plus(org), quote_plus(prj)))
+        self.headers_sparql = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/sparql-query",
+            "Accept": "application/ld+json"
+        }
+        self.url_resources = "/".join((endpoint, "resources", quote_plus(org), quote_plus(prj)))
+        self.url_files = "/".join((endpoint, "files", quote_plus(org), quote_plus(prj)))
+        self.sparql_endpoint = "/".join((endpoint, "views", quote_plus(org), quote_plus(prj),
+                                    "nxv:defaultSparqlIndex", "sparql"))
         # This async to work on jupyter notebooks
         nest_asyncio.apply()
 
@@ -115,8 +124,7 @@ class Service:
                     schema_id = "_" if schema_id is None else quote_plus(schema_id)
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = asyncio.create_task(
-                        queue(hdrs.METH_POST, semaphore, session, url, resource, 201, error,
-                              payload=payload))
+                        queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
 
                 if batch_action == batch_action.UPDATE:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
@@ -126,8 +134,8 @@ class Service:
                                         metadata_context=None,
                                         context_resolver=self.resolve_context)
                     prepared_request = asyncio.create_task(
-                        queue(hdrs.METH_PUT, semaphore, session, url, resource, 200, error,
-                              payload=payload, params=params))
+                        queue(hdrs.METH_PUT, semaphore, session, url, resource, error, payload,
+                              params))
 
                 if batch_action == batch_action.TAG:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id), "tags"))
@@ -135,60 +143,49 @@ class Service:
                     params = {"rev": rev}
                     payload = {"tag": kwargs.get("tag"), "rev": rev}
                     prepared_request = asyncio.create_task(
-                        queue(hdrs.METH_POST, semaphore, session, url, resource, 201, error,
-                              payload=payload, params=params))
+                        queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload,
+                              params))
 
                 if batch_action == batch_action.DEPRECATE:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
                     params = {"rev": resource._store_metadata._rev}
                     prepared_request = asyncio.create_task(
-                        queue(hdrs.METH_DELETE, semaphore, session, url, resource, 200, error,
+                        queue(hdrs.METH_DELETE, semaphore, session, url, resource, error,
                               params=params))
 
                 if batch_action == BatchAction.FETCH:
-                    try:
-                        identifier = resource.id
-                    except AttributeError:
-                        identifier = resource
-                    url = "/".join((self.url_resources, "_", quote_plus(identifier)))
+                    url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
                     prepared_request = asyncio.create_task(
-                        queue(hdrs.METH_GET, semaphore, session, url, resource, 200, error))
+                        queue(hdrs.METH_GET, semaphore, session, url, resource, error))
 
-                prepared_request.add_done_callback(f_callback)
+                if f_callback:
+                    prepared_request.add_done_callback(f_callback)
                 futures.append(prepared_request)
             return futures
 
-        async def queue(method, semaphore, session, url, resource, success_code, exception,
-                        payload=None, params=None):
+        async def queue(method, semaphore, session, url, resource, exception, payload=None,
+                        params=None):
             async with semaphore:
-                return await request(method, session, url, resource, payload, params, success_code,
-                                     exception)
+                return await request(method, session, url, resource, payload, params, exception)
 
-        async def request(method, session, url, resource, payload, params, success_code, exception):
-            try:
-                async with session.request(method, url, headers=self.headers,
-                                           data=json.dumps(payload), params=params) as response:
-                    content = await response.json()
-                    if response.status == success_code:
-                        if method is hdrs.METH_GET:
-                            resource = self.to_resource(content)
-                        return BatchResult(resource, content)
-                    else:
-                        if method is hdrs.METH_GET:
-                            resource = Resource(id=resource)
-                        msg = " ".join(re.findall('[A-Z][^A-Z]*', content["@type"])).lower()
-                        error = exception(msg)
-                        return BatchResult(resource, error)
-            except Exception as e:
-                return BatchResult(resource, exception(e))
+        async def request(method, session, url, resource, payload, params, exception):
+            async with session.request(method, url, headers=self.headers,
+                                       data=json.dumps(payload), params=params) as response:
+                content = await response.json()
+                if response.status < 400:
+                    return BatchResult(resource, content)
+                else:
+                    msg = " ".join(re.findall('[A-Z][^A-Z]*', content["@type"])).lower()
+                    error = exception(msg)
+                    return BatchResult(resource, error)
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connections)
             async with ClientSession() as session:
                 tasks = create_tasks(semaphore, session, resources, action, callback, error_type)
-                await asyncio.gather(*tasks)
+                return await asyncio.gather(*tasks)
 
-        asyncio.run(dispatch_action())
+        return asyncio.run(dispatch_action())
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
         metadata = {"id": resource.id}
@@ -218,7 +215,7 @@ class Service:
                     result.resource, result.response, fun_name, True, True)
         return callback
 
-    def verify(self, resources:  List[Resource], function_name, exception: Callable,
+    def verify(self, resources: List[Resource], function_name, exception: Callable,
                id_required: bool, required_synchronized: bool, execute_actions: bool) -> List[Resource]:
         valid = list()
         for resource in resources:
@@ -249,33 +246,18 @@ class Service:
         data_context = deepcopy(payload["@context"])
         data_context.remove(NEXUS_CONTEXT)
         data_context = data_context[0] if len(data_context) == 1 else data_context
-        meta_keys = self.metadata_context.terms.keys()
         metadata = dict()
         data = dict()
         for k, v in payload.items():
-            if k in meta_keys:
+            if k in self.metadata_context.terms.keys():
                 metadata[k] = v
             else:
                 data[k] = v
 
-        # try to resolve the context
-        def resolve(ctx):
-            document = dict()
-            if isinstance(ctx, list):
-                for x in ctx:
-                    doc = resolve(x)
-                    document.update(doc)
-            elif isinstance(ctx, str):
-                return self.resolve_context(ctx)
-            elif isinstance(ctx, dict):
-                document.update(ctx)
-            return document
-
-        resolved_ctx = resolve(data_context)
+        resolved_ctx = recursive_resolve(data_context, self.resolve_context)
         data["@context"] = resolved_ctx
         resource = _from_jsonld_one(data)
-        if isinstance(data_context, str):
-            resource.context = data_context
+        resource.context = data_context
         if len(metadata) > 0:
             self.sync_metadata(resource, metadata)
         return resource

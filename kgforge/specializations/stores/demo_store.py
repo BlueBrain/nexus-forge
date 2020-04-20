@@ -100,8 +100,7 @@ class DemoStore(Store):
 
     # Querying.
 
-    def search(self, context: Context, resolvers: Optional[List[Resolver]],
-               *filters, **params) -> List[Resource]:
+    def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.

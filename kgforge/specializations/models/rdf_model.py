@@ -67,7 +67,7 @@ class RdfModel(Model):
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:
-        return self.service.namespaces
+        return self.service.context.prefixes
 
     def _types(self) -> List[str]:
         return list(self.service.types_shapes_map.keys())

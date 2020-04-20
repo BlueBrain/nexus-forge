@@ -208,10 +208,14 @@ class Store(ABC):
 
     # Querying.
 
-    def search(self, context: Context, resolvers: Optional[List["Resolver"]], *filters,
-               **params) -> List[Resource]:
+    def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
+
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py.
         # Keyword arguments in 'params' could be:
+        #   - debug: bool,
+        #   - limit: int,
+        #   - offset: int,
+        #   - deprecated: bool,
         #   - resolving: str, with values in ('exact', 'fuzzy'),
         #   - lookup: str, with values in ('current', 'children').
         # POLICY Should use sparql() when SPARQL is chosen here has the querying language.
@@ -221,15 +225,16 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         not_supported()
 
-    def sparql(self, query: str, context: Optional[Dict[str, Dict]],
-               prefixes: Optional[Dict[str, str]], debug: bool) -> List[Resource]:
+    def sparql(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
+        context = self.model_context.document
+        prefixes = self.model_context.prefixes
         qr = rewrite_sparql(query, context, prefixes) if context is not None else query
         if debug:
             print(*["Submitted query:", *qr.splitlines()], sep="\n   ")
             print()
-        return self._sparql(qr)
+        return self._sparql(qr, limit, offset)
 
-    def _sparql(self, query: str) -> List[Resource]:
+    def _sparql(self, query: str, limit: int, offset: int) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).

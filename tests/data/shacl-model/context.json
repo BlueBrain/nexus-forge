@@ -1,5 +1,7 @@
 {
   "@context": {
+    "@vocab": "http://example.org/vocab/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "prov": "http://www.w3.org/ns/prov#",
     "schema": "http://schema.org/",
     "Activity": {
@@ -89,6 +91,10 @@
     },
     "streetAddress": {
       "@id": "schema:streetAddress"
+    },
+    "type": {
+      "@id": "rdf:type",
+      "@type": "@id"
     },
     "supervisor": {
       "@id": "schema:supervisor",

@@ -46,7 +46,12 @@ def test_load_context_from_list(custom_context, context_iri_file):
     assert context.iri is None
     assert context.is_http_iri() is False
     assert context.base == "http://example.org/"
+    assert context.vocab == "http://example.org/vocab/"
     assert context.expand("Person") == "http://schema.org/Person"
+    assert context.prefixes == {
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "prov": "http://www.w3.org/ns/prov#",
+        "schema": "http://schema.org/"}
 
 
 def test_load_context_from_url():

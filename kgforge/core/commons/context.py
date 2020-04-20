@@ -52,6 +52,7 @@ class Context(RdflibContext):
         elif isinstance(document, Dict):
             self.document = document if "@context" in document else {"@context": document}
         self.iri = iri
+        self.prefixes = {v: k for k, v in self._prefixes.items() if k.endswith(("/", "#"))}
 
     def is_http_iri(self):
         if self.iri:
