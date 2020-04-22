@@ -58,9 +58,8 @@ form_store_metadata_combinations = [
      prefixes_string + "\nSELECT ?x ?name WHERE { ?x rdf:type prov:Association ; prov:agent/schema:name ?name }"),
     ("SELECT ?name WHERE { ?x agent/name ?name FILTER regex(?name, \"^j\", \"i\") }",
      prefixes_string + "\nSELECT ?name WHERE { ?x prov:agent/schema:name ?name FILTER regex(?name, \"^j\", \"i\") }"),
-    # the implementation do not support context definitions like "description": "http://schema.org/description"
-    # ("SELECT ?x WHERE { <http://exaplpe.org/1234> description ?x }",
-    #  prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
+    ("SELECT ?x WHERE { <http://exaplpe.org/1234> description ?x }",
+     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
 ]
 
 
