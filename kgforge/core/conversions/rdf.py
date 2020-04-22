@@ -280,7 +280,11 @@ def _remove_ld_keys(dictionary: dict, context: Context,
                                       if isinstance(item, dict) else item for item in v]
                 else:
                     if k in context.terms:
-                        v = context.resolve(v) if context.terms[k].type == "@id" else v
+                        if context.terms[k].type == "@id":
+                            v = context.resolve(v)
+                            term = context.find_term(v)
+                            if term:
+                                v = term.name
                     local_attrs[k] = v
     if to_resource:
         return Resource(**local_attrs)

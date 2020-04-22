@@ -213,11 +213,34 @@ class KnowledgeGraphForge:
 
     # Resolving User Interface.
 
+    def resolvers(self):
+        print("Available scopes:")
+        for k, v in sorted(self._resolvers.items()):
+            print(" - ", k, ":")
+            for r_key, r_value in v.items():
+                print("     - resolver: ", r_key)
+                print("         - targets: ",  ",".join(r_value.targets.keys()))
+
     @catch
     def resolve(self, text: str, scope: Optional[str] = None, resolver: Optional[str] = None,
                 target: Optional[str] = None, type: Optional[str] = None,
-                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH
-                ) -> Optional[Union[Resource, List[Resource]]]:
+                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH,
+                limit: Optional[int] = 10) -> Optional[Union[Resource, List[Resource]]]:
+        """
+        Resolve a string into a existing resource or list of resources depending on the resolving
+        strategy
+
+        Args:
+            text (str): string to search.
+            scope (str): a scope identifier
+            resolver (str): a resolver name
+            target (str): an identifier in the targets
+            type (str): a Type to be used as part of the query
+            strategy (str): a ResolvingStrategy.[ALL_MATCHES, BEST_MATCH, EXACT_MATCH]
+            limit (int): when using ALL_MATCHES provide a limited number of results, default is 10
+        Returns:
+            resources (Resource, List(Resource))
+        """
         if self._resolvers is not None:
             if scope is not None:
                 if resolver is not None:
@@ -241,7 +264,9 @@ class KnowledgeGraphForge:
                     else:
                         raise ResolvingError("resolving scope or resolver name should be "
                                              "specified")
-            return rov.resolve(text, target, type, strategy)
+            if type and self._model.context():
+                type = self._model.context().expand(type)
+            return rov.resolve(text, target, type, strategy, limit)
         else:
             raise ResolvingError("no resolvers have been configured")
 
@@ -386,7 +411,7 @@ def prepare_resolvers(config: Dict, store_config: Dict) -> Dict[str, Dict[str, R
 
 def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     if config["origin"] == "store":
-        with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket"])
+        with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket", "model_context"])
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)

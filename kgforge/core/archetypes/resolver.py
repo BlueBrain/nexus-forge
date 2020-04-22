@@ -60,9 +60,9 @@ class Resolver(ABC):
         pass
 
     def resolve(self, text: str, target: Optional[str], type: Optional[str],
-                strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]:
+                strategy: ResolvingStrategy, limit: Optional[int]) -> Optional[Union[Resource, List[Resource]]]:
         # The resolving strategy cannot be abstracted as it should be managed by the service.
-        resolved = self._resolve(text, target, type, strategy)
+        resolved = self._resolve(text, target, type, strategy, limit)
         if resolved is not None:
             if len(resolved) == 1:
                 resolved = resolved[0]
@@ -72,7 +72,7 @@ class Resolver(ABC):
 
     @abstractmethod
     def _resolve(self, text: str, target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy) -> Optional[List[Any]]:
+                 strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 

@@ -211,6 +211,18 @@ def model_context(context_iri_file) -> Context:
     return Context(context_iri_file, context_iri_file)
 
 
+@pytest.fixture(scope="session")
+def model_prefixes():
+    return {
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "prov": "http://www.w3.org/ns/prov#",
+        "schema": "http://schema.org/",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "skos": "http://www.w3.org/2004/02/skos/core#",
+        "nsg": "https://neuroshapes.org/",
+        "owl": "http://www.w3.org/2002/07/owl#"
+    }
+
 @pytest.fixture
 def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_expanded):
     def _make_jsonld_expanded(resource, store_metadata, context):

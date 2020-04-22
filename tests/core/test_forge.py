@@ -64,7 +64,7 @@ def config(model, store, resolver):
                 {
                     "resolver": resolver,
                     "origin": "directory",
-                    "source": 'tests/data/demo-resolver/',
+                    "source": "tests/data/demo-resolver/",
                     "targets": [
                         {
                             "identifier": "sex",

@@ -40,7 +40,7 @@ class DemoResolver(Resolver):
         return DictionaryMapper
 
     def _resolve(self, text: str, target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy) -> Optional[List[Dict[str, str]]]:
+                 strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Dict[str, str]]]:
         if target is not None:
             data = self.service[target]
         else:

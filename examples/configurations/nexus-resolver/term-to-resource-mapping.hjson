@@ -1,0 +1,9 @@
+{
+    type: x.type
+    id: x.id
+    label: x.label
+    prefLabel: x.prefLabel
+    subClassOf: x.subClassOf
+    isDefinedBy: x.isDefinedBy
+    notation: x.notation
+}

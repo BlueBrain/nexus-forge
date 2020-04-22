@@ -4,14 +4,27 @@
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "prov": "http://www.w3.org/ns/prov#",
     "schema": "http://schema.org/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "nsg": "https://neuroshapes.org/",
     "Activity": {
       "@id": "prov:Activity"
+    },
+    "Agent": {
+      "@id": "prov:Agent"
+    },
+    "Class": {
+      "@id": "owl:Class"
     },
     "PostalAddress": {
       "@id": "schema:PostalAddress"
     },
     "Association": {
       "@id": "schema:Association"
+    },
+    "BrainRegion" : {
+      "@id": "nsg:BrainRegion"
     },
     "Building": {
       "@id": "schema:Building"
@@ -52,6 +65,9 @@
     "founder": {
       "@id": "schema:founder"
     },
+    "familyName": {
+      "@id": "schema:familyName"
+    },
     "gender": {
       "@id": "schema:gender"
     },
@@ -68,6 +84,11 @@
       "@id": "schema:image",
       "@type" : "@id"
     },
+    "isDefinedBy": {
+      "@id": "rdfs:isDefinedBy",
+      "@type": "@id"
+    },
+    "label": "rdfs:label",
     "latitude": {
       "@id": "schema:latitude"
     },
@@ -77,9 +98,11 @@
     "name": {
       "@id": "schema:name"
     },
+    "notation": "skos:notation",
     "postalCode": {
       "@id": "schema:postalCode"
     },
+    "prefLabel": "skos:prefLabel",
     "startDate": {
       "@id": "schema:startDate"
     },
@@ -92,12 +115,16 @@
     "streetAddress": {
       "@id": "schema:streetAddress"
     },
-    "type": {
-      "@id": "rdf:type",
+    "subClassOf": {
+      "@id": "rdfs:subClassOf",
       "@type": "@id"
     },
     "supervisor": {
       "@id": "schema:supervisor",
+      "@type": "@id"
+    },
+    "type": {
+      "@id": "rdf:type",
       "@type": "@id"
     },
     "used": {

@@ -22,6 +22,9 @@ from urllib.parse import quote_plus
 
 import nexussdk as nexus
 import requests
+from pyld import jsonld
+from rdflib import Graph
+from rdflib.plugins.sparql.parser import Query
 from requests import HTTPError
 from enum import Enum
 
@@ -33,7 +36,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError,
                                              UploadingError)
 from kgforge.core.commons.exceptions import (QueryingError)
 from kgforge.core.commons.execution import run
-from kgforge.core.conversions.rdf import as_jsonld
+from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import Service, BatchAction, DEPRECATED_PROPERTY
@@ -291,19 +294,57 @@ class BlueBrainNexus(Store):
         return resources
 
     def _sparql(self, query: str, limit: int, offset: int = None) -> List[Resource]:
-        offset = "" if offset is None else f" OFFSET {offset}"
-        query = f"{query} LIMIT {limit}{offset}"
+
+        s_offset = "" if offset is None else f"OFFSET {offset}"
+        s_limit = "" if limit is None else f"LIMIT {limit}"
+        query = f"{query} {s_limit} {s_offset}"
 
         try:
             response = requests.post(
                 self.service.sparql_endpoint, data=query, headers=self.service.headers_sparql)
             response.raise_for_status()
         except Exception as e:
-            raise QueryingError(_error_message(e))
+            raise QueryingError(e)
         else:
             data = response.json()
-            results = data["results"]["bindings"]
-            return [Resource(**{k: v["value"] for k, v in x.items()}) for x in results]
+            # FIXME workaround to parse a CONSTRUCT query, this fix depends on
+            #  https://github.com/BlueBrain/nexus/issues/1155
+            _, q_comp = Query.parseString(query)
+            if q_comp.name == "ConstructQuery":
+                subject_triples = {}
+                for r in data["results"]["bindings"]:
+                    subject = r['subject']['value']
+                    s = f"<{r['subject']['value']}>"
+                    p = f"<{r['predicate']['value']}>"
+                    if r["object"]["type"] == "uri":
+                        o = f"<{r['object']['value']}>"
+                    else:
+                        if "datatype" in r["object"]:
+                            o = f"\"{r['object']['value']}\"^^{r['object']['datatype']}"
+                        else:
+                            o = f"\"{r['object']['value']}\""
+                    if subject in subject_triples:
+                        subject_triples[subject] += f"\n{s} {p} {o} . "
+                    else:
+                        subject_triples[subject] = f"{s} {p} {o} . "
+
+                def triples_to_resource(iri, triples):
+                    graph = Graph().parse(data=triples, format="nt")
+                    data_expanded = json.loads(graph.serialize(format="json-ld").decode("utf-8"))
+                    frame = {"@id": iri}
+                    data_framed = jsonld.frame(data_expanded, frame)
+                    context = self.model_context or self.context
+                    compacted = jsonld.compact(data_framed, context.document)
+                    resource = from_jsonld(compacted)
+                    resource.context = context.iri if context.is_http_iri() else context.document["@context"]
+                    return resource
+
+                return [triples_to_resource(s, t) for s, t in subject_triples.items()]
+
+            else:
+                # SELECT QUERY
+                results = data["results"]["bindings"]
+                return [Resource(**{k: v["value"] for k, v in x.items()}) for x in results]
 
     # Utils.
 

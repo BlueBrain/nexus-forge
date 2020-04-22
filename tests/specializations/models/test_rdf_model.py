@@ -91,16 +91,6 @@ TYPES_SCHEMAS_MAP = {
 
 
 @pytest.fixture()
-def namespaces_dict():
-    return {
-        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        "prov": "http://www.w3.org/ns/prov#",
-        "schema": "http://schema.org/"
-    }
-
-
-
-@pytest.fixture()
 def shacl_model(context_iri_file):
     return RdfModel("tests/data/shacl-model",
                     context={"iri": context_iri_file},
@@ -119,8 +109,8 @@ class TestVocabulary:
         vocabulary = shacl_model.context().document
         assert vocabulary == expected
 
-    def test_namespaces(self, shacl_model: RdfModel, namespaces_dict):
-        assert shacl_model.prefixes(pretty=False) == namespaces_dict
+    def test_namespaces(self, shacl_model: RdfModel, model_prefixes):
+        assert shacl_model.prefixes(pretty=False) == model_prefixes
 
 
 class TestTemplates:

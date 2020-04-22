@@ -62,13 +62,14 @@ def _from_json(data: Union[Any, List[Any]], na: List[Any]) -> Any:
 
 
 def _remove_context(dictionary: dict):
-    for i in list(dictionary):
-        if i == "context":
-            dictionary.pop("context")
-        else:
-            if isinstance(dictionary[i], dict):
-                _remove_context(dictionary[i])
-            elif isinstance(dictionary[i], list):
-                for x in dictionary[i]:
-                    _remove_context(x)
+    if isinstance(dictionary, dict):
+        for i in list(dictionary):
+            if i == "context":
+                dictionary.pop("context")
+            else:
+                if isinstance(dictionary[i], dict):
+                    _remove_context(dictionary[i])
+                elif isinstance(dictionary[i], list):
+                    for x in dictionary[i]:
+                        _remove_context(x)
 

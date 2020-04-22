@@ -1,0 +1,7 @@
+{
+    type: x.type
+    id: x.id
+    name: x.name
+    familyName: x.familyName
+    givenName: x.givenName
+}

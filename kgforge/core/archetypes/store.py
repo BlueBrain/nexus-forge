@@ -226,8 +226,12 @@ class Store(ABC):
         not_supported()
 
     def sparql(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
-        context = self.model_context.document
-        prefixes = self.model_context.prefixes
+        if self.model_context is not None:
+            context = self.model_context.document
+            prefixes = self.model_context.prefixes
+        else:
+            context = None
+            prefixes = None
         qr = rewrite_sparql(query, context, prefixes) if context is not None else query
         if debug:
             print(*["Submitted query:", *qr.splitlines()], sep="\n   ")

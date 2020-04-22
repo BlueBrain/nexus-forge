@@ -13,3 +13,5 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 from .demo_resolver import DemoResolver
+from .agent_resolver import AgentResolver
+from .ontology_resolver import OntologyResolver

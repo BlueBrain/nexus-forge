@@ -39,7 +39,7 @@ def test_load_context_from_file(context_file_path, context_iri_file):
     assert context.is_http_iri() is False
 
 
-def test_load_context_from_list(custom_context, context_iri_file):
+def test_load_context_from_list(custom_context, context_iri_file, model_prefixes):
     test_context = _merge_jsonld(custom_context, context_iri_file)
     context = Context(test_context)
     assert is_valid_document(context.document)
@@ -48,10 +48,7 @@ def test_load_context_from_list(custom_context, context_iri_file):
     assert context.base == "http://example.org/"
     assert context.vocab == "http://example.org/vocab/"
     assert context.expand("Person") == "http://schema.org/Person"
-    assert context.prefixes == {
-        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        "prov": "http://www.w3.org/ns/prov#",
-        "schema": "http://schema.org/"}
+    assert context.prefixes == model_prefixes
 
 
 def test_load_context_from_url():
