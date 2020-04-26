@@ -172,7 +172,7 @@ class Model(ABC):
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
         origin = source_config.pop("origin")
         context_config = source_config.pop("context", {})
-        context_iri = context_config.pop("iri", None)
+        context_iri = context_config.get("iri", None)
         if origin == "directory":
             dirpath = Path(source)
             return self._service_from_directory(dirpath, context_iri)
@@ -191,9 +191,9 @@ class Model(ABC):
 
     @staticmethod
     def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
-        not_supported()
+        raise NotImplementedError()
 
     @staticmethod
-    def _service_from_store(store: Callable, context_iri: Optional[str],
-                            context_config: Optional[Dict]) -> Any:
-        not_supported()
+    def _service_from_store(store: Callable, context_config: Optional[dict],
+                            **source_config) -> Any:
+        raise NotImplementedError()

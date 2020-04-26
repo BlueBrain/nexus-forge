@@ -161,23 +161,24 @@ class KnowledgeGraphForge:
         # Store.
 
         store_config = config.pop("Store")
+        store_config.update(kwargs)
 
         # Model.
 
         model_config = config.pop("Model")
         if model_config["origin"] == "store":
-            with_defaults(model_config, store_config, "name", ["endpoint", "token"])
+            with_defaults(model_config, store_config, "source", "name", ["endpoint", "token", "bucket"])
         model_name = model_config.pop("name")
         model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
 
         # Store.
 
-        store_config.update(kwargs)
         store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
+        store_config.update(name=store_name)
 
         # Resolvers.
 
@@ -385,7 +386,7 @@ def prepare_resolvers(config: Dict, store_config: Dict) -> Dict[str, Dict[str, R
 
 def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     if config["origin"] == "store":
-        with_defaults(config, store_config, "name", ["endpoint", "token"])
+        with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket"])
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)
