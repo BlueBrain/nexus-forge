@@ -1,9 +1,10 @@
 Model:
   name: RdfModel
-  origin: directory
-  source: ../../../tests/data/shacl-model/neuroshapes/shapes/neurosciencegraph/commons/
+  origin: store
+  source: BlueBrainNexus
   context:
-    iri: "../../configurations/nexus-store/neuroshapes_context.json"
+    iri: "https://bbp.neuroshapes.org"
+    bucket: "neurosciencegraph/datamodels"
 
 Store:
   name: BlueBrainNexus

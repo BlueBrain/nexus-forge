@@ -12,14 +12,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 import types
-from typing import List, Dict, Tuple, Set
-from urllib.parse import urlparse
+from abc import abstractmethod
+from typing import List, Dict, Tuple, Set, Optional
 
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
-from rdflib import Graph, URIRef, RDF
+from rdflib import Graph, URIRef, RDF, XSD
 
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.specializations.models.rdf.collectors import (AndCollector, NodeCollector,
                                                            PropertyCollector, MinCountCollector,
                                                            DatatypeCollector, InCollector,
@@ -27,6 +28,7 @@ from kgforge.specializations.models.rdf.collectors import (AndCollector, NodeCol
                                                            OrCollector, XoneCollector,
                                                            HasValueCollector)
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
+from kgforge.specializations.models.rdf.utils import as_term
 
 ALL_COLLECTORS = [
     AndCollector,
@@ -91,6 +93,8 @@ class ShapesGraphWrapper(ShapesGraph):
 
     def __init__(self, graph: Graph) -> None:
         super().__init__(graph)
+        # the following line triggers the shape loading
+        self._shapes = self.shapes
 
     def lookup_shape_from_node(self, node: URIRef) -> Shape:
         """ Overwrite function to inject the transverse function for only to requested nodes.
@@ -107,55 +111,65 @@ class ShapesGraphWrapper(ShapesGraph):
         return shape
 
 
-class Service:
-    """This class start the collection of Shapes"""
+class RdfService:
 
-    def __init__(self, graph: Graph) -> None:
-        self.graph = graph
-        self.sg = ShapesGraphWrapper(self.graph)
-        self.shapes = self.sg.shapes
-        self.class_to_shapes = self._build_shapes_map()
-        self.types_shapes_map = {as_term(k): v for k, v in self.class_to_shapes.items()}
-        self.context_cache = dict()
+    def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 
-    def materialize(self, uri: URIRef) -> NodeProperties:
+        if context_iri is None:
+            raise ConfigurationError(f"RdfModel requires a context")
+        self._graph = graph
+        self._context_cache = dict()
+        self.classes_to_shapes = self._build_shapes_map()
+        resolved_context = self.resolve_context(context_iri)
+        self.context = Context(resolved_context, context_iri)
+        self.types_to_shapes: Dict = self._build_types_to_shapes()
+
+    @abstractmethod
+    def materialize(self, iri: URIRef) -> NodeProperties:
         """Triggers the collection of properties of a given Shape node
 
         Args:
-            uri: the URI of the node to start collection
+            iri: the URI of the node to start collection
 
         Returns:
             A NodeProperty object with the collected properties
         """
-        sh = self.sg.lookup_shape_from_node(uri)
-        predecessors = set()
-        props, attrs = sh.traverse(predecessors)
-        if props:
-            attrs["properties"] = props
-        return NodeProperties(**attrs)
+        raise NotImplementedError()
 
-    def resolve_context(self, file: str) -> Dict:
-        if file in self.context_cache:
-            return self.context_cache[file]
-        else:
-            try:
-                context = Context(file)
-            except FileNotFoundError as e:
-                raise ValueError(e)
-            else:
-                self.context_cache.update({file: context.document})
-                return context.document
+    @abstractmethod
+    def resolve_context(self, iri: str) -> Dict:
+        """For a given IRI return its resolved context recursively"""
+        raise NotImplementedError()
 
+    @abstractmethod
     def generate_context(self) -> Dict:
-        """Generates a JSON dictionary with the classes and terms present in the
-        SHACK graph.
+        """Generates a JSON-LD context with the classes and terms present in the SHACL graph."""
+        raise NotImplementedError()
 
-        Returns:
-            A JSON dictionary
-        """
-        # TODO: check if there are conflicting terms, and decide if an error should be thrown
+    @abstractmethod
+    def _build_shapes_map(self) -> Dict:
+        """Queries the source and returns a map of owl:Class to sh:NodeShape"""
+        raise NotImplementedError()
+
+    def _build_types_to_shapes(self):
+        """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
+         the terms available in the context """
+        types_to_shapes: Dict = dict()
+        for k, v in self.classes_to_shapes.items():
+            term = self.context.find_term(str(k))
+            if term:
+                key = term.name
+                if term.name not in types_to_shapes:
+                    types_to_shapes[term.name] = v
+                else:
+                    print("WARN: duplicated term", key, k, [key], v)
+        return types_to_shapes
+
+    def _generate_context(self) -> Dict:
+        """Materializes all Types into templates and parses the templates to generate a context"""
+        # FIXME: the status of this function is experimental
+        # TODO: check if there are conflicting terms, and throw error
         context = dict()
-        target_classes = set(self.class_to_shapes.keys())
         prefixes = dict()
         types_ = dict()
         terms = dict()
@@ -166,7 +180,7 @@ class Service:
             for property_ in properties:
                 if hasattr(property_, "path"):
                     if property_.path != RDF.type:
-                        v_prefix, v_namespace, v_name = self.graph.compute_qname(property_.path)
+                        v_prefix, v_namespace, v_name = self._graph.compute_qname(property_.path)
                         l_prefixes.update({v_prefix: str(v_namespace)})
                         term_obj = {"@id": ":".join((v_prefix, v_name))}
                         if hasattr(property_, "id"):
@@ -179,14 +193,14 @@ class Service:
                                     obj_type = property_.values
                                 if obj_type in target_classes:
                                     term_obj.update({"@type": "@id"})
-                                # else:
-                                #     try:
-                                #         px, ns, n = self.graph.compute_qname(obj_type)
-                                #         l_prefixes.update({px: str(ns)})
-                                #         if str(ns) == str(XSD):
-                                #             term_obj.update({"@type": ":".join((px, n))})
-                                #     except Exception:
-                                #         pass
+                                else:
+                                    try:
+                                        px, ns, n = self.graph.compute_qname(obj_type)
+                                        l_prefixes.update({px: str(ns)})
+                                        if str(ns) == str(XSD):
+                                            term_obj.update({"@type": ":".join((px, n))})
+                                    except Exception:
+                                        pass
                         l_terms.update({v_name: term_obj})
                 if hasattr(property_, "properties"):
                     l_p, l_t = traverse_properties(property_.properties)
@@ -194,8 +208,17 @@ class Service:
                     l_terms.update(l_t)
             return l_prefixes, l_terms
 
-        for type_, shape in self.class_to_shapes.items():
-            t_prefix, t_namespace, t_name = self.graph.compute_qname(type_)
+        target_classes = list()
+        for k in self.classes_to_shapes.keys():
+            key = as_term(k)
+            if key not in target_classes:
+                target_classes.append(key)
+            else:
+                # TODO: should this raise an error?
+                print("duplicated term", key, k)
+
+        for type_, shape in self.classes_to_shapes.items():
+            t_prefix, t_namespace, t_name = self._graph.compute_qname(type_)
             prefixes.update({t_prefix: str(t_namespace)})
             types_.update({t_name: {"@id": ":".join((t_prefix, t_name))}})
             node = self.materialize(shape)
@@ -203,40 +226,9 @@ class Service:
                 p, t = traverse_properties(node.properties)
                 prefixes.update(p)
                 terms.update(t)
+
         context.update({key: prefixes[key] for key in sorted(prefixes)})
         context.update({key: types_[key] for key in sorted(types_)})
         context.update({key: terms[key] for key in sorted(terms)})
+
         return {"@context":  context} if len(context) > 0 else None
-
-    def _build_shapes_map(self) -> Dict:
-        res = self.graph.query(
-            """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?type ?shape WHERE {
-                { ?shape sh:targetClass ?type .}
-                UNION {
-                    SELECT (?shape as ?type) ?shape WHERE {
-                        ?shape a sh:NodeShape .
-                        ?shape a rdfs:Class
-                    }
-                }
-            }""")
-        return {row["type"]: row["shape"] for row in res}
-
-
-def split_uri(uri):
-    parsed = urlparse(uri)
-    if parsed.fragment:
-        fragment = parsed.fragment
-    else:
-        path_split = parsed.path.split("/")
-        fragment = path_split[len(path_split)-1]
-    return uri.replace(fragment, ""), fragment
-
-
-def as_term(value: str) -> str:
-    try:
-        return split_uri(value)[1]
-    except AttributeError:
-        return value

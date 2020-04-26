@@ -167,7 +167,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
 
 
 def _as_graph_many(resources: List[Resource], store_metadata: bool, model_context: Optional[Context],
-                   metadata_context: Optional[Context], context_resolver: Callable) -> Graph:
+                   metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     graph = Graph()
     for resource in resources:
         result = _as_graph_one(resource, store_metadata, model_context, metadata_context,
@@ -177,7 +177,7 @@ def _as_graph_many(resources: List[Resource], store_metadata: bool, model_contex
 
 
 def _as_graph_one(resource: Resource, store_metadata: bool, model_context: Optional[Context],
-                  metadata_context: Optional[Context], context_resolver: Callable) -> Graph:
+                  metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
                              metadata_context, context_resolver)
     return Graph().parse(data=json.dumps(json_ld), format="json-ld")
@@ -186,7 +186,10 @@ def _as_graph_one(resource: Resource, store_metadata: bool, model_context: Optio
 def _as_graphs(resource: Resource, store_metadata: bool, context: Context,
                metadata_context: Context) -> Tuple[Graph, Graph]:
     """Returns a data and a metadata graph"""
-    output_context = context.iri if context.is_http_iri() else context.document["@context"]
+    if hasattr(resource, "context"):
+        output_context = resource.context
+    else:
+        output_context = context.iri if context.is_http_iri() else context.document["@context"]
     converted = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
     return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)
@@ -224,15 +227,18 @@ def recursive_resolve(context: Union[Dict, List, str], resolver: Optional[Callab
 
 def _resource_context(resource: Resource, model_context: Context, context_resolver: Callable) -> Context:
     if hasattr(resource, "context"):
-        iri = resource.context if isinstance(resource.context, str) else None
-        try:
-            document = recursive_resolve(resource.context, context_resolver)
-            context = Context(document, iri)
-        except (HTTPError, URLError, NotSupportedError):
+        if model_context and resource.context == model_context.iri:
+            context = model_context
+        else:
+            iri = resource.context if isinstance(resource.context, str) else None
             try:
-                context = Context(resource.context, iri)
-            except URLError:
-                raise ValueError(f"{resource.context} is not resolvable")
+                document = recursive_resolve(resource.context, context_resolver)
+                context = Context(document, iri)
+            except (HTTPError, URLError, NotSupportedError):
+                try:
+                    context = Context(resource.context, iri)
+                except URLError:
+                    raise ValueError(f"{resource.context} is not resolvable")
     else:
         context = model_context
 
@@ -256,6 +262,23 @@ def _unpack_from_list(data):
         return node[0]
     else:
         return node
+
+
+def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
+                    metadata_context: Context) -> Tuple[Graph, Graph]:
+    json_str = json.dumps(data)
+    graph = Graph().parse(data=json_str, format="json-ld")
+    meta_data_graph = Graph()
+    if store_meta is True and metadata is not None:
+        if "id" not in metadata:
+            raise ValueError("no id in the metadata")
+        metadata = _add_ld_keys(metadata, None, None)
+        metadata["@context"] = metadata_context.document["@context"]
+        try:
+            meta_data_graph.parse(data=json.dumps(metadata), format="json-ld")
+        except Exception:
+            raise ValueError("generated an invalid json-ld")
+    return graph, meta_data_graph
 
 
 def _add_ld_keys(rsc: Resource, context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
@@ -306,10 +329,7 @@ def _remove_ld_keys(dictionary: dict, context: Context,
                 else:
                     if k in context.terms:
                         if context.terms[k].type == "@id":
-                            v = context.resolve(v)
-                            term = context.find_term(v)
-                            if term:
-                                v = term.name
+                            v = context.shrink_iri(v)
                     local_attrs[k] = v
     if to_resource:
         return Resource(**local_attrs)

@@ -1,7 +1,10 @@
 Model:
   name: RdfModel
-  origin: directory
-  source: ../../../../neuroshapes/shapes/
+  origin: store
+  source: BlueBrainNexus
+  context:
+    iri: "https://bbp.neuroshapes.org"
+    bucket: "neurosciencegraph/datamodels"
 
 Store:
   name: BlueBrainNexus

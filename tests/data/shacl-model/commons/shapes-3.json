@@ -38,9 +38,16 @@
     },
     "maxCount": {
       "@id": "sh:maxCount"
+    },
+    "shapes": {
+      "@id": "nxv:shapes",
+      "@type": "@id",
+      "@container": "@set"
     }
   },
-  "this:shapes": [
+  "@id": "http://shapes.ex/building",
+  "@type": "this:Schema",
+  "shapes": [
     {
       "@id": "this:GeoShape",
       "@type": "sh:NodeShape",

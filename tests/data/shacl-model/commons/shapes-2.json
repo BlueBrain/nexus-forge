@@ -6,6 +6,7 @@
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "prov": "http://www.w3.org/ns/prov#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
     "or": {
       "@id": "sh:or",
       "@type": "@id",
@@ -48,72 +49,86 @@
     },
     "hasValue": {
       "@id": "sh:hasValue"
+    },
+    "shapes": {
+      "@id": "nxv:shapes",
+      "@type": "@id",
+      "@container": "@set"
     }
   },
-  "@id": "this:ActivityShape",
-  "@type": "sh:NodeShape",
-  "nodeKind": "sh:IRI",
-  "targetClass": "prov:Activity",
-  "property": [
+  "imports": [
+    "http://shapes.ex/person"
+  ],
+  "@id": "http://shapes.ex/activity",
+  "@type": "this:Schema",
+  "shapes": [
     {
-      "@context": {
-        "hasValue": {
-          "@id": "sh:hasValue",
-          "@type": "@id"
-        }
-      },
-      "path": "rdf:type",
-      "hasValue": "prov:Activity"
-    },
-    {
-      "path": "prov:generated",
-      "class": "prov:Entity",
-      "minCount": 1
-    },
-    {
-      "path": "prov:used",
-      "class": "prov:Entity"
-    },
-    {
-      "path": "prov:wasStartedBy",
-      "class": "schema:Person",
-      "maxCount": 1
-    },
-    {
-      "path": "schema:status",
-      "hasValue": "completed",
-      "minCount": 1,
-      "maxCount": 1
-    },
-    {
-      "path": "prov:startedAtTime",
-      "datatype": "xsd:dateTime",
-      "lessThan": "prov:endedAtTime",
-      "maxCount": 1
-    },
-    {
-      "path": "prov:endedAtTime",
-      "datatype": "xsd:dateTime",
-      "maxCount": 1
-    },
-    {
-      "path": "schema:validated",
-      "datatype": "xsd:boolean",
-      "maxCount": 1
-    },
-    {
-      "path": "schema:citation",
-      "name": "Citation",
-      "description": "A citation or reference to another creative work, such as another publication, web page, scholarly article, etc.",
-      "or": [
+      "@id": "this:ActivityShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "prov:Activity",
+      "property": [
         {
-          "datatype": "xsd:string"
+          "@context": {
+            "hasValue": {
+              "@id": "sh:hasValue",
+              "@type": "@id"
+            }
+          },
+          "path": "rdf:type",
+          "hasValue": "prov:Activity"
         },
         {
-          "class": "schema:Citation"
+          "path": "prov:generated",
+          "class": "prov:Entity",
+          "minCount": 1
         },
         {
-          "nodeKind": "sh:IRI"
+          "path": "prov:used",
+          "class": "prov:Entity"
+        },
+        {
+          "path": "prov:wasStartedBy",
+          "class": "schema:Person",
+          "maxCount": 1
+        },
+        {
+          "path": "schema:status",
+          "hasValue": "completed",
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "prov:startedAtTime",
+          "datatype": "xsd:dateTime",
+          "lessThan": "prov:endedAtTime",
+          "maxCount": 1
+        },
+        {
+          "path": "prov:endedAtTime",
+          "datatype": "xsd:dateTime",
+          "maxCount": 1
+        },
+        {
+          "path": "schema:validated",
+          "datatype": "xsd:boolean",
+          "maxCount": 1
+        },
+        {
+          "path": "schema:citation",
+          "name": "Citation",
+          "description": "A citation or reference to another creative work, such as another publication, web page, scholarly article, etc.",
+          "or": [
+            {
+              "datatype": "xsd:string"
+            },
+            {
+              "class": "schema:Citation"
+            },
+            {
+              "nodeKind": "sh:IRI"
+            }
+          ]
         }
       ]
     }

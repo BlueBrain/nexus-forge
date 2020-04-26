@@ -12,21 +12,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 import datetime
-import os
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Callable, Optional, Any
 
-from rdflib import URIRef, Literal, Graph
+from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
-from rdflib.util import guess_format
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Model
+from kgforge.core.archetypes import Model, Store
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import not_supported, run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
-from kgforge.specializations.models.rdf.service import Service, as_term
+from kgforge.specializations.models.rdf.directory_service import DirectoryService
+from kgforge.specializations.models.rdf.service import RdfService
+from kgforge.specializations.models.rdf.store_service import StoreService
+from kgforge.specializations.models.rdf.utils import as_term
 
 DEFAULT_VALUE = {
     XSD.string: str(),
@@ -70,7 +69,7 @@ class RdfModel(Model):
         return self.service.context.prefixes
 
     def _types(self) -> List[str]:
-        return list(self.service.types_shapes_map.keys())
+        return list(self.service.types_to_shapes.keys())
 
     def context(self) -> Context:
         return self.service.context
@@ -87,7 +86,7 @@ class RdfModel(Model):
 
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
-            uri = self.service.types_shapes_map[type]
+            uri = self.service.types_to_shapes[type]
         except KeyError:
             raise ValueError("type not found")
         node_properties = self.service.materialize(uri)
@@ -98,7 +97,7 @@ class RdfModel(Model):
 
     def schema_id(self, type: str) -> str:
         try:
-            return str(self.service.types_shapes_map[type])
+            return str(self.service.types_to_shapes[type])
         except KeyError:
             raise ValueError("type not found")
 
@@ -108,28 +107,32 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> Service:
-        graph = load_rdf_files(dirpath)
-        service = Service(graph)
-        if context_iri is None:
-            generated_context = service.generate_context()
-            service.context = Context(generated_context) if generated_context else None
+    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
+        return DirectoryService(dirpath, context_iri)
+
+    @staticmethod
+    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
+        endpoint = source_config.get("endpoint")
+        token = source_config.get("token")
+        bucket = source_config["bucket"]
+        default_store: Store = store(endpoint, bucket, token)
+
+        if context_config:
+            context_endpoint = context_config.get("endpoint", default_store.endpoint)
+            context_token = context_config.get("token", default_store.token)
+            context_bucket = context_config.get("bucket", default_store.bucket)
+            context_iri = context_config.get("iri")
+            if (context_endpoint != default_store.endpoint
+                    or context_token != default_store.token
+                    or context_bucket != default_store.bucket):
+                context_store: Store = store(context_endpoint, context_bucket, context_token)
+                service = StoreService(default_store, context_iri, context_store)
+            else:
+                service = StoreService(default_store, context_iri, None)
         else:
-            service.context = Context(context_iri, context_iri)
+            service = StoreService(default_store)
 
         return service
-
-
-def load_rdf_files(path: Path) -> Graph:
-    memory_graph = Graph()
-    extensions = [".ttl", ".n3", ".json", ".rdf"]
-    for f in path.rglob(os.path.join("*.*")):
-        if f.suffix in extensions:
-            file_format = guess_format(f.name)
-            if file_format is None:
-                file_format = "json-ld"
-            memory_graph.parse(f.as_posix(), format=file_format)
-    return memory_graph
 
 
 def parse_attributes(node: NodeProperties, only_required: bool) -> Dict:

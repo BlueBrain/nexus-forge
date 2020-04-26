@@ -68,5 +68,4 @@ def test_load_context_fail():
 
 def is_valid_document(doc):
     return (isinstance(doc, dict)
-            and "@context" in doc
-            and len(doc) == 1)
+            and "@context" in doc)

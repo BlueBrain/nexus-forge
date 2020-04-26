@@ -119,7 +119,6 @@ class BlueBrainNexus(Store):
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context,
                          metadata_context=None, context_resolver=self.service.resolve_context)
-
         try:
             response = nexus.resources.create(org_label=self.organisation,
                                               project_label=self.project, data=data,

@@ -376,8 +376,8 @@ class KnowledgeGraphForge:
 
     @catch
     def as_graph(self, data: Union[Resource, List[Resource]], store_metadata: bool) -> Graph:
-        return as_graph(data, store_metadata, self._model.context(), self._store.context,
-                        self._store.metadata_context, self._model.resolve_context)
+        return as_graph(data, store_metadata, self._model.context(), self._store.metadata_context,
+                        self._model.resolve_context)
 
     @catch
     def as_dataframe(self, data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",

@@ -19,7 +19,7 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Dict, List, Callable, Union
+from typing import Dict, List, Callable, Union, Optional
 from urllib.error import URLError
 from urllib.parse import quote_plus
 
@@ -92,18 +92,21 @@ class Service:
         }
         return context
 
-    def resolve_context(self, iri: str) -> Dict:
+    def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
             resource = nexus.resources.fetch(self.organisation, self.project, iri)
         except nexus.HTTPError:
-            try:
-                context = Context(iri)
-            except URLError:
-                raise ValueError(f"{iri} is not resolvable")
+            if local_only is False:
+                try:
+                    context = Context(iri)
+                except URLError:
+                    raise ValueError(f"{iri} is not resolvable")
+                else:
+                    document = context.document["@context"]
             else:
-                document = context.document["@context"]
+                raise ValueError(f"{iri} is not resolvable")
         else:
             document = json.loads(json.dumps(resource["@context"]))
         self.context_cache.update({iri: document})
@@ -254,7 +257,10 @@ class Service:
             else:
                 data[k] = v
 
-        resolved_ctx = recursive_resolve(data_context, self.resolve_context)
+        if self.model_context and data_context == self.model_context.iri:
+            resolved_ctx = self.model_context.document["@context"]
+        else:
+            resolved_ctx = recursive_resolve(data_context, self.resolve_context)
         data["@context"] = resolved_ctx
         resource = _from_jsonld_one(data)
         resource.context = data_context

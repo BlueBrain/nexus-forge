@@ -11,87 +11,15 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
-
-from copy import deepcopy
-
 import json
 import pytest
 
 from kgforge.specializations.models import RdfModel
-
-PERSON = {
-    "id": "",
-    "type": "Person",
-    "address":
-        {
-            "type": "PostalAddress",
-            "postalCode": "",
-            "streetAddress": "",
-        },
-    "birthDate": "9999-12-31",
-    "deathDate": "9999-12-31",
-    "gender": ["female", "male"],
-    "givenName": "",
-    "name": ""
-}
-
-EMPLOYEE = deepcopy(PERSON)
-EMPLOYEE["type"] = "Employee"
-EMPLOYEE.update({
-    "colleague": "Person",
-    "contractor": "Organization",
-    "department": "Organization",
-    "startDate": "9999-12-31",
-    "worksFor": [
-        {"type": "Organization"},
-        {"type": "Person"}
-    ]
-})
-employee_keys_order = ["id", "type", "address", "birthDate", "colleague", "contractor", "deathDate",
-                       "department", "gender", "givenName", "name", "startDate", "worksFor"]
-EMPLOYEE = {k: EMPLOYEE[k] for k in employee_keys_order}
-
-ACTIVITY = {
-    "id": "",
-    "type": "Activity",
-    "citation": "",
-    "endedAtTime": "9999-12-31T00:00:00",
-    "generated": "Entity",
-    "startedAtTime": "9999-12-31T00:00:00",
-    "status": "completed",
-    "used": "Entity",
-    "validated": False,
-    "wasStartedBy": "Person"
-}
-
-ACTIVITY_MANDATORY = {k: v for k, v in ACTIVITY.items() if k in ["id", "type", "generated", "status"]}
+from tests.specializations.models.data import *
 
 
-BUILDING = {
-    "id": "",
-    "type": "Building",
-    "description": "",
-    "geo": {
-        "latitude": 0.0,
-        "longitude": 0.0
-    },
-    "image": "",
-    "name": ""
-}
-BUILDING_MANDATORY = {k: v for k, v in BUILDING.items() if k in ["id", "type", "description", "name"]}
-
-TYPES_SCHEMAS_MAP = {
-    "Activity": "http://www.example.com/ActivityShape",
-    "Association": "http://www.example.com/AssociationShape",
-    "Building": "http://www.example.com/BuildingShape",
-    "Employee": "http://www.example.com/EmployeeShape",
-    "Person": "http://www.example.com/PersonShape",
-    "PostalAddress": "http://schema.org/PostalAddress",
-}
-
-
-@pytest.fixture()
-def shacl_model(context_iri_file):
+@pytest.fixture
+def rdf_model(context_iri_file):
     return RdfModel("tests/data/shacl-model",
                     context={"iri": context_iri_file},
                     origin="directory")
@@ -99,25 +27,30 @@ def shacl_model(context_iri_file):
 
 class TestVocabulary:
 
-    def test_types(self, shacl_model: RdfModel):
-        types = shacl_model.types(pretty=False)
+    def test_generate_context(self, rdf_model: RdfModel):
+        generated_context = rdf_model._generate_context()
+        for k in TYPES_SCHEMAS_MAP.keys():
+            assert generated_context.expand(k) is not None
+
+    def test_types(self, rdf_model: RdfModel):
+        types = rdf_model.types(pretty=False)
         assert types == list(TYPES_SCHEMAS_MAP.keys())
 
-    def test_context(self, shacl_model: RdfModel, context_file_path):
+    def test_context(self, rdf_model: RdfModel, context_file_path):
         with open(context_file_path) as f:
             expected = json.load(f)
-        vocabulary = shacl_model.context().document
+        vocabulary = rdf_model.context().document
         assert vocabulary == expected
 
-    def test_namespaces(self, shacl_model: RdfModel, model_prefixes):
-        assert shacl_model.prefixes(pretty=False) == model_prefixes
+    def test_namespaces(self, rdf_model: RdfModel, model_prefixes):
+        assert rdf_model.prefixes(pretty=False) == model_prefixes
 
 
 class TestTemplates:
 
-    def test_request_invalid_type(self, shacl_model: RdfModel):
+    def test_request_invalid_type(self, rdf_model: RdfModel):
         with pytest.raises(ValueError):
-            shacl_model._template("Invalid", False)
+            rdf_model._template("Invalid", False)
 
     @pytest.mark.parametrize("type_, expected", [
         pytest.param("Person", PERSON, id="person"),
@@ -125,21 +58,21 @@ class TestTemplates:
         pytest.param("Activity", ACTIVITY, id="activity"),
         pytest.param("Building", BUILDING, id="building"),
     ])
-    def test_create_templates(self, shacl_model: RdfModel, type_, expected):
-        result = shacl_model._template(type_, False)
+    def test_create_templates(self, rdf_model: RdfModel, type_, expected):
+        result = rdf_model._template(type_, False)
         assert result == expected
 
     @pytest.mark.parametrize("type_, expected", [
         pytest.param("Activity", ACTIVITY_MANDATORY, id="activity"),
         pytest.param("Building", BUILDING_MANDATORY, id="building"),
     ])
-    def test_create_templates_only_required(self, shacl_model: RdfModel, type_, expected):
-        result = shacl_model._template(type_, True)
+    def test_create_templates_only_required(self, rdf_model: RdfModel, type_, expected):
+        result = rdf_model._template(type_, True)
         assert result == expected
 
 
 class TestValidation:
 
     @pytest.mark.parametrize("type_,", TYPES_SCHEMAS_MAP.keys())
-    def test_schema_id(self, shacl_model: RdfModel, type_):
-        assert shacl_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]
+    def test_schema_id(self, rdf_model: RdfModel, type_):
+        assert rdf_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]

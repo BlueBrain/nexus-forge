@@ -1,9 +1,9 @@
 Model:
   name: RdfModel
-  origin: directory
-  source: ../../../tests/data/shacl-model
+  origin: store
+  source: BlueBrainNexus
   context:
-    iri: "file:../../../tests/data/shacl-model/context.json"
+    iri: "http://context.example.org"
 
 Store:
   name: BlueBrainNexus

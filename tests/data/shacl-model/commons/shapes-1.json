@@ -1,0 +1,208 @@
+{
+  "@context": {
+    "this": "http://www.example.com/",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "schema": "http://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "node": {
+      "@id": "sh:node",
+      "@type": "@id"
+    },
+    "and": {
+      "@id": "sh:and",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "or": {
+      "@id": "sh:or",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "xone": {
+      "@id": "sh:xone",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "in": {
+      "@id": "sh:in",
+      "@container": "@list"
+    },
+    "minInclusive": {
+      "@id": "sh:minInclusive"
+    },
+    "maxInclusive": {
+      "@id": "sh:maxInclusive"
+    },
+    "nodeKind": {
+      "@id": "sh:nodeKind",
+      "@type": "@id"
+    },
+    "targetClass": {
+      "@id": "sh:targetClass",
+      "@type": "@id"
+    },
+    "path": {
+      "@id": "sh:path",
+      "@type": "@id"
+    },
+    "datatype": {
+      "@id": "sh:datatype",
+      "@type": "@id"
+    },
+    "property": {
+      "@id": "sh:property",
+      "@type": "@id"
+    },
+    "class": {
+      "@id": "sh:class",
+      "@type": "@id"
+    },
+    "lessThan": {
+      "@id": "sh:lessThan",
+      "@type": "@id"
+    },
+    "maxCount": {
+      "@id": "sh:maxCount",
+      "@type": "xsd:integer"
+    },
+    "minCount": {
+      "@id": "sh:minCount",
+      "@type": "xsd:integer"
+    },
+    "hasValue": {
+      "@id": "sh:hasValue"
+    },
+    "shapes": {
+      "@id": "nxv:shapes",
+      "@type": "@id",
+      "@container": "@set"
+    }
+  },
+  "@id": "http://shapes.ex/person",
+  "@type": "this:Schema",
+  "shapes": [
+    {
+      "@id": "schema:PostalAddress",
+      "@type": ["sh:NodeShape", "rdfs:Class"],
+      "closed" : true,
+      "nodeKind": "sh:BlankNode",
+      "property": [
+        {
+          "path": "schema:streetAddress",
+          "datatype": "xsd:string"
+        },
+        {
+          "path": "schema:postalCode",
+          "minInclusive": 10000,
+          "maxInclusive": 99999,
+          "or": [
+            {
+              "datatype": "xsd:string"
+            },
+            {
+              "datatype": "xsd:integer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@id": "this:PersonShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "schema:Person",
+      "and": [
+        {
+          "xone": [
+            {
+              "path": "schema:name",
+              "minCount": 1
+            },
+            {
+              "path": "schema:givenName",
+              "minCount": 1
+            }
+          ]
+        },
+        {
+          "path": "schema:gender",
+          "in" : ["female", "male" ],
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "schema:birthDate",
+          "datatype": "xsd:date",
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "schema:deathDate",
+          "datatype": "xsd:date",
+          "maxCount": 1
+        },
+        {
+          "path": "schema:address" ,
+          "node": "schema:PostalAddress"
+        }
+      ]
+    },
+    {
+      "@id": "this:EmployeeShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "this:Employee",
+      "and": [
+        {
+          "node": "this:PersonShape"
+        },
+        {
+          "path": "schema:startDate",
+          "datatype": "xsd:date",
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "schema:colleague",
+          "class": "schema:Person"
+        },
+        {
+          "path": "schema:worksFor",
+          "or": [
+            { "class": "schema:Person" },
+            { "class": "schema:Organization" }
+          ]
+
+        },
+        {
+          "or": [
+            {
+              "path": "schema:contractor",
+              "class": "schema:Organization"
+            },
+            {
+              "path": "schema:department",
+              "class": "schema:Organization"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@id": "this:AssociationShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "schema:Association",
+      "property": {
+        "path": "schema:agent",
+        "node": "this:PersonShape"
+      }
+    }
+  ]
+}
+
+

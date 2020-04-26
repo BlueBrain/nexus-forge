@@ -1,39 +1,35 @@
 {
   "@context": {
     "@vocab": "http://example.org/vocab/",
-    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-    "prov": "http://www.w3.org/ns/prov#",
-    "schema": "http://schema.org/",
-    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-    "skos": "http://www.w3.org/2004/02/skos/core#",
-    "owl": "http://www.w3.org/2002/07/owl#",
-    "nsg": "https://neuroshapes.org/",
     "Activity": {
       "@id": "prov:Activity"
     },
     "Agent": {
       "@id": "prov:Agent"
     },
-    "Class": {
-      "@id": "owl:Class"
-    },
-    "PostalAddress": {
-      "@id": "schema:PostalAddress"
-    },
     "Association": {
       "@id": "schema:Association"
     },
-    "BrainRegion" : {
+    "BrainRegion": {
       "@id": "nsg:BrainRegion"
     },
     "Building": {
       "@id": "schema:Building"
+    },
+    "Class": {
+      "@id": "owl:Class"
+    },
+    "Employee": {
+      "@id": "http://www.example.com/Employee"
     },
     "Organization": {
       "@id": "schema:Organization"
     },
     "Person": {
       "@id": "schema:Person"
+    },
+    "PostalAddress": {
+      "@id": "schema:PostalAddress"
     },
     "address": {
       "@id": "schema:address"
@@ -42,7 +38,8 @@
       "@id": "schema:agent"
     },
     "birthDate": {
-      "@id": "schema:birthDate"
+      "@id": "schema:birthDate",
+      "@type": "xsd:date"
     },
     "citation": {
       "@id": "schema:citation"
@@ -51,7 +48,8 @@
       "@id": "schema:contractor"
     },
     "deathDate": {
-      "@id": "schema:deathDate"
+      "@id": "schema:deathDate",
+      "@type": "xsd:date"
     },
     "department": {
       "@id": "schema:department"
@@ -62,11 +60,11 @@
     "endedAtTime": {
       "@id": "prov:endedAtTime"
     },
-    "founder": {
-      "@id": "schema:founder"
-    },
     "familyName": {
       "@id": "schema:familyName"
+    },
+    "founder": {
+      "@id": "schema:founder"
     },
     "gender": {
       "@id": "schema:gender"
@@ -82,7 +80,7 @@
     },
     "image": {
       "@id": "schema:image",
-      "@type" : "@id"
+      "@type": "@id"
     },
     "isDefinedBy": {
       "@id": "rdfs:isDefinedBy",
@@ -99,15 +97,24 @@
       "@id": "schema:name"
     },
     "notation": "skos:notation",
+    "nsg": "https://neuroshapes.org/",
+    "owl": "http://www.w3.org/2002/07/owl#",
     "postalCode": {
       "@id": "schema:postalCode"
     },
     "prefLabel": "skos:prefLabel",
+    "prov": "http://www.w3.org/ns/prov#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "schema": "http://schema.org/",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
     "startDate": {
-      "@id": "schema:startDate"
+      "@id": "schema:startDate",
+      "@type": "xsd:date"
     },
     "startedAtTime": {
-      "@id": "prov:startedAtTime"
+      "@id": "prov:startedAtTime",
+      "@type": "xsd:dateTime"
     },
     "status": {
       "@id": "schema:status"
@@ -136,6 +143,8 @@
     "wasStartedBy": {
       "@id": "prov:wasStartedBy",
       "@type": "@id"
-    }
-  }
+    },
+    "xsd": "http://www.w3.org/2001/XMLSchema#"
+  },
+  "@id": "http://context.example.org"
 }

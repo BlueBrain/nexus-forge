@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import hjson
+import json
 from pandas import DataFrame
 
 from kgforge.core import Resource
@@ -96,7 +97,7 @@ class Model(ABC):
         elif output == "json":
             print(hjson.dumpsJSON(schema, indent=4, item_sort_key=sort_attrs))
         elif output == "dict":
-            return schema
+            return json.loads(hjson.dumpsJSON(schema, item_sort_key=sort_attrs))
         else:
             raise ValueError("unrecognized output")
 
