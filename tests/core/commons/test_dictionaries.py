@@ -13,6 +13,7 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 
 # Test suite for functions on dictionaries.
+from copy import copy
 
 import pytest
 
@@ -48,49 +49,31 @@ class TestWithDefaults:
         original["k2"] = "v2b"
         del original["k3"]
         del original["k4"]
-        with_defaults(original, other, "k2", ["k3", "k4"])
+        with_defaults(original, other, "k2", "k2", ["k3", "k4"])
         assert original["k3"] == "v3b"
         assert original["k4"] == "v4b"
 
     def test_same_given_missing(self, original, other):
         # Same Store name. Given endpoint. Missing token.
-        # => Use other endpoint and other token.
+        # => Use original endpoint and other token.
         original["k2"] = "v2b"
         del original["k4"]
-        with_defaults(original, other, "k2", ["k3", "k4"])
-        assert original["k3"] == "v3b"
+        with_defaults(original, other, "k2", "k2", ["k3", "k4"])
+        assert original["k3"] == "v3a"
         assert original["k4"] == "v4b"
 
     def test_same_given_given(self, original, other):
         # Same Store name. Given endpoint. Given token.
-        # => Use other endpoint and other token.
+        # => Use original endpoint and original token.
         original["k2"] = "v2b"
-        with_defaults(original, other, "k2", ["k3", "k4"])
-        assert original["k3"] == "v3b"
-        assert original["k4"] == "v4b"
+        with_defaults(original, other, "k2", "k2", ["k3", "k4"])
+        assert original["k3"] == "v3a"
+        assert original["k4"] == "v4a"
 
     # Different.
 
-    def test_different_missing_missing(self, original, other):
-        # Different Store name. Missing endpoint. Missing token.
-        # => Use other endpoint and other token.
-        del original["k3"]
-        del original["k4"]
-        with_defaults(original, other, "k2", ["k3", "k4"])
-        assert original["k3"] == "v3b"
-        assert original["k4"] == "v4b"
-
-    def test_different_given_missing(self, original, other):
-        # Different Store name. Given endpoint. Missing token.
-        # => Use original endpoint and other token.
-        del original["k4"]
-        with_defaults(original, other, "k2", ["k3", "k4"])
-        assert original["k3"] == "v3a"
-        assert original["k4"] == "v4b"
-
-    def test_different_given_given(self, original, other):
-        # Different Store name. Given endpoint. Given token.
-        # => Use original endpoint and original token.
-        with_defaults(original, other, "k2", ["k3", "k4"])
-        assert original["k3"] == "v3a"
-        assert original["k4"] == "v4a"
+    def test_different_name(self, original, other):
+        # Different Store name. Do nothing
+        original_copy = copy(original)
+        with_defaults(original, other, "k2", "k2", ["k3", "k4"])
+        assert original == original_copy
