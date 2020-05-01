@@ -45,10 +45,10 @@ class Dataset(Resource):
         _set(self, "hasPart", parts)
 
     @catch
-    def add_distribution(self, path: str) -> None:
+    def add_distribution(self, path: str, content_type: str = None) -> None:
         # path: FilePath.
         """Add a downloadable form of the dataset."""
-        action = self._forge.attach(path)
+        action = self._forge.attach(path, content_type)
         _set(self, "distribution", action)
 
     @catch
@@ -84,10 +84,10 @@ class Dataset(Resource):
         _set(self, "invalidation", invalidation)
 
     @catch
-    def add_files(self, path: str) -> None:
+    def add_files(self, path: str, content_type: str = None) -> None:
         # path: DirPath.
         """Add (different) files as parts of the dataset."""
-        action = self._forge.attach(path)
+        action = self._forge.attach(path, content_type)
         _set(self, "hasPart", action)
 
     @catch

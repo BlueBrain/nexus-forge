@@ -209,12 +209,12 @@ extracted properties, such as  content type, size, file name, etc.
 ```
 Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
   add_parts(resources: List[Resource], versioned: bool = True) -> None
-  add_distribution(path: str) -> None
+  add_distribution(path: str, content_type: str = None) -> None
   add_contribution(agent: str, **kwargs) -> None
   add_generation(**kwargs) -> None
   add_derivation(resource: Resource, versioned: bool = True, **kwargs) -> None
   add_invalidation(**kwargs) -> None
-  add_files(path: str) -> None
+  add_files(path: str, content_type: str = None) -> None
   download(source: str, path: str) -> None
 ```
 
