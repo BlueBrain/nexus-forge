@@ -1,0 +1,38 @@
+Model:
+  name: RdfModel
+  origin: FIXME
+  source: FIXME
+  context:
+    iri: FIXME
+
+Store:
+  name: BlueBrainNexus
+  endpoint: https://staging.nexus.ocp.bbp.epfl.ch/v1
+  bucket: FIXME
+  versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
+  file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
+
+Resolvers:
+  terms:
+    - resolver: FIXME
+      origin: FIXME
+      source: FIXME
+      targets:
+        - identifier: sex
+          bucket: FIXME
+        - identifier: species
+          bucket: FIXME
+        - identifier: brain regions
+          bucket: FIXME
+      result_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
+  entities:
+    - resolver: FIXME
+      origin: FIXME
+      source: FIXME
+      targets:
+        - identifier: agents
+          bucket: FIXME
+      result_resource_mapping: FIXME
+
+Formatters:
+  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}/{}
