@@ -130,9 +130,9 @@ class BlueBrainNexus(Store):
                 resource.context = data["@context"]
             self.service.sync_metadata(resource, response)
 
-    def _upload_one(self, filepath: Path) -> Dict:
+    def _upload_one(self, filepath: Path, content_type: str) -> Dict:
         file = str(filepath.absolute())
-        mime_type, _ = mimetypes.guess_type(file, True)
+        mime_type = content_type or mimetypes.guess_type(file, True)[0]
         if mime_type is None:
             mime_type = "application/octet-stream"
         try:

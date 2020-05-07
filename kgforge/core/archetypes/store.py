@@ -91,29 +91,29 @@ class Store(ABC):
         pass
 
     # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
-    def upload(self, path: str) -> Union[Resource, List[Resource]]:
+    def upload(self, path: str, content_type: str) -> Union[Resource, List[Resource]]:
         # path: Union[FilePath, DirPath].
         if self.file_mapping is not None:
-            uploaded = self._upload(path)
+            uploaded = self._upload(path, content_type)
             return self.mapper().map(uploaded, self.file_mapping, None)
         else:
             raise UploadingError("no file_resource_mapping has been configured")
 
-    def _upload(self, path: str) -> Union[Any, List[Any]]:
+    def _upload(self, path: str, content_type: str) -> Union[Any, List[Any]]:
         # path: Union[FilePath, DirPath].
         p = Path(path)
         if p.is_dir():
             filepaths = (x for x in p.iterdir() if x.is_file() and not x.name.startswith("."))
-            return self._upload_many(filepaths)
+            return self._upload_many(filepaths, content_type)
         else:
-            return self._upload_one(p)
+            return self._upload_one(p, content_type)
 
-    def _upload_many(self, filepaths: Iterable[Path]) -> List[Any]:
+    def _upload_many(self, filepaths: Iterable[Path], content_type: str) -> List[Any]:
         # Bulk uploading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._upload_one() policies.
-        return [self._upload_one(x) for x in filepaths]
+        return [self._upload_one(x, content_type) for x in filepaths]
 
-    def _upload_one(self, filepath: Path) -> Any:
+    def _upload_one(self, filepath: Path, content_type: str) -> Any:
         # POLICY Should notify of failures with exception UploadingError including a message.
         not_supported()
 

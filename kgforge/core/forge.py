@@ -331,9 +331,9 @@ class KnowledgeGraphForge:
     # Files Handling User Interface.
 
     @catch
-    def attach(self, path: str) -> LazyAction:
+    def attach(self, path: str, content_type: str = None) -> LazyAction:
         # path: Union[FilePath, DirPath].
-        return LazyAction(self._store.upload, path)
+        return LazyAction(self._store.upload, path, content_type)
 
     # Converting User Interface.
 
