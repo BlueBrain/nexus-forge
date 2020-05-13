@@ -9,28 +9,41 @@ Model:
 Store:
   name: BlueBrainNexus
   endpoint: https://staging.nexus.ocp.bbp.epfl.ch/v1
-  bucket: "dke/kgforge_tests"
+  bucket: dke/kgforge_tests
   token: <token>
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
   file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
 
 Resolvers:
+  ontology:
+    - resolver: OntologyResolver
+      origin: store
+      source: BlueBrainNexus
+      targets:
+        - identifier: terms
+          bucket: neurosciencegraph/datamodels
+      result_resource_mapping: ../../configurations/nexus-resolver/term-to-resource-mapping.hjson
+  agent:
+    - resolver: AgentResolver
+      origin: store
+      source: BlueBrainNexus
+      targets:
+        - identifier: agents
+          bucket: dke/agents
+      result_resource_mapping: ../../configurations/nexus-resolver/agent-to-resource-mapping.hjson
   terms:
     - resolver: DemoResolver
       origin: directory
       source: ../../../tests/data/demo-resolver/
       targets:
+        - identifier: species
+          bucket: species.json
         - identifier: sex
           bucket: sex.json
+        - identifier: structure-layer
+          bucket: structure_layer.json
       result_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
-  entities:
-    - resolver: DemoResolver
-      origin: directory
-      source: ../../../tests/data/demo-resolver/
-      targets:
-        - identifier: agents
-          bucket: agents.json
-      result_resource_mapping: ../../configurations/demo-resolver/entity-to-resource-mapping.hjson
+
 
 Formatters:
-  identifier: https://kg.example.ch/{}/{}
+  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}/{}
