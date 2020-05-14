@@ -59,17 +59,21 @@ def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
         properties, attributes: Tuple(list,dict), the collected properties and attributes
             respectively gathered from the collectors
     """
+
     parameters = self.parameters()
     properties = list()
     attributes = dict()
     done_collectors = set()
-    predecessors.add(self.node)
+
     for param in iter(parameters):
         if param in ALL_COLLECTORS_MAP:
             constraint_collector = ALL_COLLECTORS_MAP[param]
             if constraint_collector not in done_collectors:
                 c = constraint_collector(self)
+                predecessors.add(self.node)
                 props, attrs = c.collect(predecessors)
+                if predecessors:
+                    predecessors.pop()
                 if attrs:
                     attributes.update(attrs)
                 if props:
@@ -79,6 +83,7 @@ def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
             # FIXME: there are some Shacl constrains that are not implemented
             # raise IndexError(f"{p} not implemented!")
             pass
+
     return properties, attributes
 
 

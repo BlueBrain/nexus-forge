@@ -19,7 +19,7 @@ from pyshacl.constraints.core.cardinality_constraints import SH_minCount
 from pyshacl.constraints.core.logical_constraints import SH_and, SH_or, SH_xone
 from pyshacl.constraints.core.other_constraints import SH_in, SH_hasValue
 from pyshacl.constraints.core.value_constraints import SH_class, SH_nodeKind, SH_datatype
-from pyshacl.consts import SH_property, SH_node, SH_IRI
+from pyshacl.consts import SH_property, SH_node, SH_IRI, SH_BlankNodeOrIRI
 from pyshacl.shape import Shape
 from rdflib import RDF
 from rdflib.term import URIRef, BNode
@@ -142,8 +142,11 @@ class NodeKindCollector(Collector):
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
         attrs = dict()
+        # id = True is to indicate that id is mandatory, False is optional
         if self.node_kind_rule == SH_IRI:
             attrs["id"] = True
+        elif self.node_kind_rule == SH_BlankNodeOrIRI:
+            attrs["id"] = False
         return None, attrs
 
 
@@ -207,10 +210,17 @@ class NodeCollector(Collector):
         for n_shape in self.node_shapes:
             ns = self.shape.get_other_shape(n_shape)
             if ns.node not in predecessors:
-                predecessors.add(ns.node)
-                p, a = ns.traverse(predecessors)
-                properties.extend(p)
-                attributes.update(a)
+                props, attrs = ns.traverse(predecessors)
+                if ns.path() is not None:
+                    if not isinstance(ns.path(), BNode):
+                        attrs["path"] = ns.path()
+                        if props:
+                            attrs["properties"] = props
+                        p = NodeProperties(**attrs)
+                        properties.append(p)
+                else:
+                    properties.extend(props)
+                    attributes.update(attrs)
         return properties, attributes
 
 
@@ -236,7 +246,6 @@ class PropertyCollector(Collector):
         for p_shape in self.property_shapes:
             ps = self.shape.get_other_shape(p_shape)
             if ps.node not in predecessors:
-                predecessors.add(ps.node)
                 props, attrs = ps.traverse(predecessors)
                 if ps.path() is not None:
                     if not isinstance(ps.path(), BNode):
@@ -268,7 +277,6 @@ class AndCollector(Collector):
             for and_shape in and_list:
                 and_shape = self.shape.get_other_shape(and_shape)
                 if and_shape.node not in predecessors:
-                    predecessors.add(and_shape.node)
                     p, a = and_shape.traverse(predecessors)
                     if a is not None:
                         if and_shape.path() is not None:
@@ -308,7 +316,6 @@ class OrCollector(Collector):
             for or_shape in or_list:
                 or_shape = self.shape.get_other_shape(or_shape)
                 if or_shape.node not in predecessors:
-                    predecessors.add(or_shape.node)
                     p, a = or_shape.traverse(predecessors)
                     if a is not None:
                         if or_shape.path() is not None:
@@ -351,7 +358,6 @@ class XoneCollector(Collector):
             for xone_shape in xone_list:
                 xone_shape = self.shape.get_other_shape(xone_shape)
                 if xone_shape.node not in predecessors:
-                    predecessors.add(xone_shape.node)
                     p, a = xone_shape.traverse(predecessors)
                     if a is not None:
                         if xone_shape.path() is not None:

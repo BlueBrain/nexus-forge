@@ -17,8 +17,8 @@ import mimetypes
 import re
 from asyncio import Task
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-from urllib.parse import quote_plus
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from urllib.parse import quote_plus, unquote
 
 import nexussdk as nexus
 import requests
@@ -174,6 +174,8 @@ class BlueBrainNexus(Store):
         try:
             # this is a hack since _self and _id have the same uuid
             file_id = url.split("/")[-1]
+            if file_id.startswith("http"):
+                file_id = unquote(file_id).split("/")[-1]
             if len(file_id) < 1:
                 raise DownloadingError("Invalid file name")
             nexus.files.fetch(org_label=self.organisation, project_label=self.project,
@@ -271,11 +273,11 @@ class BlueBrainNexus(Store):
         limit = params.get("limit", 100)
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
-        conditions = build_query_statements(self.model_context, filters)
-        conditions.insert(0, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
-        statements = "; ".join(conditions)
+        query_statements, query_filters = build_query_statements(self.model_context, filters)
+        query_statements.insert(0, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
+        statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
 
-        query = f"SELECT ?id WHERE {{ ?id {statements} }}"
+        query = f"SELECT ?id WHERE {{ ?id {statements}}}"
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
         resources = list()
@@ -370,7 +372,7 @@ def _error_message(error: HTTPError) -> str:
         return str(error)
 
 
-def build_query_statements(context: Context, *conditions) -> List:
+def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
     statements = list()
     filters = list()
     for index, f in enumerate(*conditions):
@@ -385,17 +387,19 @@ def build_query_statements(context: Context, *conditions) -> List:
             if f.operator == "__eq__":
                 statements.append(f"{property_path} {f.value}")
             elif f.operator == "__ne__":
-                filters.append(f"{property_path} ?v{index} FILTER(?v{index} != {f.value})")
+                statements.append(f"{property_path} ?v{index}")
+                filters.append(f"FILTER(?v{index} != {f.value})")
             else:
                 raise NotImplementedError(f"operator '{f.operator}' is not supported in this query")
         else:
             value = format_type[value_type](f.value)
             if value_type is CategoryDataType.LITERAL:
-                filters.append(f"{property_path} ?v{index} FILTER(?v{index} = {value})")
+                statements.append(f"{property_path} ?v{index}")
+                filters.append(f"FILTER(?v{index} = {value})")
                 # filters.append(f"{property_path} ?v{index} FILTER regex(?v{index}, {value})")
             else:
-                filters.append(
-                    f"{property_path} ?v{index} FILTER(?v{index} {operator_map[f.operator]} {value})")
+                statements.append(f"{property_path} ?v{index}")
+                filters.append(f"FILTER(?v{index} {operator_map[f.operator]} {value})")
 
-    return statements + filters
+    return statements, filters
 
