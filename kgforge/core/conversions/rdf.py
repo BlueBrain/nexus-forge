@@ -34,9 +34,10 @@ class Form(Enum):
 
 
 def as_graph(data: Union[Resource, List[Resource]], store_metadata: bool,
-             model_context: Optional[Context], store_context: Optional[Context],
-             metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
-    raise NotImplementedError("not implemented yet")
+             model_context: Optional[Context], metadata_context: Optional[Context],
+             context_resolver: Optional[Callable]) -> Graph:
+    return dispatch(data, _as_graph_many, _as_graph_one, store_metadata, model_context,
+                    metadata_context, context_resolver)
 
 
 def as_jsonld(data: Union[Resource, List[Resource]], form: str, store_metadata: bool,
@@ -93,22 +94,8 @@ def _as_jsonld_many(resources: List[Resource], form: Form, store_metadata: bool,
 def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                    model_context: Optional[Context], metadata_context: Optional[Context],
                    context_resolver: Optional[Callable]) -> Dict:
-    if hasattr(resource, "context"):
-        iri = resource.context if isinstance(resource.context, str) else None
-        try:
-            document = recursive_resolve(resource.context, context_resolver)
-            context = Context(document, iri)
-        except (HTTPError, URLError, NotSupportedError):
-            try:
-                context = Context(resource.context, iri)
-            except URLError:
-                raise ValueError(f"{resource.context} is not resolvable")
-    else:
-        context = model_context
-        
-    if context is None:
-        raise NotSupportedError("no available context")
 
+    context = _resource_context(resource, model_context, context_resolver)
     resolved_context = context.document
     output_context = context.iri if context.is_http_iri() else context.document["@context"]
     if store_metadata and resource._store_metadata:
@@ -123,7 +110,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         else:
             raise NotSupportedError("no available context in the metadata")
     try:
-        data_graph, metadata_graph = _as_graph_one(resource, context, store_metadata, metadata_context)
+        data_graph, metadata_graph = _as_graphs(resource, store_metadata, context, metadata_context)
     except Exception as e:
         raise ValueError(e)
     data_expanded = json.loads(data_graph.serialize(format="json-ld").decode("utf-8"))
@@ -179,37 +166,26 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
             return _unpack_from_list(data_framed)
 
 
-def recursive_resolve(context: Union[Dict, List, str], resolver: Optional[Callable]) -> Dict:
-    document = dict()
-    if isinstance(context, list):
-        for x in context:
-            document.update(recursive_resolve(x, resolver))
-    elif isinstance(context, str):
-        doc = resolver(context)
-        document.update(recursive_resolve(doc, resolver))
-    elif isinstance(context, dict):
-        document.update(context)
-    return document
+def _as_graph_many(resources: List[Resource], store_metadata: bool, model_context: Optional[Context],
+                   metadata_context: Optional[Context], context_resolver: Callable) -> Graph:
+    graph = Graph()
+    for resource in resources:
+        result = _as_graph_one(resource, store_metadata, model_context, metadata_context,
+                               context_resolver)
+        graph.parse(result)
+    return graph
 
 
-def _unpack_from_list(data):
-    if isinstance(data, list):
-        node = data
-    elif isinstance(data, dict):
-        if "@graph" in data:
-            node = data["@graph"]
-        else:
-            return data
-    else:
-        return data
-    if len(node) == 1:
-        return node[0]
-    else:
-        return node
+def _as_graph_one(resource: Resource, store_metadata: bool, model_context: Optional[Context],
+                  metadata_context: Optional[Context], context_resolver: Callable) -> Graph:
+    json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
+                             metadata_context, context_resolver)
+    return Graph().parse(data=json.dumps(json_ld), format="json-ld")
 
 
-def _as_graph_one(resource: Resource, context: Context, store_metadata: bool,
-                  metadata_context: Context) -> Tuple[Graph, Graph]:
+def _as_graphs(resource: Resource, store_metadata: bool, context: Context,
+               metadata_context: Context) -> Tuple[Graph, Graph]:
+    """Returns a data and a metadata graph"""
     output_context = context.iri if context.is_http_iri() else context.document["@context"]
     converted = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
@@ -231,6 +207,55 @@ def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
         except Exception:
             raise ValueError("generated an invalid json-ld")
     return graph, meta_data_graph
+
+
+def recursive_resolve(context: Union[Dict, List, str], resolver: Optional[Callable]) -> Dict:
+    document = dict()
+    if isinstance(context, list):
+        for x in context:
+            document.update(recursive_resolve(x, resolver))
+    elif isinstance(context, str):
+        doc = resolver(context)
+        document.update(recursive_resolve(doc, resolver))
+    elif isinstance(context, dict):
+        document.update(context)
+    return document
+
+
+def _resource_context(resource: Resource, model_context: Context, context_resolver: Callable) -> Context:
+    if hasattr(resource, "context"):
+        iri = resource.context if isinstance(resource.context, str) else None
+        try:
+            document = recursive_resolve(resource.context, context_resolver)
+            context = Context(document, iri)
+        except (HTTPError, URLError, NotSupportedError):
+            try:
+                context = Context(resource.context, iri)
+            except URLError:
+                raise ValueError(f"{resource.context} is not resolvable")
+    else:
+        context = model_context
+
+    if context is None:
+        raise NotSupportedError("no available context")
+
+    return context
+
+
+def _unpack_from_list(data):
+    if isinstance(data, list):
+        node = data
+    elif isinstance(data, dict):
+        if "@graph" in data:
+            node = data["@graph"]
+        else:
+            return data
+    else:
+        return data
+    if len(node) == 1:
+        return node[0]
+    else:
+        return node
 
 
 def _add_ld_keys(rsc: Resource, context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:

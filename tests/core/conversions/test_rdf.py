@@ -17,10 +17,12 @@ import os
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 
+import json
 import pytest
+from rdflib import Graph, BNode
 
 from kgforge.core.commons.exceptions import NotSupportedError
-from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form
+from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph
 
 form_store_metadata_combinations = [
     pytest.param(Form.COMPACTED.value, True, id="compacted-with-metadata"),
@@ -41,7 +43,7 @@ def building_with_context(building, model_context):
     return building
 
 
-class TestAsJsonLd:
+class TestJsonLd:
 
     @pytest.mark.parametrize("store_metadata", store_metadata_params)
     def test_nested_resources(self, organization, organization_jsonld_compacted,
@@ -103,20 +105,35 @@ class TestAsJsonLd:
                            context_resolver=None)
         assert expected == result
 
-
-class TestFromJsonLD:
-
     def test_from_jsonld(self, building, model_context, building_jsonld):
-        building.context = model_context.document
+        building.context = model_context.document["@context"]
         payload = building_jsonld(building, "compacted", False, None)
         resource = from_jsonld(payload)
         assert resource == building
 
-    def test_unresolvable_context(nexus_store, building, building_jsonld):
+    def test_unresolvable_context(self, building, building_jsonld):
         building.context = "http://unresolvable.context.example.org/"
         payload = building_jsonld(building, "compacted", False, None)
         with pytest.raises(ValueError):
             from_jsonld(payload)
+
+
+class TestGraph:
+
+    def test_as_graph(self, building, building_jsonld, model_context):
+        store_metadata = False
+        building.id = "http://test/1234"
+        building.context = model_context .document["@context"]
+        data = building_jsonld(building, "compacted", store_metadata, None)
+        expected = Graph().parse(data=json.dumps(data), format="json-ld")
+        result = as_graph(building, store_metadata, model_context, None, None)
+        for s, p, o in expected:
+            if isinstance(o, BNode):
+                assert (s, p, None) in result
+            elif isinstance(s, BNode):
+                assert (None, p, o) in result
+            else:
+                assert (s, p, o) in result
 
 
 class TestUtils:

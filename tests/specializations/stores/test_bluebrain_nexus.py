@@ -212,10 +212,6 @@ class TestQuerying:
 
 # Helpers
 
-def assert_equal(first, second):
-    assert str(first) == str(second)
-    assert getattr(first, "_context", None) == getattr(first, "_context", None)
-
 
 def assert_frozen_id(resource: Resource):
     assert resource.id.endswith('?rev=' + str(resource._store_metadata['_rev']))
@@ -238,10 +234,6 @@ def add_metadata(resource: Resource):
     resource._synchronized = True
     resource._validated = True
     resource._store_metadata = wrap_dict(metadata)
-
-
-def add_meta(r, m):
-    r._store_metadata = wrap_dict(m)
 
 
 def do_recursive(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
