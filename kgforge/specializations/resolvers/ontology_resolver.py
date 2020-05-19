@@ -17,7 +17,6 @@ from typing import List, Dict, Any, Optional, Callable
 from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.core.conversions.json import as_json
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.store_service import StoreService
@@ -40,44 +39,45 @@ class OntologyResolver(Resolver):
     def _resolve(self, text: str, target: Optional[str], type: Optional[str],
                  strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Any]]:
 
-        statements = [
-            f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean",
-            "?id label ?label",
-            "?id a Class",
-            "?id a ?type",
-            """ 
-            OPTIONAL {
-                ?id prefLabel ?prefLabel ;  
-                    subClassOf ?subClassOf ;  
-                    isDefinedBy ?isDefinedBy ;
-                    notation ?notation
-            }
-            """
-        ]
-
+        first_filters = f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean"
         if type:
-            statements.append(f"?id a <{type}>")
+            first_filters = f"{first_filters} ; a <{type}>"
 
         if strategy == strategy.EXACT_MATCH:
-            statements.append(f" FILTER (?label = \"{text}\")")
+            label_filter = f" FILTER (?label = \"{text}\")"
+            notation_filter = f" FILTER (?notation = \"{text}\")"
             limit = 1
-        elif strategy == strategy.BEST_MATCH:
-            statements.append(f" FILTER regex(?label, \"{text}\", \"i\")")
-            limit = 1
-        elif strategy == strategy.ALL_MATCHES:
-            statements.append(f" FILTER regex(?label, \"{text}\", \"i\")")
+        else:
+            label_filter = f" FILTER regex(?label, \"{text}\", \"i\")"
+            notation_filter = f" FILTER regex(?notation, \"{text}\", \"i\")"
+            if strategy == strategy.BEST_MATCH:
+                limit = 1
 
-        query = f"""
+        query = """
             CONSTRUCT {{
-                ?id a ?type ;
-                    label ?label ;
-                    prefLabel ?prefLabel ;
-                    subClassOf ?subClassOf ;
-                    isDefinedBy ?isDefinedBy ;
-                    notation ?notation
+               ?id a ?type ;
+                  label ?label ;
+                  prefLabel ?prefLabel ;
+                  subClassOf ?subClassOf ;
+                  isDefinedBy ?isDefinedBy ;
+                  notation ?notation
+            }} WHERE {{
+              ?id a ?type ;
+                  label ?label ; 
+              OPTIONAL {{
+                ?id subClassOf ?subClassOf ;
+                  prefLabel ?prefLabel ;  
+                  isDefinedBy ?isDefinedBy ;
+                  notation ?notation
+              }}
+              {{
+                SELECT * WHERE {{
+                  {{ {0} ; label ?label {1} }} UNION
+                  {{ {0} ; notation ?notation {2} }}
+                }} LIMIT {3}
+              }}
             }}
-            WHERE {{{ ' . '.join(statements) }}}
-            """
+            """.format(first_filters, label_filter, notation_filter, limit)
 
         expected_fields = ["type", "label", "prefLabel", "subClassOf", "isDefinedBy", "notation"]
 
@@ -90,6 +90,3 @@ class OntologyResolver(Resolver):
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
-
-
-
