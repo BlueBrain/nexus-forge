@@ -361,15 +361,19 @@ class BlueBrainNexus(Store):
 
 
 def _error_message(error: HTTPError) -> str:
+
+    def format_message(msg):
+        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+
     try:
-        content = error.response.json()
-        return " ".join(re.findall('[A-Z][^A-Z]*', content["@type"])).lower()
+        reason = error.response.json()["reason"]
+        return format_message(reason)
     except AttributeError:
         pass
     try:
-        return error.response.text()
+        return format_message(error.response.text())
     except AttributeError:
-        return str(error)
+        return format_message(str(error))
 
 
 def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
