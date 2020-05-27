@@ -19,7 +19,7 @@ from setuptools import find_packages, setup
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 # Get the long description from the README file.
-with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
+with open(os.path.join(HERE, "README.rst"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
@@ -33,7 +33,7 @@ setup(
     description="A domain-agnostic, generic and extensible Python framework for consistently"
                 "building and interacting with knowledge graphs in a data science context.",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     keywords="framework knowledge graph data science",
     url="https://github.com/BlueBrain/kgforge",
     packages=find_packages(),

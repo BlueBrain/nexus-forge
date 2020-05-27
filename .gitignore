@@ -3,7 +3,7 @@
 coverage.xml
 *.egg-info
 .coverage
-doc/build
+docs/build
 .tox
 .idea/*
 .DS_Store
