@@ -1,0 +1,33 @@
+Model:
+  name: RdfModel
+  origin: directory
+  source: ../../data/shacl-model/neuroshapes/shapes/neurosciencegraph/commons/
+  context:
+    iri: "../../configurations/nexus-store/neuroshapes_context.json"
+
+Store:
+  name: BlueBrainNexus
+  endpoint: https://bbp.epfl.ch/nexus/v1
+  versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
+  file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
+
+Resolvers:
+  ontology:
+    - resolver: OntologyResolver
+      origin: store
+      source: BlueBrainNexus
+      targets:
+        - identifier: terms
+          bucket: neurosciencegraph/datamodels
+      result_resource_mapping: ../../configurations/nexus-resolver/term-to-resource-mapping.hjson
+  agent:
+    - resolver: AgentResolver
+      origin: store
+      source: BlueBrainNexus
+      targets:
+        - identifier: agents
+          bucket: bbp/agents
+      result_resource_mapping: ../../configurations/nexus-resolver/agent-to-resource-mapping.hjson
+
+Formatters:
+  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}
