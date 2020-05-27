@@ -1,7 +1,7 @@
 Model:
   name: RdfModel
   origin: directory
-  source: ../../data/shacl-model/neuroshapes/shapes/neurosciencegraph/commons/
+  source: ../../../tests/data/shacl-model/neuroshapes/shapes/neurosciencegraph/commons/
   context:
     iri: "../../configurations/nexus-store/neuroshapes_context.json"
 
