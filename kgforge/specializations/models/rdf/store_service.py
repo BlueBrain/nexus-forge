@@ -11,12 +11,15 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, Union, List, Tuple
 
 import json
 
+from pyshacl import Validator
+
+from kgforge.core import Resource
 from kgforge.core.commons.exceptions import RetrievalError
-from kgforge.core.conversions.rdf import as_jsonld
+from kgforge.core.conversions.rdf import as_jsonld, as_graph
 from rdflib import URIRef, Namespace, Graph
 
 from kgforge.core.archetypes import Store
@@ -39,20 +42,22 @@ class StoreService(RdfService):
         self._sg = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
 
-    def materialize(self, iri: URIRef) -> NodeProperties:
-        try:
-            shape = self._sg.lookup_shape_from_node(iri)
-        except KeyError:
-            self._load_shape(self._shapes_to_resources[iri])
-            # reloads the shapes graph
-            self._sg = ShapesGraphWrapper(self._graph)
-            shape = self._sg.lookup_shape_from_node(iri)
+    def schema_source_id(self, schema_iri: str) -> str:
+        return self._shapes_to_resources[schema_iri]
 
+    def materialize(self, iri: URIRef) -> NodeProperties:
+        shape = self._type_shape(iri)
         predecessors = set()
         props, attrs = shape.traverse(predecessors)
         if props:
             attrs["properties"] = props
         return NodeProperties(**attrs)
+
+    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
+        # _type_shape will make sure all the shapes for this type are in the graph
+        self._type_shape(iri)
+        validator = Validator(data_graph, shacl_graph=self._graph)
+        return validator.run()
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
@@ -140,3 +145,13 @@ class StoreService(RdfService):
                 if hasattr(shape, "imports"):
                     for dependency in shape.imports:
                         self._load_shape(self.context.expand(dependency))
+
+    def _type_shape(self, iri: URIRef):
+        try:
+            shape = self._sg.lookup_shape_from_node(iri)
+        except KeyError:
+            self._load_shape(self._shapes_to_resources[iri])
+            # reloads the shapes graph
+            self._sg = ShapesGraphWrapper(self._graph)
+            shape = self._sg.lookup_shape_from_node(iri)
+        return shape

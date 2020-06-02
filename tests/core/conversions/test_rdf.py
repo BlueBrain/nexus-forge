@@ -111,6 +111,40 @@ class TestJsonLd:
         resource = from_jsonld(payload)
         assert resource == building
 
+    def test_from_jsonld_2(self, building, model_context, building_jsonld):
+        payload = {
+            "@context": {
+                "sh": "http://www.w3.org/ns/shacl#",
+                "ex": "http://test/vocab#",
+                "parent": {
+                    "@id": "ex:parent",
+                    "@type": "@id"
+                },
+                "nodeKind": {
+                    "@id": "sh:nodeKind",
+                    "@type": "@id"
+                },
+                "BlankNode": {
+                    "@id": "sh:BlankNode"
+                },
+                "NodeShape": {
+                    "@id": "sh:NodeShape"
+                },
+                "SuperClass": {
+                    "@id": "ex:SuperClass"
+                }
+            },
+            "@id": "http://test/data/123",
+            "@type": "NodeShape",
+            "parent": "ex:SuperClass",
+            "nodeKind": "sh:BlankNode"
+        }
+        resource_dict = from_jsonld(payload)
+        print(resource_dict)
+
+
+        assert True
+
     def test_unresolvable_context(self, building, building_jsonld):
         building.context = "http://unresolvable.context.example.org/"
         payload = building_jsonld(building, "compacted", False, None)

@@ -13,8 +13,9 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 import os
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
+from pyshacl import Validator
 from rdflib import Graph, URIRef
 from rdflib.util import guess_format
 
@@ -30,6 +31,10 @@ class DirectoryService(RdfService):
         self._sg = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
 
+    def schema_source_id(self, schema_iri: str) -> str:
+        # FIXME should return the file path where the schema is in
+        return schema_iri
+
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._sg.lookup_shape_from_node(iri)
         predecessors = set()
@@ -37,6 +42,10 @@ class DirectoryService(RdfService):
         if props:
             attrs["properties"] = props
         return NodeProperties(**attrs)
+
+    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
+        validator = Validator(data_graph, shacl_graph=self._graph)
+        return validator.run()
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:

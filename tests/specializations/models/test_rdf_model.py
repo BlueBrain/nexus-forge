@@ -14,6 +14,8 @@
 import json
 import pytest
 
+from kgforge.core import Resource
+from kgforge.core.commons.exceptions import ValidationError
 from kgforge.specializations.models import RdfModel
 from tests.specializations.models.data import *
 
@@ -26,6 +28,11 @@ def rdf_model(context_iri_file):
 
 
 class TestVocabulary:
+
+    def test_generate_context(self, rdf_model: RdfModel):
+        generated_context = rdf_model._generate_context()
+        for k in TYPES_SCHEMAS_MAP.keys():
+            assert generated_context.expand(k) is not None
 
     def test_types(self, rdf_model: RdfModel):
         types = rdf_model.types(pretty=False)
@@ -48,18 +55,18 @@ class TestTemplates:
             rdf_model._template("Invalid", False)
 
     @pytest.mark.parametrize("type_, expected", [
-        pytest.param("Building", BUILDING, id="building"),
-        pytest.param("Person", PERSON, id="person"),
-        pytest.param("Employee", EMPLOYEE, id="employee"),
-        pytest.param("Activity", ACTIVITY, id="activity"),
+        pytest.param("Person", PERSON_TEMPLATE, id="person"),
+        pytest.param("Employee", EMPLOYEE_TEMPLATE, id="employee"),
+        pytest.param("Activity", ACTIVITY_TEMPLATE, id="activity"),
+        pytest.param("Building", BUILDING_TEMPLATE, id="building"),
     ])
     def test_create_templates(self, rdf_model: RdfModel, type_, expected):
         result = rdf_model._template(type_, False)
         assert result == expected
 
     @pytest.mark.parametrize("type_, expected", [
-        pytest.param("Activity", ACTIVITY_MANDATORY, id="activity"),
-        pytest.param("Building", BUILDING_MANDATORY, id="building"),
+        pytest.param("Activity", ACTIVITY_TEMPLATE_MANDATORY, id="activity"),
+        pytest.param("Building", BUILDING__TEMPLATE_MANDATORY, id="building"),
     ])
     def test_create_templates_only_required(self, rdf_model: RdfModel, type_, expected):
         result = rdf_model._template(type_, True)
@@ -68,6 +75,43 @@ class TestTemplates:
 
 class TestValidation:
 
+    @pytest.fixture
+    def entity_resource(self):
+        return Resource(type="Entity")
+
+    @pytest.fixture
+    def activity_json(self, entity_resource):
+        return {"type": "Activity", "generated": entity_resource, "status": "completed"}
+
+    @pytest.fixture
+    def invalid_activity_resource(self, activity_json):
+        return Resource(**activity_json)
+
+    @pytest.fixture
+    def valid_activity_resource(self, activity_json):
+        resource = Resource(**activity_json)
+        resource.id = "http://testing/123"
+        return resource
+
     @pytest.mark.parametrize("type_,", TYPES_SCHEMAS_MAP.keys())
-    def test_schema_id(self, rdf_model: RdfModel, type_):
+    def test_type_to_schema(self, rdf_model: RdfModel, type_):
+        # FIXME TYPES_SCHEMAS_MAP should be a type to file dictionary
         assert rdf_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]
+
+    def test_validate_one(self, rdf_model: RdfModel, valid_activity_resource):
+        rdf_model.validate(valid_activity_resource, False)
+
+    def test_validate_one_fail(self, rdf_model: RdfModel, invalid_activity_resource):
+        with pytest.raises(ValidationError):
+            rdf_model._validate_one(invalid_activity_resource)
+
+    def test_validate_many(self, rdf_model: RdfModel, valid_activity_resource,
+                           invalid_activity_resource):
+        resources = [valid_activity_resource,
+                     invalid_activity_resource]
+        rdf_model.validate(resources, False)
+        assert valid_activity_resource._validated is True
+        assert invalid_activity_resource._validated is False
+        assert (valid_activity_resource._last_action.operation ==
+                invalid_activity_resource._last_action.operation ==
+                rdf_model._validate_many.__name__)

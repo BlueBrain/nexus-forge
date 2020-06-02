@@ -24,45 +24,44 @@ ORGANIZATION = {
     }
 }
 
-PERSON = {
+PERSON_TEMPLATE = {
     "id": "",
     "type": "Person",
     "address":
         {
             "type": "PostalAddress",
-            "postalCode": ["", 0],
+            "postalCode": "",
             "streetAddress": "",
         },
     "birthDate": "9999-12-31",
     "deathDate": "9999-12-31",
     "gender": ["female", "male"],
-    "familyName": "",
-    "givenName": ""
+    "givenName": "",
+    "name": ""
 }
 
-EMPLOYEE = deepcopy(PERSON)
-EMPLOYEE["type"] = "Employee"
-EMPLOYEE.update({
-    "colleague": PERSON,
-    "contractor": ORGANIZATION,
-    "department": ORGANIZATION,
+EMPLOYEE_TEMPLATE = deepcopy(PERSON_TEMPLATE)
+EMPLOYEE_TEMPLATE["type"] = "Employee"
+EMPLOYEE_TEMPLATE.update({
+    "colleague": "Person",
+    "contractor": "Organization",
+    "department": "Organization",
     "startDate": "9999-12-31",
     "worksFor": {
         "id": "",
         "type": ["Organization", "Person"]
     }
 })
-
 employee_keys_order = ["id", "type", "address", "birthDate", "colleague", "contractor", "deathDate",
-                       "department", "gender", "familyName", "givenName", "startDate", "worksFor"]
-EMPLOYEE = {k: EMPLOYEE[k] for k in employee_keys_order}
+                       "department", "gender", "givenName", "name", "startDate", "worksFor"]
+EMPLOYEE_TEMPLATE = {k: EMPLOYEE_TEMPLATE[k] for k in employee_keys_order}
 
 ENTITY =  {
     "id": "",
     "type": "Entity"
 }
 
-ACTIVITY = {
+ACTIVITY_TEMPLATE = {
     "id": "",
     "type": "Activity",
     "citation": {
@@ -80,10 +79,9 @@ ACTIVITY = {
     }
 }
 
-ACTIVITY_MANDATORY = {k: v for k, v in ACTIVITY.items() if k in ["id", "type", "generated", "status"]}
+ACTIVITY_TEMPLATE_MANDATORY = {k: v for k, v in ACTIVITY_TEMPLATE.items() if k in ["id", "type", "generated", "status"]}
 
-
-BUILDING = {
+BUILDING_TEMPLATE = {
     "id": "",
     "type": "Building",
     "description": "",

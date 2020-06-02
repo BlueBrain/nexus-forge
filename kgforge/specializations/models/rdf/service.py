@@ -14,13 +14,14 @@
 import types
 from abc import abstractmethod
 from typing import List, Dict, Tuple, Set, Optional
-
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD
 
+from kgforge.core import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.conversions.rdf import as_graph
 from kgforge.specializations.models.rdf.collectors import (AndCollector, NodeCollector,
                                                            PropertyCollector, MinCountCollector,
                                                            DatatypeCollector, InCollector,
@@ -123,6 +124,10 @@ class RdfService:
         self.context = Context(resolved_context, context_iri)
         self.types_to_shapes: Dict = self._build_types_to_shapes()
 
+    def schema_source_id(self, schema_iri: str) -> str:
+        # POLICY Should return the id of the resource containing the schema
+        raise NotImplementedError()
+
     @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:
         """Triggers the collection of properties of a given Shape node
@@ -133,6 +138,19 @@ class RdfService:
         Returns:
             A NodeProperty object with the collected properties
         """
+        raise NotImplementedError()
+
+    def validate(self, resource: Resource):
+        try:
+            shape_iri = self.types_to_shapes[resource.type]
+        except AttributeError:
+            raise TypeError("resource requires a type attribute")
+        else:
+            data_graph = as_graph(resource, False, self.context, None, None)
+            return self._validate(shape_iri, data_graph)
+
+    @abstractmethod
+    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
         raise NotImplementedError()
 
     @abstractmethod

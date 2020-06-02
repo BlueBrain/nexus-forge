@@ -7,6 +7,12 @@
     "Agent": {
       "@id": "prov:Agent"
     },
+    "Class": {
+      "@id": "owl:Class"
+    },
+    "Entity": {
+      "@id": "prov:Entity"
+    },
     "Association": {
       "@id": "schema:Association"
     },
@@ -15,9 +21,6 @@
     },
     "Building": {
       "@id": "schema:Building"
-    },
-    "Class": {
-      "@id": "owl:Class"
     },
     "Employee": {
       "@id": "http://www.example.com/Employee"

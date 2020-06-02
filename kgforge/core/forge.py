@@ -332,8 +332,8 @@ class KnowledgeGraphForge:
     # Storing User Interface.
 
     # No @catch because the error handling is done by execution.run().
-    def register(self, data: Union[Resource, List[Resource]]) -> None:
-        self._store.register(data)
+    def register(self, data: Union[Resource, List[Resource]], schema_id: Optional[str]=None) -> None:
+        self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
     def update(self, data: Union[Resource, List[Resource]]) -> None:

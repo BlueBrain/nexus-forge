@@ -12,15 +12,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 import datetime
+import re
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Callable, Optional, Any, Union
 
+from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Model, Store
+from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.exceptions import ValidationError
+from kgforge.core.commons.execution import run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -84,7 +89,7 @@ class RdfModel(Model):
 
     # Templates.
 
-    def _template(self, type: str, only_required: bool, ) -> Dict:
+    def _template(self, type: str, only_required: bool) -> Dict:
         try:
             uri = self.service.types_to_shapes[type]
         except KeyError:
@@ -97,12 +102,33 @@ class RdfModel(Model):
 
     def schema_id(self, type: str) -> str:
         try:
-            return str(self.service.types_to_shapes[type])
+            shape_iri = self.service.types_to_shapes[type]
+            return str(self.service.schema_source_id(shape_iri))
         except KeyError:
             raise ValueError("type not found")
 
+    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool) -> None:
+        run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
+            exception=ValidationError, monitored_status="_validated")
+
+    def _validate_many(self, resources: List[Resource]) -> None:
+        for resource in resources:
+            conforms, graph, _ = self.service.validate(resource)
+            if conforms:
+                resource._validated = True
+                action = Action(self._validate_many.__name__, conforms, None)
+            else:
+                resource._validated = False
+                violations = set(" ".join(re.findall('[A-Z][^A-Z]*', as_term(o)))
+                                 for o in graph.objects(None, SH.sourceConstraintComponent))
+                message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
+                action = Action(self._validate_many.__name__, conforms, ValidationError(message))
+            resource._last_action = action
+
     def _validate_one(self, resource: Resource) -> None:
-        raise NotImplementedError("not implemented yet")
+        conforms, _, report = self.service.validate(resource)
+        if conforms is False:
+            raise ValidationError("\n" + report)
 
     # Utils.
 
@@ -205,5 +231,16 @@ def default_value(value):
         return as_term(value)
     elif isinstance(value, Literal):
         return value.toPython()
+    else:
+        return value
+
+
+def object_value(value):
+    return {"type": as_term(value)}
+
+
+def data_value(value):
+    if value in DEFAULT_VALUE:
+        return DEFAULT_VALUE[value]
     else:
         return value
