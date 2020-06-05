@@ -119,7 +119,7 @@ Create a forge instance:
 Resource
 --------
 
-A _Resource_ is an identifiable data object with a set of properties. It is mainly identified by its _Type_,
+A *Resource* is an identifiable data object with a set of properties. It is mainly identified by its *Type*,
 which value is a concept, such as, Person, Contributor, Organisation, Experiment, etc. Reserved properties of a
 Resource are: `id`, `type` and `context`.
 
@@ -272,8 +272,8 @@ Reshaping allows trimming Resources by a specific set of properties.
 Modeling
 --------
 
-To create _Resources_, the user can make use of Modeling functions. The user can explore
-predefined _Types_ and the properties that describe them via _Templates_. _Templates_ can be used
+To create *Resources*, the user can make use of Modeling functions. The user can explore
+predefined *Types* and the properties that describe them via *Templates*. *Templates* can be used
 to create resources with the specified properties. Resources that
 are created using a template can be validated.
 
@@ -289,10 +289,10 @@ Mapping
 -------
 
 Mappings are pre-defined configuration files that encode the logic on how to transform a specific
-data source into Resources that follow a template of a targeted _Type_.
+data source into Resources that follow a template of a targeted *Type*.
 For instance, when different versions of the same dataset is regularly integrated, one can make
 use of Mappers to specify how the coming data is going to be integrated using the corresponding
-typed _Resource_.
+typed *Resource*.
 
 .. code-block:: python
 

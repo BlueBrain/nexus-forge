@@ -1,7 +1,7 @@
 Archetypes
 ==========
 
-The framework provides a set of archetypes that allows the extension of the different _Forge_ modules to work with different technologies. These are described next.
+The framework provides a set of archetypes that allows the extension of the different *Forge* modules to work with different technologies. These are described next.
 
 Mapper
 ------
