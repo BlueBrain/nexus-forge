@@ -1,0 +1,26 @@
+[
+  {
+    "label": "layer 1",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005390"
+  },
+  {
+    "label": "layer 2",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005391"
+  },
+  {
+    "label": "layer 3",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005392"
+  },
+  {
+    "label": "layer 4",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005393"
+  },
+  {
+    "label": "layer 5",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005394"
+  },
+  {
+    "label": "layer 6",
+    "id": "http://purl.obolibrary.org/obo/UBERON_0005395"
+  }
+]
