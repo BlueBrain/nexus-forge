@@ -379,12 +379,15 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
     statements = list()
     filters = list()
     for index, f in enumerate(*conditions):
-        value_type = type_map[type(f.value)]
-        property_path = "/".join(f.path)
         try:
             last_term = context.terms[f.path[-1]]
         except KeyError:
             last_term = ""
+
+        if f.path[-1] == "id":
+            f.path.pop()
+
+        property_path = "/".join(f.path)
 
         if f.path[-1] == "type" or last_term.type == "@id":
             if f.operator == "__eq__":
@@ -395,6 +398,7 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
             else:
                 raise NotImplementedError(f"operator '{f.operator}' is not supported in this query")
         else:
+            value_type = type_map[type(f.value)]
             value = format_type[value_type](f.value)
             if value_type is CategoryDataType.LITERAL:
                 statements.append(f"{property_path} ?v{index}")

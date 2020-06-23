@@ -27,11 +27,6 @@ def rdf_model(context_iri_file):
 
 class TestVocabulary:
 
-    def test_generate_context(self, rdf_model: RdfModel):
-        generated_context = rdf_model._generate_context()
-        for k in TYPES_SCHEMAS_MAP.keys():
-            assert generated_context.expand(k) is not None
-
     def test_types(self, rdf_model: RdfModel):
         types = rdf_model.types(pretty=False)
         assert types == list(TYPES_SCHEMAS_MAP.keys())
@@ -53,10 +48,10 @@ class TestTemplates:
             rdf_model._template("Invalid", False)
 
     @pytest.mark.parametrize("type_, expected", [
+        pytest.param("Building", BUILDING, id="building"),
         pytest.param("Person", PERSON, id="person"),
         pytest.param("Employee", EMPLOYEE, id="employee"),
         pytest.param("Activity", ACTIVITY, id="activity"),
-        pytest.param("Building", BUILDING, id="building"),
     ])
     def test_create_templates(self, rdf_model: RdfModel, type_, expected):
         result = rdf_model._template(type_, False)

@@ -115,18 +115,16 @@
       "@type": "sh:NodeShape",
       "nodeKind": "sh:IRI",
       "targetClass": "schema:Person",
-      "and": [
+      "property": [
         {
-          "xone": [
-            {
-              "path": "schema:name",
-              "minCount": 1
-            },
-            {
-              "path": "schema:givenName",
-              "minCount": 1
-            }
-          ]
+          "path": "schema:familyName",
+          "datatype": "xsd:string",
+          "minCount": 1
+        },
+        {
+          "path": "schema:givenName",
+          "datatype": "xsd:string",
+          "minCount": 1
         },
         {
           "path": "schema:gender",
@@ -189,6 +187,23 @@
               "class": "schema:Organization"
             }
           ]
+        }
+      ]
+    },
+    {
+      "@id": "this:OrganizationShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:BlankNodeOrIRI",
+      "targetClass": "schema:Organization",
+      "property": [
+        {
+          "path": "schema:name",
+          "datatype": "xsd:string",
+          "minCount": 1
+        },
+        {
+          "path": "schema:parentOrganization",
+          "class": "schema:Organization"
         }
       ]
     },

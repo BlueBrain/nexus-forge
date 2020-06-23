@@ -13,7 +13,7 @@
 # along with Knowledge Graph Forge. If not, see <https://www.gnu.org/licenses/>.
 import datetime
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Any
+from typing import Dict, List, Optional, Any, Callable
 
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
@@ -30,10 +30,9 @@ from kgforge.specializations.models.rdf.utils import as_term
 DEFAULT_VALUE = {
     XSD.string: str(),
     XSD.normalizedString: str(),
-    XSD.time: datetime.time().isoformat(),
-    XSD.date: datetime.date(9999, 12, 31).isoformat(),
-    XSD.dateTime: datetime.datetime(9999, 12, 31).isoformat(),
-    XSD.boolean: bool(),
+    XSD.anyURI: str(),
+    XSD.float: float(),
+    XSD.double: float(),
     XSD.decimal: int(),
     XSD.int: int(),
     XSD.integer: int(),
@@ -48,10 +47,11 @@ DEFAULT_VALUE = {
     XSD.unsignedShort: int(),
     XSD.byte: int(),
     XSD.unsignedByte: int(),
-    XSD.float: float(),
-    XSD.double: float(),
     XSD.base64Binary: int(),
-    XSD.anyURI: str(),
+    XSD.boolean: bool(),
+    XSD.time: datetime.time().isoformat(),
+    XSD.date: datetime.date(9999, 12, 31).isoformat(),
+    XSD.dateTime: datetime.datetime(9999, 12, 31).isoformat(),
 }
 
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
@@ -84,13 +84,13 @@ class RdfModel(Model):
 
     # Templates.
 
-    def _template(self, type: str, only_required: bool) -> Dict:
+    def _template(self, type: str, only_required: bool, ) -> Dict:
         try:
             uri = self.service.types_to_shapes[type]
         except KeyError:
             raise ValueError("type not found")
         node_properties = self.service.materialize(uri)
-        dictionary = parse_attributes(node_properties, only_required)
+        dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
 
     # Validation.
@@ -135,80 +135,75 @@ class RdfModel(Model):
         return service
 
 
-def parse_attributes(node: NodeProperties, only_required: bool) -> Dict:
+def parse_attributes(node: NodeProperties, only_required: bool,
+                     inherited_constraint: Optional[str]) -> Dict:
     attributes = dict()
-    if hasattr(node, "id"):
-        attributes["id"] = ""
     if hasattr(node, "path"):
         if only_required is True:
             if not hasattr(node, "mandatory"):
                 return attributes
         if hasattr(node, "properties"):
-            v = parse_properties(node.properties, only_required)
+            parent_constraint = node.constraint if hasattr(node, "constraint") else None
+            v = parse_properties(node.properties, only_required, parent_constraint)
         else:
-            v = parse_value(node)
+            v = parse_value(node, inherited_constraint)
         attributes[as_term(node.path)] = v
     elif hasattr(node, "properties"):
-        attributes.update(parse_properties(node.properties, only_required))
+        parent_constraint = node.constraint if hasattr(node, "constraint") else None
+        attributes.update(parse_properties(node.properties, only_required, parent_constraint))
     return attributes
 
 
-def parse_properties(items: List[NodeProperties], only_required: bool) -> Dict:
+def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
     props = dict()
     for item in items:
-        props.update(parse_attributes(item, only_required))
+        props.update(parse_attributes(item, only_required, inherited_constraint))
     return props
 
 
-def parse_value(node):
+def parse_value(node: NodeProperties, parent_constraint: str) -> Any:
     v = ""
     if hasattr(node, "values"):
         # node.constraint could be: in, or, xor
-        if hasattr(node, "constraint"):
-            if node.constraint == "in":
-                v = sorted([default_value(val) for val in node.values])
+        if hasattr(node, "constraint") or parent_constraint:
+            constraint = parent_constraint or node.constraint
+            if constraint in ("in", "or", "xone"):
+                v = default_values(node.values, one=False)
             else:
-                v = default_values(node.values)
+                v = default_values(node.values, one=True)
         else:
-            if not isinstance(node.values, list):
-                v = default_value(node.values)
-            else:
-                if len(node.values) > 1:
-                    v = default_values(node.values)
-                else:
-                    v = default_value(node.values[0])
+            v = default_values(node.values, one=True)
     return v
 
 
-def default_values(values):
-    all_default_values = [data_value(val) for val in values]
-    for data_type in DEFAULT_TYPE_ORDER:
-        for val in all_default_values:
-            if not isinstance(val, URIRef) and isinstance(val, data_type):
-                return val
-    if len(values) > 1:
-        return [object_value(val) for val in sorted(values)]
+def default_values(values, one: bool):
+    if isinstance(values, list):
+        all_default_values = [default_value(v) for v in values]
+        if all_default_values:
+            if one:
+                for data_type in DEFAULT_TYPE_ORDER:
+                    for val in all_default_values:
+                        if isinstance(val, data_type):
+                            return val
+            else:
+                first_type = type(all_default_values[0])
+                sortable = all(isinstance(v, first_type) for v in all_default_values)
+                if sortable:
+                    return sorted(all_default_values)
+                else:
+                    types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
+                    return [types_position[k] for k in sorted(types_position.keys())]
     else:
-        return as_term(values[0])
+        return default_value(values)
 
 
 def default_value(value):
+    # TODO: replace the as_term function with context.to_symbol
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
     elif isinstance(value, URIRef):
         return as_term(value)
     elif isinstance(value, Literal):
         return value.toPython()
-    else:
-        return value
-
-
-def object_value(value):
-    return {"type": as_term(value)}
-
-
-def data_value(value):
-    if value in DEFAULT_VALUE:
-        return DEFAULT_VALUE[value]
     else:
         return value

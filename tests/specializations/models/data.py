@@ -14,49 +14,70 @@
 from copy import deepcopy
 
 
+ORGANIZATION = {
+    "id": "",
+    "type": "Organization",
+    "name": "",
+    "parentOrganization": {
+        "id": "",
+        "type": "Organization"
+    }
+}
+
 PERSON = {
     "id": "",
     "type": "Person",
     "address":
         {
             "type": "PostalAddress",
-            "postalCode": "",
+            "postalCode": ["", 0],
             "streetAddress": "",
         },
     "birthDate": "9999-12-31",
     "deathDate": "9999-12-31",
     "gender": ["female", "male"],
-    "givenName": "",
-    "name": ""
+    "familyName": "",
+    "givenName": ""
 }
 
 EMPLOYEE = deepcopy(PERSON)
 EMPLOYEE["type"] = "Employee"
 EMPLOYEE.update({
-    "colleague": "Person",
-    "contractor": "Organization",
-    "department": "Organization",
+    "colleague": PERSON,
+    "contractor": ORGANIZATION,
+    "department": ORGANIZATION,
     "startDate": "9999-12-31",
-    "worksFor": [
-        {"type": "Organization"},
-        {"type": "Person"}
-    ]
+    "worksFor": {
+        "id": "",
+        "type": ["Organization", "Person"]
+    }
 })
+
 employee_keys_order = ["id", "type", "address", "birthDate", "colleague", "contractor", "deathDate",
-                       "department", "gender", "givenName", "name", "startDate", "worksFor"]
+                       "department", "gender", "familyName", "givenName", "startDate", "worksFor"]
 EMPLOYEE = {k: EMPLOYEE[k] for k in employee_keys_order}
+
+ENTITY =  {
+    "id": "",
+    "type": "Entity"
+}
 
 ACTIVITY = {
     "id": "",
     "type": "Activity",
-    "citation": "",
+    "citation": {
+        "id": ""
+    },
     "endedAtTime": "9999-12-31T00:00:00",
-    "generated": "Entity",
+    "generated": ENTITY,
     "startedAtTime": "9999-12-31T00:00:00",
     "status": "completed",
-    "used": "Entity",
+    "used": ENTITY,
     "validated": False,
-    "wasStartedBy": "Person"
+    "author": {
+        "id": "",
+        "type": ["Organization", "Person"]
+    }
 }
 
 ACTIVITY_MANDATORY = {k: v for k, v in ACTIVITY.items() if k in ["id", "type", "generated", "status"]}
@@ -70,7 +91,9 @@ BUILDING = {
         "latitude": 0.0,
         "longitude": 0.0
     },
-    "image": "",
+    "image": {
+        "id": ""
+    },
     "name": ""
 }
 BUILDING_MANDATORY = {k: v for k, v in BUILDING.items() if k in ["id", "type", "description", "name"]}
@@ -80,6 +103,7 @@ TYPES_SCHEMAS_MAP = {
     "Association": "http://www.example.com/AssociationShape",
     "Building": "http://www.example.com/BuildingShape",
     "Employee": "http://www.example.com/EmployeeShape",
+    "Organization": "http://www.example.com/OrganizationShape",
     "Person": "http://www.example.com/PersonShape",
     "PostalAddress": "http://schema.org/PostalAddress",
 }
