@@ -23,19 +23,17 @@ with open(os.path.join(HERE, "README.rst"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="kgforge",
-    author="BlueBrain DKE",
-    author_email="bbp-ou-dke@groupes.epfl.ch",
+    name="nexusforge",
+    author="Blue Brain Project, EPFL",
     use_scm_version={
         "write_to": "kgforge/version.py",
         "write_to_template": "__version__ = '{version}'\n",
     },
-    description="A domain-agnostic, generic and extensible Python framework for consistently"
-                "building and interacting with knowledge graphs in a data science context.",
+    description="Building and Using Knowledge Graphs made easy.",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     keywords="framework knowledge graph data science",
-    url="https://github.com/BlueBrain/kgforge",
+    url="https://github.com/BlueBrain/nexus-forge",
     packages=find_packages(),
     python_requires=">=3.7",
     setup_requires=[
