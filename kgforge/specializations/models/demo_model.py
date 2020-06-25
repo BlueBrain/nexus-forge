@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from __future__ import annotations
-
 import json
 import re
 from pathlib import Path
@@ -95,7 +93,7 @@ class DemoModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> ModelLibrary:
+    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config):
         return ModelLibrary(dirpath)
 
 

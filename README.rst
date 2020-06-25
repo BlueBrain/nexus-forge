@@ -17,7 +17,7 @@ non-expert users to create and manage knowledge graphs by making it easy to:
 Installation
 ------------
 
-It is recommended to use a virtual environment such as `venv <https://docs.python.org/3.7/library/venv.html>`__ or
+It is recommended to use a virtual environment such as `venv <https://docs.python.org/3.6/library/venv.html>`__ or
 `conda environment <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`__.
 
 Stable version

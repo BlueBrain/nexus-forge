@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -51,7 +49,7 @@ class Mapping(ABC):
         raise NotImplementedError
 
     @classmethod
-    def load(cls, source: str) -> Mapping:
+    def load(cls, source: str):
         # source: Union[str, FilePath, URL].
         # Mappings could be loaded from a string, a file, or an URL.
         filepath = Path(source)

@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from __future__ import annotations
-
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union

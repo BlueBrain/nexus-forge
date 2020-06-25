@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from __future__ import annotations
-
 from copy import deepcopy
 from typing import Dict, List, Optional, Union
 from uuid import uuid4
@@ -115,7 +113,7 @@ class DemoStore(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str]) -> StoreLibrary:
+                            token: Optional[str]):
         return StoreLibrary()
 
 

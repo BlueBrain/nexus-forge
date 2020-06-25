@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from __future__ import annotations
-
 from collections import Counter
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Union
 
@@ -57,7 +55,7 @@ class Actions(list):
         return "\n\n".join(f"<count> {count}\n{action}" for action, count in counted.items())
 
     @staticmethod
-    def from_resources(resources: List[Resource]) -> Actions:
+    def from_resources(resources: List[Resource]):
         return Actions(x._last_action for x in resources)
 
 
