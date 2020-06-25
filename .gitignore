@@ -10,3 +10,5 @@ docs/build
 **/.ipynb_checkpoints/*
 version.py
 examples/notebooks/getting-started/mappings/
+.gitreview
+examples/notebooks/use-cases/
