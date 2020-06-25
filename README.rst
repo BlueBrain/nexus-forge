@@ -24,19 +24,19 @@ Stable version
 
 .. code-block:: shell
 
-   pip install kgforge
+   pip install nexusforge
 
 Upgrade to the latest version
 
 .. code-block:: shell
 
-   pip install --upgrade kgforge
+   pip install --upgrade nexusforge
 
 Development version
 
 .. code-block:: shell
 
-   pip install git+https://github.com/BlueBrain/kgforge
+   pip install git+https://github.com/BlueBrain/nexus-forge
 
 Getting Started
 ---------------
