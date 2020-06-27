@@ -14,6 +14,18 @@ non-expert users to create and manage knowledge graphs by making it easy to:
 - Validate and register data and metadata.
 - Search and download data and metadata from a knowledge graph.
 
+Getting Started
+---------------
+
+The `examples <examples/notebooks>` directory contains many jupyter notebooks to get started with Blue Nexus forge main features and usage scenarios.
+
+Click on of the following badges to launch the examples without download or install!
+
+|Binder| |Collab|
+
+For local execution of the jupyter notebooks, make sure that the `jupyter notebook|lab` is launched in the same virtual environment where Blue Brain Nexus Forge is installed. Alternatively, set up a specialized `kernel <https://ipython.readthedocs.io/en/stable/install/kernel_install.html>`__.
+
+
 Installation
 ------------
 
@@ -38,13 +50,7 @@ Development version
 
    pip install git+https://github.com/BlueBrain/nexus-forge
 
-Getting Started
----------------
 
-See in the directory :file:`examples` for examples of usages, configurations, mappings.
-
-Make sure that the `jupyter notebook|lab` is launched in the same virtual environment where Nexus Forge is installed.
-Alternatively, set up a specialized `kernel <https://ipython.readthedocs.io/en/stable/install/kernel_install.html>`__.
 
 Acknowledgements
 ----------------
@@ -53,3 +59,14 @@ This project has received funding from the EPFL Blue Brain Project (funded by
 the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology)
 and from the European Union’s Horizon 2020 Framework Programme for Research and
 Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SGA2).
+
+
+.. |Binder| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :scale: 100%
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge.git/master?filepath=examples%2Fnotebooks%2Fgetting_started%2FDatasets.ipynb
+
+.. |Collab| image:: https://colab.research.google.com/assets/colab-badge.svg
+    :alt: Collab
+    :scale: 100%
+    :target: https://colab.research.google.com/github/BlueBrain/nexus-forge
