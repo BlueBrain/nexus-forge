@@ -1,4 +1,3 @@
-The numbers indicate the recommended order in which learning how to use
-the Knowledge Graph Forge.
+The numbers indicate the recommended order when running the notebooks.
 
-Commented cells are related to operations which are not supported yet.
+Commented cells are related to operations which are planned but not supported yet.
