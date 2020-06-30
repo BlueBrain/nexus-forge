@@ -13,12 +13,14 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from pkg_resources import get_distribution
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'Blue Brain Nexus Forge'
-
+version = get_distribution("nexusforge").version
+release = version
 
 # -- General configuration ---------------------------------------------------
 
