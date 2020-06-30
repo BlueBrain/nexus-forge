@@ -63,10 +63,8 @@ Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SG
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
-    :scale: 100%
     :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge.git/master?filepath=examples%2Fnotebooks%2Fgetting_started%2FDatasets.ipynb
 
 .. |Collab| image:: https://colab.research.google.com/assets/colab-badge.svg
     :alt: Collab
-    :scale: 100%
     :target: https://colab.research.google.com/github/BlueBrain/nexus-forge

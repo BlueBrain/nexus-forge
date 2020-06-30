@@ -52,6 +52,7 @@ setup(
     ],
     extras_require={
         "dev": ["tox", "pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
+        "docs": ["sphinx", "sphinx-bluebrain-theme"],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
