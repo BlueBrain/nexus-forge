@@ -115,7 +115,7 @@ class Service:
     def batch_request(self, resources: List[Resource], action: BatchAction, callback: Callable,
                       error_type: Callable, **kwargs) -> (BatchResults, BatchResults):
 
-        def create_tasks(semaphore, session, data, batch_action, f_callback, error):
+        def create_tasks(semaphore, session, loop, data, batch_action, f_callback, error):
             futures = []
             for resource in data:
                 if batch_action == batch_action.CREATE:
@@ -126,7 +126,7 @@ class Service:
                     schema_id = kwargs.get("schema_id")
                     schema_id = "_" if schema_id is None else quote_plus(schema_id)
                     url = f"{self.url_resources}/{schema_id}"
-                    prepared_request = asyncio.create_task(
+                    prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
 
                 if batch_action == batch_action.UPDATE:
@@ -136,7 +136,7 @@ class Service:
                                         model_context=self.model_context,
                                         metadata_context=None,
                                         context_resolver=self.resolve_context)
-                    prepared_request = asyncio.create_task(
+                    prepared_request = loop.create_task(
                         queue(hdrs.METH_PUT, semaphore, session, url, resource, error, payload,
                               params))
 
@@ -145,20 +145,20 @@ class Service:
                     rev = resource._store_metadata._rev
                     params = {"rev": rev}
                     payload = {"tag": kwargs.get("tag"), "rev": rev}
-                    prepared_request = asyncio.create_task(
+                    prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload,
                               params))
 
                 if batch_action == batch_action.DEPRECATE:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
                     params = {"rev": resource._store_metadata._rev}
-                    prepared_request = asyncio.create_task(
+                    prepared_request = loop.create_task(
                         queue(hdrs.METH_DELETE, semaphore, session, url, resource, error,
                               params=params))
 
                 if batch_action == BatchAction.FETCH:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
-                    prepared_request = asyncio.create_task(
+                    prepared_request = loop.create_task(
                         queue(hdrs.METH_GET, semaphore, session, url, resource, error))
 
                 if f_callback:
@@ -184,8 +184,9 @@ class Service:
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connections)
+            loop = asyncio.get_event_loop()
             async with ClientSession() as session:
-                tasks = create_tasks(semaphore, session, resources, action, callback, error_type)
+                tasks = create_tasks(semaphore, session, loop, resources, action, callback, error_type)
                 return await asyncio.gather(*tasks)
 
         return asyncio.run(dispatch_action())
