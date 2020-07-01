@@ -2,6 +2,6 @@ Releases
 ========
 
 .. toctree::
-   :hidden:
+   :glob:
 
-   releases/0.3-release-notes
+   releases/*
