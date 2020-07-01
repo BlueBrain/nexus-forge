@@ -1,8 +1,5 @@
- vO.3 Release Notes
-===================
-
-Introducing Blue Brain Nexus Forge
-----------------------------------
+vO.3 Release Notes: Introducing Blue Brain Nexus Forge
+------------------------------------------------------
 
 This is an initial release of Nexus Forge and a first step towards our goal to make building and using Knowledge Graphs easier.
 
