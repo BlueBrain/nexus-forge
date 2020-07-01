@@ -8,3 +8,4 @@
    api
    architecture
    contributing
+   releasesfile
