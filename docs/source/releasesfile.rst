@@ -1,4 +1,7 @@
+Releases
+========
+
 .. toctree::
    :hidden:
 
-   releases/0.3-release-notes.rst
+   releases/0.3-release-notes
