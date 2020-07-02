@@ -11,6 +11,6 @@ The architectural design choices for Nexus Forge are to:
 #. have a strong separation of concern with delegation to the lowest level for *modularity*.
 
 Design
-----------
+------
 
 .. image:: ./assets/nexus-forge-architecture.png
