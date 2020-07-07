@@ -11,4 +11,5 @@ docs/build
 version.py
 examples/notebooks/getting-started/mappings/
 .gitreview
-examples/notebooks/use-cases/
+examples/configurations/forge.yml
+examples/models/neuroshapes/
