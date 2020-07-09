@@ -72,4 +72,4 @@ Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SG
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?urlpath=examples%2Fnotebooks%2Fgetting-started%2F
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started
