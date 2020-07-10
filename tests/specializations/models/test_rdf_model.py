@@ -66,7 +66,7 @@ class TestTemplates:
 
     @pytest.mark.parametrize("type_, expected", [
         pytest.param("Activity", ACTIVITY_TEMPLATE_MANDATORY, id="activity"),
-        pytest.param("Building", BUILDING__TEMPLATE_MANDATORY, id="building"),
+        pytest.param("Building", BUILDING_TEMPLATE_MANDATORY, id="building"),
     ])
     def test_create_templates_only_required(self, rdf_model: RdfModel, type_, expected):
         result = rdf_model._template(type_, True)
