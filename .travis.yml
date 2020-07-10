@@ -8,6 +8,9 @@ python:
 install:
   - pip install .
 
+script:
+  - pytest
+
 branches:
   only:
     - master
