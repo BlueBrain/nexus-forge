@@ -94,7 +94,7 @@ BUILDING_TEMPLATE = {
     },
     "name": ""
 }
-BUILDING_MANDATORY = {k: v for k, v in BUILDING.items() if k in ["id", "type", "description", "name"]}
+BUILDING_TEMPLATE_MANDATORY = {k: v for k, v in BUILDING_TEMPLATE.items() if k in ["id", "type", "description", "name"]}
 
 TYPES_SCHEMAS_MAP = {
     "Activity": "http://www.example.com/ActivityShape",
