@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import re
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Match, Optional, Union
@@ -127,28 +128,41 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         pass
 
+    def _retrieve_filename(self, id: str) -> str:
+        # TODO This operation might be adapted if other file metadata are needed.
+        not_supported()
+
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
         urls = collect_values(data, follow, DownloadingError)
-        size = len(urls)
-        p = Path(path)
-        p.mkdir(parents=True, exist_ok=True)
+        dirpath = Path(path)
+        dirpath.mkdir(parents=True, exist_ok=True)
+        filepaths = []
+        for x in urls:
+            filename = self._retrieve_filename(x)
+            filepath = dirpath / filename
+            if filepath.exists():
+                timestamp = time.strftime("%Y%m%d%H%M%S")
+                filepaths.append(Path(f"{filepath}.{timestamp}"))
+            else:
+                filepaths.append(filepath)
+        size = len(filepaths)
         if size < 1:
             raise DownloadingError("no URLs were found")
         elif size > 1:
-            self._download_many(urls, p)
+            self._download_many(urls, filepaths)
         else:
-            self._download_one(urls[0], p)
+            self._download_one(urls[0], filepaths[0])
 
-    def _download_many(self, urls: List[str], path: Path) -> None:
-        # path: DirPath.
+    def _download_many(self, urls: List[str], paths: List[Path]) -> None:
+        # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
-        for x in urls:
-            self._download_one(x, path)
+        for url, path in zip(urls, paths):
+            self._download_one(url, path)
 
     def _download_one(self, url: str, path: Path) -> None:
-        # path: DirPath.
+        # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()
 

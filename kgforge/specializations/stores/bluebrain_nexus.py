@@ -169,6 +169,15 @@ class BlueBrainNexus(Store):
             self.service.sync_metadata(resource, response)
             return resource
 
+    def _retrieve_filename(self, id: str) -> str:
+        try:
+            response = requests.get(id, headers=self.service.headers)
+            response.raise_for_status()
+            metadata = response.json()
+            return metadata["_filename"]
+        except HTTPError as e:
+            raise DownloadingError(_error_message(e))
+
     def _download_one(self, url: str, path: Path) -> None:
         try:
             # this is a hack since _self and _id have the same uuid
