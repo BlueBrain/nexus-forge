@@ -135,6 +135,9 @@ class Store(ABC):
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
         # path: DirPath.
         urls = collect_values(data, follow, DownloadingError)
+        count = len(urls)
+        if count == 0:
+            raise DownloadingError("no URLs were found")
         dirpath = Path(path)
         dirpath.mkdir(parents=True, exist_ok=True)
         timestamp = time.strftime("%Y%m%d%H%M%S")
@@ -142,14 +145,8 @@ class Store(ABC):
         for x in urls:
             filename = self._retrieve_filename(x)
             filepath = dirpath / filename
-            if filepath.exists():
-                filepaths.append(f"{filepath}.{timestamp}")
-            else:
-                filepaths.append(str(filepath))
-        size = len(filepaths)
-        if size < 1:
-            raise DownloadingError("no URLs were found")
-        elif size > 1:
+            filepaths.append(f"{filepath}.{timestamp}" if filepath.exists() else str(filepath))
+        if count > 1:
             self._download_many(urls, filepaths)
         else:
             self._download_one(urls[0], filepaths[0])
