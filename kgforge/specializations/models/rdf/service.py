@@ -196,7 +196,7 @@ class RdfService:
             l_terms = dict()
             for property_ in properties:
                 if hasattr(property_, "path"):
-                    if property_.path != RDF.type:
+                    if property_.path != RDF.type and str(property_.path) != "id":
                         v_prefix, v_namespace, v_name = self._graph.compute_qname(property_.path)
                         l_prefixes.update({v_prefix: str(v_namespace)})
                         term_obj = {"@id": ":".join((v_prefix, v_name))}
