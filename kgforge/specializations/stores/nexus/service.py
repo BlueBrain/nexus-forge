@@ -19,7 +19,7 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Dict, List, Callable, Union, Optional
+from typing import Callable, Dict, List, Optional, Union
 from urllib.error import URLError
 from urllib.parse import quote_plus
 
@@ -30,7 +30,7 @@ from aiohttp import ClientSession, hdrs
 from kgforge.core import Resource
 from kgforge.core.commons.actions import Action, collect_lazy_actions, execute_lazy_actions
 from kgforge.core.commons.context import Context
-from kgforge.core.conversions.rdf import (as_jsonld, _remove_ld_keys, _from_jsonld_one,
+from kgforge.core.conversions.rdf import (_from_jsonld_one, _remove_ld_keys, as_jsonld,
                                           recursive_resolve)
 from kgforge.core.wrappings.dict import wrap_dict
 
@@ -76,6 +76,14 @@ class Service:
             "Authorization": "Bearer " + token,
             "Content-Type": "application/sparql-query",
             "Accept": "application/ld+json"
+        }
+        self.headers_upload = {
+            "Authorization": "Bearer " + token,
+            "Accept": "application/ld+json",
+        }
+        self.headers_download = {
+            "Authorization": "Bearer " + token,
+            "Accept": "*/*"
         }
         self.url_resources = "/".join((endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_files = "/".join((endpoint, "files", quote_plus(org), quote_plus(prj)))

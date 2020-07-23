@@ -12,34 +12,35 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
+import asyncio
 import json
 import mimetypes
 import re
-from asyncio import Task
+from asyncio import Semaphore, Task
+from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus, unquote
 
 import nexussdk as nexus
 import requests
+from aiohttp import ClientSession, FormData
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
 from requests import HTTPError
-from enum import Enum
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, RegistrationError,
-                                             RetrievalError, TaggingError, UpdatingError,
-                                             UploadingError)
-from kgforge.core.commons.exceptions import (QueryingError)
+from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, QueryingError,
+                                             RegistrationError, RetrievalError, TaggingError,
+                                             UpdatingError, UploadingError)
 from kgforge.core.commons.execution import run
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.stores.nexus.service import Service, BatchAction, DEPRECATED_PROPERTY
+from kgforge.specializations.stores.nexus.service import BatchAction, DEPRECATED_PROPERTY, Service
 
 
 class CategoryDataType(Enum):
@@ -132,8 +133,36 @@ class BlueBrainNexus(Store):
                 resource.context = data["@context"]
             self.service.sync_metadata(resource, response)
 
-    def _upload_one(self, filepath: Path, content_type: str) -> Dict:
-        file = str(filepath.absolute())
+    def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
+
+        async def _bulk():
+            loop = asyncio.get_event_loop()
+            semaphore = Semaphore(self.service.max_connections)
+            async with ClientSession(headers=self.service.headers_upload) as session:
+                tasks = (_create_task(x, loop, semaphore, session) for x in paths)
+                return await asyncio.gather(*tasks)
+
+        def _create_task(path, loop, semaphore, session):
+            default = "application/octet-stream"
+            mime_type = (content_type or mimetypes.guess_type(str(path))[0] or default)
+            data = FormData()
+            data.add_field("file", path.open("rb"), content_type=mime_type)
+            return loop.create_task(_upload(data, semaphore, session))
+
+        async def _upload(data, semaphore, session):
+            async with semaphore:
+                async with session.post(self.service.url_files, data=data) as response:
+                    body = await response.json()
+                    if response.status < 400:
+                        return body
+                    else:
+                        msg = " ".join(re.findall('[A-Z][^A-Z]*', body["@type"])).lower()
+                        raise UploadingError(msg)
+
+        return asyncio.run(_bulk())
+
+    def _upload_one(self, path: Path, content_type: str) -> Dict:
+        file = str(path.absolute())
         mime_type = content_type or mimetypes.guess_type(file, True)[0]
         if mime_type is None:
             mime_type = "application/octet-stream"
@@ -177,6 +206,32 @@ class BlueBrainNexus(Store):
             return metadata["_filename"]
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
+
+    def _download_many(self, urls: List[str], paths: List[str]) -> None:
+
+        async def _bulk():
+            loop = asyncio.get_event_loop()
+            semaphore = Semaphore(self.service.max_connections)
+            async with ClientSession(headers=self.service.headers_download) as session:
+                tasks = (_create_task(x, y, loop, semaphore, session) for x, y in zip(urls, paths))
+                return await asyncio.gather(*tasks)
+
+        def _create_task(url, path, loop, semaphore, session):
+            return loop.create_task(_download(url, path, semaphore, session))
+
+        async def _download(url, path, semaphore, session):
+            async with semaphore:
+                async with session.get(url) as response:
+                    if response.status < 400:
+                        with open(path, "wb") as f:
+                            data = await response.read()
+                            f.write(data)
+                    else:
+                        error = await response.json()
+                        msg = " ".join(re.findall('[A-Z][^A-Z]*', error["@type"])).lower()
+                        raise DownloadingError(msg)
+
+        return asyncio.run(_bulk())
 
     def _download_one(self, url: str, path: str) -> None:
         try:
