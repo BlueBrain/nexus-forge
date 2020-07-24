@@ -24,7 +24,8 @@ from urllib.parse import quote_plus, unquote
 
 import nexussdk as nexus
 import requests
-from aiohttp import ClientSession, FormData
+from aiohttp import ClientSession, MultipartWriter
+from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
@@ -145,8 +146,14 @@ class BlueBrainNexus(Store):
         def _create_task(path, loop, semaphore, session):
             default = "application/octet-stream"
             mime_type = (content_type or mimetypes.guess_type(str(path))[0] or default)
-            data = FormData()
-            data.add_field("file", path.open("rb"), content_type=mime_type)
+            # FIXME Nexus seems to not parse the Content-Disposition 'filename*' field  properly.
+            # data = FormData()
+            # data.add_field("file", path.open("rb"), content_type=mime_type, filename=path.name)
+            # FIXME This hack is to prevent sending Content-Disposition with the 'filename*' field.
+            data = MultipartWriter("form-data")
+            part = data.append(path.open("rb"))
+            part.headers[CONTENT_TYPE] = mime_type
+            part.headers[CONTENT_DISPOSITION] = f'form-data; name="file"; filename="{path.name}"'
             return loop.create_task(_upload(data, semaphore, session))
 
         async def _upload(data, semaphore, session):
