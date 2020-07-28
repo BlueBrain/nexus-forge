@@ -304,8 +304,9 @@ class KnowledgeGraphForge:
     # Querying User Interface.
 
     @catch
-    def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
-        return self._store.retrieve(id, version)
+    def retrieve(self, id: str, version: Optional[Union[int, str]] = None,
+                 cross_bucket: bool = False) -> Resource:
+        return self._store.retrieve(id, version, cross_bucket)
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
