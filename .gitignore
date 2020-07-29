@@ -10,6 +10,7 @@ docs/build
 **/.ipynb_checkpoints/*
 version.py
 examples/notebooks/getting-started/mappings/
+examples/notebooks/getting-started/downloaded/
 .gitreview
 examples/configurations/forge.yml
 examples/models/neuroshapes/

@@ -47,11 +47,11 @@ setup(
         "aiohttp",
         "nest_asyncio",
         "pyLD",
-        "pyshacl",
+        "pyshacl==0.11.6.post1",
         "rdflib-jsonld"
     ],
     extras_require={
-        "dev": ["tox", "pytest", "pytest-bdd", "pytest-cov", "pytest-mock"],
+        "dev": ["tox", "pytest", "pytest-bdd", "pytest-cov", "pytest-mock", "codecov"],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
     },
     classifiers=[
