@@ -9,7 +9,10 @@ install:
   - pip install .[dev]
 
 script:
-  - pytest
+  - pytest --cov=./
+
+after_success:
+  - codecov
 
 branches:
   only:
