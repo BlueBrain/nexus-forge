@@ -30,22 +30,52 @@ PERSON_TEMPLATE = {
     "address":
         {
             "type": "PostalAddress",
-            "postalCode": "",
+            "postalCode": ["",0],
             "streetAddress": "",
         },
     "birthDate": "9999-12-31",
     "deathDate": "9999-12-31",
     "gender": ["female", "male"],
     "givenName": "",
-    "name": ""
+    "familyName":""
 }
 
 EMPLOYEE_TEMPLATE = deepcopy(PERSON_TEMPLATE)
 EMPLOYEE_TEMPLATE["type"] = "Employee"
 EMPLOYEE_TEMPLATE.update({
-    "colleague": "Person",
-    "contractor": "Organization",
-    "department": "Organization",
+    "colleague": {
+        "type": "Person",
+        "id": "",
+        "address":
+        {
+            "type": "PostalAddress",
+            "postalCode": ["",0],
+            "streetAddress": "",
+        },
+        "birthDate": "9999-12-31",
+        "deathDate": "9999-12-31",
+        "gender": ["female", "male"],
+        "givenName": "",
+        "familyName":""
+    },
+    "contractor": {
+        "id": "",
+        "type": "Organization",
+        "name": "",
+        "parentOrganization": {
+            "id": "",
+            "type": "Organization"
+        }
+    },
+    "department": {
+        "id": "",
+        "type": "Organization",
+        "name": "",
+        "parentOrganization": {
+            "id": "",
+            "type": "Organization"
+        }
+    },
     "startDate": "9999-12-31",
     "worksFor": {
         "id": "",
@@ -53,7 +83,7 @@ EMPLOYEE_TEMPLATE.update({
     }
 })
 employee_keys_order = ["id", "type", "address", "birthDate", "colleague", "contractor", "deathDate",
-                       "department", "gender", "givenName", "name", "startDate", "worksFor"]
+                       "department", "gender", "givenName", "familyName", "startDate", "worksFor"]
 EMPLOYEE_TEMPLATE = {k: EMPLOYEE_TEMPLATE[k] for k in employee_keys_order}
 
 ENTITY =  {
