@@ -14,15 +14,11 @@ script:
 after_success:
   - codecov
 
-branches:
-  only:
-    - master
-
 deploy:
   provider: pypi
   on:
     tags: true
-    branch: master
+    all_branches: true
     condition: "$TRAVIS_PYTHON_VERSION == 3.6"
   user: bbp.opensource
   password:

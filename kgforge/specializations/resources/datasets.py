@@ -88,7 +88,8 @@ class Dataset(Resource):
         # path: DirPath.
         """Add (different) files as parts of the dataset."""
         action = self._forge.attach(path, content_type)
-        _set(self, "hasPart", action)
+        distribution = Resource(distribution=action)
+        _set(self, "hasPart", distribution)
 
     @catch
     def download(self, source: str, path: str) -> None:
@@ -96,8 +97,6 @@ class Dataset(Resource):
         """Download the distributions of the dataset or the files part of the dataset."""
         if source == "distributions":
             follow = "distribution.contentUrl"
-        elif source == "files":
-            follow = "hasPart.contentUrl"
         elif source == "parts":
             follow = "hasPart.distribution.contentUrl"
         else:
