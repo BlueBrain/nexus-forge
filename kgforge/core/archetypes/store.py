@@ -132,7 +132,8 @@ class Store(ABC):
         # TODO This operation might be adapted if other file metadata are needed.
         not_supported()
 
-    def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
+    def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,
+                 overwrite: bool) -> None:
         # path: DirPath.
         urls = collect_values(data, follow, DownloadingError)
         count = len(urls)
@@ -145,7 +146,10 @@ class Store(ABC):
         for x in urls:
             filename = self._retrieve_filename(x)
             filepath = dirpath / filename
-            filepaths.append(f"{filepath}.{timestamp}" if filepath.exists() else str(filepath))
+            if not overwrite and filepath.exists():
+                filepaths.append(f"{filepath}.{timestamp}")
+            else:
+                filepaths.append(str(filepath))
         if count > 1:
             self._download_many(urls, filepaths)
         else:
