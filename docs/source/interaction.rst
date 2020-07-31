@@ -210,7 +210,7 @@ the properties and a specific value and (3) using a simplified version of SPARQL
 
 .. code-block:: python
 
-   retrieve(id: str, version: Optional[Union[int, str]] = None) -> Resource
+   retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False) -> Resource
    paths(type: str) -> PathsWrapper
    search(*filters, **params) -> List[Resource]
    sparql(query: str) -> List[Resource]
