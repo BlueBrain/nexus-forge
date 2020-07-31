@@ -172,7 +172,16 @@ class BlueBrainNexus(Store):
             self.service.sync_metadata(resource, data)
             return resource
 
-    def _download_one(self, url: str, path: Path) -> None:
+    def _retrieve_filename(self, id: str) -> str:
+        try:
+            response = requests.get(id, headers=self.service.headers)
+            response.raise_for_status()
+            metadata = response.json()
+            return metadata["_filename"]
+        except HTTPError as e:
+            raise DownloadingError(_error_message(e))
+
+    def _download_one(self, url: str, path: str) -> None:
         try:
             # this is a hack since _self and _id have the same uuid
             file_id = url.split("/")[-1]
@@ -181,7 +190,7 @@ class BlueBrainNexus(Store):
             if len(file_id) < 1:
                 raise DownloadingError("Invalid file name")
             nexus.files.fetch(org_label=self.organisation, project_label=self.project,
-                              file_id=file_id, out_filepath=str(path))
+                              file_id=file_id, out_filepath=path)
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 

@@ -324,9 +324,10 @@ class KnowledgeGraphForge:
         return self._store.sparql(query, debug, limit, offset)
 
     @catch
-    def download(self, data: Union[Resource, List[Resource]], follow: str, path: str) -> None:
+    def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,
+                 overwrite: bool = False) -> None:
         # path: DirPath.
-        self._store.download(data, follow, path)
+        self._store.download(data, follow, path, overwrite)
 
     # Storing User Interface.
 

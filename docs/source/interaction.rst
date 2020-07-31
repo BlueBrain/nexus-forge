@@ -184,7 +184,7 @@ extracted properties, such as  content type, size, file name, etc.
      add_derivation(resource: Resource, versioned: bool = True, **kwargs) -> None
      add_invalidation(**kwargs) -> None
      add_files(path: str, content_type: str = None) -> None
-     download(source: str, path: str) -> None
+     download(source: str, path: str, overwrite: bool = False) -> None
 
 Storing
 -------
@@ -214,7 +214,7 @@ the properties and a specific value and (3) using a simplified version of SPARQL
    paths(type: str) -> PathsWrapper
    search(*filters, **params) -> List[Resource]
    sparql(query: str) -> List[Resource]
-   download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
+   download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False) -> None
 
 Versioning
 ----------

@@ -59,7 +59,7 @@ The Store provides the interface of storage for different technologies to be imp
      register(data: Union[Resource, List[Resource]]) -> None
      upload(path: str) -> Union[Resource, List[Resource]]
      retrieve(id: str, version: Optional[Union[int, str]], cross_bucket: bool) -> Resource
-     download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
+     download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool) -> None
      update(data: Union[Resource, List[Resource]]) -> None
      tag(data: Union[Resource, List[Resource]], value: str) -> None
      deprecate(data: Union[Resource, List[Resource]]) -> None
