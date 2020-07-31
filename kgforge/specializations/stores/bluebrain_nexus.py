@@ -183,26 +183,29 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
-    def retrieve(self, id: str, version: Optional[Union[int, str]] = None) -> Resource:
-        try:
+    def retrieve(self, id: str, version: Optional[Union[int, str]],
+                 cross_bucket: bool) -> Resource:
+        segment = "resolvers" if cross_bucket else "resources"
+        url = f"{self.endpoint}/{segment}/{self.bucket}/_/{quote_plus(id)}"
+        if version is not None:
             if isinstance(version, int):
-                response = nexus.resources.fetch(org_label=self.organisation,
-                                                 project_label=self.project,
-                                                 resource_id=id, rev=version)
+                params = {"rev": version}
             elif isinstance(version, str):
-                response = nexus.resources.fetch(org_label=self.organisation,
-                                                 project_label=self.project,
-                                                 resource_id=id, tag=version)
+                params = {"tag": version}
             else:
-                response = nexus.resources.fetch(org_label=self.organisation,
-                                                 project_label=self.project,
-                                                 resource_id=id)
+                raise RetrievalError("incorrect 'version'")
+        else:
+            params = None
+        try:
+            response = requests.get(url, params=params, headers=self.service.headers)
+            response.raise_for_status()
         except HTTPError as e:
             raise RetrievalError(_error_message(e))
         else:
-            resource = self.service.to_resource(response)
+            data = response.json()
+            resource = self.service.to_resource(data)
             resource._synchronized = True
-            self.service.sync_metadata(resource, response)
+            self.service.sync_metadata(resource, data)
             return resource
 
     def _retrieve_filename(self, id: str) -> str:
