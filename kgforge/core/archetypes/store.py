@@ -16,7 +16,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Match, Optional, Union
+from typing import Any, Callable, Dict, List, Match, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -95,26 +95,27 @@ class Store(ABC):
     def upload(self, path: str, content_type: str) -> Union[Resource, List[Resource]]:
         # path: Union[FilePath, DirPath].
         if self.file_mapping is not None:
-            uploaded = self._upload(path, content_type)
+            p = Path(path)
+            uploaded = self._upload(p, content_type)
             return self.mapper().map(uploaded, self.file_mapping, None)
         else:
             raise UploadingError("no file_resource_mapping has been configured")
 
-    def _upload(self, path: str, content_type: str) -> Union[Any, List[Any]]:
+    def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
         # path: Union[FilePath, DirPath].
-        p = Path(path)
-        if p.is_dir():
-            filepaths = (x for x in p.iterdir() if x.is_file() and not x.name.startswith("."))
+        if path.is_dir():
+            filepaths = [x for x in path.iterdir() if x.is_file() and not x.name.startswith(".")]
             return self._upload_many(filepaths, content_type)
         else:
-            return self._upload_one(p, content_type)
+            return self._upload_one(path, content_type)
 
-    def _upload_many(self, filepaths: Iterable[Path], content_type: str) -> List[Any]:
+    def _upload_many(self, paths: List[Path], content_type: str) -> List[Any]:
         # Bulk uploading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._upload_one() policies.
-        return [self._upload_one(x, content_type) for x in filepaths]
+        return [self._upload_one(x, content_type) for x in paths]
 
-    def _upload_one(self, filepath: Path, content_type: str) -> Any:
+    def _upload_one(self, path: Path, content_type: str) -> Any:
+        # path: FilePath.
         # POLICY Should notify of failures with exception UploadingError including a message.
         not_supported()
 
