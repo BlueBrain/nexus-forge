@@ -58,7 +58,7 @@ The Store provides the interface of storage for different technologies to be imp
    Store(endpoint: Optional[str] = None, bucket: Optional[str] = None, token: Optional[str] = None, versioned_id_template: Optional[str] = None, file_resource_mapping: Optional[str] = None))
      register(data: Union[Resource, List[Resource]]) -> None
      upload(path: str) -> Union[Resource, List[Resource]]
-     retrieve(id: str, version: Optional[Union[int, str]]) -> Resource
+     retrieve(id: str, version: Optional[Union[int, str]], cross_bucket: bool) -> Resource
      download(data: Union[Resource, List[Resource]], follow: str, path: str) -> None
      update(data: Union[Resource, List[Resource]]) -> None
      tag(data: Union[Resource, List[Resource]], value: str) -> None

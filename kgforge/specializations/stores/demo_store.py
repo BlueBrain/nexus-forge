@@ -21,6 +21,7 @@ from kgforge.core.archetypes import Resolver, Store
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
 
@@ -50,7 +51,10 @@ class DemoStore(Store):
 
     # C[R]UD.
 
-    def retrieve(self, id: str, version: Optional[Union[int, str]]) -> Resource:
+    def retrieve(self, id: str, version: Optional[Union[int, str]],
+                 cross_bucket: bool) -> Resource:
+        if cross_bucket:
+            not_supported(("cross_bucket", True))
         try:
             record = self.service.read(id, version)
         except StoreLibrary.RecordMissing:
