@@ -129,7 +129,7 @@ class StoreService(RdfService):
     def _load_shape(self, resource_id):
         if resource_id not in self._imported:
             try:
-                shape = self.context_store.retrieve(resource_id, version=None)
+                shape = self.context_store.retrieve(resource_id, version=None, cross_bucket=False)
             except RetrievalError as e:
                 print(e, resource_id)
                 # failed, don't try to load again
