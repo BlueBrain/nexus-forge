@@ -1,0 +1,64 @@
+====================
+vO.3.3 Release Notes
+====================
+
+This release adds incremental features to both Nexus Forge core and specializations modules.
+
+New Features
+============
+
+
+Querying
+--------
+
+* Add cross-bucket retrieval feature `#50 <https://github.com/BlueBrain/nexus-forge/pull/50>`__
+If cross_bucket is set to True, resources could potentially be retrieved by identifier from multiple buckets.
+
+.. note::
+   In this release, it is the responsability of the configured store to:
+   
+   * make sure all necessary buckets are reachable from the forge configured store bucket and can be searched for a resource.
+   * handle looking up a resource by its identifier accross many buckets.
+
+Usage:
+
+.. code-block:: python
+
+   resource = forge.retrieve(<resource_id>, cross_bucket=True)
+   
+
+
+Enhancements
+============
+
+Tutorial
+--------
+
+* Remove duplicated tutorial notebooks `#34 <https://github.com/BlueBrain/nexus-forge/pull/34>`__ (Usage: on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/>`__ or on |Binder|)
+
+
+Storing
+-------
+ 
+* Implement bulk upload and bulk download `#47 <https://github.com/BlueBrain/nexus-forge/pull/47>`__ (Usage: 02 - Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|)
+
+* Prevent Store.download() to overwrite existing files `#45 <https://github.com/BlueBrain/nexus-forge/pull/45>`__ (Usage: 02 - Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|)  
+
+Dataset
+-------
+ 
+* Represent files added to a dataset resource as parts (using http://schema.org/hasPart) `#41 <https://github.com/BlueBrain/nexus-forge/pull/41>`__ (Usage: 02 - Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|)
+
+
+Bug Fixes
+=========
+
+RdfModel
+--------
+
+* Fix Shape.traverse() error `#44 <https://github.com/BlueBrain/nexus-forge/pull/44>`__ (issue:`#43 <https://github.com/BlueBrain/nexus-forge/pull/43>`__)(usage: 11 - Modeling notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/11%20-%20Modeling.ipynb>`__ or on |Binder|)
+
+
+.. |Binder| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.3.3?filepath=examples%2Fnotebooks%2Fgetting-started
