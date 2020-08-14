@@ -12,10 +12,11 @@ Querying
 --------
 
 * Add cross-bucket retrieval feature `#50 <https://github.com/BlueBrain/nexus-forge/pull/50>`__
+
 If cross_bucket is set to True, resources could potentially be retrieved by identifier from multiple buckets.
 
 .. note::
-   In this release, it is the responsability of the configured store to:
+   In this release, it is the responsibility of the configured store to:
    
    * make sure all necessary buckets are reachable from the forge configured store bucket and can be searched for a resource.
    * handle looking up a resource by its identifier accross many buckets.
@@ -25,7 +26,6 @@ Usage:
 .. code-block:: python
 
    resource = forge.retrieve(<resource_id>, cross_bucket=True)
-   
 
 
 Enhancements
