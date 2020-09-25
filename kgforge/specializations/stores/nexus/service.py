@@ -56,7 +56,7 @@ DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
 class Service:
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connections: int):
+                 max_connections: int, searchendpoints: Dict):
 
         nexus.config.set_environment(endpoint)
         nexus.config.set_token(token)
@@ -87,8 +87,10 @@ class Service:
         }
         self.url_resources = "/".join((endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_files = "/".join((endpoint, "files", quote_plus(org), quote_plus(prj)))
-        self.sparql_endpoint = "/".join((endpoint, "views", quote_plus(org), quote_plus(prj),
-                                    "nxv:defaultSparqlIndex", "sparql"))
+
+        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else q
+
+        self.sparql_endpoint = "/".join((endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
         # This async to work on jupyter notebooks
         nest_asyncio.apply()
 

@@ -79,9 +79,9 @@ class BlueBrainNexus(Store):
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None) -> None:
+                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context)
+                         model_context, searchendpoints)
 
     @property
     def mapping(self) -> Optional[Callable]:
@@ -424,13 +424,14 @@ class BlueBrainNexus(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str]) -> Any:
+                            token: Optional[str], searchendpoints:Optional[Dict] = None) -> Any:
         try:
             self.organisation, self.project = self.bucket.split('/')
+
         except ValueError:
             raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
         else:
-            return Service(endpoint, self.organisation, self.project, token, self.model_context, 200)
+            return Service(endpoint, self.organisation, self.project, token, self.model_context, 200,searchendpoints)
 
 
 def _error_message(error: HTTPError) -> str:
