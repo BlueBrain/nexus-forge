@@ -88,7 +88,7 @@ class Service:
         self.url_resources = "/".join((endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_files = "/".join((endpoint, "files", quote_plus(org), quote_plus(prj)))
 
-        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else q
+        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
 
         self.sparql_endpoint = "/".join((endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
         # This async to work on jupyter notebooks

@@ -55,8 +55,6 @@ class Store(ABC):
         loaded = self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         self.file_mapping: Optional[Any] = loaded
         self.model_context: Optional[Context] = model_context
-
-
         self.service: Any = self._initialize_service(self.endpoint, self.bucket, self.token, searchendpoints)
         self.context: Context = self.service.context if hasattr(self.service, "context") else None
         self.metadata_context: Context = self.service.metadata_context if hasattr(self.service, "metadata_context") else None
