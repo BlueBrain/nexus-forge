@@ -117,7 +117,7 @@ class DemoStore(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str]):
+                            token: Optional[str], searchendpoints:Optional[Dict]):
         return StoreLibrary()
 
 

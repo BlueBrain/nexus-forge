@@ -424,7 +424,7 @@ class BlueBrainNexus(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict] = None) -> Any:
+                            token: Optional[str], searchendpoints:Optional[Dict]) -> Any:
         try:
             self.organisation, self.project = self.bucket.split('/')
 
