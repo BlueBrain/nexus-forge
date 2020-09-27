@@ -78,6 +78,9 @@ class KnowledgeGraphForge:
         #   endpoint: <an URL>
         #   bucket: <a bucket as a string>
         #   token: <a token as a string>
+        #   searchendpoints:
+        #     - <querytype>: <a query paradigm supported by configured store (e.g. sparql)>
+        #       endpoint: <an IRI of a query endpoint>
         #   versioned_id_template: <a string template using 'x' to access resource fields>
         #   file_resource_mapping: <an Hjson string, a file path, or an URL>
         #
@@ -118,6 +121,11 @@ class KnowledgeGraphForge:
         #         "endpoint": <str>,
         #         "bucket": <str>,
         #         "token": <str>,
+        #         "searchendpoints": {
+        #           "<querytype>": {
+        #               "endpoint": <str>
+        #           }
+        #         }
         #         "versioned_id_template": <str>,
         #         "file_resource_mapping": <str>,
         #     },
