@@ -346,11 +346,16 @@ class BlueBrainNexus(Store):
         limit = params.get("limit", 100)
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
+        cross_bucket = params.get("cross_bucket", False)
         query_statements, query_filters = build_query_statements(self.model_context, filters)
         query_statements.insert(0, f"<{PROJECT_PROPERTY}> ?project")
         query_statements.insert(1, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
         statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
-        query = f"SELECT ?id ?project WHERE {{ ?id {statements}}}"
+        if not cross_bucket:
+            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',self.organisation, self.project])}>)"
+            query = f"SELECT ?id ?project WHERE {{ ?id {statements} {project_statements}}}"
+        else:
+            query = f"SELECT ?id ?project WHERE {{ ?id {statements}}}"
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
         resources = list()
