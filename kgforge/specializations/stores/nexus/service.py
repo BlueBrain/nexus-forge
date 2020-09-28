@@ -51,15 +51,17 @@ BatchResults = List[BatchResult]
 NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
 NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
 DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
+PROJECT_PROPERTY = f"{NEXUS_NAMESPACE}project"
 
 
 class Service:
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connections: int):
+                 max_connections: int, searchendpoints: Dict):
 
         nexus.config.set_environment(endpoint)
         nexus.config.set_token(token)
+        self.endpoint = endpoint
         self.organisation = org
         self.project = prj
         self.model_context = model_context
@@ -85,10 +87,12 @@ class Service:
             "Authorization": "Bearer " + token,
             "Accept": "*/*"
         }
-        self.url_resources = "/".join((endpoint, "resources", quote_plus(org), quote_plus(prj)))
-        self.url_files = "/".join((endpoint, "files", quote_plus(org), quote_plus(prj)))
-        self.sparql_endpoint = "/".join((endpoint, "views", quote_plus(org), quote_plus(prj),
-                                    "nxv:defaultSparqlIndex", "sparql"))
+        self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
+        self.url_files = "/".join((self.endpoint, "files", quote_plus(org), quote_plus(prj)))
+
+        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
+
+        self.sparql_endpoint = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
         # This async to work on jupyter notebooks
         nest_asyncio.apply()
 
@@ -165,7 +169,10 @@ class Service:
                               params=params))
 
                 if batch_action == BatchAction.FETCH:
-                    url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
+
+                    resource_org, resource_prj  = resource.project.split("/")[-2:]
+                    resource_url = "/".join((self.endpoint, "resources", quote_plus(resource_org), quote_plus(resource_prj)))
+                    url = "/".join((resource_url, "_", quote_plus(resource.id)))
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_GET, semaphore, session, url, resource, error))
 
