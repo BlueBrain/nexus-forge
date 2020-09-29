@@ -34,6 +34,9 @@ The YAML configuration has the following structure:
      endpoint: <an URL>
      bucket: <a bucket as a string>
      token: <a token as a string>
+     searchendpoints:
+        - <querytype>: <a query paradigm supported by configured store (e.g. sparql)>
+          endpoint: <an IRI of a query endpoint>
      versioned_id_template: <a string template using 'x' to access resource fields>
      file_resource_mapping: <an Hjson string, a file path, or an URL>
    Resolvers:
@@ -74,6 +77,11 @@ and the python configuration would be like:
            "endpoint": <str>,
            "bucket": <str>,
            "token": <str>,
+           "searchendpoints": {
+                "<querytype>": {
+                "endpoint": <str>
+            }
+           },
            "versioned_id_template": <str>,
            "file_resource_mapping": <str>,
        },
@@ -212,7 +220,7 @@ the properties and a specific value and (3) using a simplified version of SPARQL
 
    retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False) -> Resource
    paths(type: str) -> PathsWrapper
-   search(*filters, **params) -> List[Resource]
+   search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross buket search (True) or not (False)
    sparql(query: str) -> List[Resource]
    download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False) -> None
 
