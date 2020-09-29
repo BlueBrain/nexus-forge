@@ -103,6 +103,10 @@ class DemoStore(Store):
     # Querying.
 
     def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
+
+        cross_bucket = params.get("cross_bucket", None)
+        if cross_bucket is not None:
+            not_supported(("cross_bucket", True))
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.
