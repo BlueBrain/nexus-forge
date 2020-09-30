@@ -37,7 +37,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, QueryingError,
                                              RegistrationError, RetrievalError, TaggingError,
                                              UpdatingError, UploadingError)
-from kgforge.core.commons.execution import run
+from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -335,7 +335,7 @@ class BlueBrainNexus(Store):
         else:
             self.service.sync_metadata(resource, response.json())
 
-    # Querying.
+        # Querying.
 
     def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
 
@@ -347,15 +347,22 @@ class BlueBrainNexus(Store):
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
         cross_bucket = params.get("cross_bucket", False)
+        bucket = params.get("bucket",None)
+        project_statements = ''
+        if bucket and not cross_bucket:
+            not_supported(("bucket", True))
+        elif bucket:
+            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',bucket])}>)"
+        elif not cross_bucket:
+            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',self.organisation, self.project])}>)"
+
         query_statements, query_filters = build_query_statements(self.model_context, filters)
         query_statements.insert(0, f"<{PROJECT_PROPERTY}> ?project")
         query_statements.insert(1, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
         statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
-        if not cross_bucket:
-            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',self.organisation, self.project])}>)"
-            query = f"SELECT ?id ?project WHERE {{ ?id {statements} {project_statements}}}"
-        else:
-            query = f"SELECT ?id ?project WHERE {{ ?id {statements}}}"
+
+        query = f"SELECT ?id ?project WHERE {{ ?id {statements} {project_statements}}}"
+
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
         resources = list()
@@ -378,7 +385,6 @@ class BlueBrainNexus(Store):
         s_offset = "" if offset is None else f"OFFSET {offset}"
         s_limit = "" if limit is None else f"LIMIT {limit}"
         query = f"{query} {s_limit} {s_offset}"
-
         try:
             response = requests.post(
                 self.service.sparql_endpoint, data=query, headers=self.service.headers_sparql)
