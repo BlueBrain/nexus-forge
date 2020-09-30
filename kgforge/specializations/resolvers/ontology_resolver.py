@@ -66,10 +66,16 @@ class OntologyResolver(Resolver):
                   label ?label ; 
               OPTIONAL {{
                 ?id subClassOf ?subClassOf ;
-                  prefLabel ?prefLabel ;  
-                  isDefinedBy ?isDefinedBy ;
-                  notation ?notation
               }}
+              OPTIONAL {{
+                ?id prefLabel ?prefLabel .
+              }}
+              OPTIONAL {{
+                ?id isDefinedBy ?isDefinedBy .
+              }}     
+              OPTIONAL {{
+                ?id notation ?notation .
+              }}    
               {{
                 SELECT * WHERE {{
                   {{ {0} ; label ?label {1} }} UNION
