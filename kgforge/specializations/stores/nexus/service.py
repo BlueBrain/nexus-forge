@@ -93,8 +93,12 @@ class Service:
         sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
 
         self.sparql_endpoint = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
-        # This async to work on jupyter notebooks
-        nest_asyncio.apply()
+        # The following code is for async to work on jupyter notebooks
+        try:
+            asyncio.get_event_loop()
+            nest_asyncio.apply()
+        except RuntimeError:
+            pass
 
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
