@@ -10,7 +10,7 @@ Store:
   name: BlueBrainNexus
   endpoint: https://bbp.epfl.ch/nexus/v1
   searchendpoints:
-    - sparql:
+    sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
   file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
