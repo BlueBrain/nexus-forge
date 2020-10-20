@@ -20,7 +20,7 @@ from asyncio import Semaphore, Task
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from urllib.parse import quote_plus, unquote
+from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 import nexussdk as nexus
 import requests
@@ -185,8 +185,11 @@ class BlueBrainNexus(Store):
 
     def retrieve(self, id: str, version: Optional[Union[int, str]],
                  cross_bucket: bool) -> Resource:
+
         segment = "resolvers" if cross_bucket else "resources"
-        url = f"{self.endpoint}/{segment}/{self.bucket}/_/{quote_plus(id)}"
+        parsed_id = urlparse(id)
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}"
+        params = None
         if version is not None:
             if isinstance(version, int):
                 params = {"rev": version}
@@ -194,8 +197,13 @@ class BlueBrainNexus(Store):
                 params = {"tag": version}
             else:
                 raise RetrievalError("incorrect 'version'")
-        else:
-            params = None
+        if parsed_id.query is not None:
+            query_params = parse_qs(parsed_id.query)
+            if params is not None:
+                query_params.update(params)
+            params = query_params
+
+        url = f"{self.endpoint}/{segment}/{self.bucket}/_/{quote_plus(id_without_query)}"
         try:
             response = requests.get(url, params=params, headers=self.service.headers)
             response.raise_for_status()
