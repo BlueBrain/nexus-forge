@@ -214,7 +214,6 @@ class BlueBrainNexus(Store):
             resource = self.service.to_resource(data)
             resource._synchronized = True
             self.service.sync_metadata(resource, data)
-
             return resource
 
     def _retrieve_filename(self, id: str) -> str:
