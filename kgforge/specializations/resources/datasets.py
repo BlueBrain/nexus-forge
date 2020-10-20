@@ -70,7 +70,7 @@ class Dataset(Resource):
     @catch
     def add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None:
         """Add information on the derivation of an entity resulting in the dataset."""
-        keep = ["id", "type", "name"]
+        keep = ["id", "type", "name","_store_metadata"]
         entity = self._forge.reshape(resource, keep, versioned)
         derivation = Resource(type="Derivation", entity=entity, **kwargs)
         _set(self, "derivation", derivation)
