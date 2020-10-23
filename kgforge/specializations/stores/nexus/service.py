@@ -268,7 +268,7 @@ class Service:
     def to_resource(self, payload: Dict) -> Resource:
         data_context = deepcopy(payload["@context"])
         if not isinstance(data_context, list):
-            data_context = list(data_context)
+            data_context = [data_context]
         data_context.remove(NEXUS_CONTEXT)
         data_context = data_context[0] if len(data_context) == 1 else data_context
         metadata = dict()
