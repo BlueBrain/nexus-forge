@@ -39,4 +39,4 @@ def test_collect_values():
     r = collect_values(data_set, "fake.path")
     assert len(r) == 0
     with pytest.raises(ValueError):
-        r = collect_values(None, "hasPart.url",ValueError)
+        collect_values(None, "hasPart.url",ValueError)
