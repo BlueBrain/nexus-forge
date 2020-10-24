@@ -92,7 +92,7 @@ class Dataset(Resource):
         _set(self, "hasPart", distribution)
 
     @catch
-    def download(self, source: str, path: str, overwrite: bool = False) -> None:
+    def download(self, path: str, source: str = "distributions", overwrite: bool = False) -> None:
         # path: DirPath.
         """Download the distributions of the dataset or the files part of the dataset."""
         if source == "distributions":

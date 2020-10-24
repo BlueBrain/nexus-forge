@@ -12,22 +12,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-# Test suite for initializing a forge.
-
-import pytest
-
-from kgforge.core import KnowledgeGraphForge
-
-SCOPE = "terms"
-MODEL = "DemoModel"
-STORE = "DemoStore"
-RESOLVER = "DemoResolver"
-
-
-class TestForgeInitialization:
-
-    def test_initialization(self, config):
-        forge = KnowledgeGraphForge(config)
-        assert type(forge._model).__name__ == MODEL
-        assert type(forge._store).__name__ == STORE
-        assert type(forge._resolvers[SCOPE][RESOLVER]).__name__ == RESOLVER
+# Placeholder for the generic parameterizable test suite for resources.
