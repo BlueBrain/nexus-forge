@@ -180,9 +180,10 @@ def _as_graph_many(resources: List[Resource], store_metadata: bool, model_contex
                    metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     graph = Graph()
     for resource in resources:
-        result = _as_graph_one(resource, store_metadata, model_context, metadata_context,
-                               context_resolver)
-        graph.parse(result)
+        # Do not use _as_graph_one as it will lead to using graph1 + graph2 operation which can lead to blank node collisions
+        json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
+                                 metadata_context, context_resolver)
+        graph.parse(data=json.dumps(json_ld), format="json-ld")
     return graph
 
 
