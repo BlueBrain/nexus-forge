@@ -139,11 +139,11 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                         frame[key] = v
     frame["@embed"] = "@link"
     data_framed = jsonld.frame(data_expanded, frame)
-    resource_graph_node  = data_framed["@graph"] if "@graph" in data_framed else data_framed
+    resource_graph_node  = data_framed["@graph"][0] if "@graph" in data_framed else data_framed
     if resource_types is None:
-        resource_graph_node[0].pop("@type")
+        resource_graph_node.pop("@type")
     else:
-        resource_graph_node[0]["@type"] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
+        resource_graph_node["@type"] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
     resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
