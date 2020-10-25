@@ -98,6 +98,9 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
     context = _resource_context(resource, model_context, context_resolver)
     resolved_context = context.document
     output_context = context.iri if context.is_http_iri() else context.document["@context"]
+    resource_types = getattr(resource, "type", getattr(resource, "@type", None))
+    # this is to ensure the framing is centered on the provided resource in case embedded resources share the same type
+    resource.type = "https://bluebrain.github.io/nexus/vocabulary/FramedType"
     if store_metadata and resource._store_metadata:
         if metadata_context:
             resolved_context = _merge_jsonld(resolved_context["@context"],
@@ -134,7 +137,14 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                     key = context.expand(k)
                     if key and isinstance(v, str):
                         frame[key] = v
+    frame["@embed"] = "@link"
     data_framed = jsonld.frame(data_expanded, frame)
+    resource_graph_node  = data_framed["@graph"][0] if "@graph" in data_framed else data_framed
+    if resource_types is None:
+        resource_graph_node.pop("@type")
+    else:
+        resource_graph_node["@type"] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
+    resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
         metadata_framed = jsonld.frame(metadata_expanded, {"@id": resource.id})
@@ -170,9 +180,10 @@ def _as_graph_many(resources: List[Resource], store_metadata: bool, model_contex
                    metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     graph = Graph()
     for resource in resources:
-        result = _as_graph_one(resource, store_metadata, model_context, metadata_context,
-                               context_resolver)
-        graph.parse(result)
+        # Do not use _as_graph_one as it will lead to using graph1 + graph2 operation which can lead to blank node collisions
+        json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
+                                 metadata_context, context_resolver)
+        graph.parse(data=json.dumps(json_ld), format="json-ld")
     return graph
 
 
