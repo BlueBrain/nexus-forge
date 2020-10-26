@@ -140,7 +140,7 @@ class Store(ABC):
         urls = collect_values(data, follow, DownloadingError)
         count = len(urls)
         if count == 0:
-            raise DownloadingError(f"path to follow '{follow}' were not found in any provided resource.")
+            raise DownloadingError(f"path to follow '{follow}' was not found in any provided resource.")
         dirpath = Path(path)
         dirpath.mkdir(parents=True, exist_ok=True)
         timestamp = time.strftime("%Y%m%d%H%M%S")
