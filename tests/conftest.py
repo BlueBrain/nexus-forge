@@ -281,3 +281,64 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
         elif form is Form.EXPANDED.value:
             return _make_jsonld_expanded(rsrc, store_metadata, context)
     return _make_jsonld
+
+
+
+SCOPE = "terms"
+MODEL = "DemoModel"
+STORE = "DemoStore"
+RESOLVER = "DemoResolver"
+
+
+@pytest.fixture(params=[
+    MODEL,
+    f"{MODEL} from kgforge.specializations.models",
+    f"{MODEL} from kgforge.specializations.models.demo_model"])
+def model(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    STORE,
+    f"{STORE} from kgforge.specializations.stores",
+    f"{STORE} from kgforge.specializations.stores.demo_store"])
+def store(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    RESOLVER,
+    f"{RESOLVER} from kgforge.specializations.resolvers",
+    f"{RESOLVER} from kgforge.specializations.resolvers.demo_resolver"])
+def resolver(request):
+    return request.param
+
+
+@pytest.fixture
+def config(model, store, resolver):
+    return {
+        "Model": {
+            "name": model,
+            "origin": "directory",
+            "source": "tests/data/demo-model/",
+        },
+        "Store": {
+            "name": store,
+        },
+        "Resolvers": {
+            SCOPE: [
+                {
+                    "resolver": resolver,
+                    "origin": "directory",
+                    "source": "tests/data/demo-resolver/",
+                    "targets": [
+                        {
+                            "identifier": "sex",
+                            "bucket": "sex.json",
+                        },
+                    ],
+                    "result_resource_mapping": "../../configurations/demo-resolver/term-to-resource-mapping.hjson",
+                },
+            ],
+        },
+    }

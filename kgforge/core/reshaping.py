@@ -51,22 +51,25 @@ class Reshaper:
         new = Resource()
         for root in roots:
             leafs = [x[1] for x in levels if len(x) > 1 and x[0] == root]
-            value = getattr(resource, root)
-            if isinstance(value, List):
-                new_value = self._reshape_many(value, leafs, versioned)
-            elif isinstance(value, Resource):
-                if leafs:
-                    new_value = self._reshape_one(value, leafs, versioned)
+            value = getattr(resource, root, None)
+            if value is not None:
+                if isinstance(value, List):
+                    new_value = self._reshape_many(value, leafs, versioned)
+                elif isinstance(value, Resource):
+                    if leafs:
+                        new_value = self._reshape_one(value, leafs, versioned)
+                    else:
+                        attributes = value.__dict__.items()
+                        properties = {k: v for k, v in attributes if k not in value._RESERVED}
+                        new_value = Resource(**properties)
                 else:
-                    attributes = value.__dict__.items()
-                    properties = {k: v for k, v in attributes if k not in value._RESERVED}
-                    new_value = Resource(**properties)
+                    if root == "id" and versioned:
+                        new_value = self.versioned_id_template.format(x=resource)
+                    else:
+                        new_value = value
+                setattr(new, root, new_value)
             else:
-                if root == "id" and versioned:
-                    new_value = self.versioned_id_template.format(x=resource)
-                else:
-                    new_value = value
-            setattr(new, root, new_value)
+                pass
         return new
 
 
@@ -89,5 +92,5 @@ def collect_values(data: Union[Resource, List[Resource]],  follow: str,
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))
-    except AttributeError:
-        raise exception("path to follow is incorrect")
+    except Exception as e:
+        raise exception(f"An error occur when collecting values for path to follow '{follow}': {str(e)}")

@@ -15,8 +15,9 @@
 # Placeholder for the test suite for actions.
 import pytest
 
+from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.archetypes.store import rewrite_sparql
-
+from kgforge.core.commons.exceptions import DownloadingError
 
 context = {
     "@context": {
@@ -67,3 +68,10 @@ form_store_metadata_combinations = [
 def test_rewrite_sparql(query, expected):
     result = rewrite_sparql(query, context, prefixes)
     assert result == expected
+
+
+def test_download(config):
+    simple = Resource(type="Experiment", url="file.gz")
+    with pytest.raises(DownloadingError):
+        forge = KnowledgeGraphForge(config)
+        forge._store.download(simple, "fake.path", "./", overwrite=False)
