@@ -16,7 +16,7 @@ from typing import List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
-from kgforge.core.commons.execution import catch
+from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.forge import KnowledgeGraphForge
 
 
@@ -87,8 +87,10 @@ class Dataset(Resource):
         invalidation = self._add_prov_property(resource,"Invalidation","activity","Activity",keep,versioned, **kwargs)
         _set(self, "invalidation", invalidation)
 
-    def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep,versioned, **kwargs):
+    def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
 
+        if versioned and isinstance(resource,str):
+            not_supported(("versioned with resource:str", True))
         if isinstance(resource, str):
             reference = Resource(type=reference_type, id=resource)
         elif isinstance(resource, Resource):
