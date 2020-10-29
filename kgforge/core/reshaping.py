@@ -39,9 +39,6 @@ class Reshaper:
     def _reshape_many(self, resources: List[Resource], keep: List[str],
                       versioned: bool) -> List[Resource]:
         # Could be optimized in the future.
-        print("_reshape_many")
-        print(resources)
-
         return [self._reshape(x, keep, versioned) for x in resources]
 
     def _reshape_one(self, resource: Resource, keep: List[str], versioned: bool) -> Resource:
