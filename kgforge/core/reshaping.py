@@ -55,6 +55,9 @@ class Reshaper:
             if value is not None:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leafs, versioned)
+                    for i,nv in enumerate(new_value):
+                        if nv == Resource() and isinstance(value[i],str):
+                            new_value[i] = value[i]
                 elif isinstance(value, Resource):
                     if leafs:
                         new_value = self._reshape_one(value, leafs, versioned)
