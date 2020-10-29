@@ -74,7 +74,6 @@ class Reshaper:
                 setattr(new, root, new_value)
             else:
                 pass
-
         return new
 
 
