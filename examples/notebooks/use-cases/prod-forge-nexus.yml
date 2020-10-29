@@ -13,7 +13,7 @@ Store:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
-  file_resource_mapping: ../../configurations/nexus-store/file-to-resource-mapping.hjson
+  file_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-store/file-to-resource-mapping.hjson
 
 Resolvers:
   ontology:
@@ -23,7 +23,7 @@ Resolvers:
       targets:
         - identifier: terms
           bucket: neurosciencegraph/datamodels
-      result_resource_mapping: ../../configurations/nexus-resolver/term-to-resource-mapping.hjson
+      result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/term-to-resource-mapping.hjson
   agent:
     - resolver: AgentResolver
       origin: store
@@ -31,7 +31,7 @@ Resolvers:
       targets:
         - identifier: agents
           bucket: bbp/agents
-      result_resource_mapping: ../../configurations/nexus-resolver/agent-to-resource-mapping.hjson
+      result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/agent-to-resource-mapping.hjson
 
 Formatters:
   identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}
