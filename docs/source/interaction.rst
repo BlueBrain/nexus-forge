@@ -166,33 +166,33 @@ Dataset
 A Dataset is a specialization of a `Resource` that provides users with operations to handle files
 and describe them with metadata. The metadata of `Datasets` refers specifically to, but not limited to:
 
-* provenance: contribution (people or organizations that contributed to the creation of the Dataset),
+* provenance:
 
+  * contribution (people, organizations or software agents that contributed to the creation of the Dataset),
   * `generation <https://www.w3.org/TR/prov-o/#Generation>`__ (links to resources used to generate this Dataset),
   * `derivation <https://www.w3.org/TR/prov-o/#Derivation>`__ (links another resource from which the Dataset is generated),
   * `invalidation <https://www.w3.org/TR/prov-o/#Invalidation>`__ (data became invalid)
 
 * access: `distribution <https://schema.org/distribution>`__ (a downloadable form of this Dataset, at a specific location, in a specific format)
 
-The `Dataset` class provides methods for adding files to a `Dataset`.
-The added files will only be uploaded in the Store when the `forge.register` function is
-called on the Dataset so that the user flow is not slowed down and for efficiency purpose. We implemented this using
+The `Dataset` class provides methods for adding files to a `Dataset`. The added files will only be uploaded in the Store when the `forge.register` function is
+called on the Dataset so that the user flow is not slowed down and for efficiency purpose. This is done using
 the concept of `LazyAction`, which is a class that will hold an action that will be executed when required.
 
-After the registration of the Dataset, a `DataDownload` resource will be created with some other automatically
-extracted properties, such as  content type, size, file name, etc.
+After the registration of the Dataset, a `DataDownload` resource will be created with automatically
+extracted properties, such as content type, size, file name, etc.
 
 .. code-block:: python
 
    Dataset(forge: KnowledgeGraphForge, type: str = "Dataset", **properties)
      add_parts(resources: List[Resource], versioned: bool = True) -> None
      add_distribution(path: str, content_type: str = None) -> None
-     add_contribution(agent: str, **kwargs) -> None
-     add_generation(**kwargs) -> None
-     add_derivation(resource: Resource, versioned: bool = True, **kwargs) -> None
-     add_invalidation(**kwargs) -> None
+     add_contribution(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
+     add_generation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
+     add_derivation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
+     add_invalidation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
      add_files(path: str, content_type: str = None) -> None
-     download(source: str, path: str, overwrite: bool = False) -> None
+     download(path: str, source: str, overwrite: bool = False) -> None
 
 Storing
 -------

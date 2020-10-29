@@ -154,20 +154,34 @@ class TestJsonLd:
 
 class TestGraph:
 
-    def test_as_graph(self, building, building_jsonld, model_context):
+    @pytest.mark.parametrize("store_metadata", store_metadata_params)
+    def test_as_graph(self, building, organization, building_jsonld, model_context,store_metadata, metadata_context):
         store_metadata = False
         building.id = "http://test/1234"
-        building.context = model_context .document["@context"]
+        building.context = model_context.document["@context"]
         data = building_jsonld(building, "compacted", store_metadata, None)
         expected = Graph().parse(data=json.dumps(data), format="json-ld")
         result = as_graph(building, store_metadata, model_context, None, None)
-        for s, p, o in expected:
-            if isinstance(o, BNode):
-                assert (s, p, None) in result
-            elif isinstance(s, BNode):
-                assert (None, p, o) in result
-            else:
-                assert (s, p, o) in result
+        _assert_same_graph(result, expected)
+
+        organization_jsonld = as_jsonld(organization, form="compacted", store_metadata=store_metadata,
+                  model_context=model_context, metadata_context=metadata_context,
+                  context_resolver=None)
+        expected = Graph()
+        expected.parse(data=json.dumps(data), format="json-ld")
+        expected.parse(data=json.dumps(organization_jsonld), format="json-ld")
+        result = as_graph([building, organization], store_metadata, model_context, None, None)
+        _assert_same_graph(result, expected)
+
+
+def _assert_same_graph(result,expected):
+    for s, p, o in expected:
+        if isinstance(o, BNode):
+            assert (s, p, None) in result
+        elif isinstance(s, BNode):
+            assert (None, p, o) in result
+        else:
+            assert (s, p, o) in result
 
 
 class TestUtils:

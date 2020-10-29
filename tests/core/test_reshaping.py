@@ -26,10 +26,17 @@ def test_collect_values():
     r = collect_values(deep, "level1.level2.url")
     assert deep.level1.level2.url in r, "url should be in the list"
     files = [Resource(type="Experiment", url=f"file{i}") for i in range(3)]
+    files.append(Resource(type="Experiment", contentUrl=f"file3"))
     r = collect_values(files, "url")
     assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    r = collect_values(files, "contentUrl")
+    assert ["file3"] == r, "one element should be in the list"
     data_set = Resource(type="Dataset", hasPart=files)
+    r = collect_values(data_set, "hasPart.contentUrl")
+    assert ["file3"] == r, "one element should be in the list"
     r = collect_values(data_set, "hasPart.url")
     assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    r = collect_values(data_set, "fake.path")
+    assert len(r) == 0
     with pytest.raises(ValueError):
-        collect_values(data_set, "fake.path", ValueError)
+        collect_values(None, "hasPart.url",ValueError)

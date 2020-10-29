@@ -66,23 +66,6 @@ def r5():
 
 # Fixtures for Resource to JSON-LD conversion and vice versa
 
-
-@pytest.fixture
-def store_metadata_context():
-    return {
-        "meta": "https://store.net/vocabulary/",
-        "deprecated": "meta:deprecated",
-        "version": "meta:version"
-    }
-
-
-@pytest.fixture
-def store_metadata_value(store_metadata_context, metadata_data_compacted):
-    data = {"context": store_metadata_context}
-    data.update(metadata_data_compacted)
-    return data
-
-
 @pytest.fixture
 def make_registered():
     def _make_registered(r: Resource, metadata, base=None):
