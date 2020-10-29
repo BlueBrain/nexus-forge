@@ -39,6 +39,9 @@ class Reshaper:
     def _reshape_many(self, resources: List[Resource], keep: List[str],
                       versioned: bool) -> List[Resource]:
         # Could be optimized in the future.
+        print("_reshape_many")
+        print(resources)
+
         return [self._reshape(x, keep, versioned) for x in resources]
 
     def _reshape_one(self, resource: Resource, keep: List[str], versioned: bool) -> Resource:
@@ -52,9 +55,13 @@ class Reshaper:
         for root in roots:
             leafs = [x[1] for x in levels if len(x) > 1 and x[0] == root]
             value = getattr(resource, root, None)
+
             if value is not None:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leafs, versioned)
+                    for i,nv in enumerate(new_value):
+                        if nv == Resource() and isinstance(value[i],str):
+                            new_value[i] = value[i]
                 elif isinstance(value, Resource):
                     if leafs:
                         new_value = self._reshape_one(value, leafs, versioned)
@@ -70,6 +77,7 @@ class Reshaper:
                 setattr(new, root, new_value)
             else:
                 pass
+
         return new
 
 
