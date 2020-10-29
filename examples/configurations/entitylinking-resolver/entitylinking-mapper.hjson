@@ -1,5 +1,0 @@
-{
-    id: x.uid
-    label: x.concept
-    definition: x.definition
-}
