@@ -52,7 +52,6 @@ class Reshaper:
         for root in roots:
             leafs = [x[1] for x in levels if len(x) > 1 and x[0] == root]
             value = getattr(resource, root, None)
-
             if value is not None:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leafs, versioned)
