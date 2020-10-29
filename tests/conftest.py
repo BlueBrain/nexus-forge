@@ -168,6 +168,21 @@ def metadata_data_expanded():
         "https://store.net/vocabulary/version": 1
     }
 
+@pytest.fixture
+def store_metadata_context():
+    return {
+        "meta": "https://store.net/vocabulary/",
+        "deprecated": "meta:deprecated",
+        "version": "meta:version"
+    }
+
+
+@pytest.fixture
+def store_metadata_value(store_metadata_context, metadata_data_compacted):
+    data = {"context": store_metadata_context}
+    data.update(metadata_data_compacted)
+    return data
+
 
 @pytest.fixture
 def person(custom_context):
@@ -324,6 +339,7 @@ def config(model, store, resolver):
         },
         "Store": {
             "name": store,
+            "versioned_id_template": "{x.id}?_version={x._store_metadata.version}"
         },
         "Resolvers": {
             SCOPE: [

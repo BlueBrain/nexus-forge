@@ -16,7 +16,7 @@ from typing import List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
-from kgforge.core.commons.execution import catch
+from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.forge import KnowledgeGraphForge
 
 
@@ -52,36 +52,52 @@ class Dataset(Resource):
         _set(self, "distribution", action)
 
     @catch
-    def add_contribution(self, agent_id: str, **kwargs) -> None:
-        # agent: IRI.
+    def add_contribution(self, resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None:
+        # resource: Union[str, Resource].
         """Add information on the contribution of an agent during the generation of the dataset."""
-        agent = Resource(type="Agent", id=agent_id)
-        contribution = Resource(type="Contribution", agent=agent, **kwargs)
+
+        keep = ["id", "type", "_store_metadata"]
+        contribution = self._add_prov_property(resource, "Contribution", "agent", "Agent", keep, versioned,
+                                             **kwargs)
         _set(self, "contribution", contribution)
 
     @catch
-    def add_generation(self, **kwargs) -> None:
-        """Add information on the activity which has resulted in the generation of the dataset."""
-        if not kwargs:
-            raise TypeError("at least one argument should be given")
-        generation = Resource(type="Generation", **kwargs)
+    def add_generation(self, resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None:
+        """Add information about the activity that generated the dataset."""
+
+        keep = ["id", "type", "_store_metadata"]
+        generation = self._add_prov_property(resource, "Generation", "activity", "Activity", keep, versioned,
+                                             **kwargs)
         _set(self, "generation", generation)
 
     @catch
-    def add_derivation(self, resource: Resource, versioned: bool = True, **kwargs) -> None:
-        """Add information on the derivation of an entity resulting in the dataset."""
-        keep = ["id", "type", "name","_store_metadata"]
-        entity = self._forge.reshape(resource, keep, versioned)
-        derivation = Resource(type="Derivation", entity=entity, **kwargs)
+    def add_derivation(self, resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None:
+        """Add information about the resources from which the dataset was derived."""
+
+        keep = ["id", "type", "name", "_store_metadata"]
+        derivation = self._add_prov_property(resource, "Derivation", "entity", "Entity", keep, versioned,
+                                             **kwargs)
         _set(self, "derivation", derivation)
 
     @catch
-    def add_invalidation(self, **kwargs) -> None:
-        """Add information on the invalidation of the dataset."""
-        if not kwargs:
-            raise TypeError("at least one argument should be given")
-        invalidation = Resource(type="Invalidation", **kwargs)
+    def add_invalidation(self, resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None:
+        """Add information about the invalidation of the dataset."""
+
+        keep = ["id", "type", "_store_metadata"]
+        invalidation = self._add_prov_property(resource,"Invalidation","activity","Activity",keep,versioned, **kwargs)
         _set(self, "invalidation", invalidation)
+
+    def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
+
+        if versioned and isinstance(resource,str):
+            not_supported(("versioned with resource:str", True))
+        if isinstance(resource, str):
+            reference = Resource(type=reference_type, id=resource)
+        elif isinstance(resource, Resource):
+            reference = self._forge.reshape(resource, keep, versioned)
+        result = Resource(type=prov_type, **kwargs)
+        result.__setattr__(reference_property,reference)
+        return result
 
     @catch
     def add_files(self, path: str, content_type: str = None) -> None:
