@@ -14,8 +14,8 @@
 
 # Placeholder for the test suite for reshaping.
 import pytest
-from kgforge.core import Resource
-from kgforge.core.reshaping import collect_values
+from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.reshaping import collect_values, Reshaper
 
 
 def test_collect_values():
@@ -40,3 +40,19 @@ def test_collect_values():
     assert len(r) == 0
     with pytest.raises(ValueError):
         collect_values(None, "hasPart.url",ValueError)
+
+
+def test_reshape(config):
+    forge = KnowledgeGraphForge(config)
+    reshaper = Reshaper(versioned_id_template="{x.id}?_version={x._store_metadata.version}")
+
+    simple = Resource(type="Experiment", url="file.gz")
+    r = reshaper.reshape(simple, keep=['type'],versioned=False)
+    expected = { "type": "Experiment"}
+    assert expected == forge.as_json(r)
+
+    simple = Resource(type=["Experiment"], url="file.gz")
+    r = reshaper.reshape(simple, keep=['type'], versioned=True)
+    expected = {"type": ["Experiment"]}
+    assert expected == forge.as_json(r)
+
