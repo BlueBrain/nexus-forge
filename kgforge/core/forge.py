@@ -27,6 +27,7 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
+from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
@@ -155,8 +156,9 @@ class KnowledgeGraphForge:
         #     },
         # }
         if isinstance(configuration, str):
-            with Path(configuration).open(encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+            config_data = load_file_as_byte(configuration)
+            config_data = config_data.decode("utf-8")
+            config = yaml.safe_load(config_data)
         else:
             config = deepcopy(configuration)
 
