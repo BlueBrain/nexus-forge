@@ -21,9 +21,10 @@ Usage:
    resource = forge.search(<resource_id>, cross_bucket=True, bucket=<str>)
 
 .. note::
+
    The configured store should support cross bucket search.
 
-* Add support for targeting specific search endpoint when searching data. Currently only only SPARQL endpoints are supported `#71 <https://github.com/BlueBrain/nexus-forge/pull/71>`__ (issue:`#63 <https://github.com/BlueBrain/nexus-forge/pull/63>`__)(usage: 04 - Querying notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/04%20-%20Querying.ipynb>`__ or on |Binder|)
+* Add support for targeting specific search endpoint when searching data. Currently only SPARQL endpoints are supported `#71 <https://github.com/BlueBrain/nexus-forge/pull/71>`__ (issue:`#63 <https://github.com/BlueBrain/nexus-forge/pull/63>`__)(usage: 04 - Querying notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/04%20-%20Querying.ipynb>`__ or on |Binder|)
 
 A `searchendpoints` configuration can be added to the `Store` configuration.
 
@@ -103,7 +104,7 @@ This is to cope with `schema.org/distribution <https://schema.org/distribution>`
 Resolving
 ---------
 
-* Fix `OntologyResolver` to resolve ontology terms when notation and prefLabel properties are missing `#76 <https://github.com/BlueBrain/nexus-forge/pull/76>`__ (issue:`#69 <https://github.com/BlueBrain/nexus-forge/pull/69>`__)(usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.3.3/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder|)
+* Fix `OntologyResolver` to resolve ontology terms when notation and prefLabel properties are missing `#76 <https://github.com/BlueBrain/nexus-forge/pull/76>`__ (issue:`#69 <https://github.com/BlueBrain/nexus-forge/pull/69>`__)(usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder|)
 
 Querying
 --------
