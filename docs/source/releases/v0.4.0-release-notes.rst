@@ -63,13 +63,13 @@ Querying
 
 .. code-block:: python
 
-   resource = forge.retrieve(id=https://..?rev=1&p=aparam)
+   resource = forge.retrieve(id="https://..?rev=1&p=aparam")
 
 Specifically, when the version argument is provided like in:
 
 .. code-block:: python
 
-   resource = forge.retrieve(id=https://..?rev=1&p=aparam, version=2)
+   resource = forge.retrieve(id="https://..?rev=1&p=aparam, version=2")
 
 
 then it supersedes the `rev` query param while the other query params (e.g `p=aparam`) are kept as they are.
