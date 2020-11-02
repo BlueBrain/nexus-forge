@@ -120,4 +120,4 @@ Converting
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.3.3?filepath=examples%2Fnotebooks%2Fgetting-started
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.4.0?filepath=examples%2Fnotebooks%2Fgetting-started
