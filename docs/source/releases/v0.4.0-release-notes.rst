@@ -78,7 +78,7 @@ then it supersedes the `rev` query param while the other query params (e.g `p=ap
 Dataset
 -------
 
-* Dataset provenance assertion methods are now all aligned to accept either a `Resource` object of identifier. `#88 <https://github.com/BlueBrain/nexus-forge/pull/88>`__ (usage: 02 - Dataset notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/02%20-%20Dataset.ipynb>`__ or on |Binder|)
+* Dataset provenance assertion methods are now all aligned to accept either a `Resource` object of identifier. `#88 <https://github.com/BlueBrain/nexus-forge/pull/88>`__ (usage: 02 - Dataset notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|)
 
 .. code-block:: python
 
@@ -98,7 +98,7 @@ Forge
 
 * Fix `has no attribute '_rev'` error when calling `forge.freeze` on a `Dataset` object. `#81 <https://github.com/BlueBrain/nexus-forge/pull/81>`__ `#88 <https://github.com/BlueBrain/nexus-forge/pull/88>`__ (issue:`#80 <https://github.com/BlueBrain/nexus-forge/pull/80>`__)
 * Fix `RuntimeError` occuring when calling `nest_asyncio.apply()` outside a Jupyter notebook session `#62 <https://github.com/BlueBrain/nexus-forge/pull/62>`__ (issue:`#60 <https://github.com/BlueBrain/nexus-forge/pull/60>`__)
-* Fix failing `forge.download` when the provided path (e.g. distribution.contentUrl) is no longer present in all distributions json objects `#85 <https://github.com/BlueBrain/nexus-forge/pull/85>`__ (issue:`#84 <https://github.com/BlueBrain/nexus-forge/pull/84>`__)(usage: 02 - Dataset notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/02%20-%20Dataset.ipynb>`__ or on |Binder|). This is to cope with `schema.org/distribution <https://schema.org/distribution>`__ specification which supports `distribution.contentUrl` or `distribution.url` when recording the location of a dataset.
+* Fix failing `forge.download` when the provided path (e.g. distribution.contentUrl) is no longer present in all distributions json objects `#85 <https://github.com/BlueBrain/nexus-forge/pull/85>`__ (issue:`#84 <https://github.com/BlueBrain/nexus-forge/pull/84>`__)(usage: 02 - Dataset notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.4.0/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|). This is to cope with `schema.org/distribution <https://schema.org/distribution>`__ specification which supports `distribution.contentUrl` or `distribution.url` when recording the location of a dataset.
 
 Resolving
 ---------
