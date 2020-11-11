@@ -3,6 +3,8 @@ Blue Brain Nexus Forge
 
 |Travis_badge|
 
+|banner|
+
 Blue Brain Nexus Forge is a domain-agnostic, generic and extensible Python framework enabling
 non-expert users to create and manage knowledge graphs by making it easy to:
 
@@ -78,3 +80,6 @@ Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SG
     
 .. |Travis_badge| image:: https://travis-ci.com/BlueBrain/nexus-forge.svg?branch=master
     :target: https://travis-ci.com/BlueBrain/nexus-forge 
+    
+.. |banner| image:: docs/source/assets/bbnforge
+
