@@ -34,4 +34,4 @@ Resolvers:
       result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/agent-to-resource-mapping.hjson
 
 Formatters:
-  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}
+  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}/{}
