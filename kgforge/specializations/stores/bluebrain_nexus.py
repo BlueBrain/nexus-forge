@@ -38,6 +38,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError,
                                              RegistrationError, RetrievalError, TaggingError,
                                              UpdatingError, UploadingError)
 from kgforge.core.commons.execution import run, not_supported
+from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -485,7 +486,7 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
 
         if f.path[-1] == "type" or last_term.type == "@id":
             if f.operator == "__eq__":
-                statements.append(f"{property_path} {f.value}")
+                statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
             elif f.operator == "__ne__":
                 statements.append(f"{property_path} ?v{index}")
                 filters.append(f"FILTER(?v{index} != {f.value})")
@@ -496,11 +497,12 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
             value = format_type[value_type](f.value)
             if value_type is CategoryDataType.LITERAL:
                 statements.append(f"{property_path} ?v{index}")
-                filters.append(f"FILTER(?v{index} = {value})")
-                # filters.append(f"{property_path} ?v{index} FILTER regex(?v{index}, {value})")
+                filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
             else:
                 statements.append(f"{property_path} ?v{index}")
-                filters.append(f"FILTER(?v{index} {operator_map[f.operator]} {value})")
+                filters.append(f"FILTER(?v{index} {operator_map[f.operator]} {_box_value_as_full_iri(value)})")
 
     return statements, filters
 
+def _box_value_as_full_iri(value):
+    return f"<{value}>" if is_valid_url(value) else value
