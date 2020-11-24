@@ -94,12 +94,11 @@ def _as_jsonld_many(resources: List[Resource], form: Form, store_metadata: bool,
 def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                    model_context: Optional[Context], metadata_context: Optional[Context],
                    context_resolver: Optional[Callable]) -> Dict:
-
     context = _resource_context(resource, model_context, context_resolver)
     resolved_context = context.document
     output_context = context.iri if context.is_http_iri() else context.document["@context"]
     resource_types = getattr(resource, "type", getattr(resource, "@type", None))
-    # this is to ensure the framing is centered on the provided resource in case embedded resources share the same type
+    # this is to ensure the framing is centered on the provided resource in case nested resources share the same type
     resource.type = "https://bluebrain.github.io/nexus/vocabulary/FramedType"
     if store_metadata and resource._store_metadata:
         if metadata_context:
@@ -174,7 +173,6 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
             return compacted
         elif form is Form.EXPANDED:
             return _unpack_from_list(data_framed)
-
 
 def _as_graph_many(resources: List[Resource], store_metadata: bool, model_context: Optional[Context],
                    metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
@@ -292,11 +290,12 @@ def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
     return graph, meta_data_graph
 
 
-def _add_ld_keys(rsc: Resource, context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
+def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
     local_attrs = dict()
     ld_keys = {"id": "@id", "type": "@type"}
     local_context = None
-    for k, v in rsc.__dict__.items():
+    items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
+    for k, v in items:
         if k not in Resource._RESERVED:
             if k == "context":
                 if v != context:
@@ -307,11 +306,10 @@ def _add_ld_keys(rsc: Resource, context: Optional[Union[Dict, List, str]], base:
                 if key == "@id" and local_context is not None:
                     local_attrs[key] = local_context.resolve(v)
                 else:
-                    if isinstance(v, Resource):
+                    if isinstance(v, Resource) or isinstance(v, Dict):
                         local_attrs[key] = _add_ld_keys(v, context, base)
                     elif isinstance(v, list):
-                        local_attrs[key] = [_add_ld_keys(item, context, base)
-                                            if isinstance(item, Resource) else item for item in v]
+                        local_attrs[key] = [_add_ld_keys(item, context, base) for item in v]
                     else:
                         if isinstance(v, LazyAction):
                             raise ValueError("can't convert, resource contains LazyActions")

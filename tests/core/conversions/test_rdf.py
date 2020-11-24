@@ -23,6 +23,7 @@ from rdflib import Graph, BNode
 
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph
+from kgforge.specializations.resources import Dataset
 
 form_store_metadata_combinations = [
     pytest.param(Form.COMPACTED.value, True, id="compacted-with-metadata"),
@@ -92,6 +93,36 @@ class TestJsonLd:
 
         assert expected == result
 
+    def test_dataset_creation_from_resource(self, forge, json_one, store_metadata_context, model_context, metadata_context):
+
+        json_one["p3"] = {
+            "id": "http://example.org/identifiers/678",
+            "type": "ANewType"
+        }
+        json_one["id"] = "http://example.org/identifiers/123"
+        resource = forge.from_json(json_one)
+        dataset = Dataset(forge, **forge.as_json(resource))
+        expected = {
+            "@context":model_context.document["@context"],
+            "@id": "http://example.org/identifiers/123",
+            "@type": "Type",
+            "p1": "v1a",
+            "p2": "v2a",
+            "p3": {
+                "@id": "http://example.org/identifiers/678",
+                "@type": "ANewType"
+            }
+        }
+        valid_form = Form.COMPACTED
+
+        result = as_jsonld(dataset,form=valid_form.value,
+                           model_context=model_context,
+                           store_metadata=store_metadata_context,
+                           metadata_context=metadata_context,
+                           context_resolver=None)
+
+        assert expected == result
+
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
     def test_registered_resource_model_context(self, building_with_context, model_context,
                                                make_registered, building_jsonld, form,
@@ -140,8 +171,6 @@ class TestJsonLd:
             "nodeKind": "sh:BlankNode"
         }
         resource_dict = from_jsonld(payload)
-        print(resource_dict)
-
 
         assert True
 

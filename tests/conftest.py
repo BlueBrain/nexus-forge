@@ -19,7 +19,7 @@ from uuid import uuid4
 import pytest
 from pytest_bdd import given, parsers, then, when
 
-from kgforge.core import Resource
+from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld, Form
@@ -40,6 +40,37 @@ def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
 
 
 # Resource(s) creation.
+
+@pytest.fixture
+def json_one():
+    return {
+        "id": "123",
+        "type": "Type",
+        "p1": "v1a",
+        "p2": "v2a"
+    }
+
+@pytest.fixture
+def json_list_one():
+    return {
+        "id": "678",
+        "type": "Other",
+        "p3": "v3c",
+        "p4": [
+            {
+                "id": "123",
+                "type": "Type",
+                "p1": "v1a",
+                "p2": "v2a"
+            },
+            {
+                "id": "345",
+                "type": "Type",
+                "p1": "v1b",
+                "p2": "v2b"
+            }
+        ]
+    }
 
 def resource(valid: bool, index: int = 0) -> Resource:
     rid = str(uuid4())
@@ -132,6 +163,20 @@ def check_action_error(data, value):
 
 
 # Fixtures for Resource to JSON-LD conversion and vice versa
+
+@pytest.fixture
+def forge():
+    config = {
+        "Model": {
+            "name": "DemoModel",
+            "origin": "directory",
+            "source": "tests/data/demo-model/",
+        },
+        "Store": {
+            "name": "DemoStore",
+        },
+    }
+    return KnowledgeGraphForge(config)
 
 @pytest.fixture
 def custom_context():
