@@ -18,16 +18,6 @@ import pytest
 # Test suite for conversion of a resource to / from JSON.
 
 @pytest.fixture
-def json_one():
-    return {
-        "id": "123",
-        "type": "Type",
-        "p1": "v1a",
-        "p2": "v2a"
-    }
-
-
-@pytest.fixture
 def json_many():
     return [
         {
@@ -71,29 +61,6 @@ def json_nested_many():
             }
         }
     ]
-
-
-@pytest.fixture
-def json_list_one():
-    return {
-        "id": "678",
-        "type": "Other",
-        "p3": "v3c",
-        "p4": [
-            {
-                "id": "123",
-                "type": "Type",
-                "p1": "v1a",
-                "p2": "v2a"
-            },
-            {
-                "id": "345",
-                "type": "Type",
-                "p1": "v1b",
-                "p2": "v2b"
-            }
-        ]
-    }
 
 
 class TestConversionFromJson:

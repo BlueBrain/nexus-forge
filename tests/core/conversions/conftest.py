@@ -25,21 +25,6 @@ from kgforge.core.wrappings.dict import wrap_dict
 
 
 @pytest.fixture
-def forge():
-    config = {
-        "Model": {
-            "name": "DemoModel",
-            "origin": "directory",
-            "source": "tests/data/demo-model/",
-        },
-        "Store": {
-            "name": "DemoStore",
-        },
-    }
-    return KnowledgeGraphForge(config)
-
-
-@pytest.fixture
 def r1():
     return Resource(id="123", type="Type", p1="v1a", p2="v2a")
 
