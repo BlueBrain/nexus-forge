@@ -232,7 +232,7 @@ class KnowledgeGraphForge:
     @catch
     def resolve(self, text: str, scope: Optional[str] = None, resolver: Optional[str] = None,
                 target: Optional[str] = None, type: Optional[str] = None,
-                strategy: ResolvingStrategy = ResolvingStrategy.BEST_MATCH,
+                strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
                 limit: Optional[int] = 10) -> Optional[Union[Resource, List[Resource]]]:
         """
         Resolve a string into a existing resource or list of resources depending on the resolving
@@ -274,6 +274,10 @@ class KnowledgeGraphForge:
                                              "specified")
             if type and self._model.context():
                 type = self._model.context().expand(type)
+            try:
+                strategy = strategy if isinstance(strategy, ResolvingStrategy) else ResolvingStrategy[strategy]
+            except Exception as e:
+                raise AttributeError(f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}")
             return rov.resolve(text, target, type, strategy, limit)
         else:
             raise ResolvingError("no resolvers have been configured")
