@@ -10,7 +10,7 @@ New Features
 Converting
 ----------
 
-* Add creating resources from rdflib graph. `#107 <https://github.com/BlueBrain/nexus-forge/pull/107>`__ (usage: 14 - RDF IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/14%20-%20RDF IO.ipynb>`__ or on |Binder|)
+* Add creating resources from rdflib graph. `#107 <https://github.com/BlueBrain/nexus-forge/pull/107>`__ (usage: 14 - RDF IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/14%20-%20RDF%20IO.ipynb>`__ or on |Binder|)
 
 .. code-block:: python
 
@@ -89,4 +89,4 @@ Dataset
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.4.0?filepath=examples%2Fnotebooks%2Fgetting-started
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.5.0?filepath=examples%2Fnotebooks%2Fgetting-started
