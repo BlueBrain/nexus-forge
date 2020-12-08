@@ -22,6 +22,7 @@ import pytest
 from rdflib import Graph, BNode, term
 from rdflib.namespace import RDF
 
+from kgforge.core import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph, from_graph
 
@@ -186,12 +187,11 @@ class TestGraph:
         graph.add((bNode,term.URIRef("http://schema.org/latitude"),term.Literal("40.75")))
         results = from_graph(graph)
 
-        assert len(results) == 1
-
+        assert isinstance(results, Resource)
         building.id = id
         building.context = model_context.document["@context"]
         expected = building_jsonld(building, "expanded", store_metadata, None)
-        assert as_jsonld(results[0], form="expanded", store_metadata=store_metadata,
+        assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
                   context_resolver=None) == expected
 
@@ -221,9 +221,9 @@ class TestGraph:
             "@embed": True
         }
         results = from_graph(graph, frame=frame)
-        assert len(results) == 1
+        assert isinstance(results, Resource)
         expected = {'@type': 'http://schema.org/Image', '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
-        assert as_jsonld(results[0], form="expanded", store_metadata=store_metadata,
+        assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
                          model_context=model_context, metadata_context=metadata_context,
                          context_resolver=None) == expected
 
