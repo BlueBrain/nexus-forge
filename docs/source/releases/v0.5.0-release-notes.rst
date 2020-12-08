@@ -10,13 +10,13 @@ New Features
 Converting
 ----------
 
-* Add creating resources from rdflib graph. `#71 <https://github.com/BlueBrain/nexus-forge/pull/71>`__ `#74 <https://github.com/BlueBrain/nexus-forge/pull/74>`__ (usage: 14 - RDF IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/14%20-%20RDF IO.ipynb>`__ or on |Binder|)
+* Add creating resources from rdflib graph. `#107 <https://github.com/BlueBrain/nexus-forge/pull/107>`__ (usage: 14 - RDF IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/14%20-%20RDF IO.ipynb>`__ or on |Binder|)
 
 .. code-block:: python
 
     forge.from_graph(data: rdflib.Graph, type = Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]
 
-Data serialised in most RDF formats (e.g. Turtle, n3, xml) can thus be imported as `Resource`. This conversion can be
+Data from most knowledge bases serialised in one of the RDF formats (e.g. Turtle, n3, xml) can thus be imported as `Resources`. This conversion can be
 controled by providing types and/or a JSON-LD Frame document.
 
 Enhancements
