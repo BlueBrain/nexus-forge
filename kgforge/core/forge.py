@@ -389,7 +389,7 @@ class KnowledgeGraphForge:
                          self._store.metadata_context, self._model.resolve_context)
 
     @catch
-    def as_graph(self, data: Union[Resource, List[Resource]], store_metadata: bool) -> Graph:
+    def as_graph(self, data: Union[Resource, List[Resource]], store_metadata: bool = False) -> Graph:
         return as_graph(data, store_metadata, self._model.context(), self._store.metadata_context,
                         self._model.resolve_context)
 
@@ -409,8 +409,10 @@ class KnowledgeGraphForge:
         return from_jsonld(data)
 
     @catch
-    def from_graph(self, data: Graph) -> Union[Resource, List[Resource]]:
-        return from_graph(data)
+    def from_graph(self, data: Graph, type: Union[str, List[str]] = None,
+                   frame: Dict = None, use_model_context=False) -> Union[Resource, List[Resource]]:
+        context = self._model.context() if use_model_context else None
+        return from_graph(data, type, frame, context)
 
     @catch
     def from_dataframe(self, data: DataFrame, na: Union[Any, List[Any]] = np.nan,

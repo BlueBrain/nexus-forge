@@ -250,6 +250,7 @@ To use Resources with other libraries such as pandas, different data conversion 
    as_dataframe(data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".", expanded: bool = False, store_metadata: bool = False) -> DataFrame
    from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
    from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]
+   from_graph(data: rdflib.Graph, type = Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]
    from_dataframe(data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = ".") -> Union[Resource, List[Resource]]
 
 Formatting

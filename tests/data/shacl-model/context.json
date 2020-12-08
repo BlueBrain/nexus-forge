@@ -20,7 +20,7 @@
       "@id": "nsg:BrainRegion"
     },
     "Building": {
-      "@id": "schema:Building"
+      "@id": "http://schema.org/Building"
     },
     "Employee": {
       "@id": "http://www.example.com/Employee"
@@ -82,7 +82,7 @@
       "@id": "schema:givenName"
     },
     "image": {
-      "@id": "schema:image",
+      "@id": "http://schema.org/image",
       "@type": "@id"
     },
     "isDefinedBy": {
