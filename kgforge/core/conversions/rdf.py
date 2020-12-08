@@ -98,11 +98,8 @@ def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict
             "@embed": True
         }
 
-    print(frame)
     framed = jsonld.frame(graph_json, frame)
-    #print("_graph_free_jsonld")
     framed = _graph_free_jsonld(framed)
-    #print(framed)
     if isinstance(framed, list):
         framed = [jsonld.compact(item, ctx=context,
                                 options={'processingMode': 'json-ld-1.0'}) for item in framed]
