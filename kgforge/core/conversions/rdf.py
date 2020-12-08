@@ -102,10 +102,10 @@ def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict
     framed = _graph_free_jsonld(framed)
     if isinstance(framed, list):
         framed = [jsonld.compact(item, ctx=context,
-                                options={'processingMode': 'json-ld-1.0'}) for item in framed]
+                                options={'processingMode': 'json-ld-1.1'}) for item in framed]
     else:
         framed = jsonld.compact(framed, ctx=context,
-                                options={'processingMode': 'json-ld-1.0'})
+                                options={'processingMode': 'json-ld-1.1'})
     return from_jsonld(framed)
 
 def _graph_free_jsonld(jsonld_doc, context=None):
@@ -195,7 +195,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                     if key and isinstance(v, str):
                         frame[key] = v
     frame["@embed"] = "@link"
-    data_framed = jsonld.frame(data_expanded, frame, options={'processingMode': 'json-ld-1.0'})
+    data_framed = jsonld.frame(data_expanded, frame, options={'processingMode': 'json-ld-1.1'})
     resource_graph_node  = data_framed["@graph"][0] if "@graph" in data_framed else data_framed
     if resource_types is None:
         resource_graph_node.pop(TYPE)
