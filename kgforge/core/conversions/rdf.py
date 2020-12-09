@@ -19,14 +19,19 @@ from urllib.error import URLError, HTTPError
 
 from enum import Enum
 from pyld import jsonld
-from rdflib import Graph
+from rdflib import Graph, term
+from pyld import jsonld
+import json
+from collections import OrderedDict
+
+from rdflib.namespace import OWL, RDF
+from rdflib_jsonld.keys import CONTEXT, GRAPH, TYPE, ID
 
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.commons.execution import dispatch
 from kgforge.core.resource import Resource
-
 
 class Form(Enum):
     EXPANDED = "expanded"
@@ -63,9 +68,62 @@ def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]
         raise TypeError("not a dictionary nor a list of dictionaries")
 
 
-def from_graph(data: Graph) -> Union[Resource, List[Resource]]:
-    raise NotImplementedError("not implemented yet")
 
+def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]:
+
+    from collections import OrderedDict
+
+
+    if not type:
+        _types = data.triples((None, RDF.type, None))  # type of data to transform to JSONLD
+        _types = [str(_type[2]) for _type in _types]
+    else:
+        _types = type
+
+    # to get curies as keys when the model context is not used
+    graph_n3 = data.serialize(format="n3")
+    graph_n3 = Graph().parse(data=graph_n3, format="n3")
+    graph_string = graph_n3.serialize(format="json-ld", auto_compact=True, indent=2)
+    graph_json = json.loads(graph_string)
+
+    if model_context:
+        context =  model_context.document
+    else:
+        context = graph_json[CONTEXT]
+
+    if not frame:
+        frame = {
+            "@context": context,
+            "@type": _types,
+            "@embed": True
+        }
+
+    framed = jsonld.frame(graph_json, frame)
+    framed = _graph_free_jsonld(framed)
+    if isinstance(framed, list):
+        framed = [jsonld.compact(item, ctx=context,
+                                options={'processingMode': 'json-ld-1.1'}) for item in framed]
+    else:
+        framed = jsonld.compact(framed, ctx=context,
+                                options={'processingMode': 'json-ld-1.1'})
+    return from_jsonld(framed)
+
+def _graph_free_jsonld(jsonld_doc, context=None):
+    results = []
+    if GRAPH in jsonld_doc and len(jsonld_doc[GRAPH]) > 0:
+        for graph_free_jsonld_doc in jsonld_doc[GRAPH]:
+            if not context and CONTEXT in jsonld_doc:
+                context = jsonld_doc[CONTEXT]
+
+            #graph_free_jsonld_doc[CONTEXT] = context
+            graph_free = OrderedDict(graph_free_jsonld_doc)
+            if context:
+                graph_free[CONTEXT] = context
+                graph_free.move_to_end(CONTEXT, last=False)
+            results.append(graph_free)
+        return results
+    else:
+        return jsonld_doc
 
 def _from_jsonld_many(dataset: List[Dict]) -> List[Resource]:
     return [_from_jsonld_one(data) for data in dataset]
@@ -120,7 +178,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         if context.base:
             uri = context.resolve(resource.id)
         else:
-            uri = str(data_graph.namespace_manager.absolutize(resource.id))
+            uri = str(data_graph.namespace_manager.absolutize(resource.id)) if not str(resource.id).startswith("_:") else resource.id
         frame = {"@id": uri}
     else:
         frame = dict()
@@ -128,7 +186,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
             if k not in Resource._RESERVED and not isinstance(v, (Resource, dict, list)):
                 if k == "context":
                     continue
-                elif k == "type":
+                elif k == "type" or k == TYPE:
                     t = context.expand(v)
                     if t:
                         frame["@type"] = context.expand(v)
@@ -137,12 +195,12 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                     if key and isinstance(v, str):
                         frame[key] = v
     frame["@embed"] = "@link"
-    data_framed = jsonld.frame(data_expanded, frame)
+    data_framed = jsonld.frame(data_expanded, frame, options={'processingMode': 'json-ld-1.1'})
     resource_graph_node  = data_framed["@graph"][0] if "@graph" in data_framed else data_framed
     if resource_types is None:
-        resource_graph_node.pop("@type")
+        resource_graph_node.pop(TYPE)
     else:
-        resource_graph_node["@type"] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
+        resource_graph_node[TYPE] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
     resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
@@ -292,7 +350,7 @@ def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
 
 def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
     local_attrs = dict()
-    ld_keys = {"id": "@id", "type": "@type"}
+    ld_keys = {"id": "@id", "type": "@type", "list": "@list", "set": "@set"}
     local_context = None
     items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
     for k, v in items:

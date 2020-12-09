@@ -19,11 +19,12 @@ from urllib.request import pathname2url
 
 import json
 import pytest
-from rdflib import Graph, BNode
+from rdflib import Graph, BNode, term
+from rdflib.namespace import RDF
 
+from kgforge.core import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
-from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph
-from kgforge.specializations.resources import Dataset
+from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph, from_graph
 
 form_store_metadata_combinations = [
     pytest.param(Form.COMPACTED.value, True, id="compacted-with-metadata"),
@@ -93,36 +94,6 @@ class TestJsonLd:
 
         assert expected == result
 
-    def test_dataset_creation_from_resource(self, forge, json_one, store_metadata_context, model_context, metadata_context):
-
-        json_one["p3"] = {
-            "id": "http://example.org/identifiers/678",
-            "type": "ANewType"
-        }
-        json_one["id"] = "http://example.org/identifiers/123"
-        resource = forge.from_json(json_one)
-        dataset = Dataset(forge, **forge.as_json(resource))
-        expected = {
-            "@context":model_context.document["@context"],
-            "@id": "http://example.org/identifiers/123",
-            "@type": "Type",
-            "p1": "v1a",
-            "p2": "v2a",
-            "p3": {
-                "@id": "http://example.org/identifiers/678",
-                "@type": "ANewType"
-            }
-        }
-        valid_form = Form.COMPACTED
-
-        result = as_jsonld(dataset,form=valid_form.value,
-                           model_context=model_context,
-                           store_metadata=store_metadata_context,
-                           metadata_context=metadata_context,
-                           context_resolver=None)
-
-        assert expected == result
-
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
     def test_registered_resource_model_context(self, building_with_context, model_context,
                                                make_registered, building_jsonld, form,
@@ -171,7 +142,6 @@ class TestJsonLd:
             "nodeKind": "sh:BlankNode"
         }
         resource_dict = from_jsonld(payload)
-
         assert True
 
     def test_unresolvable_context(self, building, building_jsonld):
@@ -202,6 +172,60 @@ class TestGraph:
         result = as_graph([building, organization], store_metadata, model_context, None, None)
         _assert_same_graph(result, expected)
 
+    @pytest.mark.parametrize("store_metadata", store_metadata_params)
+    def test_from_graph(self, building, organization, building_jsonld, model_context, store_metadata, metadata_context):
+        store_metadata = False
+        id = "http://test/1234"
+        id_uri = term.URIRef(id)
+        graph = Graph()
+        graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
+        graph.add((id_uri,term.URIRef("http://schema.org/name"),term.Literal("The Empire State Building")))
+        graph.add((id_uri,term.URIRef("http://schema.org/description"),term.Literal("The Empire State Building is a 102-story landmark in New York City.")))
+        graph.add((id_uri,term.URIRef("http://schema.org/image"),term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg")))
+        bNode = term.BNode()
+        graph.add((id_uri,term.URIRef("http://schema.org/geo"),bNode))
+        graph.add((bNode,term.URIRef("http://schema.org/latitude"),term.Literal("40.75")))
+        results = from_graph(graph)
+
+        assert isinstance(results, Resource)
+        building.id = id
+        building.context = model_context.document["@context"]
+        expected = building_jsonld(building, "expanded", store_metadata, None)
+        assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
+                  model_context=model_context, metadata_context=metadata_context,
+                  context_resolver=None) == expected
+
+        graph.remove((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
+        results = from_graph(graph)
+        assert len(results) == 3
+
+        graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
+        graph.add((term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg"), RDF.type, term.URIRef("http://schema.org/Image")))
+        results = from_graph(graph, type=["http://schema.org/Building","http://schema.org/Image"])
+        assert len(results) == 2
+        assert results[0].type is not None
+        assert results[1].type is not None
+
+        result_0 = as_jsonld(results[0], form="expanded", store_metadata=store_metadata,
+                  model_context=model_context, metadata_context=metadata_context,
+                  context_resolver=None)
+
+        result_1 = as_jsonld(results[1], form="expanded", store_metadata=store_metadata,
+                             model_context=model_context, metadata_context=metadata_context,
+                             context_resolver=None)
+        results = [result_0, result_1]
+        assert set(["http://schema.org/Building","http://schema.org/Image"]) == {result["@type"] for result in results}
+
+        frame = {
+            "@type": ['http://schema.org/Image'],
+            "@embed": True
+        }
+        results = from_graph(graph, frame=frame)
+        assert isinstance(results, Resource)
+        expected = {'@type': 'http://schema.org/Image', '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
+        assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
+                         model_context=model_context, metadata_context=metadata_context,
+                         context_resolver=None) == expected
 
 def _assert_same_graph(result,expected):
     for s, p, o in expected:

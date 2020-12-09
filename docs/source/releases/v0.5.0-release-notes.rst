@@ -1,0 +1,92 @@
+====================
+vO.5.0 Release Notes
+====================
+
+This release adds incremental features to both Nexus Forge core and specializations modules.
+
+New Features
+============
+
+Converting
+----------
+
+* Add creating resources from rdflib graph. `#107 <https://github.com/BlueBrain/nexus-forge/pull/107>`__ (usage: 14 - RDF IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/14%20-%20RDF%20IO.ipynb>`__ or on |Binder|)
+
+.. code-block:: python
+
+    forge.from_graph(data: rdflib.Graph, type = Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]
+
+Data from most knowledge bases serialised in one of the RDF formats (e.g. Turtle, n3, xml) can thus be imported as `Resources`. This conversion can be
+controled by providing types and/or a JSON-LD Frame document.
+
+Enhancements
+============
+
+Querying
+--------
+
+* Improve filter by URL values by boxing url values in `<...>` when calling forge.search while using BlueBrainNexus store. `#100 <https://github.com/BlueBrain/nexus-forge/pull/100>`__ (usage: 04 - Querying notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/04%20-%20Querying.ipynb>`__ or on |Binder|)
+
+
+.. code-block:: python
+
+   resources = forge.search(path.property == "http://schema.org/Person", limit=3, debug=True)
+
+.. code-block:: shell
+
+   # Generated SPARQL Query
+   PREFIX p: <http://example.org/>
+   SELECT ?id ?project WHERE { ?id <https://bluebrain.github.io/nexus/vocabulary/project> ?project;
+    <https://bluebrain.github.io/nexus/vocabulary/deprecated> false;
+    p:property ?v2
+    FILTER(?v2 = "<http://schema.org/Person>").
+    }
+
+
+Resolving
+---------
+
+* Add setting resolving strategy using a string name. `#105 <https://github.com/BlueBrain/nexus-forge/pull/105>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder|)
+
+`forge.resolve(...)` is often used within a mapping file to automatically resolve or link to entities in a knowledge base for example.
+
+.. code-block:: shell
+
+   {
+      type: x.type
+      id: x.id
+      property: forge.resolve(text, strategy="EXACT_MATCH") # it is still possible to use ResolvingStrategy.EXACT_MATCH
+   }
+
+ResolvingStrategy can't be imported during the mapping execution therefore using `ResolvingStrategy.EXACT_MATCH` in a mapping file will throw an error.
+Allowing the user to provide string as the ResolvingStrategy name would address that.
+
+Dataset
+-------
+
+* Create a `Dataset` from a `Resource`. `#102 <https://github.com/BlueBrain/nexus-forge/pull/102>`__ (issue:`#82 <https://github.com/BlueBrain/nexus-forge/pull/82>`__)(usage: 02 - Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.0/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder|)
+
+.. code-block:: python
+
+   from kgforge.specializations.resources import Dataset
+   forge = KnowledgeGraphForge("config.yml")
+   data = {
+    'id': 'https://kg.example.ch/associations/123',
+     'type': 'Association',
+     'agent': {'type': 'Person',
+      'gender': {'id': 'http://purl.obolibrary.org/obo/PATO_0000383',
+       'type': 'LabeledOntologyEntity',
+       'label': 'female'},
+      'name': 'Marie Curie'
+     }
+    }
+
+   resource = forge.from_json(data)
+   dataset = Dataset(forge, **forge.as_json(resource))
+
+   forge.as_jsonld(dataset)
+
+
+.. |Binder| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.5.0?filepath=examples%2Fnotebooks%2Fgetting-started
