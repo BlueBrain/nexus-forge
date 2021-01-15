@@ -187,13 +187,14 @@ class TestGraph:
         graph.add((bNode,term.URIRef("http://schema.org/latitude"),term.Literal("40.75")))
         results = from_graph(graph)
 
-        assert isinstance(results, Resource)
+        assert isinstance(results, list)
         building.id = id
         building.context = model_context.document["@context"]
         expected = building_jsonld(building, "expanded", store_metadata, None)
-        assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
+        result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None) == expected
+                  context_resolver=None)
+        assert result_jsonld == [expected]
 
         graph.remove((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
         results = from_graph(graph)
@@ -221,11 +222,11 @@ class TestGraph:
             "@embed": True
         }
         results = from_graph(graph, frame=frame)
-        assert isinstance(results, Resource)
+        assert isinstance(results, list)
         expected = {'@type': 'http://schema.org/Image', '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
         assert as_jsonld(results, form="expanded", store_metadata=store_metadata,
                          model_context=model_context, metadata_context=metadata_context,
-                         context_resolver=None) == expected
+                         context_resolver=None) == [expected]
 
 def _assert_same_graph(result,expected):
     for s, p, o in expected:

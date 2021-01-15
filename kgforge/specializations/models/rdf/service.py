@@ -105,6 +105,7 @@ class ShapesGraphWrapper(ShapesGraph):
         Returns:
             Shape: The Shacl shape of the requested node.
         """
+
         shape = self._node_shape_cache[node]
         if not hasattr(shape, "traverse"):
             shape.traverse = types.MethodType(traverse, shape)
