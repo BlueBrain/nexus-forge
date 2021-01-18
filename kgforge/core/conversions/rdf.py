@@ -68,7 +68,6 @@ def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]
         raise TypeError("not a dictionary nor a list of dictionaries")
 
 
-
 def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]:
 
     from collections import OrderedDict
@@ -108,6 +107,7 @@ def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict
                                 options={'processingMode': 'json-ld-1.1'})
     return from_jsonld(framed)
 
+
 def _graph_free_jsonld(jsonld_doc, context=None):
     results = []
     if GRAPH in jsonld_doc and len(jsonld_doc[GRAPH]) > 0:
@@ -115,7 +115,6 @@ def _graph_free_jsonld(jsonld_doc, context=None):
             if not context and CONTEXT in jsonld_doc:
                 context = jsonld_doc[CONTEXT]
 
-            #graph_free_jsonld_doc[CONTEXT] = context
             graph_free = OrderedDict(graph_free_jsonld_doc)
             if context:
                 graph_free[CONTEXT] = context
@@ -124,6 +123,7 @@ def _graph_free_jsonld(jsonld_doc, context=None):
         return results
     else:
         return jsonld_doc
+
 
 def _from_jsonld_many(dataset: List[Dict]) -> List[Resource]:
     return [_from_jsonld_one(data) for data in dataset]
@@ -367,7 +367,7 @@ def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]
                     if isinstance(v, Resource) or isinstance(v, Dict):
                         local_attrs[key] = _add_ld_keys(v, context, base)
                     elif isinstance(v, list):
-                        local_attrs[key] = [_add_ld_keys(item, context, base) for item in v]
+                        local_attrs[key] = [_add_ld_keys(item, context, base) for item in v if isinstance(v, Resource) or isinstance(v, Dict)]
                     else:
                         if isinstance(v, LazyAction):
                             raise ValueError("can't convert, resource contains LazyActions")
