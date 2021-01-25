@@ -1,0 +1,17 @@
+====================
+vO.5.1 Release Notes
+====================
+
+This release fixes a bug when converting a resource to JSON-LD.
+
+Bug Fixes
+=========
+
+Converting
+----------
+
+*  Fixed failing `forge.as_jsonld` conversion when replacing `id`, `type`, `list` and `set` json keys with their corresponding reserved JSON-LD keys. `#110 <https://github.com/BlueBrain/nexus-forge/pull/110>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.1/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
+
+.. |Binder| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.5.1?filepath=examples%2Fnotebooks%2Fgetting-started
