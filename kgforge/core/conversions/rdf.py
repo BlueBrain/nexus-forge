@@ -367,7 +367,9 @@ def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]
                     if isinstance(v, Resource) or isinstance(v, Dict):
                         local_attrs[key] = _add_ld_keys(v, context, base)
                     elif isinstance(v, list):
-                        local_attrs[key] = [_add_ld_keys(item, context, base) for item in v if isinstance(item, Resource) or isinstance(item, Dict)]
+                        local_attrs[key] = [_add_ld_keys(item, context, base)
+                                            if isinstance(item, Resource) or isinstance(item, Dict)
+                                            else item for item in v]
                     else:
                         if isinstance(v, LazyAction):
                             raise ValueError("can't convert, resource contains LazyActions")
