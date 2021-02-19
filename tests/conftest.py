@@ -231,12 +231,12 @@ def store_metadata_value(store_metadata_context, metadata_data_compacted):
 
 @pytest.fixture
 def person(custom_context):
-    return Resource(context=custom_context, type="Person", name="Jami Booth")
+    return Resource(context=custom_context, type=["Person","Agent"], name="Jami Booth")
 
 
 @pytest.fixture
 def organization(registered_person_custom_context, store_metadata_value):
-    contribution = Resource(type="Organization", name="Reichel Inc",
+    contribution = Resource(type=["Organization", "Agent"], name="Reichel Inc",
                             founder=registered_person_custom_context)
     return contribution
 
