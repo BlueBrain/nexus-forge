@@ -40,6 +40,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError,
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
+from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, DEPRECATED_PROPERTY, PROJECT_PROPERTY, Service
@@ -365,6 +366,8 @@ class BlueBrainNexus(Store):
         elif not cross_bucket:
             project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',self.organisation, self.project])}>)"
 
+        if filters and isinstance(filters[0], dict):
+            filters = create_filters_from_dict(filters[0])
         query_statements, query_filters = build_query_statements(self.model_context, filters)
         query_statements.insert(0, f"<{PROJECT_PROPERTY}> ?project")
         query_statements.insert(1, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")

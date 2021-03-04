@@ -227,7 +227,10 @@ class Store(ABC):
 
     def search(self, resolvers: Optional[List["Resolver"]], *filters, **params) -> List[Resource]:
 
-        # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py.
+        # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
+        # A dictionary can be provided for filters:
+        #  - {'key1': 'val', 'key2': {'key3': 'val'}} will be translated to
+        #  - [Filter(operator='__eq__', path=['key1'], value='val'), Filter(operator='__eq__', path=['key2', 'key3'], value='val')]
         # Keyword arguments in 'params' could be:
         #   - debug: bool,
         #   - limit: int,
