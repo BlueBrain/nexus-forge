@@ -54,6 +54,8 @@ class TestJsonLd:
         result = as_jsonld(organization, form=Form.COMPACTED.value, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
                            context_resolver=None)
+        compacted["founder"]["@type"] = sorted(compacted["founder"]["@type"])
+        result["founder"]["@type"] = sorted(result["founder"]["@type"])
         assert compacted == result
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
@@ -228,6 +230,7 @@ class TestGraph:
                          model_context=model_context, metadata_context=metadata_context,
                          context_resolver=None)
         assert result_jsonld == expected
+
 
 def _assert_same_graph(result,expected):
     for s, p, o in expected:
