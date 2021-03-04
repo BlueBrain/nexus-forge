@@ -24,6 +24,9 @@ class Filter:
         self.operator: str = operator
         self.value: Any = value
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.path == other.path and self.operator == other.operator and self.value == other.value
+
     def __repr__(self) -> str:
         return repr_class(self)
 
@@ -83,3 +86,18 @@ def _wrap(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:
         return PathsWrapper(path, {k: _wrap(v, path + [k]) for k, v in data.items()})
     else:
         return PathWrapper(path)
+
+
+def create_filters_from_dict(filter_dict: Dict, path_prefix=None) -> List[Filter]:
+    filters = list()
+    if path_prefix is None:
+        path_prefix = []
+    for k, v in filter_dict.items():
+        path_prefix.append(k)
+        path = list(path_prefix)
+        if isinstance(v, dict):
+            filters.extend(create_filters_from_dict(v, path))
+        else:
+            filters.append(Filter(path, "__eq__", v))
+        path_prefix.remove(k)
+    return filters
