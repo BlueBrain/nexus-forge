@@ -29,6 +29,7 @@ from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
+from rdflib_jsonld.context import Term
 from requests import HTTPError
 
 from kgforge.core import Resource
@@ -487,7 +488,7 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
 
         property_path = "/".join(f.path)
 
-        if f.path[-1] == "type" or last_term.type == "@id":
+        if f.path[-1] == "type" or ('type' in last_term and last_term.type == "@id"):
             if f.operator == "__eq__":
                 statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
             elif f.operator == "__ne__":
@@ -506,6 +507,7 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
                 filters.append(f"FILTER(?v{index} {operator_map[f.operator]} {_box_value_as_full_iri(value)})")
 
     return statements, filters
+
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value

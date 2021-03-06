@@ -17,6 +17,7 @@ import pytest
 
 from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.archetypes.store import rewrite_sparql
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import DownloadingError, FreezingError
 from kgforge.specializations.resources import Dataset
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
@@ -24,6 +25,7 @@ import json
 
 context = {
     "@context": {
+        "@vocab":"http://example.org/vocab/",
         "type": {
             "@id": "rdf:type",
             "@type": "@id"
@@ -51,6 +53,7 @@ prefixes = {
 
 
 prefixes_string = "\n".join([f"PREFIX {k}: <{v}>" for k, v in prefixes.items()])
+prefixes_string = "\n".join([prefixes_string,f"PREFIX : <http://example.org/vocab/>"])
 
 
 form_store_metadata_combinations = [
@@ -64,12 +67,22 @@ form_store_metadata_combinations = [
      prefixes_string + "\nSELECT ?name WHERE { ?x prov:agent/schema:name ?name FILTER regex(?name, \"^j\", \"i\") }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> description ?x }",
      prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
+    ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext }",
+     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext }"),
+    ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
+     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
+                       " schema:Person }"),
+    ("SELECT ?x WHERE { ?id propertyNotInContext ?x }",
+     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
+    ("SELECT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
+     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }")
 ]
 
 
 @pytest.mark.parametrize("query, expected", form_store_metadata_combinations)
 def test_rewrite_sparql(query, expected):
-    result = rewrite_sparql(query, context, prefixes)
+    context_object = Context(document=context)
+    result = rewrite_sparql(query, context_object)
     assert result == expected
 
 

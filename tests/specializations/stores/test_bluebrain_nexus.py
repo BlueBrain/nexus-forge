@@ -27,7 +27,7 @@ from kgforge.core.archetypes import Store
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.core.wrappings.paths import Filter
+from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements
 
 # FIXME mock Nexus for unittests
@@ -154,6 +154,7 @@ class TestQuerying:
     def context(self):
         document = {
             "@context": {
+                "@vocab":"http://example.org/vocab/",
                 "contribution": {
                     "@id": "https://neuroshapes.org/contribution",
                     "@type": "@id"
@@ -162,6 +163,7 @@ class TestQuerying:
                     "@id": "http://www.w3.org/ns/prov#agent",
                     "@type": "@id"
                 },
+                "type":"rdf:type",
                 "Person": "http://schema.org/Person",
                 "address": "http://schema.org/address",
                 "name": "http://schema.org/name",
@@ -212,6 +214,26 @@ class TestQuerying:
         statements = build_query_statements(context, filters)
         assert statements == expected
 
+    @pytest.mark.parametrize("filters,expected", [
+        pytest.param(({"type":"Person"}),
+                     ([Filter(operator='__eq__', path=['type'], value='Person')]),
+                     id="json_filter_type"),
+        pytest.param(({"type": "Contribution", "agent":{"name":"John Doe", "affiliation":{"type":"Organization", "name":"EPFL"}},
+                       "hadRole":{"label":"PI"}, "description":"A description"}),
+                     ([Filter(operator='__eq__', path=['type'], value='Contribution'),
+                       Filter(operator='__eq__', path=['agent','name'], value='John Doe'),
+                       Filter(operator='__eq__', path=['agent', 'affiliation','type'], value='Organization'),
+                       Filter(operator='__eq__', path=['agent', 'affiliation','name'], value='EPFL'),
+                       Filter(operator='__eq__', path=['hadRole', 'label'], value='PI'),
+                       Filter(operator='__eq__', path=['description'], value='A description')]),
+                     id="nested_json_filter_type")
+
+    ])
+
+
+    def test_dict_to_filters(self, filters, expected):
+        filters_from_dict = create_filters_from_dict(filters)
+        assert filters_from_dict == expected
 
 # Helpers
 

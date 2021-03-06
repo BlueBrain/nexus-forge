@@ -59,3 +59,6 @@ class Context(RdflibContext):
             return self.iri.startswith("http")
         else:
             return False
+
+    def has_vocab(self):
+        return self.vocab is not None

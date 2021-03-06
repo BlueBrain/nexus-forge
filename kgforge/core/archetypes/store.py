@@ -246,13 +246,7 @@ class Store(ABC):
         not_supported()
 
     def sparql(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
-        if self.model_context is not None:
-            context = self.model_context.document
-            prefixes = self.model_context.prefixes
-        else:
-            context = None
-            prefixes = None
-        qr = rewrite_sparql(query, context, prefixes) if context is not None else query
+        qr = rewrite_sparql(query, self.model_context) if self.model_context is not None else query
         if debug:
             print(*["Submitted query:", *qr.splitlines()], sep="\n   ")
             print()
@@ -298,15 +292,16 @@ class Store(ABC):
         pass
 
 
-def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict[str, str]]
-                   ) -> str:
+def rewrite_sparql(query: str, context: Context) -> str:
     """Rewrite local property and type names from Model.template() as IRIs.
 
-    Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }}.
+    Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }} from a kgforge.core.commons.Context.
     In the case of contexts using prefixed names, prefixes are added to the SPARQL query prologue.
+    In the case of non available contexts and vocab then the query is returned unchanged.
     """
-    ctx = {k: v["@id"] if isinstance(v, Dict) else v for k, v in context["@context"].items()}
-
+    ctx = {k: v["@id"] if isinstance(v, Dict) else v for k, v in context.document["@context"].items()}
+    prefixes = context.prefixes
+    has_prefixes = prefixes is not None and len(prefixes.keys()) > 0
     if ctx.get("type") == "@type":
         if "rdf" in prefixes:
             ctx["type"] = "rdf:type"
@@ -318,7 +313,9 @@ def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict
         if m4 is None:
             return match.group(0)
         else:
-            v = ctx.get(m4, m4)
+            # FIXME: need to find a comprehensive way (different than list) to exclude SPARQL clauses from rewriting
+            v = ctx.get(m4, ":" + m4) if str(m4).lower() not in ["where", "filter", "select"] and not str(
+                m4).startswith("https") and context.has_vocab() else m4
             m5 = match.group(5)
             if "//" in v:
                 return f"<{v}>{m5}"
@@ -329,11 +326,13 @@ def rewrite_sparql(query: str, context: Dict[str, Dict], prefixes: Optional[Dict
     g5 = r"([.;]?)"
     g0 = rf"((?<=[\s,[(/|!^])((a|true|false)|{g4}){g5}(?=[\s,\])/|?*+]))"
     g6 = r"(('[^']+')|('''[^\n\r]+''')|(\"[^\"]+\")|(\"\"\"[^\n\r]+\"\"\"))"
-    rx = rf"{g0}|{g6}"
-    qr = re.sub(rx, replace, query)
+    rx = rf"{g0}|{g6}|(?<=< )(.*)(?= >)"
+    qr = re.sub(rx, replace, query, flags=re.VERBOSE)
 
-    if prefixes is None:
+    if not has_prefixes:
         return qr
     else:
         pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
-        return f"{pfx}\n{qr}"
+    if context.has_vocab():
+        pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
+    return f"{pfx}\n{qr}"
