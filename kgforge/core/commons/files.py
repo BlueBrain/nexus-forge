@@ -19,7 +19,7 @@ from requests import RequestException
 from urllib.parse import urlparse
 
 def load_file_as_byte(source: str):
-    # source: Union[str, FilePath, URL].
+    # source: Union[str, Path, URL].
     filepath = Path(source)
     if filepath.is_file():
         data = filepath.read_bytes()
@@ -32,10 +32,9 @@ def load_file_as_byte(source: str):
             raise AttributeError(f"Failed to load the configuration from {source}. The provided source is not a valid file path or URL: {str(re)}")
     return data
 
-#https://stackoverflow.com/questions/7160737/how-to-validate-a-url-in-python-malformed-or-not
 def is_valid_url(url):
     try:
         result = urlparse(url)
-        return all([result.scheme, result.netloc, result.path])
-    except:
+        return all([result.scheme, result.netloc])
+    except Exception as e:
         return False
