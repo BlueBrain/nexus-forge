@@ -24,6 +24,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.core.wrappings.paths import create_filters_from_dict
 
 
 class DemoStore(Store):
@@ -114,6 +115,8 @@ class DemoStore(Store):
         if params:
             # TODO DKE-145.
             print("DemoStore does not support 'resolving' and 'lookup' parameters for now.")
+        if filters and isinstance(filters[0], dict):
+            filters = create_filters_from_dict(filters[0])
         conditions = [f"x.{'.'.join(x.path)}.{x.operator}({x.value!r})" for x in filters]
         records = self.service.find(conditions)
         return [_to_resource(x) for x in records]
