@@ -14,14 +14,15 @@ Querying
 
 .. code-block:: python
 
-   # Search for resources of type Dataset with contributor of type Person and name "John Doe"
    from kgforge.core import KnowledgeGraphForge
    forge = KnowledgeGraphForge("config_filepath_or_url")
+   
+   # Search for resources of type Dataset with contributor of type Person and name "John Doe"
+   
    filters = {"type": "Dataset", "contribution":{"type":"Person"}, "name":"John Doe"}
    resources = forge.search(filters, limit=3)
 
    # The above dict filters are equivalent to the following path based filters:
-   forge = KnowledgeGraphForge("config_filepath_or_url")
    path = forge.paths("Dataset")
    resources = forge.search(path.type=="Dataset",
                             path.contribution.type =="Person",
@@ -30,6 +31,7 @@ Querying
 .. note::
 
    When providing a dictionary as filter to `forge.search(*filters, **params) -> List[Resource]`:
+   
    * only the '==' operator is supported.
    * in the contrary of path based filters, it is not mandatory for the provided properties and values to be defined in the forge `Model`.
 
