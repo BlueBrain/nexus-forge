@@ -30,6 +30,9 @@ from kgforge.core.reshaping import collect_values
 
 # NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
 
+# FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
+SPARQL_CLAUSES = ["where", "filter", "select", "union","limit","construct",
+                  "optional", "bind","values", "offset", "order by"]
 
 class Store(ABC):
 
@@ -313,8 +316,7 @@ def rewrite_sparql(query: str, context: Context) -> str:
         if m4 is None:
             return match.group(0)
         else:
-            # FIXME: need to find a comprehensive way (different than list) to exclude SPARQL clauses from rewriting
-            v = ctx.get(m4, ":" + m4) if str(m4).lower() not in ["where", "filter", "select"] and not str(
+            v = ctx.get(m4, ":" + m4) if str(m4).lower() not in SPARQL_CLAUSES and not str(
                 m4).startswith("https") and context.has_vocab() else m4
             m5 = match.group(5)
             if "//" in v:
