@@ -18,7 +18,6 @@ Querying
    forge = KnowledgeGraphForge("config_filepath_or_url")
    
    # Search for resources of type Dataset with contributor of type Person and name "John Doe"
-   
    filters = {"type": "Dataset", "contribution":{"type":"Person"}, "name":"John Doe"}
    resources = forge.search(filters, limit=3)
 
@@ -41,9 +40,9 @@ Bug Fixes
 Converting
 ----------
 
-*  Fixed failing `forge.as_jsonld` conversion when list are provided as properties values. `#115 <https://github.com/BlueBrain/nexus-forge/pull/115>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
+*  Fixed failing `forge.as_jsonld` conversion when a list is provided as a property value. `#115 <https://github.com/BlueBrain/nexus-forge/pull/115>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
 
-*  Fixed failing `forge.as_jsonld` conversion when expanding jsonld with list of types. `#116 <https://github.com/BlueBrain/nexus-forge/pull/116>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
+*  Fixed failing `forge.as_jsonld` conversion when expanding a jsonld payload with a list of types. `#116 <https://github.com/BlueBrain/nexus-forge/pull/116>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
 
 
 
