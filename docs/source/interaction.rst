@@ -10,7 +10,7 @@ Forge initialization signature is:
 
    KnowledgeGraphForge(configuration: Union[str, Dict], **kwargs)
 
-where the `configuration` accepts a YAML file or a JSON dictionary, and `**kwargs` can
+where the `configuration` accepts a YAML content from a file path or from a URL, a JSON dictionary, and `**kwargs` can
 be used to override the configuration provided for the Store.
 
 The YAML configuration has the following structure:
@@ -116,7 +116,7 @@ The required minimal configuration is:
 * `name` for Model and Store
 * `origin` and `source` for Model
 
-See `nexus-forge/examples/configurations/` for YAML examples.
+See `nexus-forge/examples/notebooks/use-cases/` for YAML examples.
 
 Create a forge instance:
 
@@ -220,7 +220,7 @@ the properties and a specific value and (3) using a simplified version of SPARQL
 
    retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False) -> Resource
    paths(type: str) -> PathsWrapper
-   search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross buket search (True) or not (False)
+   search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross bucket search (True) or not (False)
    sparql(query: str) -> List[Resource]
    download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False) -> None
 
