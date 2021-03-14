@@ -1,0 +1,50 @@
+====================
+vO.5.2 Release Notes
+====================
+
+This release adds enhancements and fixes bugs to both Nexus Forge core and specialization modules.
+
+Enhancements
+============
+
+Querying
+--------
+
+* Added support for using dictionary as filters in `forge.search(*filters, **params) -> List[Resource]` when using BlueBrainNexus store. `#117 <https://github.com/BlueBrain/nexus-forge/pull/117>`__ (usage: 04 - Querying notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/04%20-%20Querying.ipynb>`__ or on |Binder|)
+
+.. code-block:: python
+
+   # Search for resources of type Dataset with contributor of type Person and name "John Doe"
+   from kgforge.core import KnowledgeGraphForge
+   forge = KnowledgeGraphForge("config_filepath_or_url")
+   filters = {"type": "Dataset", "contribution":{"type":"Person"}, "name":"John Doe"}
+   resources = forge.search(filters, limit=3)
+
+   # The above dict filters are equivalent to the following path based filters:
+   forge = KnowledgeGraphForge("config_filepath_or_url")
+   path = forge.paths("Dataset")
+   resources = forge.search(path.type=="Dataset",
+                            path.contribution.type =="Person",
+                            path.contribution.name =="John Doe", limit=3)
+
+.. note::
+
+   When providing a dictionary as filter to `forge.search(*filters, **params) -> List[Resource]`:
+   * only the '==' operator is supported.
+   * in the contrary of path based filters, it is not mandatory for the provided properties and values to be defined in the forge `Model`.
+
+Bug Fixes
+=========
+
+Converting
+----------
+
+*  Fixed failing `forge.as_jsonld` conversion when list are provided as properties values. `#115 <https://github.com/BlueBrain/nexus-forge/pull/115>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
+
+*  Fixed failing `forge.as_jsonld` conversion when expanding jsonld with list of types. `#116 <https://github.com/BlueBrain/nexus-forge/pull/116>`__ (usage: 13 - JSON-LD IO on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.5.2/examples/notebooks/getting-started/13%20-%20JSON-LD%20IO.ipynb>`__ or on |Binder|).
+
+
+
+.. |Binder| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.5.2?filepath=examples%2Fnotebooks%2Fgetting-started
