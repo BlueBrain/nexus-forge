@@ -7,6 +7,10 @@
     {
       "label": "Association",
       "id": "prov:Association"
+    },
+    {
+      "label": "Dataset",
+      "id": "schema:Dataset"
     }
   ],
   "ObjectProperty": [
@@ -21,6 +25,10 @@
     {
       "label": "agent",
       "id": "prov:agent"
+    },
+    {
+      "label": "qualifiedAssociation",
+      "id": "prov:qualifiedAssociation"
     }
   ]
 }
