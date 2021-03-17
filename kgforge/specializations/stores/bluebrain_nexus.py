@@ -189,7 +189,6 @@ class BlueBrainNexus(Store):
     def retrieve(self, id: str, version: Optional[Union[int, str]],
                  cross_bucket: bool) -> Resource:
 
-        segment = "resolvers" if cross_bucket else "resources"
         parsed_id = urlparse(id)
         id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}"
         params = None
@@ -205,8 +204,8 @@ class BlueBrainNexus(Store):
             if params is not None:
                 query_params.update(params)
             params = query_params
-
-        url = f"{self.endpoint}/{segment}/{self.bucket}/_/{quote_plus(id_without_query)}"
+        url_base = f"{self.endpoint}/resolvers/{self.bucket}" if cross_bucket else self.service.url_resources
+        url = "/".join((url_base, "_", quote_plus(id_without_query)))
         try:
             response = requests.get(url, params=params, headers=self.service.headers)
             response.raise_for_status()

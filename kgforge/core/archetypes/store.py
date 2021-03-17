@@ -32,7 +32,7 @@ from kgforge.core.reshaping import collect_values
 
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 SPARQL_CLAUSES = ["where", "filter", "select", "union","limit","construct",
-                  "optional", "bind","values", "offset", "order by"]
+                  "optional", "bind","values", "offset", "order by", "prefix"]
 
 class Store(ABC):
 
@@ -331,7 +331,7 @@ def rewrite_sparql(query: str, context: Context) -> str:
     rx = rf"{g0}|{g6}|(?<=< )(.*)(?= >)"
     qr = re.sub(rx, replace, query, flags=re.VERBOSE)
 
-    if not has_prefixes:
+    if not has_prefixes or "prefix" in str(qr).lower():
         return qr
     else:
         pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
