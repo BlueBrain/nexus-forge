@@ -21,11 +21,13 @@ from copy import deepcopy
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 from urllib.error import URLError
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 import nest_asyncio
 import nexussdk as nexus
+import requests
 from aiohttp import ClientSession, hdrs
+from requests import HTTPError
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import Action, collect_lazy_actions, execute_lazy_actions
@@ -50,6 +52,7 @@ BatchResults = List[BatchResult]
 
 NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
 NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
+NEXUS_CONTEXT_SOURCE = "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
 DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
 PROJECT_PROPERTY = f"{NEXUS_NAMESPACE}project"
 
@@ -67,7 +70,6 @@ class Service:
         self.model_context = model_context
         self.context = Context(self.get_project_context())
         self.context_cache: Dict = dict()
-        self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
         self.max_connections = max_connections
         self.headers = {
             "Authorization": "Bearer " + token,
@@ -87,8 +89,9 @@ class Service:
             "Authorization": "Bearer " + token,
             "Accept": "*/*"
         }
-        self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_files = "/".join((self.endpoint, "files", quote_plus(org), quote_plus(prj)))
+        self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
+        self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
 
         sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
 
@@ -112,8 +115,12 @@ class Service:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
-            resource = nexus.resources.fetch(self.organisation, self.project, iri)
-        except nexus.HTTPError:
+            context_id = NEXUS_CONTEXT_SOURCE if iri == NEXUS_CONTEXT else quote_plus(iri)
+            url = "/".join((self.url_resources, "_", context_id))
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            resource = response.json()
+        except Exception as e:
             if local_only is False:
                 try:
                     context = Context(iri)
