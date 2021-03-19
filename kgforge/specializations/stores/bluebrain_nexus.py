@@ -480,14 +480,12 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
         try:
             last_term = context.terms[f.path[-1]]
         except KeyError:
-            last_term = ""
-
+            last_term = None
         if f.path[-1] == "id":
-            f.path.pop()
-
-        property_path = "/".join(f.path)
-
-        if f.path[-1] == "type" or ('type' in last_term and last_term.type == "@id"):
+            property_path = "/".join(f.path[:-1])
+        else:
+            property_path = "/".join(f.path)
+        if f.path[-1] == "type" or f.path[-1] == "id" or (last_term is not None and last_term.type == "@id"):
             if f.operator == "__eq__":
                 statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
             elif f.operator == "__ne__":
