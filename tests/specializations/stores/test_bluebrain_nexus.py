@@ -169,7 +169,11 @@ class TestQuerying:
                 "name": "http://schema.org/name",
                 "postalCode": "http://schema.org/postalCode",
                 "streetAddress": "http://schema.org/streetAddress",
-                "deprecated": "https://bluebrain.github.io/nexus/vocabulary/deprecated"
+                "deprecated": "https://bluebrain.github.io/nexus/vocabulary/deprecated",
+                "identifier": {
+                   "@type":"@id",
+                   "@id":"http://schema.org/identifier"
+                }
             }
         }
         return Context(document)
@@ -208,7 +212,15 @@ class TestQuerying:
         pytest.param((Filter(["type"], "__ne__", "Person"), Filter(["name"], "__eq__", "toto")),
                      (["type ?v0", "name ?v1"],
                       ["FILTER(?v0 != Person)", "FILTER(?v1 = \"toto\")"]),
-                     id="iri-ne-name-eq")
+                     id="iri-ne-name-eq"),
+        pytest.param((Filter(["type"], "__ne__", "Person"),
+                      Filter(operator='__eq__', path=['affiliation', 'id'],
+                                                                   value='https://www.grid.ac/institutes/grid.5333.6'),
+                      Filter(["identifier"], "__eq__", "http://orcid.org/id")),
+                     (["type ?v0", "affiliation <https://www.grid.ac/institutes/grid.5333.6>",
+                       "identifier <http://orcid.org/id>"],
+                      ["FILTER(?v0 != Person)"]),
+                     id="filter-by-id")
     ])
     def test_filter_to_query_statements(self, context, filters, expected):
         statements = build_query_statements(context, filters)
@@ -226,7 +238,12 @@ class TestQuerying:
                        Filter(operator='__eq__', path=['agent', 'affiliation','name'], value='EPFL'),
                        Filter(operator='__eq__', path=['hadRole', 'label'], value='PI'),
                        Filter(operator='__eq__', path=['description'], value='A description')]),
-                     id="nested_json_filter_type")
+                     id="nested_json_filter_type"),
+        pytest.param(({"type": "Person", "affiliation":{"type":"Organization", "id":"https://www.grid.ac/institutes/grid.5333.6"}}),
+                     ([Filter(operator='__eq__', path=['type'], value='Person'),
+                       Filter(operator='__eq__', path=['affiliation', 'type'], value='Organization'),
+                       Filter(operator='__eq__', path=['affiliation', 'id'], value='https://www.grid.ac/institutes/grid.5333.6')]),
+                     id="json_filter_id")
 
     ])
 
