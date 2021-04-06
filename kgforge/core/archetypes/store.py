@@ -34,6 +34,7 @@ from kgforge.core.reshaping import collect_values
 SPARQL_CLAUSES = ["where", "filter", "select", "union","limit","construct",
                   "optional", "bind","values", "offset", "order by", "prefix"]
 
+
 class Store(ABC):
 
     # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
@@ -251,11 +252,21 @@ class Store(ABC):
     def sparql(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
         qr = rewrite_sparql(query, self.model_context) if self.model_context is not None else query
         if debug:
-            print(*["Submitted query:", *qr.splitlines()], sep="\n   ")
-            print()
+            self._debug_query(query)
         return self._sparql(qr, limit, offset)
 
     def _sparql(self, query: str, limit: int, offset: int) -> List[Resource]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        not_supported()
+
+    def elastic(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
+        if debug:
+            self._debug_query(query)
+        return self._elastic(query, limit, offset)
+
+    def _elastic(self, query: str, limit: int, offset: int) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
@@ -293,6 +304,11 @@ class Store(ABC):
                             token: Optional[str], searchendpoints:Optional[Dict] = None) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
+
+    @staticmethod
+    def _debug_query(query):
+        print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+        print()
 
 
 def rewrite_sparql(query: str, context: Context) -> str:

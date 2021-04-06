@@ -12,8 +12,5 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from .demo_resolver import DemoResolver
-from .agent_resolver import AgentResolver
-from .ontology_resolver import OntologyResolver
-from kgforge.specializations.resolvers.entity_linking.entity_linker import EntityLinker
-from kgforge.specializations.resolvers.entity_linking.entity_linker_elasticsearch import EntityLinker, EntityLinkerElasticSearch
+from .entity_linker import EntityLinker
+from .entity_linker_elasticsearch import EntityLinkerElasticSearch

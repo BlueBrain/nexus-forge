@@ -12,9 +12,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable
+from typing import List, Dict, Any, Optional, Callable, Union
 
+from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
+from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
@@ -36,9 +38,12 @@ class OntologyResolver(Resolver):
     def mapper(self) -> Callable:
         return DictionaryMapper
 
-    def _resolve(self, text: str, target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Any]]:
+    def _resolve(self, text: Union[str, List[str]], target: Optional[str], type: Optional[str],
+                 strategy: ResolvingStrategy, text_context: Any, limit: Optional[str], threshold=Optional[float]) \
+            -> Optional[List[Dict]]:
 
+        if isinstance(text, list):
+            not_supported(("text", list))
         first_filters = f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean"
         if type:
             first_filters = f"{first_filters} ; a <{type}>"

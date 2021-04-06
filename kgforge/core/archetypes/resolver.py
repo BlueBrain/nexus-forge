@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -59,20 +59,29 @@ class Resolver(ABC):
         """Mapper class to map the result data to a Resource with result_resource_mapping."""
         pass
 
-    def resolve(self, text: str, target: Optional[str], type: Optional[str],
-                strategy: ResolvingStrategy, limit: Optional[int]) -> Optional[Union[Resource, List[Resource]]]:
+    def resolve(self, text: Union[str, List[str]], target: str, type: str,
+                strategy: ResolvingStrategy, text_context: Any, limit: int, threshold: float)\
+            -> Optional[Union[Resource, List[Resource], Dict[str,  List[Resource]]]]:
         # The resolving strategy cannot be abstracted as it should be managed by the service.
-        resolved = self._resolve(text, target, type, strategy, limit)
-        if resolved is not None:
-            if len(resolved) == 1:
-                resolved = resolved[0]
-            return self.mapper().map(resolved, self.result_mapping, None)
-        else:
+        resolved = self._resolve(text, target, type, strategy, text_context, limit, threshold)
+        if resolved is None or len(resolved) == 0:
             return None
+        resolved = resolved[0] if len(resolved) == 1 else resolved
+        if isinstance(resolved, tuple):
+            # Case Tuple[str,List[Dict]]
+            resolved_mapped = self.mapper().map(resolved[1], self.result_mapping, None)
+        elif isinstance(text, list):
+            # Case List[Tuple[str, List[Dict]]]
+            resolved_mapped = {r[0]: self.mapper().map(r[1], self.result_mapping, None) for r in resolved if
+                               isinstance(r, tuple)}
+        else:
+            #Case Dict or List[Dict]
+            resolved_mapped = self.mapper().map(resolved, self.result_mapping, None)
+        return resolved_mapped
 
     @abstractmethod
-    def _resolve(self, text: str, target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Any]]:
+    def _resolve(self, text: Union[str, List[str]], target: str, type: str,
+                 strategy: ResolvingStrategy, text_context: Any, limit: int, threshold: float) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 
@@ -85,7 +94,7 @@ class Resolver(ABC):
         origin = source_config.pop("origin")
         if origin == "directory":
             dirpath = Path(source)
-            return self._service_from_directory(dirpath, targets)
+            return self._service_from_directory(dirpath, targets, **source_config)
         elif origin == "web_service":
             return self._service_from_web_service(source, targets)
         elif origin == "store":
@@ -96,7 +105,7 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str]) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
         pass
 
     @staticmethod
