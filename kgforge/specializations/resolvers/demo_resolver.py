@@ -15,10 +15,11 @@
 import json
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Dict, Iterator, List, Optional, Union, Any
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -39,8 +40,12 @@ class DemoResolver(Resolver):
     def mapper(self) -> Callable:
         return DictionaryMapper
 
-    def _resolve(self, text: str, target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, limit: Optional[str]) -> Optional[List[Dict[str, str]]]:
+    def _resolve(self, text: Union[str, List[str]], target: Optional[str], type: Optional[str],
+                 strategy: ResolvingStrategy, text_context: Any, limit: Optional[str], threshold=Optional[float]) -> Optional[List[Dict[str, str]]]:
+
+        if isinstance(text, list):
+            not_supported(("text", list))
+
         if target is not None:
             data = self.service[target]
         else:

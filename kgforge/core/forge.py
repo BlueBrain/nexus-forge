@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import yaml
+from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
 
@@ -27,7 +28,6 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
-from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
@@ -230,27 +230,30 @@ class KnowledgeGraphForge:
                 print("         - targets: ",  ",".join(r_value.targets.keys()))
 
     @catch
-    def resolve(self, text: str, scope: Optional[str] = None, resolver: Optional[str] = None,
+    def resolve(self, text: Union[str, List[str]], scope: Optional[str] = None, resolver: Optional[str] = None,
                 target: Optional[str] = None, type: Optional[str] = None,
                 strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
-                limit: Optional[int] = 10) -> Optional[Union[Resource, List[Resource]]]:
+                text_context: Optional[Any] = None, limit: Optional[int] = 10, threshold: Optional[float] = 0.5) \
+            -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
         """
         Resolve a string into a existing resource or list of resources depending on the resolving
         strategy
 
         Args:
-            text (str): string to search.
+            text (Union[str, List[str]]): string(s) to resolve.
             scope (str): a scope identifier
             resolver (str): a resolver name
             target (str): an identifier in the targets
             type (str): a Type to be used as part of the query
             strategy (str): a ResolvingStrategy.[ALL_MATCHES, BEST_MATCH, EXACT_MATCH]
-            limit (int): when using ALL_MATCHES provide a limited number of results, default is 10
+            text_context: the context (e.g surrounding words in a paragraph) of the text to resolve
+            limit (int): the maximum number of results to return when using ALL_MATCHES, default is 10
+            threshold (float): the maximum (if the score is a distance) or minimum (if the score is a similarity) score value for each result, default is 0.8
         Returns:
-            resources (Resource, List(Resource))
+            resources (Resource, List(Resource), Dict[str, List[Resource]])
         """
         if self._resolvers is not None:
-            if scope is not None:
+            if scope is not None and scope in self._resolvers:
                 if resolver is not None:
                     rov = self._resolvers[scope][resolver]
                 else:
@@ -259,6 +262,8 @@ class KnowledgeGraphForge:
                         rov = scope_resolvers[0]
                     else:
                         raise ResolvingError("resolver name should be specified")
+            elif scope not in self._resolvers:
+                raise AttributeError(f"{scope} is not a configured resolving scope. Configured scopes are {list(self._resolvers.keys())}")
             else:
                 scopes_resolvers = list(self._resolvers.values())
                 if resolver is not None:
@@ -278,7 +283,7 @@ class KnowledgeGraphForge:
                 strategy = strategy if isinstance(strategy, ResolvingStrategy) else ResolvingStrategy[strategy]
             except Exception as e:
                 raise AttributeError(f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}")
-            return rov.resolve(text, target, type, strategy, limit)
+            return rov.resolve(text, target, type, strategy, text_context, limit, threshold)
         else:
             raise ResolvingError("no resolvers have been configured")
 
@@ -427,7 +432,8 @@ def prepare_resolvers(config: Dict, store_config: Dict) -> Dict[str, Dict[str, R
 
 def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     if config["origin"] == "store":
-        with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket", "model_context"])
+        with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket", "model_context",
+                                                               "searchendpoints"])
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)
