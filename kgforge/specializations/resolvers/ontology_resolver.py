@@ -95,7 +95,7 @@ class OntologyResolver(Resolver):
         return self.service.perform_query(query, target, expected_fields, limit)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str]) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
         not_supported()
 
     @staticmethod
