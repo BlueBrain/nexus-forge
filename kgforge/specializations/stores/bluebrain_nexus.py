@@ -257,8 +257,9 @@ class BlueBrainNexus(Store):
         try:
             # this is a hack since _self and _id have the same uuid
             file_id = url.split("/")[-1]
+            file_id = unquote(file_id)
             if file_id.startswith("http"):
-                file_id = unquote(file_id).split("/")[-1]
+                file_id = file_id.split("/")[-1]
             if len(file_id) < 1:
                 raise DownloadingError("Invalid file name")
             nexus.files.fetch(org_label=self.organisation, project_label=self.project,
