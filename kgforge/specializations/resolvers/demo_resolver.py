@@ -46,23 +46,24 @@ class DemoResolver(Resolver):
         if isinstance(text, list):
             not_supported(("text", list))
 
+        resolve_with_properties = None
         if target is not None:
-            data = self.service[target]
+            data = self.service[target]["data"]
+            resolve_with_properties = self.service[target]["resolve_with_properties"]
         else:
             data = chain.from_iterable(self.service.values())
-
+        resolve_with_properties = ["label", "acronym"] if resolve_with_properties is None else resolve_with_properties
         if type is not None:
             data = (x for x in data if x.get("type", None) == type)
-
         if strategy == ResolvingStrategy.EXACT_MATCH:
             try:
                 return next(x for x in data
-                            if text == x["label"] or ("acronym" in x and text == x["acronym"]))
+                            if text and any([p in x and text == x[p] for p in resolve_with_properties]))
             except StopIteration:
                 return None
         else:
-            results = [(_dist(x["label"], text), x) for x in data
-                       if text and text in x["label"] or ("acronym" in x and text in x["acronym"])]
+            results = [(_dist([str(x[prop]) for prop in resolve_with_properties if prop in x][0], text), x) for x in data
+                       if text and any ([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
             if results:
                 ordered = sorted(results, key=lambda x: x[0])
                 if strategy == ResolvingStrategy.BEST_MATCH:
@@ -74,9 +75,15 @@ class DemoResolver(Resolver):
                 return None
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str]
-                                ) -> Dict[str, List[Dict[str, str]]]:
-        return {target: list(_load(dirpath, filename)) for target, filename in targets.items()}
+    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config)\
+            -> Dict[str, List[Dict[str, str]]]:
+        resolve_with_properties: List[str] = source_config.pop("resolve_with_properties", None)
+        if isinstance(resolve_with_properties, str):
+            resolve_with_properties = [resolve_with_properties]
+        elif resolve_with_properties is not None and not isinstance(resolve_with_properties, list):
+            raise ConfigurationError(f"The 'resolve_with_properties' should be a list: {resolve_with_properties} provided.")
+        return {target: {"data": list(_load(dirpath, filename)),
+                         "resolve_with_properties": resolve_with_properties} for target, filename in targets.items()}
 
 
 def _dist(x: str, y: str) -> int:
@@ -86,7 +93,7 @@ def _dist(x: str, y: str) -> int:
 def _load(dirpath: Path, filename: str) -> Iterator[Dict[str, str]]:
     filepath = dirpath / filename
     if filepath.is_file():
-        with filepath.open() as f:
+        with filepath.open(encoding='utf-8') as f:
             yield from json.load(f)
     else:
         raise ConfigurationError("<source>/<bucket> should be a valid file path")
