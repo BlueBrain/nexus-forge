@@ -21,5 +21,5 @@ def with_defaults(original: Dict, other: Dict, original_key: str, other_key: str
 
     if original[original_key] == other[other_key]:
         for x in keys:
-            if x not in original:
+            if x not in original and x in other:
                 original[x] = other[x]

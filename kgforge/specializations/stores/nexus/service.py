@@ -63,32 +63,35 @@ class Service:
                  max_connections: int, searchendpoints: Dict):
 
         nexus.config.set_environment(endpoint)
-        nexus.config.set_token(token)
         self.endpoint = endpoint
         self.organisation = org
         self.project = prj
         self.model_context = model_context
-        self.context = Context(self.get_project_context())
         self.context_cache: Dict = dict()
         self.max_connections = max_connections
         self.headers = {
-            "Authorization": "Bearer " + token,
             "Content-Type": "application/ld+json",
             "Accept": "application/ld+json"
         }
+
         self.headers_sparql = {
-            "Authorization": "Bearer " + token,
             "Content-Type": "application/sparql-query",
             "Accept": "application/ld+json"
         }
         self.headers_upload = {
-            "Authorization": "Bearer " + token,
             "Accept": "application/ld+json",
         }
         self.headers_download = {
-            "Authorization": "Bearer " + token,
             "Accept": "*/*"
         }
+        if token is not None:
+            nexus.config.set_token(token)
+            self.headers["Authorization"] = "Bearer " + token
+            self.headers_sparql["Authorization"] = "Bearer " + token
+            self.headers_upload["Authorization"] = "Bearer " + token
+            self.headers_download["Authorization"] = "Bearer " + token
+        self.context = Context(self.get_project_context())
+
         self.url_files = "/".join((self.endpoint, "files", quote_plus(org), quote_plus(prj)))
         self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
