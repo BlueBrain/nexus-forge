@@ -51,7 +51,7 @@ class DemoResolver(Resolver):
             data = self.service[target]["data"]
             resolve_with_properties = self.service[target]["resolve_with_properties"]
         else:
-            data = chain.from_iterable(self.service.values())
+            data = chain.from_iterable([self.service[target]["data"] for target in self.targets])
         resolve_with_properties = ["label", "acronym"] if resolve_with_properties is None else resolve_with_properties
         if type is not None:
             data = (x for x in data if x.get("type", None) == type)
