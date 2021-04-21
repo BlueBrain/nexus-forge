@@ -1,7 +1,7 @@
 Blue Brain Nexus Forge
 ======================
 
-|Travis_badge| |Version Status|
+|Travis_badge| |Version Status| |Binder|
 
 .. image:: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/docs/source/assets/bbnforge
 
