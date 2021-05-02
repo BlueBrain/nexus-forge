@@ -13,4 +13,4 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from .entity_linker import EntityLinker
-from .entity_linker_elasticsearch import EntityLinkerElasticSearch
+from .entity_linker_elastic import EntityLinkerElastic

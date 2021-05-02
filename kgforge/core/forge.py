@@ -230,23 +230,27 @@ class KnowledgeGraphForge:
                 print("         - targets: ",  ",".join(r_value.targets.keys()))
 
     @catch
-    def resolve(self, text: Union[str, List[str]], scope: Optional[str] = None, resolver: Optional[str] = None,
+    def resolve(self, text: Union[str, List[str], Resource], scope: Optional[str] = None, resolver: Optional[str] = None,
                 target: Optional[str] = None, type: Optional[str] = None,
                 strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
-                text_context: Optional[Any] = None, limit: Optional[int] = 10, threshold: Optional[float] = 0.5) \
+                resolving_context: Optional[Any] = None, property_to_resolve: Optional[str] = None,
+                merge_inplace_as: Optional[str] = None,
+                limit: Optional[int] = 10, threshold: Optional[float] = 0.5) \
             -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
         """
         Resolve a string into a existing resource or list of resources depending on the resolving
         strategy
 
         Args:
-            text (Union[str, List[str]]): string(s) to resolve.
+            text (Union[str, List[str], Resource]): string(s) to resolve.
             scope (str): a scope identifier
             resolver (str): a resolver name
             target (str): an identifier in the targets
             type (str): a Type to be used as part of the query
             strategy (str): a ResolvingStrategy.[ALL_MATCHES, BEST_MATCH, EXACT_MATCH]
-            text_context: the context (e.g surrounding words in a paragraph) of the text to resolve
+            resolving_context: the context (e.g surrounding words in a paragraph) of the text to resolve
+            property_to_resolve: the resource's attribute to get text to resolve from in case provided text is a Resource
+            merge_inplace_as: the resource's attribute to merge the resolve reesult in when the provided text is a Resource
             limit (int): the maximum number of results to return when using ALL_MATCHES, default is 10
             threshold (float): the maximum (if the score is a distance) or minimum (if the score is a similarity) score value for each result, default is 0.8
         Returns:
@@ -283,7 +287,8 @@ class KnowledgeGraphForge:
                 strategy = strategy if isinstance(strategy, ResolvingStrategy) else ResolvingStrategy[strategy]
             except Exception as e:
                 raise AttributeError(f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}")
-            return rov.resolve(text, target, type, strategy, text_context, limit, threshold)
+            return rov.resolve(text, target, type, strategy, resolving_context, property_to_resolve, merge_inplace_as,
+                               limit, threshold)
         else:
             raise ResolvingError("no resolvers have been configured")
 
@@ -341,6 +346,11 @@ class KnowledgeGraphForge:
     def sparql(self, query: str, debug: bool = False, limit: int = 100,
                offset: Optional[int] = None) -> List[Resource]:
         return self._store.sparql(query, debug, limit, offset)
+
+    @catch
+    def elastic(self, query: str, debug: bool = False, limit: int = 100, offset: Optional[int] = None)\
+            -> List[Resource]:
+        return self._store.elastic(query, debug, limit, offset)
 
     @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,

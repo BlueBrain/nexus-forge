@@ -400,7 +400,7 @@ class BlueBrainNexus(Store):
         query = f"{query} {s_limit} {s_offset}"
         try:
             response = requests.post(
-                self.service.sparql_endpoint, data=query, headers=self.service.headers_sparql)
+                self.service.sparql_endpoint["endpoint"], data=query, headers=self.service.headers_sparql)
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)
@@ -444,6 +444,17 @@ class BlueBrainNexus(Store):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return [Resource(**{k: v["value"] for k, v in x.items()}) for x in results]
+
+    def _elastic(self, query: str, limit: int, offset: int = None) -> List[Resource]:
+        try:
+            response = requests.post(
+                self.service.elastic_endpoint["endpoint"], data=query, headers=self.service.headers_elastic)
+            response.raise_for_status()
+        except Exception as e:
+            raise QueryingError(e)
+        else:
+            results = response.json()
+            return [Resource(**{k: v for k, v in hit.items()}) for hit in results["hits"]['hits']]
 
     # Utils.
 

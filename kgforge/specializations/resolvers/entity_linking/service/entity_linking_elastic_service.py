@@ -20,7 +20,7 @@ from typing import Callable, Dict, List, Optional, Union, Any
 from kgforge.core.archetypes import Store
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.resolvers.entity_linking.service.entity_linker_service import EntityLinkerService
+from kgforge.specializations.resolvers.entity_linking.service.entity_linking_service import EntityLinkerService
 from kgforge.specializations.resources.entity_linking_candidate import EntityLinkingCandidate
 
 
@@ -53,7 +53,8 @@ class EntityLinkerElasticService(EntityLinkerService):
 
         resources, scores = [], []
         for mention in mentions_labels:
-            embedding_object = requests.get(url=self.encoder + mention)
+            call_url = self.encoder.format(x=mention)
+            embedding_object = requests.get(url=call_url)
             embedding = self.mapper().map(embedding_object.json(), self.result_mapping, None)
             if embedding is not None and hasattr(embedding, "embedding"):
                 mention_resources, mention_resources_scores = self._similar(embedding.embedding, target, limit)

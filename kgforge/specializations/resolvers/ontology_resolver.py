@@ -39,7 +39,7 @@ class OntologyResolver(Resolver):
         return DictionaryMapper
 
     def _resolve(self, text: Union[str, List[str]], target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, text_context: Any, limit: Optional[str], threshold=Optional[float]) \
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[str], threshold=Optional[float]) \
             -> Optional[List[Dict]]:
 
         if isinstance(text, list):

@@ -13,3 +13,4 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from .datasets import Dataset
+from .entity_linking_candidate import EntityLinkingCandidate
