@@ -1,0 +1,14 @@
+====================
+vO.6.0 Release Notes
+====================
+
+This release adds new features and enhancements to Nexus Forge as well as fixes issues.
+
+Enhancements
+============
+
+New Features
+============
+
+Bug Fixes
+=========
