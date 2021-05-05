@@ -50,17 +50,17 @@ class Reshaper:
         roots = {x[0] for x in levels}
         new = Resource()
         for root in roots:
-            leafs = [x[1] for x in levels if len(x) > 1 and x[0] == root]
+            leaves = [x[1] for x in levels if len(x) > 1 and x[0] == root]
             value = getattr(resource, root, None)
             if value is not None:
                 if isinstance(value, List):
-                    new_value = self._reshape_many(value, leafs, versioned)
+                    new_value = self._reshape_many(value, leaves, versioned)
                     for i,nv in enumerate(new_value):
                         if nv == Resource() and isinstance(value[i],str):
                             new_value[i] = value[i]
                 elif isinstance(value, Resource):
-                    if leafs:
-                        new_value = self._reshape_one(value, leafs, versioned)
+                    if leaves:
+                        new_value = self._reshape_one(value, leaves, versioned)
                     else:
                         attributes = value.__dict__.items()
                         properties = {k: v for k, v in attributes if k not in value._RESERVED}

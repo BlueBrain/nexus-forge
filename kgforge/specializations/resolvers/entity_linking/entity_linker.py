@@ -14,8 +14,11 @@
 from abc import ABCMeta
 from typing import Dict, List, Optional, Tuple, Union, Any
 
+from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.exceptions import ResolvingError
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 
 
@@ -26,19 +29,20 @@ class EntityLinker(Resolver, metaclass=ABCMeta):
         super().__init__(source, targets, result_resource_mapping, **source_config)
 
     def _resolve(self, text: Union[str, List[str]], target: str, type: str,
-                 strategy: ResolvingStrategy, text_context: Any, limit: Optional[str], threshold) -> Optional[List[Tuple[str, List[Dict]]]]:
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[str],
+                 threshold: Optional[float]) -> Optional[List[Tuple[str, List[Dict]]]]:
         if target is not None:
             if isinstance(self.service, dict):
                 entity_linker_service = self.service[target]
             else:
                 entity_linker_service = self.service
         else:
-            raise AttributeError("A target is required for Entity Linker.")
+            raise ResolvingError("A target is required for Entity Linker.")
         if isinstance(entity_linker_service, LazyAction):
             entity_linker_service = entity_linker_service.execute()
             self.service[target] = entity_linker_service
         mentions = [text] if isinstance(text, str) else text
-        candidates = entity_linker_service.generate_candidates(mentions=mentions, target=target, mention_context=text_context,
+        candidates = entity_linker_service.generate_candidates(mentions=mentions, target=target, mention_context=resolving_context,
                                                                limit=limit, bulk=False)
         return [(m, entity_linker_service.rank_candidates(candidates=cl, strategy=strategy, threshold=threshold,
-                                                          mention=m, mention_context=text_context)) for m, cl in candidates]
+                                                          mention=m, mention_context=resolving_context)) for m, cl in candidates]

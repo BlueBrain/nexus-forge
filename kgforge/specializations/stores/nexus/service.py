@@ -78,6 +78,10 @@ class Service:
             "Content-Type": "application/sparql-query",
             "Accept": "application/ld+json"
         }
+        self.headers_elastic = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
         self.headers_upload = {
             "Accept": "application/ld+json",
         }
@@ -88,6 +92,7 @@ class Service:
             nexus.config.set_token(token)
             self.headers["Authorization"] = "Bearer " + token
             self.headers_sparql["Authorization"] = "Bearer " + token
+            self.headers_elastic["Authorization"] = "Bearer " + token
             self.headers_upload["Authorization"] = "Bearer " + token
             self.headers_download["Authorization"] = "Bearer " + token
         self.context = Context(self.get_project_context())
@@ -97,8 +102,17 @@ class Service:
         self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
 
         sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
+        elastic_view = searchendpoints['elastic']['endpoint'] if searchendpoints and "elastic" in searchendpoints else "nxv:defaultElasticSearchIndex"
 
-        self.sparql_endpoint = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
+
+        self.sparql_endpoint = dict()
+        self.elastic_endpoint = dict()
+        self.sparql_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
+        self.sparql_endpoint["type"] = "sparql"
+
+        self.elastic_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(elastic_view), "_search"))
+        self.elastic_endpoint["type"] = "elastic"
+
         # The following code is for async to work on jupyter notebooks
         try:
             asyncio.get_event_loop()

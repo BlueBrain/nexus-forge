@@ -51,8 +51,9 @@ setup(
         "rdflib-jsonld"
     ],
     extras_require={
-        "dev": ["tox", "pytest>=4.3", "pytest-bdd==3.4.0", "pytest-cov==2.10.1", "pytest-mock==3.3.1", "codecov"],
+        "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock", "codecov"],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
+        "linking_sklearn": ["sklearn"]
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

@@ -18,11 +18,10 @@ from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
-
 
 class Resolver(ABC):
 
@@ -59,29 +58,52 @@ class Resolver(ABC):
         """Mapper class to map the result data to a Resource with result_resource_mapping."""
         pass
 
-    def resolve(self, text: Union[str, List[str]], target: str, type: str,
-                strategy: ResolvingStrategy, text_context: Any, limit: int, threshold: float)\
-            -> Optional[Union[Resource, List[Resource], Dict[str,  List[Resource]]]]:
+    def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
+                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
+                limit: int, threshold: float) \
+            -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
+
+        if isinstance(text, Resource):
+            expected = [isinstance(text, Resource), property_to_resolve is not None and hasattr(text, property_to_resolve),
+                        isinstance(getattr(text, property_to_resolve), str) or
+                        (isinstance(getattr(text, property_to_resolve), list) and all([isinstance(f, str) for f in
+                                                                                       getattr(text, property_to_resolve)
+                                                                                       ]))]
+            if all(expected):
+                text_to_resolve = getattr(text, property_to_resolve)
+            else:
+                raise ResolvingError(
+                    "When resolving a Resource, a property_to_resolve of type str or List[str] should be provided")
+
+        elif property_to_resolve is not None or merge_inplace_as is not None:
+            not_supported(("property_to_resolve or merge_inplace_as", str))
+        else:
+            text_to_resolve = text
         # The resolving strategy cannot be abstracted as it should be managed by the service.
-        resolved = self._resolve(text, target, type, strategy, text_context, limit, threshold)
+        resolved = self._resolve(text_to_resolve, target, type, strategy, resolving_context, limit, threshold)
         if resolved is None or len(resolved) == 0:
             return None
         resolved = resolved[0] if len(resolved) == 1 else resolved
         if isinstance(resolved, tuple):
             # Case Tuple[str,List[Dict]]
-            resolved_mapped = self.mapper().map(resolved[1], self.result_mapping, None)
-        elif isinstance(text, list):
+            resolved_mapped = self.mapper().map(resolved[1], self.result_mapping, None) if resolved[1] is not None else None
+        elif isinstance(text_to_resolve, list):
             # Case List[Tuple[str, List[Dict]]]
             resolved_mapped = {r[0]: self.mapper().map(r[1], self.result_mapping, None) for r in resolved if
                                isinstance(r, tuple)}
         else:
-            #Case Dict or List[Dict]
+            # Case Dict or List[Dict]
             resolved_mapped = self.mapper().map(resolved, self.result_mapping, None)
-        return resolved_mapped
+        if isinstance(text, Resource) and isinstance(merge_inplace_as, str):
+            text.__setattr__(merge_inplace_as, resolved_mapped)
+            return text
+        else:
+            return resolved_mapped
 
     @abstractmethod
-    def _resolve(self, text: Union[str, List[str]], target: str, type: str,
-                 strategy: ResolvingStrategy, text_context: Any, limit: int, threshold: float) -> Optional[List[Any]]:
+    def _resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: int, threshold: float) -> Optional[
+        List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 

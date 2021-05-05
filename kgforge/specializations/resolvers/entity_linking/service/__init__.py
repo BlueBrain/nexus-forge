@@ -12,5 +12,5 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from .entity_linker_service import EntityLinkerService
-from .entity_linker_elasticsearch_service import EntityLinkerElasticService
+from .entity_linking_service import EntityLinkerService
+from .entity_linking_elastic_service import EntityLinkerElasticService

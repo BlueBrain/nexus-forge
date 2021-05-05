@@ -35,6 +35,7 @@ class EntityLinkerService(ABC):
 
         exact_match_score = 0 if self.is_distance else 1
         threshold_operator = "<=" if self.is_distance else ">="
+        is_sorted_reversed = True if not self.is_distance else False
         if strategy == ResolvingStrategy.EXACT_MATCH:
             zeros = [x for x in candidates if x.score == exact_match_score]
             if zeros and len(zeros) > 0:
@@ -42,9 +43,8 @@ class EntityLinkerService(ABC):
             else:
                 return None
         elif strategy == ResolvingStrategy.BEST_MATCH:
-            chosen = sorted(candidates, key=lambda x: x.score)[0]
+            chosen = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)[0]
             return [encode(chosen)] if eval(f"{chosen.score} {threshold_operator} {threshold}") else None
         else:
-            is_reversed = True if not self.is_distance else False
-            mentions = sorted(candidates, key=lambda x: x.score, reverse=is_reversed)
+            mentions = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)
             return [encode(mention) for mention in mentions if eval(f"{mention.score} {threshold_operator} {threshold}")]

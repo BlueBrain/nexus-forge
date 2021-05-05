@@ -18,10 +18,10 @@ from kgforge.core.commons.execution import not_supported
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
-from kgforge.specializations.resolvers.entity_linking.service.entity_linker_elasticsearch_service import EntityLinkerElasticService
+from kgforge.specializations.resolvers.entity_linking.service.entity_linking_elastic_service import EntityLinkerElasticService
 
 
-class EntityLinkerElasticSearch(EntityLinker):
+class EntityLinkerElastic(EntityLinker):
 
     def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
                  **source_config) -> None:
@@ -41,7 +41,6 @@ class EntityLinkerElasticSearch(EntityLinker):
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> EntityLinkerElasticService:
-
         encoder = store_config.pop("encoder")
         encoder_url = encoder["source"]
         encoder_result_resource_mapping = encoder["result_resource_mapping"]
