@@ -22,13 +22,13 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.json import as_json, from_json
 
 
-def as_dataframe(data: List[Resource], na: Union[Any, List[Any]], nesting: str, expanded: bool,
+def as_dataframe(data: Union[Resource, List[Resource]], na: Union[Any, List[Any]], nesting: str, expanded: bool,
                  store_metadata: bool, model_context: Optional[Context],
                  metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> DataFrame:
     dicts = as_json(data, expanded, store_metadata, model_context=model_context,
                     metadata_context=metadata_context, context_resolver=context_resolver)
     # NB: Do not use json_normalize(). It does not respect how the dictionaries are ordered.
-    flattened = (flatten(x, nesting) for x in dicts)
+    flattened = (flatten(x, nesting) for x in dicts) if isinstance(dicts, list) else [flatten(dicts, nesting)]
     df = DataFrame(flattened)
     if na is not None:
         df.replace(na, np.nan, inplace=True)
