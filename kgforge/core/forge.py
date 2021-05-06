@@ -409,7 +409,7 @@ class KnowledgeGraphForge:
                         self._model.resolve_context)
 
     @catch
-    def as_dataframe(self, data: List[Resource], na: Union[Any, List[Any]] = [None], nesting: str = ".",
+    def as_dataframe(self, data: Union[Resource, List[Resource]], na: Union[Any, List[Any]] = [None], nesting: str = ".",
                      expanded: bool = False, store_metadata: bool = False) -> DataFrame:
         return as_dataframe(data, na, nesting, expanded, store_metadata, self._model.context(),
                             self._store.metadata_context, self._model.resolve_context)
