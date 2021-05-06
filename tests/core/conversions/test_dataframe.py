@@ -20,7 +20,17 @@ from pandas import DataFrame
 # Test suite for conversion of resource to / from Pandas DataFrame.
 
 # FIXME "expanded" not yet implemented because not yet done in as_json() (DKE-130)
+from kgforge.core import Resource
 
+
+@pytest.fixture
+def df_from_one_resource():
+    return DataFrame({
+        "id": {0: "123"},
+        "type": {0: "Type"},
+        "p1": {0: "v1a"},
+        "p2": {0: "v2a"}
+    })
 
 @pytest.fixture
 def df():
@@ -47,7 +57,11 @@ def ndf():
 
 class TestConversionToDataFrame:
 
-    def test_as_dataframe_basic(self, forge, df, r1, r2):
+    def test_as_dataframe_basic(self, forge, df, df_from_one_resource, r1, r2):
+        assert(isinstance(r1, Resource))
+        x = forge.as_dataframe(r1)
+        assert x.equals(df_from_one_resource)
+
         rcs = [r1, r2]
         x = forge.as_dataframe(rcs)
         assert x.equals(df)
