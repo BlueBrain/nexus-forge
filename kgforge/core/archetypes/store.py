@@ -49,7 +49,7 @@ class Store(ABC):
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None) -> None:
+                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None, **store_config) -> None:
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
         # POLICY There could be data caching but it should be aware of changes made in the source.
         self.endpoint: Optional[str] = endpoint
@@ -59,7 +59,7 @@ class Store(ABC):
         loaded = self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         self.file_mapping: Optional[Any] = loaded
         self.model_context: Optional[Context] = model_context
-        self.service: Any = self._initialize_service(self.endpoint, self.bucket, self.token, searchendpoints)
+        self.service: Any = self._initialize_service(self.endpoint, self.bucket, self.token, searchendpoints, **store_config)
         self.context: Context = self.service.context if hasattr(self.service, "context") else None
         self.metadata_context: Context = self.service.metadata_context if hasattr(self.service, "metadata_context") else None
 
@@ -252,7 +252,7 @@ class Store(ABC):
     def sparql(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
         qr = rewrite_sparql(query, self.model_context) if self.model_context is not None else query
         if debug:
-            self._debug_query(query)
+            self._debug_query(qr)
         return self._sparql(qr, limit, offset)
 
     def _sparql(self, query: str, limit: int, offset: int) -> List[Resource]:
@@ -301,7 +301,7 @@ class Store(ABC):
 
     @abstractmethod
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict] = None) -> Any:
+                            token: Optional[str], searchendpoints:Optional[Dict] = None, **store_config) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
 

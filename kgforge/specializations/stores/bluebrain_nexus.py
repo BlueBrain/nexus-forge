@@ -44,7 +44,7 @@ from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.stores.nexus.service import BatchAction, DEPRECATED_PROPERTY, PROJECT_PROPERTY, Service
+from kgforge.specializations.stores.nexus.service import BatchAction, Service
 
 
 class CategoryDataType(Enum):
@@ -82,9 +82,9 @@ class BlueBrainNexus(Store):
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None) -> None:
+                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None, **store_config) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context, searchendpoints)
+                         model_context, searchendpoints, **store_config)
 
     @property
     def mapping(self) -> Optional[Callable]:
@@ -204,7 +204,7 @@ class BlueBrainNexus(Store):
             if params is not None:
                 query_params.update(params)
             params = query_params
-        url_base = f"{self.endpoint}/resolvers/{self.bucket}" if cross_bucket else self.service.url_resources
+        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
         url = "/".join((url_base, "_", quote_plus(id_without_query)))
         try:
             response = requests.get(url, params=params, headers=self.service.headers)
@@ -370,8 +370,8 @@ class BlueBrainNexus(Store):
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
         query_statements, query_filters = build_query_statements(self.model_context, filters)
-        query_statements.insert(0, f"<{PROJECT_PROPERTY}> ?project")
-        query_statements.insert(1, f"<{DEPRECATED_PROPERTY}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
+        query_statements.insert(0, f"<{self.service.project_property}> ?project")
+        query_statements.insert(1, f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
         statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
 
         query = f"SELECT ?id ?project WHERE {{ ?id {statements} {project_statements}}}"
@@ -459,14 +459,21 @@ class BlueBrainNexus(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict]) -> Any:
+                            token: Optional[str], searchendpoints:Optional[Dict], **store_config) -> Any:
         try:
             self.organisation, self.project = self.bucket.split('/')
-
+            store_context_config = store_config.pop("vocabulary", {})
+            nexus_context_iri = store_context_config.get("iri", Service.NEXUS_CONTEXT_FALLBACK)
+            namespace = store_context_config.get("namespace", Service.NEXUS_NAMESPACE_FALLBACK)
+            project_property = store_context_config.get("project_property", Service.PROJECT_PROPERTY_FALLBACK)
+            deprecated_property = store_context_config.get("deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK)
         except ValueError:
             raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
         else:
-            return Service(endpoint, self.organisation, self.project, token, self.model_context, 200,searchendpoints)
+            return Service(endpoint=endpoint, org=self.organisation, prj=self.project, token=token,
+                           model_context=self.model_context, max_connections=200, searchendpoints=searchendpoints,
+                           store_context=nexus_context_iri, namespace=namespace, project_property = project_property,
+                           deprecated_property=deprecated_property)
 
 
 def _error_message(error: HTTPError) -> str:

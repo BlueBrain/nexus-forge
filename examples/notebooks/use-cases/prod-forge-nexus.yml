@@ -12,6 +12,11 @@ Store:
   searchendpoints:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+  vocabulary:
+    iri: "https://bluebrain.github.io/nexus/contexts/resource.json"
+    namespace: "https://bluebrain.github.io/nexus/vocabulary/"
+    deprecated_property: "https://bluebrain.github.io/nexus/vocabulary/deprecated"
+    project_property: "https://bluebrain.github.io/nexus/vocabulary/project"
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
   file_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-store/file-to-resource-mapping.hjson
 
