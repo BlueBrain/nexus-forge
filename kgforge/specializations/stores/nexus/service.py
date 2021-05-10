@@ -78,13 +78,6 @@ class Service:
         self.deprecated_property = deprecated_property
         self.default_sparql_index = f"{self.namespace}defaultSparqlIndex"
         self.default_es_index = f"{self.namespace}defaultElasticSearchIndex"
-        #NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
-        #NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
-        #NEXUS_CONTEXT_SOURCE = "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
-        #DEFAULT_SPARQL_INDEX = f"{self.namespace}defaultSparqlIndex"
-        #DEFAULT_ES_INDEX = f"{self.namespace}defaultElasticSearchIndex"
-        #DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
-        #PROJECT_PROPERTY = f"{NEXUS_NAMESPACE}project"
 
         self.headers = {
             "Content-Type": "application/ld+json",
