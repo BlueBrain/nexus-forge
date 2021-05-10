@@ -50,17 +50,19 @@ class BatchAction(Enum):
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
 BatchResults = List[BatchResult]
 
-NEXUS_NAMESPACE = "https://bluebrain.github.io/nexus/vocabulary/"
-NEXUS_CONTEXT = "https://bluebrain.github.io/nexus/contexts/resource.json"
-NEXUS_CONTEXT_SOURCE = "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
-DEPRECATED_PROPERTY = f"{NEXUS_NAMESPACE}deprecated"
-PROJECT_PROPERTY = f"{NEXUS_NAMESPACE}project"
-
 
 class Service:
 
+    NEXUS_NAMESPACE_FALLBACK = "https://bluebrain.github.io/nexus/vocabulary/"
+    NEXUS_CONTEXT_FALLBACK = "https://bluebrain.github.io/nexus/contexts/resource.json"
+    NEXUS_CONTEXT_SOURCE_FALLBACK = "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
+    DEFAULT_SPARQL_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultSparqlIndex"
+    DEFAULT_ES_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultElasticSearchIndex"
+    DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
+    PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
+
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connections: int, searchendpoints: Dict):
+                 max_connections: int, searchendpoints: Dict, store_context, namespace, project_property, deprecated_property):
 
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
@@ -69,6 +71,14 @@ class Service:
         self.model_context = model_context
         self.context_cache: Dict = dict()
         self.max_connections = max_connections
+        self.store_context = store_context
+        self.store_context_source = "/".join((quote_plus(store_context),"source"))
+        self.namespace = namespace
+        self.project_property = project_property
+        self.deprecated_property = deprecated_property
+        self.default_sparql_index = f"{self.namespace}defaultSparqlIndex"
+        self.default_es_index = f"{self.namespace}defaultElasticSearchIndex"
+
         self.headers = {
             "Content-Type": "application/ld+json",
             "Accept": "application/ld+json"
@@ -99,11 +109,11 @@ class Service:
 
         self.url_files = "/".join((self.endpoint, "files", quote_plus(org), quote_plus(prj)))
         self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
-        self.metadata_context = Context(self.resolve_context(NEXUS_CONTEXT), NEXUS_CONTEXT)
+        self.url_resolver = "/".join((self.endpoint,"resolvers", quote_plus(org), quote_plus(prj)))
+        self.metadata_context = Context(self.resolve_context(self.store_context), store_context)
 
-        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else "nxv:defaultSparqlIndex"
-        elastic_view = searchendpoints['elastic']['endpoint'] if searchendpoints and "elastic" in searchendpoints else "nxv:defaultElasticSearchIndex"
-
+        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else self.default_sparql_index
+        elastic_view = searchendpoints['elastic']['endpoint'] if searchendpoints and "elastic" in searchendpoints else self.default_es_index
 
         self.sparql_endpoint = dict()
         self.elastic_endpoint = dict()
@@ -132,8 +142,8 @@ class Service:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
-            context_id = NEXUS_CONTEXT_SOURCE if iri == NEXUS_CONTEXT else quote_plus(iri)
-            url = "/".join((self.url_resources, "_", context_id))
+            context_id = self.store_context_source if iri == self.store_context else quote_plus(iri)
+            url = "/".join((self.url_resolver, "_", context_id))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
@@ -198,7 +208,7 @@ class Service:
 
                 if batch_action == BatchAction.FETCH:
 
-                    resource_org, resource_prj  = resource.project.split("/")[-2:]
+                    resource_org, resource_prj = resource.project.split("/")[-2:]
                     resource_url = "/".join((self.endpoint, "resources", quote_plus(resource_org), quote_plus(resource_prj)))
                     url = "/".join((resource_url, "_", quote_plus(resource.id)))
                     prepared_request = loop.create_task(
@@ -293,8 +303,8 @@ class Service:
         data_context = deepcopy(payload["@context"])
         if not isinstance(data_context, list):
             data_context = [data_context]
-        if NEXUS_CONTEXT in data_context:
-            data_context.remove(NEXUS_CONTEXT)
+        if self.store_context in data_context:
+            data_context.remove(self.store_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
         metadata = dict()
         data = dict()

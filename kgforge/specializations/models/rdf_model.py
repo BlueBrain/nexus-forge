@@ -141,7 +141,7 @@ class RdfModel(Model):
         endpoint = source_config.get("endpoint")
         token = source_config.get("token")
         bucket = source_config["bucket"]
-        default_store: Store = store(endpoint, bucket, token)
+        default_store: Store = store(**source_config)
 
         if context_config:
             context_endpoint = context_config.get("endpoint", default_store.endpoint)
@@ -151,7 +151,11 @@ class RdfModel(Model):
             if (context_endpoint != default_store.endpoint
                     or context_token != default_store.token
                     or context_bucket != default_store.bucket):
-                context_store: Store = store(context_endpoint, context_bucket, context_token)
+                source_config.pop("endpoint", None)
+                source_config.pop("token", None)
+                source_config.pop("bucket", None)
+                context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
+                # FIXME: define a store independent StoreService
                 service = StoreService(default_store, context_iri, context_store)
             else:
                 service = StoreService(default_store, context_iri, None)

@@ -163,19 +163,16 @@ class KnowledgeGraphForge:
             config = deepcopy(configuration)
 
         # Debugging.
-
         self._debug = kwargs.pop("debug", False)
 
         # Store.
-
         store_config = config.pop("Store")
         store_config.update(kwargs)
 
         # Model.
-
         model_config = config.pop("Model")
         if model_config["origin"] == "store":
-            with_defaults(model_config, store_config, "source", "name", ["endpoint", "token", "bucket"])
+            with_defaults(model_config, store_config, "source", "name", ["endpoint", "token", "bucket", "vocabulary"])
         model_name = model_config.pop("name")
         model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
@@ -189,14 +186,12 @@ class KnowledgeGraphForge:
         store_config.update(name=store_name)
 
         # Resolvers.
-
         resolvers_config = config.pop("Resolvers", None)
         # Format: Optional[Dict[scope_name, Dict[resolver_name, Resolver]]].
         self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = prepare_resolvers(
             resolvers_config, store_config) if resolvers_config else None
 
         # Formatters.
-
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
 
     # Modeling User Interface.
@@ -443,7 +438,7 @@ def prepare_resolvers(config: Dict, store_config: Dict) -> Dict[str, Dict[str, R
 def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     if config["origin"] == "store":
         with_defaults(config, store_config, "source", "name", ["endpoint", "token", "bucket", "model_context",
-                                                               "searchendpoints"])
+                                                               "searchendpoints", "vocabulary"])
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)

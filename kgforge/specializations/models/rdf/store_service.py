@@ -25,6 +25,7 @@ from rdflib import URIRef, Namespace, Graph
 from kgforge.core.archetypes import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.stores.nexus import Service
 
 
 class StoreService(RdfService):
@@ -34,8 +35,11 @@ class StoreService(RdfService):
 
         self.default_store = default_store
         self.context_store = context_store or default_store
-        self.NXV = Namespace("https://bluebrain.github.io/nexus/vocabulary/")
-        self.store_metadata_iri = "https://bluebrain.github.io/nexus/contexts/resource.json"
+        # FIXME: define a store independent strategy
+        self.NXV = Namespace(self.default_store.service.namespace) if hasattr(self.default_store.service, "namespace") \
+            else Namespace(Service.NEXUS_NAMESPACE_FALLBACK)
+        self.store_metadata_iri = self.default_store.service.store_context if hasattr(self.default_store.service, "store_context") \
+            else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
         self._shapes_to_resources: Dict
         self._imported = list()
         self._graph = Graph()
