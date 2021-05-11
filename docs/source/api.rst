@@ -7,3 +7,4 @@ Python API
    interaction
    archetypes
    specializations
+   configuration

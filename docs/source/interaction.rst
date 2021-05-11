@@ -65,7 +65,7 @@ A minimal YAML formatted configuration for each of Demo BlueBrainNexus stores wo
     """
    forge = KnowledgeGraphForge(configuration=config)
 
-See :ref:`_forge-config`. for a full list of forge configuration and see the `examples/notebooks/use-cases/` folder
+See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/latest/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/` folder
 for more real world YAML examples.
 
 Resource
@@ -319,7 +319,7 @@ text documents. For example the text `USA` and `America` can be both resolved (o
 `http://dbpedia.org/resource/United_States` using the `DBpedia look up service <https://lookup.dbpedia.org/>`__.
 
 `Resolving` involves two main steps:
- * candidates generation: resolving often results in many possible resources to link to called candidates.
+ * **candidates generation**: resolving often results in many possible resources to link to called candidates.
    Each candidate is associated with a score representing how close it is to the input text to resolve.
    Candidates then can be ranked based on different criteria (e.g score, context of occurence in a given document)
    combined using different strategies including exact or fuzzy matches. For example resolving the text Amereica
@@ -329,15 +329,17 @@ text documents. For example the text `USA` and `America` can be both resolved (o
    In Nexus Forge, resolving candidates are `Resources` of type
    `kgforge.core.specializations.resources.entity_linking_candidate.EntityLinkingCandidate`.
 
-* candidates ranking: currently, supported candidates ranking criteria is their scores. The following strategies
+* **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies
   are available:
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.EXACT_MATCH`: Only candidates with a perfect score
-(usually 0 for a distance based score or 1 for a normalised similarity score) are considered and one of them is picked.
+    (usually 0 for a distance based score or 1 for a normalised similarity score) are considered and one of them is picked.
+
   * `kgforge.core.commons.strategies.ResolvingStrategy.BEST_MATCH` (default): Only candidates with the highest scores
-that are potentially below a threshold (default to 0.5) are considered is one them is picked.
+    that are potentially below a threshold (default to 0.5) are considered is one them is picked.
+
   * `kgforge.core.commons.strategies.ResolvingStrategy.ALL_MATCHES`: A list of candidates with scores potentially below a
-threshold are considered. The size of the list of candidates can be controlled with a parameter (default to 10).
+    threshold are considered. The size of the list of candidates can be controlled with a parameter (default to 10).
 
 The `KnowledgeGraphForge` class exposes the following function for resolving a str, list of str or a `Resource`:
 
@@ -359,6 +361,7 @@ trained on `schema.org <https://schema.org/>`__ classes. The resulting resource 
 the json structure defined in the `result_resource_mapping` file.
 
 Full resolver config options and real world examples
+
 .. code-block:: python
 
    from kgforge.core import KnowledgeGraphForge
@@ -387,32 +390,42 @@ Full resolver config options and real world examples
    forge.resolve(text="person", scope="schemaorg", target="terms", strategy=ResolvingStrategy.BEST_MATCH)
    resource = Resource(id=_id, name="Jane Doe", type="Person")
 
+
 A `scope` is a convenient (and arbitrary) way to name a given `Resolver` along with a set of sources of data
 (the `targets`) to resolve against.
 
 Nexus Forge comes with the support of 5 types Resolvers:
 
-* OntologyResolver: based on type, label and notation (ie. acronym) filtering using a SPARQL query to generate candidates.
+* **OntologyResolver**: based on type, label and notation (ie. acronym) filtering using a SPARQL query to generate candidates.
   An example of configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml`.
-* EntityLinkerSkLearn: based on a pretrained model and using `scikit-learn <https://scikit-learn.org/stable/>`__.
+
+* **EntityLinkerSkLearn**: based on a pretrained model and using `scikit-learn <https://scikit-learn.org/stable/>`__.
   to generate and rank candidates. To customise the configuration of this resolver
   (as shown in the resolving example above):
 
   * Nexus Forge should be installed as follows `pip install nexusforge[linking_sklearn]`
+
   * `resolver` value should be set to `EntityLinkerSkLearn from kgentitylinkingsklearn`
+
   * `origin` value should be set to 'directory'
+
   * a folder containing the model should be provided as `source` value
+
   * a file name should be provided as value `bucket` under `targets`
+
   * a `result_resource_mapping` file should be provided to map the result to a json structure
 
   An example of configuration for `EntityLinkerSkLearn` is available at
   `examples/notebooks/use-cases/EntityLinkerSkLearn-forge-demo-config.yml`.
-* EntityLinkerElastic: based on `ElasticSearch text similarity search <https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch>`__
+
+* **EntityLinkerElastic**: based on `ElasticSearch text similarity search <https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch>`__
   to generate and rank candidates but require a text embedding or encoding service to compute embeddings of items.
   An example of configuration is available at `examples/notebooks/use-cases/EntityLinkerElastic-forge-demo-config.yml`. .
-* AgentResolver: based on type, full, given or family names filtering using a SPARQL query to generate candidates.
+
+* **AgentResolver**: based on type, full, given or family names filtering using a SPARQL query to generate candidates.
   An example of configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml`.
-* DemoResolver: an example resolver based on filtering by configurable properties and looking up candidates from a json file.
+
+* **DemoResolver**: an example resolver based on filtering by configurable properties and looking up candidates from a json file.
   An example of configuration is available at `examples/notebooks/use-cases/EntityLinkerSkLearn-forge-demo-config.yml`.
 
 Reshaping
@@ -427,6 +440,7 @@ Reshaping allows keeping only a specific set of properties of a resource.
 Next is an example of reshaping a resource.
 
 .. code-block:: python
+
    from kgforge.core import KnowledgeGraphForge
    from kgforge.core import Resource
    forge = KnowledgeGraphForge(configuration= "./config.yml")
