@@ -1,0 +1,4 @@
+set -ex
+
+# Install the linking_sklearn package
+pip install .[linking_sklearn]

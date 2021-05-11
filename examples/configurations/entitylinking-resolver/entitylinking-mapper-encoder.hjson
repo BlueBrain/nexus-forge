@@ -1,0 +1,3 @@
+{
+    "embedding": x['data']['embedding'] if 'data' in x and 'embedding' in x['data'] else None
+}

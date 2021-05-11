@@ -1,14 +1,19 @@
 Specializations
 ===============
 
-The following implementation of the above archetypes are available as part of this repository. The planned implementations are marked as TODO.
+The following implementation of the archetypes are available as part of Nexus Forge.
+
+Resources
+---------
+
+* Dataset
+* EntityLinkingCandidate
+
 
 Mappers
 -------
 
 * DictionaryMapper
-* [TODO] R2RmlMapper
-* [TODO] TableMapper
 
 
 Mappings
@@ -20,7 +25,7 @@ Models
 ------
 
 * DemoModel
-* RdfModel: currently supports `SHACL <https://www.w3.org/TR/shacl/>`__ shapes.
+* RdfModel: currently supports `W3C SHACL <https://www.w3.org/TR/shacl/>`__ schemas.
 
 Resolvers
 ---------
@@ -28,6 +33,8 @@ Resolvers
 * DemoResolver
 * OntologyResolver
 * AgentResolver
+* EntityLinkerElastic
+* EntityLinkerSkLearn
 
 Stores
 ------

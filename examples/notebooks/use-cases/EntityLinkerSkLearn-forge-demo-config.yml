@@ -1,0 +1,34 @@
+Formatters:
+  identifier: https://kg.example.ch/{}/{}
+Model:
+  name: DemoModel
+  origin: directory
+  source: ../../../tests/data/demo-model/
+Resolvers:
+  entities:
+  - origin: directory
+    resolver: DemoResolver
+    result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/configurations/demo-resolver/entity-to-resource-mapping.hjson
+    source: ../../../tests/data/demo-resolver/
+    targets:
+    - bucket: agents.json
+      identifier: agents
+  schemaorg:
+  - origin: directory
+    resolver: EntityLinkerSkLearn from kgentitylinkingsklearn
+    result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/configurations/entitylinking-resolver/entitylinking-mapper.hjson
+    source: ../../data/
+    targets:
+    - bucket: tfidfvectorizer_model_schemaorg_linking
+      identifier: terms
+  terms:
+  - origin: directory
+    resolver: DemoResolver
+    result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/configurations/demo-resolver/term-to-resource-mapping.hjson
+    source: ../../../tests/data/demo-resolver/
+    targets:
+    - bucket: sex.json
+      identifier: sexontology
+Store:
+  name: DemoStore
+  versioned_id_template: '{x.id}?_version={x._store_metadata.version}'
