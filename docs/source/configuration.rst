@@ -1,12 +1,10 @@
-Knowledge graph Forge Configuration
-===================================
-
-.. _forge-config:
+Configuration
+=============
 
 YAML
 ----
 
-The full YAML configuration has the following structure:
+The full `KnowledgeGraphForge` YAML configuration has the following structure:
 
 .. code-block:: yaml
 
