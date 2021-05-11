@@ -2,19 +2,20 @@
 vO.6.0 Release Notes
 ====================
 
-This release adds new features and enhancements to Nexus Forge as well as fixes issues.
+This release adds new features and enhancements to Nexus Forge as well as bug fixes.
 
 New Features
 ============
 
-* Added Entity Linking as a specialization of resolving. `#125 <https://github.com/BlueBrain/nexus-forge/pull/125>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
-* Added support for elasticsearch query in Store and BlueBrainNexus store. `#125 <https://github.com/BlueBrain/nexus-forge/pull/125>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
-* Added Entity linking based on scikit-learn. `#135 <https://github.com/BlueBrain/nexus-forge/pull/135>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
+* Added `Entity Linking <https://nexus-forge.readthedocs.io/en/latest/interaction.html#resolving>`__ as a specialization of resolving. `#125 <https://github.com/BlueBrain/nexus-forge/pull/125>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
+* Added support for elasticsearch query in Store and BlueBrainNexus store. `#125 <https://github.com/BlueBrain/nexus-forge/pull/125>`__
+* Added `Entity linking  <https://nexus-forge.readthedocs.io/en/latest/interaction.html#resolving>`__ based on scikit-learn. `#135 <https://github.com/BlueBrain/nexus-forge/pull/135>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
 
 Enhancements
 ============
 
-* Added atLocation property to the Blue Brain Nexus store's file-to-resource-mapping file as part of the data distribution schema. This property can be used to retrieve the location of a file in a storage as shown in the example below. `#121 <https://github.com/BlueBrain/nexus-forge/pull/121>`__
+* Added atLocation property to the Blue Brain Nexus store's file-to-resource-mapping file as part of the data distribution
+  schema. This property can be used to retrieve the location of a file in a storage as shown in the example below. `#121 <https://github.com/BlueBrain/nexus-forge/pull/121>`__
 
 .. code-block:: python
 
@@ -27,6 +28,7 @@ Enhancements
 
 * Added transforming single resource as pandas dataframe `forge.as_dataframe() -> pandas.DataFrame`. `#137 <https://github.com/BlueBrain/nexus-forge/pull/137>`__ (usage: 07 - DataFrame IO notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/07%20-%20DataFrame%20IO.ipynb>`__ or on |Binder_Getting_Started|)
 * Added support for DemoResolver to resolve using user configured properties. `#129 <https://github.com/BlueBrain/nexus-forge/pull/129>`__ (usage: 09 - Resolving notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/getting-started/09%20-%20Resolving.ipynb>`__ or on |Binder_Getting_Started|)
+* Removed required token when creating a `KnowledgeGraphForge` session targeting a non protected bucket. `#129 <https://github.com/BlueBrain/nexus-forge/pull/129>`__
 * Added a dataset creation example notebook. `#134 <https://github.com/BlueBrain/nexus-forge/pull/134>`__ (usage: BBP KG Create Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.0/examples/notebooks/use-cases/BBP%20KG%20Create%20Datasets.ipynb>`__ or on |Binder_Use_Case|)
 
 Bug Fixes
