@@ -1,7 +1,8 @@
 Archetypes
 ==========
 
-The framework provides a set of archetypes that allows the extension of the different *Forge* modules to work with different technologies. These are described next.
+The framework provides a set of archetypes that allows the extension of the different *Forge* modules to work with
+different technologies. These are described next.
 
 Mapper
 ------
@@ -46,7 +47,9 @@ Resolver
 .. code-block:: python
 
    Resolver(source: str, targets: List[Dict[str, str]], result_resource_mapping: str, **source_config)
-     resolve(text: str, target: Optional[str], type: Optional[str], strategy: ResolvingStrategy) -> Optional[Union[Resource, List[Resource]]]
+     resolve(text: Union[str, List[str], Resource], target: str, type: str,
+                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
+                limit: int, threshold: float) -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
 
 Store
 -----
@@ -65,4 +68,5 @@ The Store provides the interface of storage for different technologies to be imp
      deprecate(data: Union[Resource, List[Resource]]) -> None
      search(resolvers: List[Resolver], *filters, **params) -> List[Resource]
      sparql(prefixes: Dict[str, str], query: str) -> List[Resource]
+     elastic(query: str, debug: bool, limit: int, offset: int) -> List[Resource]:
      freeze(data: Union[Resource, List[Resource]]) -> None

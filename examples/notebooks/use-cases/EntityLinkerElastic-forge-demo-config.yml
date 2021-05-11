@@ -1,0 +1,19 @@
+Model:
+  name: DemoModel
+  origin: directory
+  source: ../../../tests/data/demo-model/
+Store:
+  name: DemoStore
+
+Resolvers:
+  entity:
+    - resolver: EntityLinkerElastic
+      origin: store
+      source: BlueBrainNexus
+      targets:
+        - identifier: terms
+          bucket: neurosciencegraph/datamodels
+      encoder:
+        source: "http://localhost:5000/store?key={x}"
+        result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/configurations/entitylinking-resolver/entitylinking-mapper-encoder.hjson
+      result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/configurations/entitylinking-resolver/entitylinking-mapper-es.hjson

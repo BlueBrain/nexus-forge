@@ -1,0 +1,8 @@
+{
+    type: x['@type'] if '@type' in x else None
+    id: x['@id'] if '@id' in x else None
+    label: x.label if 'label' in x else None
+    definition: x.definition if 'definition' in x else None
+    altLabel: x.altLabel if 'altLabel' in x else None
+    score: x["score"] if 'score' in x else None
+}
