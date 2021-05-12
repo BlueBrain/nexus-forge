@@ -85,8 +85,8 @@ class Service:
         }
 
         self.headers_sparql = {
-            "Content-Type": "application/sparql-query",
-            "Accept": "application/ld+json"
+            "Content-Type": "text/plain",
+            "Accept": "application/sparql-results+json"
         }
         self.headers_elastic = {
             "Content-Type": "application/json",
