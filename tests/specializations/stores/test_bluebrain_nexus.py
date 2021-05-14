@@ -28,7 +28,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
-from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements
+from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements, _create_select_query
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
@@ -226,6 +226,17 @@ class TestQuerying:
         statements = build_query_statements(context, filters)
         assert statements == expected
 
+    def test_create_select_query(self):
+        statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"
+        query = _create_select_query(statements, distinct=False, search_in_graph=True)
+        assert query == "SELECT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        query = _create_select_query(statements, distinct=True, search_in_graph=True)
+        assert query == "SELECT DISTINCT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        query = _create_select_query(statements, distinct=False, search_in_graph=False)
+        assert query == "SELECT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+        query = _create_select_query(statements, distinct=True, search_in_graph=False)
+        assert query == "SELECT DISTINCT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+
     @pytest.mark.parametrize("filters,expected", [
         pytest.param(({"type":"Person"}),
                      ([Filter(operator='__eq__', path=['type'], value='Person')]),
@@ -246,8 +257,6 @@ class TestQuerying:
                      id="json_filter_id")
 
     ])
-
-
     def test_dict_to_filters(self, filters, expected):
         filters_from_dict = create_filters_from_dict(filters)
         assert filters_from_dict == expected

@@ -32,7 +32,7 @@ from kgforge.core.reshaping import collect_values
 
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 SPARQL_CLAUSES = ["where", "filter", "select", "union","limit","construct",
-                  "optional", "bind","values", "offset", "order by", "prefix"]
+                  "optional", "bind","values", "offset", "order by", "prefix", "graph", "distinct"]
 
 
 class Store(ABC):
