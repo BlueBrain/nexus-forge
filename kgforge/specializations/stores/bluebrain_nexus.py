@@ -141,7 +141,7 @@ class BlueBrainNexus(Store):
 
         async def _bulk():
             loop = asyncio.get_event_loop()
-            semaphore = Semaphore(self.service.max_connections)
+            semaphore = Semaphore(self.service.max_connection)
             async with ClientSession(headers=self.service.headers_upload) as session:
                 tasks = (_create_task(x, loop, semaphore, session) for x in paths)
                 return await asyncio.gather(*tasks)
@@ -231,7 +231,7 @@ class BlueBrainNexus(Store):
 
         async def _bulk():
             loop = asyncio.get_event_loop()
-            semaphore = Semaphore(self.service.max_connections)
+            semaphore = Semaphore(self.service.max_connection)
             async with ClientSession(headers=self.service.headers_download) as session:
                 tasks = (_create_task(x, y, loop, semaphore, session) for x, y in zip(urls, paths))
                 return await asyncio.gather(*tasks)
@@ -463,16 +463,19 @@ class BlueBrainNexus(Store):
                             token: Optional[str], searchendpoints:Optional[Dict], **store_config) -> Any:
         try:
             self.organisation, self.project = self.bucket.split('/')
+            max_connection = store_config.pop("max_connection", 50)
+            if max_connection <=0:
+                raise ValueError(f"max_connection value should be great than 0 but {max_connection} is provided")
             store_context_config = store_config.pop("vocabulary", {})
             nexus_context_iri = store_context_config.get("iri", Service.NEXUS_CONTEXT_FALLBACK)
             namespace = store_context_config.get("namespace", Service.NEXUS_NAMESPACE_FALLBACK)
             project_property = store_context_config.get("project_property", Service.PROJECT_PROPERTY_FALLBACK)
             deprecated_property = store_context_config.get("deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK)
-        except ValueError:
-            raise ValueError("malformed bucket parameter, expecting 'organization/project' like")
+        except Exception as ve:
+            raise ValueError(f"Store configuration error: {ve}")
         else:
             return Service(endpoint=endpoint, org=self.organisation, prj=self.project, token=token,
-                           model_context=self.model_context, max_connections=200, searchendpoints=searchendpoints,
+                           model_context=self.model_context, max_connection=max_connection, searchendpoints=searchendpoints,
                            store_context=nexus_context_iri, namespace=namespace, project_property = project_property,
                            deprecated_property=deprecated_property)
 
