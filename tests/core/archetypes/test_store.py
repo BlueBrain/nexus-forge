@@ -75,7 +75,11 @@ form_store_metadata_combinations = [
     ("SELECT ?x WHERE { ?id propertyNotInContext ?x }",
      prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
-     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }")
+     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
+    ("SELECT DISTINCT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
+     prefixes_string + "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
+    ("SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}",
+     prefixes_string + "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}")
 ]
 
 

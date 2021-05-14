@@ -359,6 +359,8 @@ class BlueBrainNexus(Store):
         deprecated = params.get("deprecated", False)
         cross_bucket = params.get("cross_bucket", False)
         bucket = params.get("bucket",None)
+        search_in_graph = params.get("search_in_graph", True)
+        distinct = params.get("distinct", False)
         project_statements = ''
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
@@ -373,8 +375,7 @@ class BlueBrainNexus(Store):
         query_statements.insert(0, f"<{self.service.project_property}> ?project")
         query_statements.insert(1, f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
         statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
-
-        query = f"SELECT ?id ?project WHERE {{ ?id {statements} {project_statements}}}"
+        query = _create_select_query(f"?id {statements} {project_statements}", distinct, search_in_graph)
 
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
@@ -527,3 +528,10 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
+
+
+def _create_select_query(statements, distinct, search_in_graph):
+    where_clauses = f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else \
+        f"{{{statements}}}"
+    select_vars = "DISTINCT ?id ?project" if distinct else "?id ?project"
+    return f"SELECT {select_vars} WHERE {where_clauses}"
