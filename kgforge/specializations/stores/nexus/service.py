@@ -62,7 +62,7 @@ class Service:
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connections: int, searchendpoints: Dict, store_context, namespace, project_property, deprecated_property):
+                 max_connection: int, searchendpoints: Dict, store_context, namespace, project_property, deprecated_property):
 
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
@@ -70,7 +70,7 @@ class Service:
         self.project = prj
         self.model_context = model_context
         self.context_cache: Dict = dict()
-        self.max_connections = max_connections
+        self.max_connection = max_connection
         self.store_context = store_context
         self.store_context_source = "/".join((quote_plus(store_context),"source"))
         self.namespace = namespace
@@ -236,7 +236,7 @@ class Service:
                     return BatchResult(resource, error)
 
         async def dispatch_action():
-            semaphore = asyncio.Semaphore(self.max_connections)
+            semaphore = asyncio.Semaphore(self.max_connection)
             loop = asyncio.get_event_loop()
             async with ClientSession() as session:
                 tasks = create_tasks(semaphore, session, loop, resources, action, callback, error_type)
