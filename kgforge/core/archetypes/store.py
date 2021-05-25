@@ -31,6 +31,8 @@ from kgforge.core.reshaping import collect_values
 # NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
 
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
+from kgforge.core.wrappings.dict import DictWrapper
+
 SPARQL_CLAUSES = ["where", "filter", "select", "union","limit","construct",
                   "optional", "bind","values", "offset", "order by", "prefix", "graph", "distinct"]
 
@@ -139,7 +141,7 @@ class Store(ABC):
         not_supported()
 
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,
-                 overwrite: bool) -> None:
+                 overwrite: bool, cross_bucket: bool) -> None:
         # path: DirPath.
         urls = collect_values(data, follow, DownloadingError)
         count = len(urls)
@@ -157,18 +159,19 @@ class Store(ABC):
             else:
                 filepaths.append(str(filepath))
         if count > 1:
-            self._download_many(urls, filepaths)
+            store_metadata = [r._store_metadata for r in data]
+            self._download_many(urls, filepaths, store_metadata, cross_bucket)
         else:
-            self._download_one(urls[0], filepaths[0])
+            self._download_one(urls[0], filepaths[0], data._store_metadata, cross_bucket)
 
-    def _download_many(self, urls: List[str], paths: List[str]) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
         for url, path in zip(urls, paths):
             self._download_one(url, path)
 
-    def _download_one(self, url: str, path: str) -> None:
+    def _download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()

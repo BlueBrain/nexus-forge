@@ -41,6 +41,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError,
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
+from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -227,45 +228,65 @@ class BlueBrainNexus(Store):
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
-    def _download_many(self, urls: List[str], paths: List[str]) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
 
         async def _bulk():
             loop = asyncio.get_event_loop()
             semaphore = Semaphore(self.service.max_connection)
             async with ClientSession(headers=self.service.headers_download) as session:
-                tasks = (_create_task(x, y, loop, semaphore, session) for x, y in zip(urls, paths))
+                tasks = (_create_task(x, y, z, loop, semaphore, session) for x, y, z in zip(urls, paths, store_metadata))
                 return await asyncio.gather(*tasks)
 
-        def _create_task(url, path, loop, semaphore, session):
-            return loop.create_task(_download(url, path, semaphore, session))
+        def _create_task(url, path, store_metadata, loop, semaphore, session):
+            return loop.create_task(_download(url, path, store_metadata, semaphore, session))
 
-        async def _download(url, path, semaphore, session):
+        async def _download(url, path, store_metadata, semaphore, session):
             async with semaphore:
-                async with session.get(url) as response:
-                    if response.status < 400:
+                url_base, org, project = self._prepare_download_one(url, path, store_metadata, cross_bucket)
+                async with session.get(url_base) as response:
+                    try:
+                        response.raise_for_status()
+                    except Exception as e:
+                        raise DownloadingError(f"Downloading from {org}/{project}:{_error_message(e)}")
+                    else:
                         with open(path, "wb") as f:
                             data = await response.read()
                             f.write(data)
-                    else:
-                        error = await response.json()
-                        msg = " ".join(re.findall('[A-Z][^A-Z]*', error["@type"])).lower()
-                        raise DownloadingError(msg)
 
         return asyncio.run(_bulk())
 
-    def _download_one(self, url: str, path: str) -> None:
+    def _download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
         try:
-            # this is a hack since _self and _id have the same uuid
-            file_id = url.split("/")[-1]
-            file_id = unquote(file_id)
-            if file_id.startswith("http"):
-                file_id = file_id.split("/")[-1]
-            if len(file_id) < 1:
-                raise DownloadingError("Invalid file name")
-            nexus.files.fetch(org_label=self.organisation, project_label=self.project,
-                              file_id=file_id, out_filepath=path)
-        except HTTPError as e:
-            raise DownloadingError(_error_message(e))
+            url_base, org, project = self._prepare_download_one(url, path, store_metadata, cross_bucket)
+            response = requests.get(url=url_base, headers=self.service.headers_download)
+            response.raise_for_status()
+        except Exception as e:
+            raise DownloadingError(f"Downloading from {org}/{project}:{_error_message(e)}")
+        else:
+            with open(path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=4096):
+                    f.write(chunk)
+
+    def _prepare_download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> Tuple[str,str,str]:
+        # this is a hack since _self and _id have the same uuid
+        file_id = url.split("/")[-1]
+        file_id = unquote(file_id)
+        if file_id.startswith("http"):
+            file_id = file_id.split("/")[-1]
+        if len(file_id) < 1:
+            raise DownloadingError("Invalid file name")
+        if cross_bucket:
+            if store_metadata is not None:
+                project = store_metadata._project.split('/')[-1]
+                org = store_metadata._project.split('/')[-2]
+            else:
+                raise ValueError(f"Downloading non registered file is not allowed when cross_bucket is set to {cross_bucket}")
+        else:
+            org = self.service.organisation
+            project = self.service.project
+
+        url_base = "/".join((self.service.url_base_files, quote_plus(org), quote_plus(project), quote_plus(file_id)))
+        return url_base, org, project
 
     # CR[U]D.
 
