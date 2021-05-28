@@ -108,7 +108,7 @@ class Dataset(Resource):
         _set(self, "hasPart", distribution)
 
     @catch
-    def download(self, path: str, source: str = "distributions", overwrite: bool = False) -> None:
+    def download(self, path: str, source: str = "distributions", overwrite: bool = False, cross_bucket: bool = False) -> None:
         # path: DirPath.
         """Download the distributions of the dataset or the files part of the dataset."""
         if source == "distributions":
@@ -117,7 +117,7 @@ class Dataset(Resource):
             follow = "hasPart.distribution.contentUrl"
         else:
             raise ValueError("unrecognized source")
-        self._forge.download(self, follow, path, overwrite)
+        self._forge.download(self, follow, path, overwrite, cross_bucket)
 
 
 def _set(dataset: Dataset, attr: str, data: Union[Resource, List[Resource], LazyAction]) -> None:
