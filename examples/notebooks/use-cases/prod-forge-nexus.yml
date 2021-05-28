@@ -13,7 +13,7 @@ Store:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
   vocabulary:
-    iri: "https://bluebrain.github.io/nexus/contexts/resource.json"
+    iri: "https://bluebrain.github.io/nexus/contexts/metadata.json"
     namespace: "https://bluebrain.github.io/nexus/vocabulary/"
     deprecated_property: "https://bluebrain.github.io/nexus/vocabulary/deprecated"
     project_property: "https://bluebrain.github.io/nexus/vocabulary/project"
