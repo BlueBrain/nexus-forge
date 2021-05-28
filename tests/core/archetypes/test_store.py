@@ -94,7 +94,7 @@ def test_download(config):
     simple = Resource(type="Experiment", url="file.gz")
     with pytest.raises(DownloadingError):
         forge = KnowledgeGraphForge(config)
-        forge._store.download(simple, "fake.path", "./", overwrite=False)
+        forge._store.download(simple, "fake.path", "./", overwrite=False, cross_bucket=False)
 
 def test_freeze(config, store_metadata_value):
 

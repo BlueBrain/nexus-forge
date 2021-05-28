@@ -349,9 +349,9 @@ class KnowledgeGraphForge:
 
     @catch
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,
-                 overwrite: bool = False) -> None:
+                 overwrite: bool = False, cross_bucket: bool = False) -> None:
         # path: DirPath.
-        self._store.download(data, follow, path, overwrite)
+        self._store.download(data, follow, path, overwrite, cross_bucket)
 
     # Storing User Interface.
 
