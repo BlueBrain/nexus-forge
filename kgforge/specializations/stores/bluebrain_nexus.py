@@ -471,13 +471,18 @@ class BlueBrainNexus(Store):
             namespace = store_context_config.get("namespace", Service.NEXUS_NAMESPACE_FALLBACK)
             project_property = store_context_config.get("project_property", Service.PROJECT_PROPERTY_FALLBACK)
             deprecated_property = store_context_config.get("deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK)
+            content_type = store_config.pop("Content-Type", "application/ld+json")
+            accept = store_config.pop("Accept", "application/ld+json")
+            files_upload_config = store_config.pop("files_upload", {"Accept":"application/ld+json"})
+            files_download_config = store_config.pop("files_download", {"Accept":"*/*"})
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
             return Service(endpoint=endpoint, org=self.organisation, prj=self.project, token=token,
                            model_context=self.model_context, max_connection=max_connection, searchendpoints=searchendpoints,
                            store_context=nexus_context_iri, namespace=namespace, project_property = project_property,
-                           deprecated_property=deprecated_property)
+                           deprecated_property=deprecated_property, content_type=content_type, accept=accept,
+                           files_upload_config=files_upload_config, files_download_config=files_download_config)
 
 
 def _error_message(error: HTTPError) -> str:

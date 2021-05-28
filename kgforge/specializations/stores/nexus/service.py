@@ -62,7 +62,9 @@ class Service:
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connection: int, searchendpoints: Dict, store_context, namespace, project_property, deprecated_property):
+                 max_connection: int, searchendpoints: Dict, store_context:  str, namespace: str, project_property: str,
+                 deprecated_property: bool, content_type: str, accept: str, files_upload_config: Dict,
+                 files_download_config: Dict):
 
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
@@ -80,24 +82,32 @@ class Service:
         self.default_es_index = f"{self.namespace}defaultElasticSearchIndex"
 
         self.headers = {
-            "Content-Type": "application/ld+json",
-            "Accept": "application/ld+json"
+            "Content-Type": content_type,
+            "Accept": accept
         }
 
+        sparql_config = searchendpoints['sparql'] if searchendpoints and "sparql" in searchendpoints else None
+        elastic_config = searchendpoints['elastic'] if searchendpoints and "elastic" in searchendpoints else None
+
         self.headers_sparql = {
-            "Content-Type": "text/plain",
-            "Accept": "application/sparql-results+json"
+            "Content-Type": sparql_config['Content-Type'] if sparql_config and 'Content-Type' in sparql_config
+            else "text/plain",
+            "Accept": sparql_config['Accept'] if sparql_config and 'Accept' in sparql_config
+            else "application/sparql-results+json"
         }
         self.headers_elastic = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+            "Content-Type": elastic_config['Content-Type'] if elastic_config and 'Content-Type' in elastic_config
+            else "application/json",
+            "Accept": elastic_config['Accept'] if elastic_config and 'Accept' in elastic_config
+            else "application/json"
         }
         self.headers_upload = {
-            "Accept": "application/ld+json",
+            "Accept": files_upload_config.pop("Accept"),
         }
         self.headers_download = {
-            "Accept": "*/*"
+            "Accept": files_download_config.pop("Accept")
         }
+
         if token is not None:
             nexus.config.set_token(token)
             self.headers["Authorization"] = "Bearer " + token
@@ -112,15 +122,15 @@ class Service:
         self.url_resolver = "/".join((self.endpoint,"resolvers", quote_plus(org), quote_plus(prj)))
         self.metadata_context = Context(self.resolve_context(self.store_context), store_context)
 
-        sparql_view = searchendpoints['sparql']['endpoint'] if searchendpoints and "sparql" in searchendpoints else self.default_sparql_index
-        elastic_view = searchendpoints['elastic']['endpoint'] if searchendpoints and "elastic" in searchendpoints else self.default_es_index
+        sparql_view = sparql_config['endpoint'] if sparql_config and "endpoint" in sparql_config else self.default_sparql_index
+        elastic_view = elastic_config['endpoint'] if elastic_config and "endpoint" in elastic_config else self.default_es_index
 
         self.sparql_endpoint = dict()
         self.elastic_endpoint = dict()
-        self.sparql_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(sparql_view), "sparql"))
+        self.sparql_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj), quote_plus(sparql_view), "sparql"))
         self.sparql_endpoint["type"] = "sparql"
 
-        self.elastic_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj),quote_plus(elastic_view), "_search"))
+        self.elastic_endpoint["endpoint"] = "/".join((self.endpoint, "views", quote_plus(org), quote_plus(prj), quote_plus(elastic_view), "_search"))
         self.elastic_endpoint["type"] = "elastic"
 
         # The following code is for async to work on jupyter notebooks
