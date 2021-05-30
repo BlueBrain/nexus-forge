@@ -148,7 +148,7 @@ The `Dataset` signature class corresponds to:
      add_derivation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
      add_invalidation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
      add_files(path: str, content_type: str = None) -> None
-     download(path: str, source: str, overwrite: bool = False) -> None
+     download(path: str, source: str, overwrite: bool = False, cross_bucket: bool = False) -> None
 
 Creating a `Dataset` object can be done with:
 
@@ -203,9 +203,9 @@ SPARQL query if supported by the store (4) or by using an ElasticSearch query if
    forge.search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross bucket search (True) or not (False)
    forge.sparql(query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]
    forge.elastic(query: str, debug: bool, limit: int, offset: int = None) -> List[Resource] # for elasticsearch query
-   forge.download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False) -> None
+   forge.download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False, cross_bucket: bool = False) -> None
 
-Currently `forge.search(*filters, **params)` will rewrite the filters as SPARQL query undre the hood.
+Currently `forge.search(*filters, **params)` will rewrite the filters as a SPARQL query.
 When the `cross_bucket=True` param is set, then it can be complemented with a 'bucket=<str>' param to filter the bucket to search in.
 
 Next are examples of search calls:
@@ -221,6 +221,8 @@ Next are examples of search calls:
     # Filter by type using a dictionary
     filters = {"type":"Dataset"}
     results_filters = forge.search(filters, limit=10, offset=0, deprecated=False)
+    # Filter by type using a dictionary and get distinct results
+    distinct_results_filters = forge.search(filters, limit=10, offset=0, distinct=True)
     # Filter by type using a paths
     paths = forge.paths("Dataset")
     result_paths = forge.search(paths.type=="Dataset", limit=10, offset=0, deprecated=False)
@@ -321,8 +323,8 @@ text documents. For example the text `USA` and `America` can be both resolved (o
 `Resolving` involves two main steps:
  * **candidates generation**: resolving often results in many possible resources to link to called candidates.
    Each candidate is associated with a score representing how close it is to the input text to resolve.
-   Candidates then can be ranked based on different criteria (e.g score, context of occurence in a given document)
-   combined using different strategies including exact or fuzzy matches. For example resolving the text Amereica
+   Candidates then can be ranked based on different criteria (e.g score, context of occurrence in a given document)
+   combined using different strategies including exact or fuzzy matches. For example resolving the text `America`
    using the `DBpedia look up service <https://lookup.dbpedia.org/>`__ yields the following 2 first candidates:
    `http://dbpedia.org/resource/United_States` and `http://dbpedia.org/resource/California`. There is a decision to be
    made about which candidate represents the best the text `America` within a given context.
@@ -336,10 +338,10 @@ text documents. For example the text `USA` and `America` can be both resolved (o
     (usually 0 for a distance based score or 1 for a normalised similarity score) are considered and one of them is picked.
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.BEST_MATCH` (default): Only candidates with the highest scores
-    that are potentially below a threshold (default to 0.5) are considered is one them is picked.
+    that are potentially below a threshold (default to 0.5) are considered.
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.ALL_MATCHES`: A list of candidates with scores potentially below a
-    threshold are considered. The size of the list of candidates can be controlled with a parameter (default to 10).
+    threshold are considered. The size of the list of candidates can be controlled with a `limit` parameter (default to 10).
 
 The `KnowledgeGraphForge` class exposes the following function for resolving a str, list of str or a `Resource`:
 
@@ -388,10 +390,8 @@ Full resolver config options and real world examples
             """
    forge = KnowledgeGraphForge(configuration= config)
    forge.resolve(text="person", scope="schemaorg", target="terms", strategy=ResolvingStrategy.BEST_MATCH)
-   resource = Resource(id=_id, name="Jane Doe", type="Person")
 
-
-A `scope` is a convenient (and arbitrary) way to name a given `Resolver` along with a set of sources of data
+A `scope` is a convenient way to name (any name can be provided) a given `Resolver` along with a set of sources of data
 (the `targets`) to resolve against.
 
 Nexus Forge comes with the support of 5 types Resolvers:

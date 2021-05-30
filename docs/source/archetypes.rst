@@ -1,13 +1,13 @@
 Archetypes
 ==========
 
-The framework provides a set of archetypes that allows the extension of the different *Forge* modules to work with
+The framework provides a set of archetypes that allows the extension of the different Nexus Forge modules to work with
 different technologies. These are described next.
 
 Mapper
 ------
 
-The Mapper provides the interface to a technology to be used to do the transformation of data.
+The Mapper archetype defines an interface for transforming to a `Resource` or list of Resources data from different sources and of different formats.
 
 .. code-block:: python
 
@@ -17,7 +17,8 @@ The Mapper provides the interface to a technology to be used to do the transform
 Mapping
 -------
 
-The mapping interface provides the interfaces to load and serialize mapping files.
+The Mapping archetype defines an interface for loading (from a file, a str or a URL) and serializing mapping rules.
+Mappings are declarative rules encoding the logic of transforming data from a given source and format into resources.
 
 .. code-block:: python
 
@@ -28,7 +29,8 @@ The mapping interface provides the interfaces to load and serialize mapping file
 Model
 -----
 
-The Model provides the interface for data modeling technologies to be implemented.
+The Mapping archetype defines an interface for data modeling (e.g. W3C SHACL or JSON schemas) technologies to be used for
+(meta)data validation.
 
 .. code-block:: python
 
@@ -44,6 +46,9 @@ The Model provides the interface for data modeling technologies to be implemente
 Resolver
 --------
 
+The Resolver archetype defines an interface for linking (or resolving) str, list of str or a `Resource` to identifiers
+(URIs) in a knowledge base (e.g. ontologies, knowledge graph).
+
 .. code-block:: python
 
    Resolver(source: str, targets: List[Dict[str, str]], result_resource_mapping: str, **source_config)
@@ -54,7 +59,7 @@ Resolver
 Store
 -----
 
-The Store provides the interface of storage for different technologies to be implemented.
+The Store archetype defines an interface for (meta)data storage, search, download, deprecation and tag.
 
 .. code-block:: python
 
