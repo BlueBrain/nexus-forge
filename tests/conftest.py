@@ -23,6 +23,7 @@ from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld, Form
+from kgforge.core.wrappings.dict import wrap_dict
 
 
 def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
@@ -232,6 +233,13 @@ def store_metadata_value(store_metadata_context, metadata_data_compacted):
 @pytest.fixture
 def person(custom_context):
     return Resource(context=custom_context, type=["Person","Agent"], name="Jami Booth")
+
+@pytest.fixture
+def registered_person_custom_context(person, custom_context, store_metadata_value):
+    person.id = "c51f4e4e-2b30-41f4-8f7c-aced85632b03"
+    store_metadata_value["id"] = person.id
+    person._store_metadata = wrap_dict(store_metadata_value)
+    return person
 
 
 @pytest.fixture
