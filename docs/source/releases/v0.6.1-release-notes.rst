@@ -5,6 +5,7 @@ vO.6.1 Release Notes
 This release adds new enhancements:
 
 * to the Nexus Forge's SPARQL query rewriting by supporting DISTINCT and Graph clauses when using `forge.search()`
+* to `Dataset` which can now be created from `Resource` instances
 * to the `BlueBrainNexus` store specialization by supporting cross bucket download as well as more configuration options (`BlueBrainNexus` store's max_connection when searching and http headers for its endpoint, ElasticSearch and SPARQL views, files upload and download)
 
 Enhancements
@@ -46,6 +47,15 @@ Enhancements
 
 The `BlueBrainNexus` store's SPARQL endpoint default http headers are changed to `text/plain` for `Content-Type` and `application/sparql-results+json` for `Accept`.
 
+* Added creation of `Dataset` instance from `Resource` instances. `#150 <https://github.com/BlueBrain/nexus-forge/pull/150>`__ (usage: 02 - Datasets notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.1/examples/notebooks/getting-started/02%20-%20Datasets.ipynb>`__ or on |Binder_Getting_Started|)
+
+.. code-block:: python
+
+    from kgforge.core import KnowledgeGraphForge
+    from kgforge.specializations.resources import Dataset, Resource
+    forge = KnowledgeGraphForge(configuration= "config_filepath_or_url")
+    resource = Resource(name="Jane Doe", type="Person", email="jane.doe@example.org")
+    dataset = Dataset.from_resource(forge, resource, store_metadata=True)
 
 .. |Binder_Getting_Started| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
