@@ -4,8 +4,8 @@ vO.6.1 Release Notes
 
 This release adds new enhancements:
 
-* to the Nexus Forge's SPARQL query rewriting by supporting DISTINCT and Graph clauses
-* to the `BlueBrainNexus` store specialization by supporting cross bucket download as well as more configuration options (`BlueBrainNexus` store's max_connection when searching, endpoint, ElasticSearch and SPARQL views, files upload and download headers)
+* to the Nexus Forge's SPARQL query rewriting by supporting DISTINCT and Graph clauses when using `forge.search()`
+* to the `BlueBrainNexus` store specialization by supporting cross bucket download as well as more configuration options (`BlueBrainNexus` store's max_connection when searching and http headers for its endpoint, ElasticSearch and SPARQL views, files upload and download)
 
 Enhancements
 ============
@@ -18,13 +18,13 @@ Enhancements
    from kgforge.specializations.resources import Dataset
 
    forge = KnowledgeGraphForge("config_filepath_or_url")
-    dataset = Dataset(forge, name="Interesting dataset")
-    dataset.add_distribution("path/to/file.jpg", content_type="image/jpeg")
-    forge.register(dataset)
-    #Download with the Dataset
-    dataset.download(dataset, cross_bucket=True)
-    #Download with forge
-    forge.download(dataset, cross_bucket=True)
+   dataset = Dataset(forge, name="Interesting dataset")
+   dataset.add_distribution("path/to/file.jpg", content_type="image/jpeg")
+   forge.register(dataset)
+   #Download with the Dataset
+   dataset.download(dataset, cross_bucket=True)
+   #Download with forge
+   forge.download(dataset, cross_bucket=True)
 
 * SPARQL query rewriting now supports DISTINCT and Graph clauses when performing `forge.search()`. `#144 <https://github.com/BlueBrain/nexus-forge/pull/144>`__ (usage: 04 - Querying notebook on `Github <https://github.com/BlueBrain/nexus-forge/blob/v0.6.1/examples/notebooks/getting-started/04%20-%20Querying.ipynb>`__ or on |Binder_Getting_Started|)
 
@@ -35,16 +35,16 @@ Enhancements
     forge = KnowledgeGraphForge(configuration="config_filepath_or_url")
 
     filters = {"type":"Dataset"}
-    # Filter by type using a dictionary and get distinct results looked up within named graph
+    # Filter by type using a dictionary and get distinct results looked up within named graphs
     distinct_results_filters = forge.search(filters, distinct=True, search_in_graph=True)
 
 * Added configuration support (`#148 <https://github.com/BlueBrain/nexus-forge/pull/148>`__) for:
 
   * `BlueBrainNexus` store's max_connection number when searching
 
-  * `BlueBrainNexus` store's endpoint, ElasticSearch and SPARQL views, files upload and download headers.
+  * `BlueBrainNexus` store's endpoint, ElasticSearch and SPARQL views, files upload and download http headers.
 
-The `BlueBrainNexus` store SPARQL endpoint headers are changed to `text/plain` for `Content-Type` and `application/sparql-results+json` for `Accept`.
+The `BlueBrainNexus` store's SPARQL endpoint default http headers are changed to `text/plain` for `Content-Type` and `application/sparql-results+json` for `Accept`.
 
 
 .. |Binder_Getting_Started| image:: https://mybinder.org/badge_logo.svg
