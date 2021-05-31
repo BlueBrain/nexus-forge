@@ -344,8 +344,7 @@ text documents. For example the text `USA` and `America` can be both resolved (o
    made about which candidate represents the best the text `America` within a given context. In Nexus Forge, resolving candidates are `Resources` of type
    `kgforge.core.specializations.resources.entity_linking_candidate.EntityLinkingCandidate`.
 
- * **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies
-  are available:
+ * **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies are available:
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.EXACT_MATCH`: Only candidates with a perfect score
     (usually 0 for a distance based score or 1 for a normalised similarity score) are considered and one of them is picked.
