@@ -178,20 +178,20 @@ class Service:
 
         def create_tasks(semaphore, session, loop, data, batch_action, f_callback, error):
             futures = []
+            schema_id = kwargs.get("schema_id")
+            schema_id = "_" if schema_id is None else quote_plus(schema_id)
             for resource in data:
                 if batch_action == batch_action.CREATE:
                     context = self.model_context or self.context
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=context, metadata_context=None,
                                         context_resolver=self.resolve_context)
-                    schema_id = kwargs.get("schema_id")
-                    schema_id = "_" if schema_id is None else quote_plus(schema_id)
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
 
                 if batch_action == batch_action.UPDATE:
-                    url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
+                    url = "/".join((self.url_resources, schema_id, quote_plus(resource.id)))
                     params = {"rev": resource._store_metadata._rev}
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=self.model_context,

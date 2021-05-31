@@ -29,7 +29,7 @@ from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
-from rdflib_jsonld.context import Term
+
 from requests import HTTPError
 
 from kgforge.core import Resource
@@ -290,23 +290,24 @@ class BlueBrainNexus(Store):
 
     # CR[U]D.
 
-    def update(self, data: Union[Resource, List[Resource]]) -> None:
+    def update(self, data: Union[Resource, List[Resource]], schema_id: str) -> None:
         run(self._update_one, self._update_many, data, id_required=True, required_synchronized=False,
-            execute_actions=True, exception=UpdatingError, monitored_status="_synchronized")
+            execute_actions=True, exception=UpdatingError, monitored_status="_synchronized", schema_id=schema_id)
 
-    def _update_many(self, resources: List[Resource]) -> None:
+    def _update_many(self, resources: List[Resource], schema_id: str) -> None:
         update_callback = self.service.default_callback(self._update_many.__name__)
         verified = self.service.verify(
             resources, self._update_many.__name__, UpdatingError, id_required=True,
             required_synchronized=False, execute_actions=True)
         self.service.batch_request(verified, BatchAction.UPDATE, update_callback, UpdatingError)
 
-    def _update_one(self, resource: Resource) -> None:
+    def _update_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context, metadata_context=None,
                          context_resolver=self.service.resolve_context)
         rev = {"rev": resource._store_metadata._rev}
-        url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}"
+        schema = quote_plus(schema_id) if schema_id else "_"
+        url = f"{self.service.url_resources}/{schema}/{quote_plus(resource.id)}"
         try:
             response = requests.put(url, headers=self.service.headers,
                                     data=json.dumps(data, ensure_ascii=True), params=rev)
@@ -512,13 +513,14 @@ def _error_message(error: HTTPError) -> str:
         return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
 
     try:
-        reason = error.response.json()["reason"]
-        return format_message(reason)
-    except AttributeError:
+        error_json = error.response.json()
+        if "reason" in error_json:
+            return format_message(error_json["reason"])
+    except AttributeError as e:
         pass
     try:
         return format_message(error.response.text())
-    except AttributeError:
+    except Exception:
         return format_message(str(error))
 
 
