@@ -158,11 +158,11 @@ class Store(ABC):
                 filepaths.append(f"{filepath}.{timestamp}")
             else:
                 filepaths.append(str(filepath))
+        store_metadata = [r._store_metadata for r in data] if isinstance(data, List) else data._store_metadata
         if count > 1:
-            store_metadata = [r._store_metadata for r in data]
             self._download_many(urls, filepaths, store_metadata, cross_bucket)
         else:
-            self._download_one(urls[0], filepaths[0], data._store_metadata, cross_bucket)
+            self._download_one(urls[0], filepaths[0], store_metadata, cross_bucket)
 
     def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
         # paths: List[FilePath].
