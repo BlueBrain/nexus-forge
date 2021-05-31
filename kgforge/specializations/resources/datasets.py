@@ -119,6 +119,17 @@ class Dataset(Resource):
             raise ValueError("unrecognized source")
         self._forge.download(self, follow, path, overwrite, cross_bucket)
 
+    @classmethod
+    def from_resource(cls, forge: KnowledgeGraphForge, data: Union[Resource, List[Resource]],
+                      store_metadata: bool = False):
+        def _(d):
+            resource_json = forge.as_json(d)
+            dataset = cls(forge, **resource_json)
+            if store_metadata:
+                dataset._store_metadata = d._store_metadata
+            return dataset
+        return [_(d) for d in data] if isinstance(data, List) else _(data)
+
 
 def _set(dataset: Dataset, attr: str, data: Union[Resource, List[Resource], LazyAction]) -> None:
     if hasattr(dataset, attr):

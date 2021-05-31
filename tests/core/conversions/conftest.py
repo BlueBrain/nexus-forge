@@ -66,14 +66,6 @@ def make_registered():
 
 
 @pytest.fixture
-def registered_person_custom_context(person, custom_context, store_metadata_value):
-    person.id = str(uuid4())
-    store_metadata_value["id"] = person.id
-    person._store_metadata = wrap_dict(store_metadata_value)
-    return person
-
-
-@pytest.fixture
 def organization_jsonld_compacted(custom_context, model_context, metadata_data_compacted):
     def _make_jsonld_compacted(r, store_metadata):
         data = dict()

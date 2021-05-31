@@ -127,6 +127,7 @@ record their provenance and describe them with metadata. The metadata of `Datase
   * `invalidation <https://www.w3.org/TR/prov-o/#Invalidation>`__ (data became invalid)
 
 * Data storage and access:
+
   * `distribution <https://schema.org/distribution>`__ (a downloadable form of the Dataset, at a specific location, in a specific format)
 
 The `Dataset` class provides methods for adding files to a `Dataset`. The added files will only be uploaded in the Store when the `forge.register` function is
@@ -149,6 +150,8 @@ The `Dataset` signature class corresponds to:
      add_invalidation(resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None
      add_files(path: str, content_type: str = None) -> None
      download(path: str, source: str, overwrite: bool = False, cross_bucket: bool = False) -> None
+     @classmethod
+     from_resource(forge: KnowledgeGraphForge, data: Union[Resource, List[Resource]], store_metadata: bool = False) -> Union[Dataset, List[Dataset]]
 
 Creating a `Dataset` object can be done with:
 
@@ -159,6 +162,16 @@ Creating a `Dataset` object can be done with:
     forge = KnowledgeGraphForge(configuration= "./config.yml", **kwargs)
     dataset = Dataset(forge, name="Interesting dataset")
     dataset.add_distribution("path/to/file.jpg", content_type="image/jpeg")
+
+or from a `Resource` instance:
+
+.. code-block:: python
+
+    from kgforge.core import KnowledgeGraphForge
+    from kgforge.specializations.resources import Dataset, Resource
+    forge = KnowledgeGraphForge(configuration= "./config.yml", **kwargs)
+    resource = Resource(name="Jane Doe", type="Person", email="jane.doe@example.org")
+    dataset = Dataset.from_resource(forge, resource, store_metadata=True)
 
 Storing
 -------
@@ -321,17 +334,17 @@ text documents. For example the text `USA` and `America` can be both resolved (o
 `http://dbpedia.org/resource/United_States` using the `DBpedia look up service <https://lookup.dbpedia.org/>`__.
 
 `Resolving` involves two main steps:
+
  * **candidates generation**: resolving often results in many possible resources to link to called candidates.
    Each candidate is associated with a score representing how close it is to the input text to resolve.
    Candidates then can be ranked based on different criteria (e.g score, context of occurrence in a given document)
    combined using different strategies including exact or fuzzy matches. For example resolving the text `America`
    using the `DBpedia look up service <https://lookup.dbpedia.org/>`__ yields the following 2 first candidates:
    `http://dbpedia.org/resource/United_States` and `http://dbpedia.org/resource/California`. There is a decision to be
-   made about which candidate represents the best the text `America` within a given context.
-   In Nexus Forge, resolving candidates are `Resources` of type
+   made about which candidate represents the best the text `America` within a given context. In Nexus Forge, resolving candidates are `Resources` of type
    `kgforge.core.specializations.resources.entity_linking_candidate.EntityLinkingCandidate`.
 
-* **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies
+ * **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies
   are available:
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.EXACT_MATCH`: Only candidates with a perfect score
