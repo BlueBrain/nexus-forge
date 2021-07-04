@@ -228,7 +228,7 @@ class BlueBrainNexus(Store):
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
-    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[List[DictWrapper]], cross_bucket: bool) -> None:
 
         async def _bulk():
             loop = asyncio.get_event_loop()

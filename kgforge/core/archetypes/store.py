@@ -143,7 +143,13 @@ class Store(ABC):
     def download(self, data: Union[Resource, List[Resource]], follow: str, path: str,
                  overwrite: bool, cross_bucket: bool) -> None:
         # path: DirPath.
-        urls = collect_values(data, follow, DownloadingError)
+        urls = []
+        store_metadata = []
+        to_download = [data] if isinstance(data, Resource) else data
+        for d in to_download:
+            collected_values = collect_values(d, follow, DownloadingError)
+            urls.extend(collected_values)
+            store_metadata.extend([d._store_metadata for _ in range(len(collected_values))])
         count = len(urls)
         if count == 0:
             raise DownloadingError(f"path to follow '{follow}' was not found in any provided resource.")
@@ -158,13 +164,12 @@ class Store(ABC):
                 filepaths.append(f"{filepath}.{timestamp}")
             else:
                 filepaths.append(str(filepath))
-        store_metadata = [r._store_metadata for r in data] if isinstance(data, List) else data._store_metadata
         if count > 1:
             self._download_many(urls, filepaths, store_metadata, cross_bucket)
         else:
             self._download_one(urls[0], filepaths[0], store_metadata, cross_bucket)
 
-    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[List[DictWrapper]], cross_bucket: bool) -> None:
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
