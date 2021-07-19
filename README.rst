@@ -66,8 +66,8 @@ Development version
 
 
 
-Acknowledgements
-----------------
+Funding and Acknowledgements
+----------------------------
 
 This project has received funding from the EPFL Blue Brain Project (funded by
 the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology)
