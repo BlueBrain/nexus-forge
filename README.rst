@@ -75,7 +75,7 @@ and from the European Union’s Horizon 2020 Framework Programme for Research an
 Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SGA2).
 
 
-COPYRIGHT 2019–2021, Blue Brain Project/EPFL
+COPYRIGHT © 2019–2021 Blue Brain Project/EPFL
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
