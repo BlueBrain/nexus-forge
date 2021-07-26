@@ -18,20 +18,20 @@ from typing import Union, Dict, List, Tuple, Optional, Callable
 from urllib.error import URLError, HTTPError
 
 from enum import Enum
-from pyld import jsonld
-from rdflib import Graph, term
+from rdflib import Graph
 from pyld import jsonld
 import json
 from collections import OrderedDict
 
-from rdflib.namespace import OWL, RDF
+from rdflib.namespace import RDF
 from rdflib_jsonld.keys import CONTEXT, GRAPH, TYPE, ID
 
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.commons.execution import dispatch
-from kgforge.core.resource import Resource
+from kgforge.core.resource import Resource, encode
+
 
 class Form(Enum):
     EXPANDED = "expanded"
@@ -170,15 +170,16 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         else:
             raise NotSupportedError("no available context in the metadata")
     try:
-        data_graph, metadata_graph = _as_graphs(resource, store_metadata, context, metadata_context)
+        data_graph, metadata_graph, encoded_resource = _as_graphs(resource, store_metadata, context, metadata_context)
     except Exception as e:
         raise ValueError(e)
-    data_expanded = json.loads(data_graph.serialize(format="json-ld").decode("utf-8"))
-    if hasattr(resource, "id"):
+    jsonld_data_expanded = jsonld.expand(encoded_resource, options={'expandContext': resolved_context})
+
+    if hasattr(resource, "id") or hasattr(resource, "@id"):
         if context.base:
             uri = context.resolve(resource.id)
         else:
-            uri = str(data_graph.namespace_manager.absolutize(resource.id)) if not str(resource.id).startswith("_:") else resource.id
+            uri = str(data_graph.namespace_manager.absolutize(resource.id, defrag=0)) if not str(resource.id).startswith("_:") else resource.id
         frame = {"@id": uri}
     else:
         frame = dict()
@@ -195,8 +196,8 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                     if key and isinstance(v, str):
                         frame[key] = v
     frame["@embed"] = "@link"
-    data_framed = jsonld.frame(data_expanded, frame, options={'processingMode': 'json-ld-1.1'})
-    resource_graph_node  = data_framed["@graph"][0] if "@graph" in data_framed else data_framed
+    data_framed = jsonld.frame(jsonld_data_expanded, frame, options={'processingMode': 'json-ld-1.1'})
+    resource_graph_node = _graph_free_jsonld(data_framed)
     if resource_types is None:
         resource_graph_node.pop(TYPE)
     else:
@@ -251,7 +252,7 @@ def _as_graph_one(resource: Resource, store_metadata: bool, model_context: Optio
 
 
 def _as_graphs(resource: Resource, store_metadata: bool, context: Context,
-               metadata_context: Context) -> Tuple[Graph, Graph]:
+               metadata_context: Context) -> Tuple[Graph, Graph, Dict]:
     """Returns a data and a metadata graph"""
     if hasattr(resource, "context"):
         output_context = resource.context
@@ -259,7 +260,7 @@ def _as_graphs(resource: Resource, store_metadata: bool, context: Context,
         output_context = context.iri if context.is_http_iri() else context.document["@context"]
     converted = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)+ (converted,)
 
 
 def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,

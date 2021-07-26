@@ -115,6 +115,24 @@ class TestJsonLd:
         resource = from_jsonld(payload)
         assert resource == building
 
+    def test_as_jsonld(self, building, model_context, building_jsonld, forge):
+        building.context = model_context.document["@context"]
+        building.context["embedding"] = {
+            "@id": "http://example.org/embedding",
+            "@container": "@list"
+        }
+        building.embedding = [0, 1, 2, 0]
+        result = forge.as_jsonld(building, form="expanded")
+        payload = building_jsonld(building, "expanded", False, None)
+        payload["http://example.org/embedding"] = {'@list': [0, 1, 2, 0]}
+        assert result == payload
+
+        building.embedding = [1, 2, 0, 0]
+        result = forge.as_jsonld(building, form="expanded")
+        payload = building_jsonld(building, "expanded", False, None)
+        payload["http://example.org/embedding"] = {'@list': [1, 2, 0, 0]}
+        assert result == payload
+
     def test_unresolvable_context(self, building, building_jsonld):
         building.context = "http://unresolvable.context.example.org/"
         payload = building_jsonld(building, "compacted", False, None)
