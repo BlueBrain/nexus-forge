@@ -12,14 +12,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import json
 from copy import deepcopy
-from typing import Union, Dict, List, Tuple, Optional, Callable
+from typing import Union, Dict, List, Tuple, Optional, Callable, Any
 from urllib.error import URLError, HTTPError
 
 from enum import Enum
-from rdflib import Graph
 from pyld import jsonld
+from rdflib import Graph, Literal
 import json
 from collections import OrderedDict
 
@@ -30,7 +29,7 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.commons.execution import dispatch
-from kgforge.core.resource import Resource, encode
+from kgforge.core.resource import Resource
 
 
 class Form(Enum):
@@ -47,7 +46,7 @@ def as_graph(data: Union[Resource, List[Resource]], store_metadata: bool,
 
 def as_jsonld(data: Union[Resource, List[Resource]], form: str, store_metadata: bool,
               model_context: Optional[Context], metadata_context: Optional[Context],
-              context_resolver: Optional[Callable]) -> Union[Dict, List[Dict]]:
+              context_resolver: Optional[Callable], na: Union[Any, List[Any]]) -> Union[Dict, List[Dict]]:
     try:
         valid_form = Form(form.lower())
     except ValueError:
@@ -56,7 +55,7 @@ def as_jsonld(data: Union[Resource, List[Resource]], form: str, store_metadata: 
 
     return dispatch(
         data, _as_jsonld_many, _as_jsonld_one, valid_form, store_metadata, model_context,
-        metadata_context, context_resolver)
+        metadata_context, context_resolver, na)
 
 
 def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
@@ -143,15 +142,20 @@ def _from_jsonld_one(data: Dict) -> Resource:
 
 def _as_jsonld_many(resources: List[Resource], form: Form, store_metadata: bool,
                     model_context: Optional[Context], metadata_context: Optional[Context],
-                    context_resolver: Optional[Callable]) -> List[Dict]:
+                    context_resolver: Optional[Callable], na: Optional[List[Any]]) -> List[Dict]:
+    if na is not None and len(na) != len(resources):
+        raise ValueError(f"len(na) should be equal to len(resources): {len(na)} != {len(resources)}")
+
     return [_as_jsonld_one(resource, form, store_metadata, model_context, metadata_context,
-                           context_resolver)
-            for resource in resources]
+                           context_resolver, na[i]) if na is not None else
+            _as_jsonld_one(resource, form, store_metadata, model_context, metadata_context,
+                           context_resolver, na)
+            for i, resource in enumerate (resources)]
 
 
 def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
                    model_context: Optional[Context], metadata_context: Optional[Context],
-                   context_resolver: Optional[Callable]) -> Dict:
+                   context_resolver: Optional[Callable], na: Any) -> Dict:
     context = _resource_context(resource, model_context, context_resolver)
     resolved_context = context.document
     output_context = context.iri if context.is_http_iri() else context.document["@context"]
@@ -171,6 +175,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
             raise NotSupportedError("no available context in the metadata")
     try:
         data_graph, metadata_graph, encoded_resource = _as_graphs(resource, store_metadata, context, metadata_context)
+        data_graph.remove((None, None, Literal(na)))
     except Exception as e:
         raise ValueError(e)
     jsonld_data_expanded = jsonld.expand(encoded_resource, options={'expandContext': resolved_context})
@@ -239,7 +244,7 @@ def _as_graph_many(resources: List[Resource], store_metadata: bool, model_contex
     for resource in resources:
         # Do not use _as_graph_one as it will lead to using graph1 + graph2 operation which can lead to blank node collisions
         json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
-                                 metadata_context, context_resolver)
+                                 metadata_context, context_resolver, None)
         graph.parse(data=json.dumps(json_ld), format="json-ld")
     return graph
 
@@ -247,7 +252,7 @@ def _as_graph_many(resources: List[Resource], store_metadata: bool, model_contex
 def _as_graph_one(resource: Resource, store_metadata: bool, model_context: Optional[Context],
                   metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     json_ld = _as_jsonld_one(resource, Form.EXPANDED, store_metadata, model_context,
-                             metadata_context, context_resolver)
+                             metadata_context, context_resolver, None)
     return Graph().parse(data=json.dumps(json_ld), format="json-ld")
 
 

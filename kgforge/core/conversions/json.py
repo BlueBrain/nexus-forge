@@ -39,8 +39,7 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool, store_metadat
 
 def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]
               ) -> Union[Resource, List[Resource]]:
-    nas = na if isinstance(na, List) else [na]
-    return _from_json(data, nas)
+    return Resource.from_json(data, na)
 
 
 def _as_json(resource: Resource, store_metadata: bool) -> Dict:
@@ -49,16 +48,6 @@ def _as_json(resource: Resource, store_metadata: bool) -> Dict:
     if store_metadata is True and resource._store_metadata:
         data.update(json.loads(hjson.dumpsJSON(resource._store_metadata, item_sort_key=sort_attrs)))
     return data
-
-
-def _from_json(data: Union[Any, List[Any]], na: List[Any]) -> Any:
-    if isinstance(data, List):
-        return [_from_json(x, na) for x in data]
-    elif isinstance(data, Dict):
-        properties = {k: _from_json(v, na) for k, v in data.items() if v not in na}
-        return Resource(**properties)
-    else:
-        return data
 
 
 def _remove_context(dictionary: dict):

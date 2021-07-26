@@ -53,7 +53,7 @@ class TestJsonLd:
         compacted = organization_jsonld_compacted(organization, store_metadata=store_metadata)
         result = as_jsonld(organization, form=Form.COMPACTED.value, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None)
+                           context_resolver=None, na=None)
         compacted["founder"]["@type"] = sorted(compacted["founder"]["@type"])
         result["founder"]["@type"] = sorted(result["founder"]["@type"])
         assert compacted == result
@@ -62,7 +62,7 @@ class TestJsonLd:
     def test_no_context(self, form, store_metadata, valid_resource):
         with pytest.raises(NotSupportedError):
             as_jsonld(valid_resource, form=form, store_metadata=store_metadata, model_context=None,
-                      metadata_context=None, context_resolver=None)
+                      metadata_context=None, context_resolver=None, na=None)
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
     def test_unregistered_resource_with_context(self, building_with_context, building_jsonld,
@@ -71,7 +71,7 @@ class TestJsonLd:
 
         result = as_jsonld(building_with_context, form=form, store_metadata=store_metadata,
                            model_context=None, metadata_context=metadata_context,
-                           context_resolver=None)
+                           context_resolver=None, na=None)
         assert expected == result
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
@@ -83,7 +83,7 @@ class TestJsonLd:
         expected = building_jsonld(registered_resource, form, store_metadata, None)
         result = as_jsonld(registered_resource, form=form, store_metadata=store_metadata,
                            model_context=None, metadata_context=metadata_context,
-                           context_resolver=None)
+                           context_resolver=None, na=None)
         assert expected == result
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
@@ -92,7 +92,7 @@ class TestJsonLd:
         expected = building_jsonld(building, form, store_metadata, model_context.document["@context"])
         result = as_jsonld(building, form=form, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None)
+                           context_resolver=None, na=None)
 
         assert expected == result
 
@@ -106,7 +106,7 @@ class TestJsonLd:
         expected = building_jsonld(registered_resource, form, store_metadata, None)
         result = as_jsonld(registered_resource, form=form, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None)
+                           context_resolver=None, na=None)
         assert expected == result
 
     def test_from_jsonld(self, building, model_context, building_jsonld):
@@ -154,7 +154,7 @@ class TestGraph:
 
         organization_jsonld = as_jsonld(organization, form="compacted", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None)
+                  context_resolver=None, na=None)
         expected = Graph()
         expected.parse(data=json.dumps(data), format="json-ld")
         expected.parse(data=json.dumps(organization_jsonld), format="json-ld")
@@ -182,7 +182,7 @@ class TestGraph:
         expected = building_jsonld(building, "expanded", store_metadata, None)
         result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None)
+                  context_resolver=None, na=None)
         assert result_jsonld == expected
 
         graph.remove((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
@@ -198,11 +198,11 @@ class TestGraph:
 
         result_0 = as_jsonld(results[0], form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None)
+                  context_resolver=None, na=None)
 
         result_1 = as_jsonld(results[1], form="expanded", store_metadata=store_metadata,
                              model_context=model_context, metadata_context=metadata_context,
-                             context_resolver=None)
+                             context_resolver=None, na=None)
         results = [result_0, result_1]
         assert set(["http://schema.org/Building","http://schema.org/Image"]) == {result["@type"] for result in results}
 
@@ -215,7 +215,7 @@ class TestGraph:
         expected = {'@type': 'http://schema.org/Image', '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
         result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                          model_context=model_context, metadata_context=metadata_context,
-                         context_resolver=None)
+                         context_resolver=None, na=None)
         assert result_jsonld == expected
 
 
