@@ -396,7 +396,7 @@ class KnowledgeGraphForge:
     def as_jsonld(self, data: Union[Resource, List[Resource]], form: str = Form.COMPACTED.value,
                   store_metadata: bool = False) -> Union[Dict, List[Dict]]:
         return as_jsonld(data, form, store_metadata, self._model.context(),
-                         self._store.metadata_context, self._model.resolve_context)
+                         self._store.metadata_context, self._model.resolve_context, None)
 
     @catch
     def as_graph(self, data: Union[Resource, List[Resource]], store_metadata: bool = False) -> Graph:

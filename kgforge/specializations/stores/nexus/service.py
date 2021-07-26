@@ -27,6 +27,7 @@ import nest_asyncio
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
+from numpy import nan
 from requests import HTTPError
 
 from kgforge.core import Resource
@@ -185,7 +186,7 @@ class Service:
                     context = self.model_context or self.context
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=context, metadata_context=None,
-                                        context_resolver=self.resolve_context)
+                                        context_resolver=self.resolve_contextn, na=nan)
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
@@ -196,7 +197,7 @@ class Service:
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=self.model_context,
                                         metadata_context=None,
-                                        context_resolver=self.resolve_context)
+                                        context_resolver=self.resolve_context, na=nan)
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_PUT, semaphore, session, url, resource, error, payload,
                               params))

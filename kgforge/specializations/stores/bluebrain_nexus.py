@@ -26,6 +26,7 @@ import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
+from numpy import nan
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
@@ -124,7 +125,8 @@ class BlueBrainNexus(Store):
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context,
-                         metadata_context=None, context_resolver=self.service.resolve_context)
+                         metadata_context=None, context_resolver=self.service.resolve_context, na=nan)
+
         try:
             response = nexus.resources.create(org_label=self.organisation,
                                               project_label=self.project, data=data,
@@ -228,7 +230,7 @@ class BlueBrainNexus(Store):
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
-    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[List[DictWrapper]], cross_bucket: bool) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
 
         async def _bulk():
             loop = asyncio.get_event_loop()
@@ -304,7 +306,7 @@ class BlueBrainNexus(Store):
     def _update_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context, metadata_context=None,
-                         context_resolver=self.service.resolve_context)
+                         context_resolver=self.service.resolve_context, na=nan)
         rev = {"rev": resource._store_metadata._rev}
         schema = quote_plus(schema_id) if schema_id else "_"
         url = f"{self.service.url_resources}/{schema}/{quote_plus(resource.id)}"

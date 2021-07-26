@@ -11,8 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 
 import hjson
 
@@ -74,6 +73,22 @@ class Resource:
             self.__dict__["_validated"] = False
             self.__dict__["_synchronized"] = False
         self.__dict__[key] = value
+
+    @classmethod
+    def from_json(cls, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]):
+
+        def _(d: Union[Dict, List[Dict]], nas: List[Any]) -> Resource:
+            if isinstance(d, List):
+                return [_(x,  nas) for x in d]
+            elif isinstance(d, Dict):
+                properties = {k: _(v, nas) for k, v in d.items() if v not in nas}
+                return Resource(**properties)
+            else:
+                return d
+
+        nas = na if isinstance(na, List) else [na]
+        return [_(d, nas) for d in data] if isinstance(data, List) else _(data, nas)
+
 
 
 def encode(data: Any) -> Union[str, Dict]:
