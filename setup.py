@@ -48,7 +48,8 @@ setup(
         "nest_asyncio",
         "pyLD",
         "pyshacl==0.11.6.post1",
-        "rdflib-jsonld"
+        "rdflib-jsonld",
+        "nest-asyncio>=1.5.1"
     ],
     extras_require={
         "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock", "codecov"],
