@@ -19,7 +19,6 @@ from pandas import DataFrame
 
 # Test suite for conversion of resource to / from Pandas DataFrame.
 
-# FIXME "expanded" not yet implemented because not yet done in as_json() (DKE-130)
 from kgforge.core import Resource
 
 
@@ -31,6 +30,15 @@ def df_from_one_resource():
         "p1": {0: "v1a"},
         "p2": {0: "v2a"}
     })
+
+
+@pytest.fixture
+def df_expanded_from_one_resource():
+    return DataFrame({
+        "@type": {0: "schema:Person"},
+        "schema:name": {0: "John Doe"}
+    })
+
 
 @pytest.fixture
 def df():
@@ -65,6 +73,11 @@ class TestConversionToDataFrame:
         rcs = [r1, r2]
         x = forge.as_dataframe(rcs)
         assert x.equals(df)
+
+    def test_as_dataframe_expanded(self, forge, df_expanded_from_one_resource):
+        r = Resource(type="Person", name="John Doe")
+        x = forge.as_dataframe(r, expanded=True)
+        assert x.equals(df_expanded_from_one_resource)
 
     def test_as_dataframe_metadata(self, forge, df, r1, r2):
         rcs = [r1, r2]
