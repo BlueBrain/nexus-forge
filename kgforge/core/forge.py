@@ -261,7 +261,7 @@ class KnowledgeGraphForge:
                         rov = scope_resolvers[0]
                     else:
                         raise ResolvingError("resolver name should be specified")
-            elif scope not in self._resolvers:
+            elif scope is not None:
                 raise AttributeError(f"{scope} is not a configured resolving scope. Configured scopes are {list(self._resolvers.keys())}")
             else:
                 scopes_resolvers = list(self._resolvers.values())
@@ -276,8 +276,6 @@ class KnowledgeGraphForge:
                     else:
                         raise ResolvingError("resolving scope or resolver name should be "
                                              "specified")
-            if type and self._model.context():
-                type = self._model.context().expand(type)
             try:
                 strategy = strategy if isinstance(strategy, ResolvingStrategy) else ResolvingStrategy[strategy]
             except Exception as e:
@@ -392,6 +390,7 @@ class KnowledgeGraphForge:
         return as_json(data, expanded, store_metadata, self._model.context(),
                        self._store.metadata_context, self._model.resolve_context)
 
+    @catch
     @catch
     def as_jsonld(self, data: Union[Resource, List[Resource]], form: str = Form.COMPACTED.value,
                   store_metadata: bool = False) -> Union[Dict, List[Dict]]:
