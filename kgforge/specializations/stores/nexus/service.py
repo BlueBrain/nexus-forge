@@ -186,7 +186,7 @@ class Service:
                     context = self.model_context or self.context
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=context, metadata_context=None,
-                                        context_resolver=self.resolve_contextn, na=nan)
+                                        context_resolver=self.resolve_context, na=nan)
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
