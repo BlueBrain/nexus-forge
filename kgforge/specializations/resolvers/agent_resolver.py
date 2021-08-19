@@ -44,7 +44,7 @@ class AgentResolver(Resolver):
 
         first_filters = f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean"
         if type:
-            first_filters = f"{first_filters} ; a <{type}>"
+            first_filters = f"{first_filters} ; a {type}"
 
         if strategy == strategy.EXACT_MATCH:
             name_filter = f" FILTER (?name = \"{text}\")"

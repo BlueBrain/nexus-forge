@@ -18,6 +18,7 @@ from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.execution import dispatch
 from kgforge.core.conversions.json import as_json
+from kgforge.core.resource import encode
 
 
 class Reshaper:
@@ -56,7 +57,7 @@ class Reshaper:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leaves, versioned)
                     for i,nv in enumerate(new_value):
-                        if nv == Resource() and isinstance(value[i],str):
+                        if nv is None and isinstance(value[i],str):
                             new_value[i] = value[i]
                 elif isinstance(value, Resource):
                     if leaves:
@@ -73,7 +74,7 @@ class Reshaper:
                 setattr(new, root, new_value)
             else:
                 pass
-        return new
+        return new if encode(new) else None
 
 
 # TODO Use an implementation of JSONPath for Python instead to get values. DKE-147.
@@ -92,6 +93,8 @@ def collect_values(data: Union[Resource, List[Resource]],  follow: str,
     try:
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
+        if reshaped is None:
+            raise Exception(f"Nothing to collect")
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))

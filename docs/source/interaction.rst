@@ -95,7 +95,7 @@ A Resource can be created using:
     "type" : "Person",
     "email" : "jane.doe@example.org"
    }
-   resource = Resource(data)
+   resource = Resource(**data)
 
 * or a dataframe:
 

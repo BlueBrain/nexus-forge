@@ -315,7 +315,10 @@ class Store(ABC):
 
     @staticmethod
     def _debug_query(query):
-        print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+        if isinstance(query, Dict):
+            print("Submitted query:", query)
+        else:
+            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
 
 

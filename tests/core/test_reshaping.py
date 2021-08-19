@@ -36,8 +36,8 @@ def test_collect_values():
     assert ["file3"] == r, "one element should be in the list"
     r = collect_values(data_set, "hasPart.url")
     assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
-    r = collect_values(data_set, "fake.path")
-    assert len(r) == 0
+    with pytest.raises(Exception):
+        collect_values(data_set, "fake.path")
     with pytest.raises(ValueError):
         collect_values(None, "hasPart.url",ValueError)
 
