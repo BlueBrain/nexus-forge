@@ -1,5 +1,6 @@
 {
     id: x.id
+    type: x.type if 'type' in x else ''
     label: x.label
     acronym: x.acronym
 }
