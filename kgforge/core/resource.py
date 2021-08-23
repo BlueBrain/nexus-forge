@@ -75,7 +75,7 @@ class Resource:
         self.__dict__[key] = value
 
     @classmethod
-    def from_json(cls, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]):
+    def from_json(cls, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None):
 
         def _(d: Union[Dict, List[Dict]], nas: List[Any]) -> Resource:
             if isinstance(d, List):
