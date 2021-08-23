@@ -472,10 +472,13 @@ class BlueBrainNexus(Store):
 
     def _elastic(self, query: str, limit: int, offset: int = None) -> List[Resource]:
         try:
+
+            print(query)
             response = requests.post(
                 self.service.elastic_endpoint["endpoint"], data=query, headers=self.service.headers_elastic)
             response.raise_for_status()
         except Exception as e:
+            print(e)
             raise QueryingError(e)
         else:
             results = response.json()

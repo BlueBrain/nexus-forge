@@ -1,0 +1,67 @@
+====================
+vO.6.2 Release Notes
+====================
+
+This release adds new enhancements and fixes a set of issues.
+
+Enhancements
+============
+
+* Added schema support when updating a resource. `#153 <https://github.com/BlueBrain/nexus-forge/pull/153>`__  (Try it using the `Storing` notebook |Binder_Storing|)
+
+* Added a class method for creating a `Resource` from a JSON dict with the ability to discard values `#154 <https://github.com/BlueBrain/nexus-forge/pull/154>`__  (Try it using the `Resources` notebook |Binder_Resource|)
+
+* Updated `Reshaper._reshape` to return None instead of an empty Resource when JSON keys to keep are not found `#168 <https://github.com/BlueBrain/nexus-forge/pull/168>`__  (Try it using the `Reshaping` notebook |Binder_Reshaping|)
+
+* During resolving, a default resolver is now selected when no scope is provided and if only one single resolver is configured. `#168 <https://github.com/BlueBrain/nexus-forge/pull/168>`__  (usage: Resolving notebook using |Binder_Resolving|)
+
+* Added a new set of notebooks documentation. `#160 <https://github.com/BlueBrain/nexus-forge/pull/160>`__, `#161 <https://github.com/BlueBrain/nexus-forge/pull/161>`__  (Try it using the use cases notebooks |Binder_use_cases|)
+
+
+Bug Fixes
+=========
+
+* Removed np.nan values when updating or creating resources using BlueBrainNexus store `#154 <https://github.com/BlueBrain/nexus-forge/pull/154>`__  (usage: Datasets notebook using |Binder_Dataset|)
+
+* Fixed a non consistent numeric RDF list JSON-LD serialization issue occurring when using `rdflib.Graph().serialize()`.
+  When serializing a numeric RDF list (defined with @container: @list) starting with zero (e.g [0,1,3]), rdf:rest and
+  rdf:first are yielded rather than a simple JSON array. This error does not occur with an RDF list not starting with
+  a zero (e.g [1,2,3]). Using `pyLD <https://github.com/digitalbazaar/pyld>`__ solves the issue `#159 <https://github.com/BlueBrain/nexus-forge/pull/159>`__ (usage: RDF IO notebook using |Binder_RDF|)
+
+* Fixed downloading multiple files from multiple resources. `#152 <https://github.com/BlueBrain/nexus-forge/pull/152>`__,
+  `#155 <https://github.com/BlueBrain/nexus-forge/pull/155>`__  (usage: Datasets notebook using |Binder_Dataset|)
+
+* Fixed the used version of `nest-asyncio` in setup.py to avoid `This event loop is already running` error caused by older version of `nest-asyncio`
+  being introduced by dependencies `#163 <https://github.com/BlueBrain/nexus-forge/pull/163>`__
+
+.. |Binder_Getting_Started| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.1?filepath=examples%2Fnotebooks%2Fgetting-started
+
+.. |Binder_Dataset| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Dataset
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
+
+.. |Binder_Storing| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Storing
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
+
+.. |Binder_RDF| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_RDF
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
+
+.. |Binder_Resource| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Resource
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
+
+.. |Binder_Reshaping| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Reshaping
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
+
+.. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Resolving
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
+
+.. |Binder_use_cases| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Resolving
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fuse-cases

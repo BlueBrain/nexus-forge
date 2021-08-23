@@ -141,7 +141,7 @@ class StoreService(RdfService):
             else:
                 json_dict = as_jsonld(shape, form="compacted", store_metadata=False, model_context=None,
                                       metadata_context=None,
-                                      context_resolver=self.context_store.service.resolve_context)
+                                      context_resolver=self.context_store.service.resolve_context, na=None)
                 # this double conversion was due blank nodes were not "regenerated" with json-ld
                 temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
                 self._graph.parse(data=temp_graph.serialize(format="n3"), format="n3")

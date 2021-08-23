@@ -68,10 +68,12 @@ A minimal YAML formatted configuration for each of Demo BlueBrainNexus stores wo
 See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/latest/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/` folder
 for more real world YAML examples.
 
+|Binder_Init| to view the different use cases for creating forge configurations files.
+
 Resource
 --------
 
-Try |Binder|
+|Binder_Resource| to explore more about `Resource`.
 
 A *Resource* is the base data exchange object in Nexus Forge. It is an identifiable data object with potentially a set of properties as metadata.
 Reserved properties of a `Resource` are: `id`, `type` and `context`.
@@ -95,7 +97,7 @@ A Resource can be created using:
     "type" : "Person",
     "email" : "jane.doe@example.org"
    }
-   resource = Resource(**data)
+   resource = Resource.from_json(data)
 
 * or a dataframe:
 
@@ -115,6 +117,8 @@ A resource can have files attached by assigning the output of `forge.attach` met
 
 Dataset
 -------
+
+|Binder_Dataset| to explore more about `Dataset`.
 
 A Dataset is a specialization of a `Resource` that provides users with operations to handle files,
 record their provenance and describe them with metadata. The metadata of `Datasets` refers specifically to, but not limited to:
@@ -176,6 +180,8 @@ or from a `Resource` instance:
 Storing
 -------
 
+|Binder_Storing| to explore more about `Store`.
+
 Storing allows users to persist and manage `Resources` in the configured store. Resources contain additional
 hidden properties accounting for their state and allowing recovering from errors:
 
@@ -205,6 +211,8 @@ Storing a `Dataset` (or a `Resource`) can be performed as follows:
 
 Querying
 --------
+
+|Binder_Querying| to explore more about forge querying capabilities.
 
 Stored resources can be searched from a store (1) by id, (2) by specifying filters in key<op>value or dict format, (3) by using
 SPARQL query if supported by the store (4) or by using an ElasticSearch query if supported by the store.
@@ -242,6 +250,8 @@ Next are examples of search calls:
 
 Versioning
 ----------
+
+|Binder_Versioning| to explore more about forge versioning capabilities.
 
 Resources can be versioned, if the configured `Store` supports it. `forge.tag` is equivalent to a git tag while
 `forge.freeze` replaces all resources' references within a given `Resource` by a version identifier
@@ -294,8 +304,18 @@ For example resources can be created from a pandas dataframe:
    dataframe = pd.read_csv("data.csv")
    resources = forge.from_dataframe(dataframe)
 
+Try to following notebooks to explore more about forge converting capabilities:
+
+* Convert a `Resource` to JSON and vice-versa: |Binder_JSON|
+* Convert a `Resource` to pandas DataFrame and vice-versa: |Binder_DataFrame|
+* Create a `Resource` from SQL DBMS and save a Resource in a SQL DBMS: |Binder_SQL|
+* Convert a `Resource` to JSON-LD and vice-versa: |Binder_JSONLD|
+* Convert a `Resource` to RDF Graph and vice-versa: |Binder_RDF|
+
 Formatting
 ----------
+
+|Binder_Formatting| to explore more about forge formatting capabilities.
 
 A preconfigured set of string formats can be provided to ensure the consistency of data.
 
@@ -327,6 +347,8 @@ fall under the same namespace.
 Resolving
 ---------
 
+|Binder_Resolving| to explore more about forge resolving and resource linking capabilities.
+
 A `Resolver` is used to link terms or a `Resource` to identifiers (URIs) in a knowledge graph thus addressing lexical variations
 (merging of synonyms, aliases and acronyms) and disambiguating them. This feature is also referred to as entity linking
 specially in the context of Natural Language Processing (NLP) when building knowledge graph from entities extracted from
@@ -335,7 +357,8 @@ text documents. For example the text `USA` and `America` can be both resolved (o
 
 `Resolving` involves two main steps:
 
- * **candidates generation**: resolving often results in many possible resources to link to called candidates.
+* **candidates generation**:
+   resolving often results in many possible resources to link to called candidates.
    Each candidate is associated with a score representing how close it is to the input text to resolve.
    Candidates then can be ranked based on different criteria (e.g score, context of occurrence in a given document)
    combined using different strategies including exact or fuzzy matches. For example resolving the text `America`
@@ -344,7 +367,8 @@ text documents. For example the text `USA` and `America` can be both resolved (o
    made about which candidate represents the best the text `America` within a given context. In Nexus Forge, resolving candidates are `Resources` of type
    `kgforge.core.specializations.resources.entity_linking_candidate.EntityLinkingCandidate`.
 
- * **candidates ranking**: currently, supported candidates ranking criteria is their scores. The following strategies are available:
+* **candidates ranking**:
+  currently, supported candidates ranking criteria is their scores. The following strategies are available:
 
   * `kgforge.core.commons.strategies.ResolvingStrategy.EXACT_MATCH`: Only candidates with a perfect score
     (usually 0 for a distance based score or 1 for a normalised similarity score) are considered and one of them is picked.
@@ -443,6 +467,8 @@ Nexus Forge comes with the support of 5 types Resolvers:
 Reshaping
 ---------
 
+|Binder_Reshaping| to explore more about forge resource reshaping capabilities.
+
 Reshaping allows keeping only a specific set of properties of a resource.
 
 .. code-block:: python
@@ -461,6 +487,8 @@ Next is an example of reshaping a resource.
 
 Modeling
 --------
+
+|Binder_Modeling| to explore more about forge data modeling and validation capabilities.
 
 The `KnowledgeGraphForge` class exposes a set of methods to access configured data types (`forge.types`) along with
 their schemas (`forge.template`) in the form a JSON dictionary. `forge.validate` validates resources against their
@@ -492,6 +520,8 @@ The next example shows how to create and valdiate a resource from a template rep
 
 Mapping
 -------
+
+|Binder_Mapping| to explore more about forge data mapping capabilities.
 
 Mappings are declarative rules encoding the logic of transforming data from a given source and format into resources.
 The transformations rules are parsed by a `kgforge.core.archetypes.mapping.Mapping` and are executed by a
@@ -531,6 +561,70 @@ concatenated (name), resolved (gender) to link them to ontology terms for exampl
     }""")
    resource = forge.map(data=data, mapping=mapping_rules, na='') # by default the DictionaryMapper is used
 
-.. |Binder| image:: https://mybinder.org/badge_logo.svg
-    :alt: Binder
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.0?filepath=examples%2Fnotebooks%2Fgetting-started
+.. |Binder_Init| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Init
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F00%20-%20Initialization.ipynb
+
+.. |Binder_Resource| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Resource
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
+
+.. |Binder_Dataset| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Dataset
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
+
+.. |Binder_Storing| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Storing
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
+
+.. |Binder_Querying| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Querying
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F04%20-%20Querying.ipynb
+
+.. |Binder_Versioning| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Versioning
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F05%20-%20Versioning.ipynb
+
+.. |Binder_JSON| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_JSON
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F06%20-%20JSON%20IO.ipynb
+
+.. |Binder_DataFrame| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_DataFrame
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F07%20-%20DataFrame%20IO.ipynb
+
+.. |Binder_Formatting| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Formatting
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F08%20-%20Formatting.ipynb
+
+.. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Resolving
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
+
+.. |Binder_Reshaping| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Reshaping
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
+
+.. |Binder_Modeling| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Modeling
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F11%20-%20Modeling.ipynb
+
+.. |Binder_Mapping| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Mapping
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F12%20-%20Mapping.ipynb
+
+.. |Binder_JSONLD| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_JSONLD
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F13%20-%20JSON-LD%20IO.ipynb
+
+.. |Binder_RDF| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_RDF
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
+
+.. |Binder_SQL| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_SQL
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F15%20-%20SQL%20IO.ipynb
+
+.. |Binder_Debugging| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Debugging
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F16%20-%20Debugging.ipynb

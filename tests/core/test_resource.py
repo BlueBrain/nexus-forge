@@ -19,7 +19,7 @@ from kgforge.core import Resource
 
 # TODO To be port to the generic parameterizable test suite for resources in test_resources.py.
 #  DKE-135.
-
+from kgforge.core.resource import encode
 
 scenarios("resource.feature")
 
@@ -27,6 +27,21 @@ scenarios("resource.feature")
 @given("I create a resource with a property.")
 def resource():
     return Resource(type="Entity")
+
+
+@given("I create a resource from a JSON dict.")
+def resource_from_json(json_one):
+    return Resource.from_json(json_one)
+
+
+@given("I create a resource from a JSON dict and exclude fields.")
+def resource_from_json_na_one(json_one):
+    return Resource.from_json(json_one, na="v1a")
+
+
+@given("I create a resource from a JSON dict and exclude fields.")
+def resource_from_json_na_many(json_one):
+    return Resource.from_json(json_one, na=["v1a","v2a"])
 
 
 @given("I create a resource with an other resource as property.")
@@ -40,9 +55,15 @@ def reserved_attribute_error():
         Resource(_validated=True)
 
 
-@then("I should be able to access it as an attribute.")
-def access_property(resource):
+@then("I should be able to access properties as object attribute.")
+def access_property(resource, resource_from_json, resource_from_json_na_one, resource_from_json_na_many):
     assert resource.type == "Entity"
+    assert list(encode(resource_from_json).keys()) == ["id","type","p1","p2"]
+    assert list(encode(resource_from_json).values()) == ["123","Type","v1a","v2a"]
+    assert list(encode(resource_from_json_na_one).keys()) == ["id","type","p2"]
+    assert list(encode(resource_from_json_na_one).values()) == ["123","Type","v2a"]
+    assert list(encode(resource_from_json_na_many).keys()) == ["id","type"]
+    assert list(encode(resource_from_json_na_many).values()) == ["123","Type"]
 
 
 @then("I should be able to access the nested resource properties as JSONPath.")

@@ -4,7 +4,7 @@ Feature: Resource
 
   Scenario: Create a resource.
     Given I create a resource with a property.
-    Then I should be able to access it as an attribute.
+    Then I should be able to access properties as object attribute.
 
   Scenario: Create a resource with a nested resource.
     Given I create a resource with an other resource as property.
