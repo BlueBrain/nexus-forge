@@ -269,13 +269,13 @@ class KnowledgeGraphForge:
                     if len(self._resolvers) == 1:
                         rov = scopes_resolvers[0][resolver]
                     else:
-                        raise ResolvingError("resolving scope should be specified")
+                        raise ResolvingError("resolving scope should be specified in case of multiple available resolvers")
                 else:
                     if len(self._resolvers) == 1 and len(scopes_resolvers[0]) == 1:
                         rov = list(scopes_resolvers[0].values())[0]
                     else:
                         raise ResolvingError("resolving scope or resolver name should be "
-                                             "specified")
+                                             "specified in case of multiple available resolvers")
             try:
                 strategy = strategy if isinstance(strategy, ResolvingStrategy) else ResolvingStrategy[strategy]
             except Exception as e:
