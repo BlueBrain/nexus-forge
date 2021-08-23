@@ -1,14 +1,12 @@
 Contributing
 ============
 
-Please add `@pafonta` as a reviewer if your Pull Request modifies `core`.
-
 Setup
 
 .. code-block:: shell
 
    git clone https://github.com/BlueBrain/nexus-forge
-   pip install --editable kgforge[dev]
+   pip install --editable nexusforge[dev]
 
 Checks before committing
 
