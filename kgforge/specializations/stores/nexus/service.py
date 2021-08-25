@@ -75,7 +75,6 @@ class Service:
         self.context_cache: Dict = dict()
         self.max_connection = max_connection
         self.store_context = store_context
-        self.store_context_source = "/".join((quote_plus(store_context),"source"))
         self.namespace = namespace
         self.project_property = project_property
         self.deprecated_property = deprecated_property
@@ -154,8 +153,7 @@ class Service:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
-            context_id = self.store_context_source if iri == self.store_context else quote_plus(iri)
-            url = "/".join((self.url_resolver, "_", context_id))
+            url = "/".join((self.url_resolver, "_", quote_plus(iri)))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
