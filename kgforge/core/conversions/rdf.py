@@ -181,10 +181,11 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
     jsonld_data_expanded = jsonld.expand(encoded_resource, options={'expandContext': resolved_context})
 
     if hasattr(resource, "id") or hasattr(resource, "@id"):
+        resource_id = resource.id if hasattr(resource, "id") else getattr(resource, "@id")
         if context.base:
-            uri = context.resolve(resource.id)
+            uri = context.resolve(resource_id)
         else:
-            uri = str(data_graph.namespace_manager.absolutize(resource.id, defrag=0)) if not str(resource.id).startswith("_:") else resource.id
+            uri = str(data_graph.namespace_manager.absolutize(resource_id, defrag=0)) if not str(resource_id).startswith("_:") else resource_id
         frame = {"@id": uri}
     else:
         frame = dict()
