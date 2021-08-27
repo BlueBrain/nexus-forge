@@ -5,6 +5,7 @@
 
    Home <self>
    tutorials
+   interaction
    api
    architecture
    contributing

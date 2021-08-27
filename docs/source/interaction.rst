@@ -1,5 +1,5 @@
-Knowledge graph interaction
-===========================
+Building Knowledge graph Concepts
+=================================
 
 Forge
 -----
@@ -38,7 +38,7 @@ The required minimal configuration defines:
     Store:
       name: <the class name of the Store to use>
 
-A minimal YAML formatted configuration for each of Demo BlueBrainNexus stores would look like:
+A minimal YAML formatted configuration for each of the Demo and BlueBrainNexus stores would look like:
 
 .. code-block:: python
 
@@ -65,10 +65,10 @@ A minimal YAML formatted configuration for each of Demo BlueBrainNexus stores wo
     """
    forge = KnowledgeGraphForge(configuration=config)
 
-See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/latest/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/` folder
+See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/latest/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/ <https://github.com/BlueBrain/nexus-forge/tree/master/examples/notebooks/use-cases>`__ folder
 for more real world YAML examples.
 
-|Binder_Init| to view the different use cases for creating forge configurations files.
+|Binder_Init| for more details about how to create forge configurations files.
 
 Resource
 --------

@@ -1,10 +1,9 @@
-Python API
-==========
+API
+===
 
 .. toctree::
    :hidden:
 
-   interaction
    archetypes
    specializations
    configuration
