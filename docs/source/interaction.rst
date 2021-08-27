@@ -563,68 +563,68 @@ concatenated (name), resolved (gender) to link them to ontology terms for exampl
 
 .. |Binder_Init| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Init
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F00%20-%20Initialization.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F00%20-%20Initialization.ipynb
 
 .. |Binder_Resource| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resource
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
 
 .. |Binder_Dataset| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Dataset
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
 
 .. |Binder_Storing| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Storing
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
 
 .. |Binder_Querying| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Querying
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F04%20-%20Querying.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F04%20-%20Querying.ipynb
 
 .. |Binder_Versioning| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Versioning
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F05%20-%20Versioning.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F05%20-%20Versioning.ipynb
 
 .. |Binder_JSON| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_JSON
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F06%20-%20JSON%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F06%20-%20JSON%20IO.ipynb
 
 .. |Binder_DataFrame| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_DataFrame
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F07%20-%20DataFrame%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F07%20-%20DataFrame%20IO.ipynb
 
 .. |Binder_Formatting| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Formatting
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F08%20-%20Formatting.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F08%20-%20Formatting.ipynb
 
 .. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resolving
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
 
 .. |Binder_Reshaping| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Reshaping
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
 
 .. |Binder_Modeling| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Modeling
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F11%20-%20Modeling.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F11%20-%20Modeling.ipynb
 
 .. |Binder_Mapping| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Mapping
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F12%20-%20Mapping.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F12%20-%20Mapping.ipynb
 
 .. |Binder_JSONLD| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_JSONLD
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F13%20-%20JSON-LD%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F13%20-%20JSON-LD%20IO.ipynb
 
 .. |Binder_RDF| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_RDF
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
 
 .. |Binder_SQL| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_SQL
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F15%20-%20SQL%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F15%20-%20SQL%20IO.ipynb
 
 .. |Binder_Debugging| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Debugging
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F16%20-%20Debugging.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F16%20-%20Debugging.ipynb

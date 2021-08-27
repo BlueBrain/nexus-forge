@@ -40,28 +40,28 @@ Bug Fixes
 
 .. |Binder_Dataset| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Dataset
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F02%20-%20Datasets.ipynb
 
 .. |Binder_Storing| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Storing
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F03%20-%20Storing.ipynb
 
 .. |Binder_RDF| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_RDF
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F14%20-%20RDF%20IO.ipynb
 
 .. |Binder_Resource| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resource
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F01%20-%20Resources.ipynb
 
 .. |Binder_Reshaping| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Reshaping
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F10%20-%20Reshaping.ipynb
 
 .. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resolving
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
 
 .. |Binder_use_cases| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resolving
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.2?filepath=examples%2Fnotebooks%2Fuse-cases
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fuse-cases
