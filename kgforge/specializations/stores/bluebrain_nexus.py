@@ -193,7 +193,6 @@ class BlueBrainNexus(Store):
                  cross_bucket: bool) -> Resource:
 
         parsed_id = urlparse(id)
-        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}"
         params = None
         if version is not None:
             if isinstance(version, int):
@@ -202,15 +201,27 @@ class BlueBrainNexus(Store):
                 params = {"tag": version}
             else:
                 raise RetrievalError("incorrect 'version'")
-        if parsed_id.query is not None:
+
+        fragment = None
+        query_params = None
+        # urlparse is not separating fragment and query params when the latter are put after a fragment
+        if parsed_id.fragment is not None and '?' in str(parsed_id.fragment):
+            fragment_parts = urlparse(parsed_id.fragment)
+            query_params = parse_qs(fragment_parts.query)
+            fragment = fragment_parts.path
+        elif parsed_id.fragment is not None and parsed_id.fragment != '':
+            fragment = parsed_id.fragment
+        elif parsed_id.query is not None and parsed_id.query != '':
             query_params = parse_qs(parsed_id.query)
-            if params is not None:
-                query_params.update(params)
-            params = query_params
+
+        if params is not None and isinstance(query_params, dict):
+            query_params.update(params)
+
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{ '#'+fragment if fragment is not None else ''}"
         url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
         url = "/".join((url_base, "_", quote_plus(id_without_query)))
         try:
-            response = requests.get(url, params=params, headers=self.service.headers)
+            response = requests.get(url, params=query_params, headers=self.service.headers)
             response.raise_for_status()
         except HTTPError as e:
             raise RetrievalError(_error_message(e))
