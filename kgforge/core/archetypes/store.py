@@ -23,7 +23,7 @@ from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, DownloadingError, FreezingError,
                                              RegistrationError, TaggingError, UpdatingError,
-                                             UploadingError)
+                                             UploadingError, QueryingError)
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.reshaping import collect_values
 
@@ -343,8 +343,11 @@ def rewrite_sparql(query: str, context: Context) -> str:
         if m4 is None:
             return match.group(0)
         else:
-            v = ctx.get(m4, ":" + m4) if str(m4).lower() not in SPARQL_CLAUSES and not str(
-                m4).startswith("https") and context.has_vocab() else m4
+            v = ctx.get(m4, ":" + m4 if context.has_vocab() else None) if str(m4).lower() not in SPARQL_CLAUSES and \
+                not str(m4).startswith("https") else m4
+            if v is None:
+                raise QueryingError(f"Failed to construct a valid SPARQL query: add '{m4}'"
+                                    f" or define an @vocab in the configured JSON-LD context.")
             m5 = match.group(5)
             if "//" in v:
                 return f"<{v}>{m5}"

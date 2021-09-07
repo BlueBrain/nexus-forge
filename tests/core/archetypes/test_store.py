@@ -18,7 +18,7 @@ import pytest
 from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.archetypes.store import rewrite_sparql
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import DownloadingError, FreezingError
+from kgforge.core.commons.exceptions import DownloadingError, FreezingError, QueryingError
 from kgforge.specializations.resources import Dataset
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 import json
@@ -53,39 +53,54 @@ prefixes = {
 
 
 prefixes_string = "\n".join([f"PREFIX {k}: <{v}>" for k, v in prefixes.items()])
-prefixes_string = "\n".join([prefixes_string,f"PREFIX : <http://example.org/vocab/>"])
-
 
 form_store_metadata_combinations = [
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> agent ?agent }",
-     prefixes_string + "\nSELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
+     "\nSELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
     ("SELECT ?agent WHERE { ?agent type ?v0 FILTER(?v0 != Person) }",
-     prefixes_string + "\nSELECT ?agent WHERE { ?agent rdf:type ?v0 FILTER(?v0 != schema:Person) }"),
+     "\nSELECT ?agent WHERE { ?agent rdf:type ?v0 FILTER(?v0 != schema:Person) }"),
     ("SELECT ?x ?name WHERE { ?x type Association ; agent/name ?name }",
-     prefixes_string + "\nSELECT ?x ?name WHERE { ?x rdf:type prov:Association ; prov:agent/schema:name ?name }"),
+     "\nSELECT ?x ?name WHERE { ?x rdf:type prov:Association ; prov:agent/schema:name ?name }"),
     ("SELECT ?name WHERE { ?x agent/name ?name FILTER regex(?name, \"^j\", \"i\") }",
-     prefixes_string + "\nSELECT ?name WHERE { ?x prov:agent/schema:name ?name FILTER regex(?name, \"^j\", \"i\") }"),
+     "\nSELECT ?name WHERE { ?x prov:agent/schema:name ?name FILTER regex(?name, \"^j\", \"i\") }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> description ?x }",
-     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
+     "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext }",
-     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext }"),
+     "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
-     prefixes_string + "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
+     "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
                        " schema:Person }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext ?x }",
-     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
+     "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
-     prefixes_string + "\nSELECT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
+     "\nSELECT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
     ("SELECT DISTINCT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
-     prefixes_string + "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
+     "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
     ("SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}",
-     prefixes_string + "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}")
+     "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}")
 ]
 
 
 @pytest.mark.parametrize("query, expected", form_store_metadata_combinations)
 def test_rewrite_sparql(query, expected):
+    prefixes_string_vocab = "\n".join([prefixes_string, f"PREFIX : <http://example.org/vocab/>"])
     context_object = Context(document=context)
+    result = rewrite_sparql(query, context_object)
+    assert result == prefixes_string_vocab + expected
+
+
+def test_rewrite_sparql_unknownterm_missing_vocab(custom_context):
+    context_object = Context(document=custom_context)
+    assert not context_object.has_vocab()
+    with pytest.raises(QueryingError):
+        query = "SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}"
+        rewrite_sparql(query, context_object)
+
+
+def test_rewrite_sparql_missingvocab(custom_context):
+    query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
+    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
+    context_object = Context(document=custom_context)
     result = rewrite_sparql(query, context_object)
     assert result == expected
 
