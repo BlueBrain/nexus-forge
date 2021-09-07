@@ -184,8 +184,9 @@ def custom_context():
     return {
         "@context": {
             "@base": "http://example.org/",
-            "Person": "http://xmlns.com/foaf/0.1/Person",
-            "name": "http://xmlns.com/foaf/0.1/name",
+            "foaf":"http://xmlns.com/foaf/0.1/",
+            "Person": "foaf:Person",
+            "name": "foaf:name"
         }
     }
 
@@ -289,7 +290,8 @@ def model_prefixes():
         "skos": "http://www.w3.org/2004/02/skos/core#",
         "nsg": "https://neuroshapes.org/",
         "owl": "http://www.w3.org/2002/07/owl#",
-        "xsd": "http://www.w3.org/2001/XMLSchema#"
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        'foaf': 'http://xmlns.com/foaf/0.1/'
     }
 
 @pytest.fixture
