@@ -18,6 +18,7 @@ import mimetypes
 import re
 from asyncio import Semaphore, Task
 from enum import Enum
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
@@ -533,6 +534,8 @@ def _error_message(error: HTTPError) -> str:
         if "reason" in error_json:
             return format_message(error_json["reason"])
     except AttributeError as e:
+        pass
+    except JSONDecodeError as jde:
         pass
     try:
         return format_message(error.response.text())
