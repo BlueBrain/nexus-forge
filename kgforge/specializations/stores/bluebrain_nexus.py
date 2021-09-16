@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import asyncio
+import copy
 import json
 import mimetypes
 import re
@@ -120,8 +121,9 @@ class BlueBrainNexus(Store):
         verified = self.service.verify(
             resources, self._register_many.__name__, RegistrationError, id_required=False,
             required_synchronized=False, execute_actions=True)
+        params_register = copy.deepcopy(self.service.params.get("register", {}))
         self.service.batch_request(
-            verified, BatchAction.CREATE, register_callback, RegistrationError, schema_id=schema_id)
+            verified, BatchAction.CREATE, register_callback, RegistrationError, schema_id=schema_id, params=params_register)
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
@@ -129,17 +131,23 @@ class BlueBrainNexus(Store):
                          metadata_context=None, context_resolver=self.service.resolve_context, na=nan)
 
         try:
-            response = nexus.resources.create(org_label=self.organisation,
-                                              project_label=self.project, data=data,
-                                              schema_id=schema_id)
+            schema = quote_plus(schema_id) if schema_id else "_"
+            url_base = f"{self.service.url_resources}/{schema}"
+            url = f"{url_base}/{quote_plus(data['@id'])}" if hasattr(data, "@id") else url_base
+            params_register = copy.deepcopy(self.service.params.get("register", None))
+            response = requests.post(url, headers=self.service.headers, data=json.dumps(data, ensure_ascii=True),
+                                     params=params_register)
+            response.raise_for_status()
+
         except nexus.HTTPError as e:
             raise RegistrationError(_error_message(e))
         else:
-            resource.id = response['@id']
+            response_json = response.json()
+            resource.id = response_json['@id']
             # If resource had no context, update it with the one provided by the store.
             if not hasattr(resource, "context"):
                 resource.context = data["@context"]
-            self.service.sync_metadata(resource, response)
+            self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
 
@@ -256,8 +264,9 @@ class BlueBrainNexus(Store):
 
         async def _download(url, path, store_metadata, semaphore, session):
             async with semaphore:
+                params_download = copy.deepcopy(self.service.params.get("download", {}))
                 url_base, org, project = self._prepare_download_one(url, path, store_metadata, cross_bucket)
-                async with session.get(url_base) as response:
+                async with session.get(url_base, params=params_download) as response:
                     try:
                         response.raise_for_status()
                     except Exception as e:
@@ -272,7 +281,8 @@ class BlueBrainNexus(Store):
     def _download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
         try:
             url_base, org, project = self._prepare_download_one(url, path, store_metadata, cross_bucket)
-            response = requests.get(url=url_base, headers=self.service.headers_download)
+            params_download = copy.deepcopy(self.service.params.get("download", {}))
+            response = requests.get(url=url_base, headers=self.service.headers_download, params=params_download)
             response.raise_for_status()
         except Exception as e:
             raise DownloadingError(f"Downloading from {org}/{project}:{_error_message(e)}")
@@ -313,18 +323,20 @@ class BlueBrainNexus(Store):
         verified = self.service.verify(
             resources, self._update_many.__name__, UpdatingError, id_required=True,
             required_synchronized=False, execute_actions=True)
-        self.service.batch_request(verified, BatchAction.UPDATE, update_callback, UpdatingError)
+        params_update = copy.deepcopy(self.service.params.get("update", {}))
+        self.service.batch_request(verified, BatchAction.UPDATE, update_callback, UpdatingError, params=params_update)
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context, metadata_context=None,
                          context_resolver=self.service.resolve_context, na=nan)
-        rev = {"rev": resource._store_metadata._rev}
+        params_update = copy.deepcopy(self.service.params.get("update", None))
+        params_update["rev"] = resource._store_metadata._rev
         schema = quote_plus(schema_id) if schema_id else "_"
         url = f"{self.service.url_resources}/{schema}/{quote_plus(resource.id)}"
         try:
             response = requests.put(url, headers=self.service.headers,
-                                    data=json.dumps(data, ensure_ascii=True), params=rev)
+                                    data=json.dumps(data, ensure_ascii=True), params=params_update)
             response.raise_for_status()
         except HTTPError as e:
             raise UpdatingError(_error_message(e))
@@ -340,8 +352,9 @@ class BlueBrainNexus(Store):
         verified = self.service.verify(
             resources, self._tag_many.__name__, TaggingError, id_required=True,
             required_synchronized=True, execute_actions=False)
+        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
         self.service.batch_request(
-            verified, BatchAction.TAG, tag_callback, TaggingError, tag=value)
+            verified, BatchAction.TAG, tag_callback, TaggingError, tag=value, params=params_tag)
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         data = {
@@ -350,8 +363,9 @@ class BlueBrainNexus(Store):
         }
         url = f"{self.service.url_resources}/_/{ quote_plus(resource.id)}/tags?rev={resource._store_metadata._rev}"
         try:
+            params_tag = copy.deepcopy(self.service.params.get("tag", None))
             response = requests.post(url, headers=self.service.headers,
-                                     data=json.dumps(data, ensure_ascii=True))
+                                     data=json.dumps(data, ensure_ascii=True), params=params_tag)
             response.raise_for_status()
         except HTTPError as e:
             raise TaggingError(_error_message(e))
@@ -369,13 +383,15 @@ class BlueBrainNexus(Store):
         verified = self.service.verify(
             resources, self._deprecate_many.__name__, DeprecationError, id_required=True,
             required_synchronized=True, execute_actions=False)
+        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", {}))
         self.service.batch_request(
-            verified, BatchAction.DEPRECATE, deprecate_callback, DeprecationError)
+            verified, BatchAction.DEPRECATE, deprecate_callback, DeprecationError, params=params_deprecate)
 
     def _deprecate_one(self, resource: Resource) -> None:
         url = f"{self.service.url_resources}/_/{ quote_plus(resource.id)}?rev={resource._store_metadata._rev}"
         try:
-            response = requests.delete(url, headers=self.service.headers)
+            params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
+            response = requests.delete(url, headers=self.service.headers, params=params_deprecate)
             response.raise_for_status()
         except HTTPError as e:
             raise DeprecationError(_error_message(e))
@@ -484,13 +500,10 @@ class BlueBrainNexus(Store):
 
     def _elastic(self, query: str, limit: int, offset: int = None) -> List[Resource]:
         try:
-
-            print(query)
             response = requests.post(
                 self.service.elastic_endpoint["endpoint"], data=query, headers=self.service.headers_elastic)
             response.raise_for_status()
         except Exception as e:
-            print(e)
             raise QueryingError(e)
         else:
             results = response.json()
@@ -514,6 +527,7 @@ class BlueBrainNexus(Store):
             accept = store_config.pop("Accept", "application/ld+json")
             files_upload_config = store_config.pop("files_upload", {"Accept":"application/ld+json"})
             files_download_config = store_config.pop("files_download", {"Accept":"*/*"})
+            params = store_config.pop("params", {})
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
@@ -521,7 +535,7 @@ class BlueBrainNexus(Store):
                            model_context=self.model_context, max_connection=max_connection, searchendpoints=searchendpoints,
                            store_context=nexus_context_iri, namespace=namespace, project_property = project_property,
                            deprecated_property=deprecated_property, content_type=content_type, accept=accept,
-                           files_upload_config=files_upload_config, files_download_config=files_download_config)
+                           files_upload_config=files_upload_config, files_download_config=files_download_config, **params)
 
 
 def _error_message(error: HTTPError) -> str:

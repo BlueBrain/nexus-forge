@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import asyncio
+import copy
 import json
 import re
 from asyncio import Task
@@ -65,7 +66,7 @@ class Service:
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
                  max_connection: int, searchendpoints: Dict, store_context:  str, namespace: str, project_property: str,
                  deprecated_property: bool, content_type: str, accept: str, files_upload_config: Dict,
-                 files_download_config: Dict):
+                 files_download_config: Dict, **params):
 
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
@@ -74,6 +75,7 @@ class Service:
         self.model_context = model_context
         self.context_cache: Dict = dict()
         self.max_connection = max_connection
+        self.params = copy.deepcopy(params)
         self.store_context = store_context
         self.namespace = namespace
         self.project_property = project_property
@@ -178,6 +180,7 @@ class Service:
         def create_tasks(semaphore, session, loop, data, batch_action, f_callback, error):
             futures = []
             schema_id = kwargs.get("schema_id")
+            params = deepcopy(kwargs.get("params", {}))
             schema_id = "_" if schema_id is None else quote_plus(schema_id)
             for resource in data:
                 if batch_action == batch_action.CREATE:
@@ -187,11 +190,12 @@ class Service:
                                         context_resolver=self.resolve_context, na=nan)
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
-                        queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload))
+                        queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload, params))
 
                 if batch_action == batch_action.UPDATE:
                     url = "/".join((self.url_resources, schema_id, quote_plus(resource.id)))
-                    params = {"rev": resource._store_metadata._rev}
+                    params["rev"] = resource._store_metadata._rev
+
                     payload = as_jsonld(resource, "compacted", False,
                                         model_context=self.model_context,
                                         metadata_context=None,
@@ -203,7 +207,7 @@ class Service:
                 if batch_action == batch_action.TAG:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id), "tags"))
                     rev = resource._store_metadata._rev
-                    params = {"rev": rev}
+                    params["rev"] = rev
                     payload = {"tag": kwargs.get("tag"), "rev": rev}
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_POST, semaphore, session, url, resource, error, payload,
@@ -211,7 +215,7 @@ class Service:
 
                 if batch_action == batch_action.DEPRECATE:
                     url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
-                    params = {"rev": resource._store_metadata._rev}
+                    params["rev"] = resource._store_metadata._rev
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_DELETE, semaphore, session, url, resource, error,
                               params=params))
