@@ -28,6 +28,9 @@ The full `KnowledgeGraphForge` YAML configuration has the following structure:
      searchendpoints:
         <querytype>: <a query paradigm supported by configured store (e.g. sparql)>
           endpoint: <an IRI of a query endpoint>
+     params:
+        <Store method>: <e.g. register, tag,...>
+          param: <http query param value to use for the Store method>
      versioned_id_template: <a string template using 'x' to access resource fields>
      file_resource_mapping: <an Hjson string, a file path, or an URL>
    Resolvers:
@@ -75,6 +78,11 @@ The corresponding python configuration file would be like:
                 "<querytype>": {
                 "endpoint": <str>
             }
+           },
+           "params": {
+               "<Store method>": {
+                   "param": <str>
+               }
            },
            "versioned_id_template": <str>,
            "file_resource_mapping": <str>,
