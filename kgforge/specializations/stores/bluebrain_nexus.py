@@ -330,7 +330,7 @@ class BlueBrainNexus(Store):
         context = self.model_context or self.context
         data = as_jsonld(resource, "compacted", False, model_context=context, metadata_context=None,
                          context_resolver=self.service.resolve_context, na=nan)
-        params_update = copy.deepcopy(self.service.params.get("update", None))
+        params_update = copy.deepcopy(self.service.params.get("update", {}))
         params_update["rev"] = resource._store_metadata._rev
         schema = quote_plus(schema_id) if schema_id else "_"
         url = f"{self.service.url_resources}/{schema}/{quote_plus(resource.id)}"
