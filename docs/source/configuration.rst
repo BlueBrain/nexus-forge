@@ -29,7 +29,7 @@ The full `KnowledgeGraphForge` YAML configuration has the following structure:
         <querytype>: <a query paradigm supported by configured store (e.g. sparql)>
           endpoint: <an IRI of a query endpoint>
      params:
-        <Store method>: <e.g. register, tag, ...>
+        <Store method>: <e.g. register, tag,...>
           param: <http query param value to use for the Store method>
      versioned_id_template: <a string template using 'x' to access resource fields>
      file_resource_mapping: <an Hjson string, a file path, or an URL>
