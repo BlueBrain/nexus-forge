@@ -46,9 +46,10 @@ setup(
         "nexus-sdk",
         "aiohttp",
         "nest_asyncio",
+        "rdflib<6.0.0",
         "pyLD",
         "pyshacl==0.11.6.post1",
-        "rdflib-jsonld",
+        "rdflib-jsonld<=0.5.0",
         "nest-asyncio>=1.5.1"
     ],
     extras_require={
