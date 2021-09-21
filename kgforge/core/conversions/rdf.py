@@ -23,7 +23,7 @@ import json
 from collections import OrderedDict
 
 from rdflib.namespace import RDF
-from rdflib_jsonld.keys import CONTEXT, GRAPH, TYPE, ID
+from rdflib.plugins.shared.jsonld.keys import CONTEXT, GRAPH, TYPE, ID
 
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
