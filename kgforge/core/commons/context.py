@@ -14,8 +14,8 @@
 
 from typing import Optional, Union, Dict, List
 
-from rdflib_jsonld.context import Context as RdflibContext
-from rdflib_jsonld.util import source_to_json
+from rdflib.plugins.shared.jsonld.context import Context as RdflibContext
+from rdflib.plugins.shared.jsonld.util import source_to_json
 
 
 class Context(RdflibContext):
