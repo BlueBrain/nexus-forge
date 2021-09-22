@@ -49,7 +49,7 @@ setup(
         "rdflib<6.0.0",
         "pyLD",
         "pyshacl==0.11.6.post1",
-        "rdflib-jsonld<=0.5.0",
+        "rdflib-jsonld<0.6.1",
         "nest-asyncio>=1.5.1"
     ],
     extras_require={
