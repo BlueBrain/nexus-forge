@@ -1,0 +1,22 @@
+====================
+vO.6.3 Release Notes
+====================
+
+This is a minor release with new enhancements and issue fixes.
+
+Enhancements
+============
+
+* Updated SPARQL query rewriting to no longer require the presence of a JSONLD @vocab in the context (i.e. `context.has_vocab()==True`) and to raise `QueryingError` when an unknown term and no @vocab are provided. `#180 <https://github.com/BlueBrain/nexus-forge/pull/180>`__  (Try it using the `Querying` notebook |Binder_Querying|)
+* Set `rdflib-jsonld` version to `<=0.5.0` and `rdflib` to `<6.0.0` to prevent dependencies collision as `rdflib-jsonld` is now included in rdflib from version `<6.0.0` `#186 <https://github.com/BlueBrain/nexus-forge/pull/186>`__
+
+Bug Fixes
+=========
+
+* Fixed ignored url fragment when retrieving a resource from BlueBrainNexus store `#179 <https://github.com/BlueBrain/nexus-forge/pull/179>`__ (fixes `#156 <https://github.com/BlueBrain/nexus-forge/issues/156>`__)
+* Fixed JSONDecodeError thrown when BlueBrainNexus store failed to parse non JSON formatted response `#181 <https://github.com/BlueBrain/nexus-forge/pull/181>`__
+* Added support for setting http query param value for the Store methods `#183 <https://github.com/BlueBrain/nexus-forge/pull/183>`__ (fixes `#171 <https://github.com/BlueBrain/nexus-forge/issues/171>`__)
+
+.. |Binder_Querying| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Querying
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.6.3?filepath=examples%2Fnotebooks%2Fgetting-started%2F04%20-%20Querying.ipynb
