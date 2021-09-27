@@ -182,9 +182,9 @@ class Service:
         def create_tasks(semaphore, session, loop, data, batch_action, f_callback, error):
             futures = []
             schema_id = kwargs.get("schema_id")
-            params = deepcopy(kwargs.get("params", {}))
             schema_id = "_" if schema_id is None else quote_plus(schema_id)
             for resource in data:
+                params = deepcopy(kwargs.get("params", {}))
                 if batch_action == batch_action.CREATE:
                     context = self.model_context or self.context
                     payload = as_jsonld(resource, "compacted", False,
@@ -223,7 +223,6 @@ class Service:
                               params=params))
 
                 if batch_action == BatchAction.FETCH:
-
                     resource_org, resource_prj = resource.project.split("/")[-2:]
                     resource_url = "/".join((self.endpoint, "resources", quote_plus(resource_org), quote_plus(resource_prj)))
                     url = "/".join((resource_url, "_", quote_plus(resource.id)))
