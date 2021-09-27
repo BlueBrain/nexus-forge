@@ -59,7 +59,7 @@ class CategoryDataType(Enum):
 
 type_map = {
     str: CategoryDataType.LITERAL,
-    bool:  CategoryDataType.BOOLEAN,
+    bool: CategoryDataType.BOOLEAN,
     int: CategoryDataType.NUMBER,
     float: CategoryDataType.NUMBER,
     complex: CategoryDataType.NUMBER
@@ -86,7 +86,8 @@ class BlueBrainNexus(Store):
     def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None, searchendpoints:Optional[Dict] = None, **store_config) -> None:
+                 model_context: Optional[Context] = None, searchendpoints: Optional[Dict] = None,
+                 **store_config) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
                          model_context, searchendpoints, **store_config)
 
@@ -123,7 +124,8 @@ class BlueBrainNexus(Store):
             required_synchronized=False, execute_actions=True)
         params_register = copy.deepcopy(self.service.params.get("register", {}))
         self.service.batch_request(
-            verified, BatchAction.CREATE, register_callback, RegistrationError, schema_id=schema_id, params=params_register)
+            verified, BatchAction.CREATE, register_callback, RegistrationError, schema_id=schema_id,
+            params=params_register)
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         context = self.model_context or self.context
@@ -226,7 +228,7 @@ class BlueBrainNexus(Store):
         if params is not None and isinstance(query_params, dict):
             query_params.update(params)
 
-        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{ '#'+fragment if fragment is not None else ''}"
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{'#' + fragment if fragment is not None else ''}"
         url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
         url = "/".join((url_base, "_", quote_plus(id_without_query)))
         try:
@@ -250,13 +252,15 @@ class BlueBrainNexus(Store):
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
-    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper], cross_bucket: bool) -> None:
+    def _download_many(self, urls: List[str], paths: List[str], store_metadata: Optional[DictWrapper],
+                       cross_bucket: bool) -> None:
 
         async def _bulk():
             loop = asyncio.get_event_loop()
             semaphore = Semaphore(self.service.max_connection)
             async with ClientSession(headers=self.service.headers_download) as session:
-                tasks = (_create_task(x, y, z, loop, semaphore, session) for x, y, z in zip(urls, paths, store_metadata))
+                tasks = (_create_task(x, y, z, loop, semaphore, session) for x, y, z in
+                         zip(urls, paths, store_metadata))
                 return await asyncio.gather(*tasks)
 
         def _create_task(url, path, store_metadata, loop, semaphore, session):
@@ -291,7 +295,8 @@ class BlueBrainNexus(Store):
                 for chunk in response.iter_content(chunk_size=4096):
                     f.write(chunk)
 
-    def _prepare_download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> Tuple[str,str,str]:
+    def _prepare_download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper], cross_bucket: bool) -> \
+    Tuple[str, str, str]:
         # this is a hack since _self and _id have the same uuid
         file_id = url.split("/")[-1]
         file_id = unquote(file_id)
@@ -304,7 +309,8 @@ class BlueBrainNexus(Store):
                 project = store_metadata._project.split('/')[-1]
                 org = store_metadata._project.split('/')[-2]
             else:
-                raise ValueError(f"Downloading non registered file is not allowed when cross_bucket is set to {cross_bucket}")
+                raise ValueError(
+                    f"Downloading non registered file is not allowed when cross_bucket is set to {cross_bucket}")
         else:
             org = self.service.organisation
             project = self.service.project
@@ -361,7 +367,7 @@ class BlueBrainNexus(Store):
             "tag": value,
             "rev": resource._store_metadata._rev
         }
-        url = f"{self.service.url_resources}/_/{ quote_plus(resource.id)}/tags?rev={resource._store_metadata._rev}"
+        url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}/tags?rev={resource._store_metadata._rev}"
         try:
             params_tag = copy.deepcopy(self.service.params.get("tag", None))
             response = requests.post(url, headers=self.service.headers,
@@ -388,7 +394,7 @@ class BlueBrainNexus(Store):
             verified, BatchAction.DEPRECATE, deprecate_callback, DeprecationError, params=params_deprecate)
 
     def _deprecate_one(self, resource: Resource) -> None:
-        url = f"{self.service.url_resources}/_/{ quote_plus(resource.id)}?rev={resource._store_metadata._rev}"
+        url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}?rev={resource._store_metadata._rev}"
         try:
             params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
             response = requests.delete(url, headers=self.service.headers, params=params_deprecate)
@@ -410,22 +416,23 @@ class BlueBrainNexus(Store):
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
         cross_bucket = params.get("cross_bucket", False)
-        bucket = params.get("bucket",None)
+        bucket = params.get("bucket", None)
         search_in_graph = params.get("search_in_graph", True)
         distinct = params.get("distinct", False)
         project_statements = ''
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
         elif bucket:
-            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',bucket])}>)"
+            project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
         elif not cross_bucket:
-            project_statements = f"Filter (?project = <{'/'.join([self.endpoint,'projects',self.organisation, self.project])}>)"
+            project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
         query_statements, query_filters = build_query_statements(self.model_context, filters)
         query_statements.insert(0, f"<{self.service.project_property}> ?project")
-        query_statements.insert(1, f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
+        query_statements.insert(1,
+                                f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
         statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
         query = _create_select_query(f"?id {statements} {project_statements}", distinct, search_in_graph)
 
@@ -512,34 +519,39 @@ class BlueBrainNexus(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict], **store_config) -> Any:
+                            token: Optional[str], searchendpoints: Optional[Dict], **store_config) -> Any:
         try:
             self.organisation, self.project = self.bucket.split('/')
             max_connection = store_config.pop("max_connection", 50)
-            if max_connection <=0:
+            if max_connection <= 0:
                 raise ValueError(f"max_connection value should be great than 0 but {max_connection} is provided")
             store_context_config = store_config.pop("vocabulary", {})
-            nexus_context_iri = store_context_config.get("iri", Service.NEXUS_CONTEXT_FALLBACK)
+            nexus_metadata_context = store_context_config.get("metadata", {"iri": Service.NEXUS_CONTEXT_FALLBACK,
+                                                                           "local_iri": Service.NEXUS_CONTEXT_FALLBACK})
+            nexus_context_iri = nexus_metadata_context.get("iri")
+            nexus_context_local_iri = nexus_metadata_context.get("local_iri")
             namespace = store_context_config.get("namespace", Service.NEXUS_NAMESPACE_FALLBACK)
             project_property = store_context_config.get("project_property", Service.PROJECT_PROPERTY_FALLBACK)
             deprecated_property = store_context_config.get("deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK)
             content_type = store_config.pop("Content-Type", "application/ld+json")
             accept = store_config.pop("Accept", "application/ld+json")
-            files_upload_config = store_config.pop("files_upload", {"Accept":"application/ld+json"})
-            files_download_config = store_config.pop("files_download", {"Accept":"*/*"})
+            files_upload_config = store_config.pop("files_upload", {"Accept": "application/ld+json"})
+            files_download_config = store_config.pop("files_download", {"Accept": "*/*"})
             params = store_config.pop("params", {})
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
             return Service(endpoint=endpoint, org=self.organisation, prj=self.project, token=token,
-                           model_context=self.model_context, max_connection=max_connection, searchendpoints=searchendpoints,
-                           store_context=nexus_context_iri, namespace=namespace, project_property = project_property,
+                           model_context=self.model_context, max_connection=max_connection,
+                           searchendpoints=searchendpoints,
+                           store_context=nexus_context_iri, store_local_context= nexus_context_local_iri,
+                           namespace=namespace, project_property=project_property,
                            deprecated_property=deprecated_property, content_type=content_type, accept=accept,
-                           files_upload_config=files_upload_config, files_download_config=files_download_config, **params)
+                           files_upload_config=files_upload_config, files_download_config=files_download_config,
+                           **params)
 
 
 def _error_message(error: HTTPError) -> str:
-
     def format_message(msg):
         return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
 
@@ -557,7 +569,7 @@ def _error_message(error: HTTPError) -> str:
         return format_message(str(error))
 
 
-def build_query_statements(context: Context, *conditions) -> Tuple[List,List]:
+def build_query_statements(context: Context, *conditions) -> Tuple[List, List]:
     statements = list()
     filters = list()
     for index, f in enumerate(*conditions):
