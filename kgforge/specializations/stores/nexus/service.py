@@ -64,7 +64,7 @@ class Service:
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connection: int, searchendpoints: Dict, store_context:  str, namespace: str, project_property: str,
+                 max_connection: int, searchendpoints: Dict, store_context:  str, store_local_context: str, namespace: str, project_property: str,
                  deprecated_property: bool, content_type: str, accept: str, files_upload_config: Dict,
                  files_download_config: Dict, **params):
 
@@ -77,6 +77,7 @@ class Service:
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
         self.store_context = store_context
+        self.store_local_context = store_local_context
         self.namespace = namespace
         self.project_property = project_property
         self.deprecated_property = deprecated_property
@@ -155,23 +156,24 @@ class Service:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
-            url = "/".join((self.url_resolver, "_", quote_plus(iri)))
+            context_to_resolve = self.store_local_context if iri == self.store_context else iri
+            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
         except Exception as e:
             if local_only is False:
                 try:
-                    context = Context(iri)
+                    context = Context(context_to_resolve)
                 except URLError:
-                    raise ValueError(f"{iri} is not resolvable")
+                    raise ValueError(f"{context_to_resolve} is not resolvable")
                 else:
                     document = context.document["@context"]
             else:
-                raise ValueError(f"{iri} is not resolvable")
+                raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             document = json.loads(json.dumps(resource["@context"]))
-        self.context_cache.update({iri: document})
+        self.context_cache.update({context_to_resolve: document})
         return document
 
     def batch_request(self, resources: List[Resource], action: BatchAction, callback: Callable,
@@ -319,6 +321,8 @@ class Service:
             data_context = [data_context]
         if self.store_context in data_context:
             data_context.remove(self.store_context)
+        if self.store_local_context in data_context:
+            data_context.remove(self.store_local_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
         metadata = dict()
         data = dict()
