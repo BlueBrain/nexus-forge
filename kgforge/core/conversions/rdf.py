@@ -282,12 +282,17 @@ def _as_jsonld_one(
                     key = context.expand(k)
                     if key and isinstance(v, str):
                         frame_resource[key] = v
-        for k, v in resource._store_metadata.__dict__.items():
-            key_metadata = metadata_context.expand(k)
-            if key_metadata and isinstance(v, str):
-                frame_metadata[key_metadata] = v
+        if resource._store_metadata:
+            for k, v in resource._store_metadata.__dict__.items():
+                key_metadata = metadata_context.expand(k)
+                if key_metadata and isinstance(v, str):
+                    frame_metadata[key_metadata] = v
 
     frame_resource["@embed"] = "@link"
+    frame_metadata["@embed"] = "@link"
+    data_framed = jsonld.frame(
+        jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
+    )
     data_framed = jsonld.frame(
         jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
     )

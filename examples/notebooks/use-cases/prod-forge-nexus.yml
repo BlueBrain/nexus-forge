@@ -12,6 +12,8 @@ Store:
   searchendpoints:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+    elastic:
+      endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
   vocabulary:
     metadata:
       iri: "https://bluebrain.github.io/nexus/contexts/metadata.json"

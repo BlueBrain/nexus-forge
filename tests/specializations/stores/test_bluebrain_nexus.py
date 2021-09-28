@@ -28,7 +28,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
-from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements, _create_select_query
+from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_sparql_query_statements, _create_select_query
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
@@ -223,7 +223,7 @@ class TestQuerying:
                      id="filter-by-id")
     ])
     def test_filter_to_query_statements(self, context, filters, expected):
-        statements = build_query_statements(context, filters)
+        statements = build_sparql_query_statements(context, filters)
         assert statements == expected
 
     def test_create_select_query(self):
