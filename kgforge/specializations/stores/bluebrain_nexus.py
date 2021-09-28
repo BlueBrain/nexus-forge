@@ -419,24 +419,32 @@ class BlueBrainNexus(Store):
         bucket = params.get("bucket", None)
         search_in_graph = params.get("search_in_graph", True)
         distinct = params.get("distinct", False)
-        project_statements = ''
+        search_endpoint = params.get("search_endpoint", self.service.sparql_endpoint["type"])
+        if search_endpoint not in [self.service.sparql_endpoint["type"], self.service.elastic_endpoint["type"]]:
+            raise ValueError(f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
+                             f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'")
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
-        elif bucket:
-            project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
-        elif not cross_bucket:
-            project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
-        query_statements, query_filters = build_query_statements(self.model_context, filters)
-        query_statements.insert(0, f"<{self.service.project_property}> ?project")
-        query_statements.insert(1,
-                                f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
-        statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
-        query = _create_select_query(f"?id {statements} {project_statements}", distinct, search_in_graph)
+        if search_endpoint == self.service.sparql_endpoint["type"]:
+            project_statements = ''
+            if bucket:
+                project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
+            elif not cross_bucket:
+                project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
-        resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
+            query_statements, query_filters = build_sparql_query_statements(self.model_context, filters)
+            query_statements.insert(0, f"<{self.service.project_property}> ?project")
+            query_statements.insert(1,
+                                    f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}")
+            statements = "\n".join((";\n ".join(query_statements), ".\n ".join(query_filters)))
+            query = _create_select_query(f"?id {statements} {project_statements}", distinct, search_in_graph)
+
+            resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
+        else:
+            query_statements, query_filters = build_elastic_query_statements(self.model_context, filters)
         results = self.service.batch_request(resources, BatchAction.FETCH, None, QueryingError)
         resources = list()
         for result in results:
@@ -514,7 +522,8 @@ class BlueBrainNexus(Store):
             raise QueryingError(e)
         else:
             results = response.json()
-            return [Resource(**{k: v for k, v in hit.items()}) for hit in results["hits"]['hits']]
+            return [self.service.to_resource(hit["_source"], True, **{"_index": hit.get("_index", None), "_score": hit.get("_score", None)})
+                    for hit in results["hits"]['hits']]
 
     # Utils.
 
@@ -569,7 +578,7 @@ def _error_message(error: HTTPError) -> str:
         return format_message(str(error))
 
 
-def build_query_statements(context: Context, *conditions) -> Tuple[List, List]:
+def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
     statements = list()
     filters = list()
     for index, f in enumerate(*conditions):
@@ -600,6 +609,10 @@ def build_query_statements(context: Context, *conditions) -> Tuple[List, List]:
                 filters.append(f"FILTER(?v{index} {operator_map[f.operator]} {_box_value_as_full_iri(value)})")
 
     return statements, filters
+
+
+def build_elastic_query_statements(context: Context, *conditions) -> Tuple[List, List]:
+    not_supported()
 
 
 def _box_value_as_full_iri(value):

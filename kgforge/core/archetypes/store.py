@@ -11,6 +11,7 @@
 # 
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import json
 
 import re
 import time
@@ -270,9 +271,12 @@ class Store(ABC):
         not_supported()
 
     def elastic(self, query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]:
+        query_dict = json.loads(query)
+        query_dict["from"] = 0 if offset is None else offset
+        query_dict["size"] = limit
         if debug:
-            self._debug_query(query)
-        return self._elastic(query, limit, offset)
+            self._debug_query(query_dict)
+        return self._elastic(json.dumps(query_dict), limit, offset)
 
     def _elastic(self, query: str, limit: int, offset: int) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.

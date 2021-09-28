@@ -265,7 +265,8 @@ class Service:
         return asyncio.run(dispatch_action())
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
-        metadata = {"id": resource.id}
+        metadata = {"id": resource.id} if hasattr(resource, "id") else ({"id": resource.__getattribute__("@id")}
+                                                                        if hasattr(resource, "@id") else dict())
         keys = sorted(self.metadata_context.terms.keys())
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
@@ -319,8 +320,8 @@ class Service:
             valid.append(resource)
         return valid
 
-    def to_resource(self, payload: Dict) -> Resource:
-        data_context = deepcopy(payload["@context"])
+    def to_resource(self, payload: Dict, sync_metadata: bool = True, **kwargs) -> Resource:
+        data_context = deepcopy(payload.get("@context", None))
         if not isinstance(data_context, list):
             data_context = [data_context]
         if self.store_context in data_context:
@@ -336,13 +337,19 @@ class Service:
             else:
                 data[k] = v
 
-        if self.model_context and data_context == self.model_context.iri:
+        if self.model_context and data_context is not None and data_context == self.model_context.iri:
             resolved_ctx = self.model_context.document["@context"]
-        else:
+        elif data_context is not None:
             resolved_ctx = recursive_resolve(data_context, self.resolve_context)
-        data["@context"] = resolved_ctx
-        resource = _from_jsonld_one(data)
-        resource.context = data_context
-        if len(metadata) > 0:
+        else:
+            resolved_ctx = None
+        if resolved_ctx:
+            data["@context"] = resolved_ctx
+            resource = _from_jsonld_one(data)
+            resource.context = data_context
+        else:
+            resource = Resource.from_json(data)
+        if len(metadata) > 0 and sync_metadata:
+            metadata.update(kwargs)
             self.sync_metadata(resource, metadata)
         return resource
