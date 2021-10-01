@@ -124,7 +124,7 @@ class Service:
         self.url_files = "/".join((self.url_base_files, quote_plus(org), quote_plus(prj)))
         self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_resolver = "/".join((self.endpoint,"resolvers", quote_plus(org), quote_plus(prj)))
-        self.metadata_context = Context(self.resolve_context(self.store_context), store_context)
+        self.metadata_context = Context(recursive_resolve(self.store_context, self.resolve_context), store_context)
 
         sparql_view = sparql_config['endpoint'] if sparql_config and "endpoint" in sparql_config else self.default_sparql_index
         elastic_view = elastic_config['endpoint'] if elastic_config and "endpoint" in elastic_config else self.default_es_index
@@ -173,6 +173,11 @@ class Service:
                 raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             document = json.loads(json.dumps(resource["@context"]))
+        if isinstance(document, list):
+            if self.store_context in document:
+                document.remove(self.store_context)
+            if self.store_local_context in document:
+                document.remove(self.store_local_context)
         self.context_cache.update({context_to_resolve: document})
         return document
 
