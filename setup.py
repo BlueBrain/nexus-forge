@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -51,12 +51,19 @@ setup(
         "pyshacl==v0.17.2",
         "nest-asyncio>=1.5.1",
         "pyparsing>=2.0.2",
-        "owlrl>=5.2.3"
+        "owlrl>=5.2.3",
     ],
     extras_require={
-        "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock", "codecov"],
+        "dev": [
+            "tox",
+            "pytest",
+            "pytest-bdd==3.4.0",
+            "pytest-cov",
+            "pytest-mock",
+            "codecov",
+        ],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
-        "linking_sklearn": ["sklearn"]
+        "linking_sklearn": ["sklearn"],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
@@ -65,6 +72,6 @@ setup(
         "Topic :: Scientific/Engineering",
         "Programming Language :: Python :: 3 :: Only",
         "Natural Language :: English",
-        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)'
-    ]
+        "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    ],
 )

@@ -11,6 +11,25 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+from typing import Any, Optional, List
 
-# Expected to be empty.
-from .context import Context
+from abc import abstractmethod, ABC
+
+from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.context import Context
+
+
+class QueryBuilder(ABC):
+    def __repr__(self) -> str:
+        return repr_class(self)
+
+    @staticmethod
+    @abstractmethod
+    def build(
+        schema: Any,
+        resolvers: Optional[List["Resolver"]],
+        context: Context,
+        *filters,
+        **params
+    ) -> Any:
+        pass

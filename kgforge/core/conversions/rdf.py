@@ -293,9 +293,6 @@ def _as_jsonld_one(
     data_framed = jsonld.frame(
         jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
     )
-    data_framed = jsonld.frame(
-        jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
-    )
     resource_graph_node = _graph_free_jsonld(data_framed)
     if resource_types is None:
         resource_graph_node.pop(TYPE)
@@ -418,15 +415,19 @@ def _dicts_to_graph(
 
 
 def recursive_resolve(
-    context: Union[Dict, List, str], resolver: Optional[Callable]
+    context: Union[Dict, List, str],
+    resolver: Optional[Callable],
+    already_loaded: List = [],
 ) -> Dict:
     document = dict()
     if isinstance(context, list):
         for x in context:
-            document.update(recursive_resolve(x, resolver))
-    elif isinstance(context, str):
+            if x not in already_loaded:
+                document.update(recursive_resolve(x, resolver, already_loaded))
+    elif isinstance(context, str) and context not in already_loaded:
         doc = resolver(context)
-        document.update(recursive_resolve(doc, resolver))
+        document.update(recursive_resolve(doc, resolver, already_loaded))
+        already_loaded.append(context)
     elif isinstance(context, dict):
         document.update(context)
     return document
@@ -441,7 +442,14 @@ def _resource_context(
         else:
             iri = resource.context if isinstance(resource.context, str) else None
             try:
-                document = recursive_resolve(resource.context, context_resolver)
+                document = recursive_resolve(
+                    resource.context,
+                    context_resolver,
+                    [
+                        "https://bluebrainnexus.io/contexts/metadata.json",
+                        "https://bluebrain.github.io/nexus/contexts/metadata.json",
+                    ],
+                )
                 context = Context(document, iri)
             except (HTTPError, URLError, NotSupportedError):
                 try:
