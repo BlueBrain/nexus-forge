@@ -143,6 +143,9 @@
     "validated": {
       "@id": "schema:validated"
     },
+    "value": {
+      "@id": "schema:value"
+    },
     "wasStartedBy": {
       "@id": "prov:wasStartedBy",
       "@type": "@id"

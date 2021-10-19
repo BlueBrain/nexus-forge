@@ -13,6 +13,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 # Placeholder for the test suite for conversion of a resource to / from triples.
+from copy import deepcopy
+
 import os
 from urllib.parse import urljoin
 from urllib.request import pathname2url
@@ -24,7 +26,7 @@ from rdflib.namespace import RDF
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
-from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph, from_graph
+from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph, from_graph, LD_KEYS
 
 form_store_metadata_combinations = [
     pytest.param(Form.COMPACTED.value, True, id="compacted-with-metadata"),
@@ -114,6 +116,17 @@ class TestJsonLd:
         payload = building_jsonld(building, "compacted", False, None)
         resource = from_jsonld(payload)
         assert resource == building
+
+        payload_with_atvalue = deepcopy(payload)
+        payload_with_atvalue["status"] = {
+            "@type": "xsd:string",
+            "@value": "opened"
+        }
+        resource_with_atvalue = from_jsonld(payload_with_atvalue)
+        assert "value" not in LD_KEYS.keys()
+        assert hasattr(resource_with_atvalue, "status")
+        assert resource_with_atvalue.status == Resource.from_json({"type":"xsd:string", "@value":"opened"})
+
 
     def test_as_jsonld(self, building, model_context, building_jsonld, forge):
         building.context = model_context.document["@context"]

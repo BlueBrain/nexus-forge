@@ -37,6 +37,9 @@ class Form(Enum):
     COMPACTED = "compacted"
 
 
+LD_KEYS = {"id": "@id", "type": "@type", "list": "@list", "set": "@set"}
+
+
 def as_graph(data: Union[Resource, List[Resource]], store_metadata: bool,
              model_context: Optional[Context], metadata_context: Optional[Context],
              context_resolver: Optional[Callable]) -> Graph:
@@ -67,10 +70,9 @@ def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]
         raise TypeError("not a dictionary nor a list of dictionaries")
 
 
-def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict = None, model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]:
-
+def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict = None,
+               model_context: Optional[Context] = None) -> Union[Resource, List[Resource]]:
     from collections import OrderedDict
-
 
     if not type:
         _types = data.triples((None, RDF.type, None))  # type of data to transform to JSONLD
@@ -85,7 +87,7 @@ def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict
     graph_json = json.loads(graph_string)
 
     if model_context:
-        context =  model_context.document
+        context = model_context.document
     else:
         context = graph_json[CONTEXT]
 
@@ -100,7 +102,7 @@ def from_graph(data: Graph, type: Optional[Union[str, List]] = None, frame: Dict
     framed = _graph_free_jsonld(framed)
     if isinstance(framed, list):
         framed = [jsonld.compact(item, ctx=context,
-                                options={'processingMode': 'json-ld-1.1'}) for item in framed]
+                                 options={'processingMode': 'json-ld-1.1'}) for item in framed]
     else:
         framed = jsonld.compact(framed, ctx=context,
                                 options={'processingMode': 'json-ld-1.1'})
@@ -150,7 +152,7 @@ def _as_jsonld_many(resources: List[Resource], form: Form, store_metadata: bool,
                            context_resolver, na[i]) if na is not None else
             _as_jsonld_one(resource, form, store_metadata, model_context, metadata_context,
                            context_resolver, na)
-            for i, resource in enumerate (resources)]
+            for i, resource in enumerate(resources)]
 
 
 def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
@@ -185,7 +187,8 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         if context.base:
             uri = context.resolve(resource_id)
         else:
-            uri = str(data_graph.namespace_manager.absolutize(resource_id, defrag=0)) if not str(resource_id).startswith("_:") else resource_id
+            uri = str(data_graph.namespace_manager.absolutize(resource_id, defrag=0)) if not str(
+                resource_id).startswith("_:") else resource_id
         frame = {"@id": uri}
     else:
         frame = dict()
@@ -207,7 +210,8 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
     if resource_types is None:
         resource_graph_node.pop(TYPE)
     else:
-        resource_graph_node[TYPE] = context.expand(resource_types) if isinstance(resource_types, str) else [context.expand(resource_type) for resource_type in resource_types]
+        resource_graph_node[TYPE] = context.expand(resource_types) if isinstance(resource_types, str) else [
+            context.expand(resource_type) for resource_type in resource_types]
     resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
@@ -239,6 +243,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
         elif form is Form.EXPANDED:
             return _unpack_from_list(data_framed)
 
+
 def _as_graph_many(resources: List[Resource], store_metadata: bool, model_context: Optional[Context],
                    metadata_context: Optional[Context], context_resolver: Optional[Callable]) -> Graph:
     graph = Graph()
@@ -266,7 +271,7 @@ def _as_graphs(resource: Resource, store_metadata: bool, context: Context,
         output_context = context.iri if context.is_http_iri() else context.document["@context"]
     converted = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)+ (converted,)
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context) + (converted,)
 
 
 def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
@@ -357,7 +362,6 @@ def _dicts_to_graph(data: Dict, metadata: Dict, store_meta: bool,
 
 def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]], base: Optional[str]) -> Dict:
     local_attrs = dict()
-    ld_keys = {"id": "@id", "type": "@type", "list": "@list", "set": "@set"}
     local_context = None
     items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
     for k, v in items:
@@ -367,7 +371,7 @@ def _add_ld_keys(rsc: [Resource, Dict], context: Optional[Union[Dict, List, str]
                     local_context = Context(v)
                     base = local_context.base
             else:
-                key = ld_keys.get(k, k)
+                key = LD_KEYS.get(k, k)
                 if key == "@id" and local_context is not None:
                     local_attrs[key] = local_context.resolve(v)
                 else:
@@ -394,7 +398,8 @@ def _remove_ld_keys(dictionary: dict, context: Context,
         else:
             if k == "@id":
                 local_attrs["id"] = context.resolve(v)
-            elif k.startswith("@"):
+            elif k.startswith("@") and k in LD_KEYS.values():
+                print(k)
                 local_attrs[k[1:]] = v
             else:
                 if isinstance(v, dict):
