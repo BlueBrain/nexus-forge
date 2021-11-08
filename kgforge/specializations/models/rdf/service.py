@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import types
 from abc import abstractmethod
+from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from typing import List, Dict, Tuple, Set, Optional
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
@@ -89,6 +90,17 @@ def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
     return properties, attributes
 
 
+class ShapeWrapper(Shape):
+    __slots__ = ('__dict__',)
+
+    def __init__(self, shape: Shape) -> None:
+        super().__init__(shape.sg, shape.node, shape._p, shape._path, shape.logger)
+
+    def parameters(self):
+        return (p for p, v in self.sg.predicate_objects(self.node)
+                if p in ALL_CONSTRAINT_PARAMETERS)
+
+
 class ShapesGraphWrapper(ShapesGraph):
 
     def __init__(self, graph: Graph) -> None:
@@ -105,10 +117,12 @@ class ShapesGraphWrapper(ShapesGraph):
         Returns:
             Shape: The Shacl shape of the requested node.
         """
-
         shape = self._node_shape_cache[node]
-        if not hasattr(shape, "traverse"):
-            shape.traverse = types.MethodType(traverse, shape)
+        if shape:
+            shape_wrapper = ShapeWrapper(self._node_shape_cache[node])
+            if not hasattr(shape_wrapper, "traverse"):
+                shape_wrapper.traverse = types.MethodType(traverse, shape_wrapper)
+            return shape_wrapper
         return shape
 
 

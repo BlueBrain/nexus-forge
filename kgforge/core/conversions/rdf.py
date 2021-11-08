@@ -13,6 +13,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
+
+from rdflib.plugins.shared.jsonld.keys import CONTEXT, TYPE, GRAPH
 from typing import Union, Dict, List, Tuple, Optional, Callable, Any
 from urllib.error import URLError, HTTPError
 
@@ -21,9 +23,7 @@ from pyld import jsonld
 from rdflib import Graph, Literal
 import json
 from collections import OrderedDict
-
 from rdflib.namespace import RDF
-from rdflib_jsonld.keys import CONTEXT, GRAPH, TYPE, ID
 
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
@@ -214,7 +214,7 @@ def _as_jsonld_one(resource: Resource, form: Form, store_metadata: bool,
             context.expand(resource_type) for resource_type in resource_types]
     resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
-        metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld").decode("utf-8"))
+        metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld"))
         metadata_framed = jsonld.frame(metadata_expanded, {"@id": resource.id})
         if form is Form.COMPACTED:
             data_compacted = jsonld.compact(data_framed, resolved_context)

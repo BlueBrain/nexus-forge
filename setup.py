@@ -35,7 +35,7 @@ setup(
     keywords="framework knowledge graph data science",
     url="https://github.com/BlueBrain/nexus-forge",
     packages=find_packages(),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     setup_requires=[
         "setuptools_scm",
     ],
@@ -46,13 +46,12 @@ setup(
         "nexus-sdk",
         "aiohttp",
         "nest_asyncio",
-        "rdflib<6.0.0",
+        "rdflib>=6.0.0",
         "pyLD",
-        "pyshacl==0.11.6.post1",
-        "rdflib-jsonld<0.6.1",
+        "pyshacl==v0.17.2",
         "nest-asyncio>=1.5.1",
-        "pyparsing==2.*",
-        "owlrl>=5.2.1, < 6.0.2"
+        "pyparsing>=2.0.2",
+        "owlrl>=5.2.3"
     ],
     extras_require={
         "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock", "codecov"],
