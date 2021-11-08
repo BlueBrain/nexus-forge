@@ -64,7 +64,7 @@ class Service:
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
 
     def __init__(self, endpoint: str, org: str, prj: str, token: str, model_context: Context,
-                 max_connection: int, searchendpoints: Dict, store_context:  str, namespace: str, project_property: str,
+                 max_connection: int, searchendpoints: Dict, store_context:  str, store_local_context: str, namespace: str, project_property: str,
                  deprecated_property: bool, content_type: str, accept: str, files_upload_config: Dict,
                  files_download_config: Dict, **params):
 
@@ -77,6 +77,7 @@ class Service:
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
         self.store_context = store_context
+        self.store_local_context = store_local_context
         self.namespace = namespace
         self.project_property = project_property
         self.deprecated_property = deprecated_property
@@ -123,7 +124,7 @@ class Service:
         self.url_files = "/".join((self.url_base_files, quote_plus(org), quote_plus(prj)))
         self.url_resources = "/".join((self.endpoint, "resources", quote_plus(org), quote_plus(prj)))
         self.url_resolver = "/".join((self.endpoint,"resolvers", quote_plus(org), quote_plus(prj)))
-        self.metadata_context = Context(self.resolve_context(self.store_context), store_context)
+        self.metadata_context = Context(recursive_resolve(self.store_context, self.resolve_context), store_context)
 
         sparql_view = sparql_config['endpoint'] if sparql_config and "endpoint" in sparql_config else self.default_sparql_index
         elastic_view = elastic_config['endpoint'] if elastic_config and "endpoint" in elastic_config else self.default_es_index
@@ -155,23 +156,29 @@ class Service:
         if iri in self.context_cache:
             return self.context_cache[iri]
         try:
-            url = "/".join((self.url_resolver, "_", quote_plus(iri)))
+            context_to_resolve = self.store_local_context if iri == self.store_context else iri
+            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
         except Exception as e:
             if local_only is False:
                 try:
-                    context = Context(iri)
+                    context = Context(context_to_resolve)
                 except URLError:
-                    raise ValueError(f"{iri} is not resolvable")
+                    raise ValueError(f"{context_to_resolve} is not resolvable")
                 else:
                     document = context.document["@context"]
             else:
-                raise ValueError(f"{iri} is not resolvable")
+                raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             document = json.loads(json.dumps(resource["@context"]))
-        self.context_cache.update({iri: document})
+        if isinstance(document, list):
+            if self.store_context in document:
+                document.remove(self.store_context)
+            if self.store_local_context in document:
+                document.remove(self.store_local_context)
+        self.context_cache.update({context_to_resolve: document})
         return document
 
     def batch_request(self, resources: List[Resource], action: BatchAction, callback: Callable,
@@ -180,9 +187,9 @@ class Service:
         def create_tasks(semaphore, session, loop, data, batch_action, f_callback, error):
             futures = []
             schema_id = kwargs.get("schema_id")
-            params = deepcopy(kwargs.get("params", {}))
             schema_id = "_" if schema_id is None else quote_plus(schema_id)
             for resource in data:
+                params = deepcopy(kwargs.get("params", {}))
                 if batch_action == batch_action.CREATE:
                     context = self.model_context or self.context
                     payload = as_jsonld(resource, "compacted", False,
@@ -221,7 +228,6 @@ class Service:
                               params=params))
 
                 if batch_action == BatchAction.FETCH:
-
                     resource_org, resource_prj = resource.project.split("/")[-2:]
                     resource_url = "/".join((self.endpoint, "resources", quote_plus(resource_org), quote_plus(resource_prj)))
                     url = "/".join((resource_url, "_", quote_plus(resource.id)))
@@ -319,6 +325,8 @@ class Service:
             data_context = [data_context]
         if self.store_context in data_context:
             data_context.remove(self.store_context)
+        if self.store_local_context in data_context:
+            data_context.remove(self.store_local_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
         metadata = dict()
         data = dict()

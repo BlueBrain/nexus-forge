@@ -114,6 +114,9 @@ class StoreService(RdfService):
         if isinstance(context, list):
             if self.store_metadata_iri in context:
                 context.remove(self.store_metadata_iri)
+            if hasattr(self.default_store.service, "store_local_context") and\
+                    self.default_store.service.store_local_context in context:
+                context.remove(self.default_store.service.store_local_context)
             for x in context:
                 document.update(self.recursive_resolve(x))
         elif isinstance(context, str):
