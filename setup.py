@@ -65,5 +65,6 @@ setup(
         "Topic :: Scientific/Engineering",
         "Programming Language :: Python :: 3 :: Only",
         "Natural Language :: English",
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)'
     ]
 )
