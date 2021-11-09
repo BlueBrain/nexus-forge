@@ -399,7 +399,6 @@ def _remove_ld_keys(dictionary: dict, context: Context,
             if k == "@id":
                 local_attrs["id"] = context.resolve(v)
             elif k.startswith("@") and k in LD_KEYS.values():
-                print(k)
                 local_attrs[k[1:]] = v
             else:
                 if isinstance(v, dict):
