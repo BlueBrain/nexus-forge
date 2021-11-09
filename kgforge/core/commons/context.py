@@ -13,12 +13,10 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from typing import Optional, Union, Dict, List
-
-from rdflib_jsonld.context import Context as RdflibContext
-from rdflib_jsonld.util import source_to_json
+from rdflib.plugins.shared.jsonld.context import source_to_json, Context as JSONLD_Context
 
 
-class Context(RdflibContext):
+class Context(JSONLD_Context):
     """Context class will hold a JSON-LD context in two forms: iri and document.
 
     See also: https://w3c.github.io/json-ld-syntax/#the-context
