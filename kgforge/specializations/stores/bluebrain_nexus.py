@@ -489,7 +489,7 @@ class BlueBrainNexus(Store):
 
                 def triples_to_resource(iri, triples):
                     graph = Graph().parse(data=triples, format="nt")
-                    data_expanded = json.loads(graph.serialize(format="json-ld").decode("utf-8"))
+                    data_expanded = json.loads(graph.serialize(format="json-ld"))
                     frame = {"@id": iri}
                     data_framed = jsonld.frame(data_expanded, frame)
                     context = self.model_context or self.context
