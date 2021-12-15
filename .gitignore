@@ -14,3 +14,5 @@ examples/notebooks/getting-started/downloaded/
 .gitreview
 examples/configurations/forge.yml
 examples/models/neuroshapes/
+venv/*
+.eggs/*
