@@ -235,7 +235,7 @@ class KnowledgeGraphForge:
         {
             "firstResolver": {
                 "firstTarget": {
-                    "source": "bbp/agents",
+                    "source": "firstSource",
                 },
                 "secondTarget": {
                     "source": "secondSource",
