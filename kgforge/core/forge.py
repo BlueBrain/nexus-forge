@@ -224,29 +224,33 @@ class KnowledgeGraphForge:
 
     # Resolving User Interface.
 
-    def resolvers(self, as_dict: bool = False) -> Optional[Dict]:
+    def resolvers(self, output: str = "print") -> Optional[Dict]:
         """
-        Prints or returns the available resolvers of the graph.
-
-        If as dict is False (default), prints the available scopes
-        If as_dict is True, returns a dictionary of the available scores and their targets
+        Prints or returns the available resolvers based on the requested format
 
         The dictionary returned has the following format:
         {
             "firstResolver": {
                 "firstTarget": {
-                    "source": "firstSource",
+                    "bucket": "firstSource",
                 },
                 "secondTarget": {
-                    "source": "secondSource",
+                    "bucket": "secondSource",
                 }
             }
         }
 
-        :param as_dict: Defines whether the resolvers should be returned as dictionary
+        :param output: Defines whether the resolvers should printed or returned as a format
         :return:
         """
-        if as_dict:
+        if output == "print":
+            print("Available scopes:")
+            for scope, scope_value in sorted(self._resolvers.items()):
+                print(" - ", scope, ":")
+                for resolver_key, resolver_value in scope_value.items():
+                    print("     - resolver: ", resolver_key)
+                    print("         - targets: ", ",".join(resolver_value.targets.keys()))
+        elif output == "dict":
             resolvers_dict = dict()
             # iterate over resolvers and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
@@ -254,17 +258,12 @@ class KnowledgeGraphForge:
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
                         individual_dict[target_key] = {
-                            "source": target_value
+                            "bucket": target_value
                         }
                 resolvers_dict[scope] = individual_dict
             return resolvers_dict
         else:
-            print("Available scopes:")
-            for scope, scope_value in sorted(self._resolvers.items()):
-                print(" - ", scope, ":")
-                for resolver_key, resolver_value in scope_value.items():
-                    print("     - resolver: ", resolver_key)
-                    print("         - targets: ", ",".join(resolver_value.targets.keys()))
+            raise ValueError("unrecognized output")
 
     @catch
     def resolve(self, text: Union[str, List[str], Resource], scope: Optional[str] = None, resolver: Optional[str] = None,
