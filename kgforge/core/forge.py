@@ -224,13 +224,46 @@ class KnowledgeGraphForge:
 
     # Resolving User Interface.
 
-    def resolvers(self):
-        print("Available scopes:")
-        for k, v in sorted(self._resolvers.items()):
-            print(" - ", k, ":")
-            for r_key, r_value in v.items():
-                print("     - resolver: ", r_key)
-                print("         - targets: ",  ",".join(r_value.targets.keys()))
+    def resolvers(self, output: str = "print") -> Optional[Dict]:
+        """
+        Prints or returns the available resolvers based on the requested format
+
+        The dictionary returned has the following format:
+        {
+            "firstResolver": {
+                "firstTarget": {
+                    "bucket": "firstSource",
+                },
+                "secondTarget": {
+                    "bucket": "secondSource",
+                }
+            }
+        }
+
+        :param output: Defines whether the resolvers should printed or returned as a format
+        :return:
+        """
+        if output == "print":
+            print("Available scopes:")
+            for scope, scope_value in sorted(self._resolvers.items()):
+                print(" - ", scope, ":")
+                for resolver_key, resolver_value in scope_value.items():
+                    print("     - resolver: ", resolver_key)
+                    print("         - targets: ", ",".join(resolver_value.targets.keys()))
+        elif output == "dict":
+            resolvers_dict = dict()
+            # iterate over resolvers and fill dictionary with targets
+            for scope, scope_value in sorted(self._resolvers.items()):
+                individual_dict = dict()
+                for resolver_key, resolver_value in scope_value.items():
+                    for target_key, target_value in resolver_value.targets.items():
+                        individual_dict[target_key] = {
+                            "bucket": target_value
+                        }
+                resolvers_dict[scope] = individual_dict
+            return resolvers_dict
+        else:
+            raise ValueError("unrecognized output")
 
     @catch
     def resolve(self, text: Union[str, List[str], Resource], scope: Optional[str] = None, resolver: Optional[str] = None,

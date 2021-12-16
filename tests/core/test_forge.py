@@ -31,3 +31,25 @@ class TestForgeInitialization:
         assert type(forge._model).__name__ == MODEL
         assert type(forge._store).__name__ == STORE
         assert type(forge._resolvers[SCOPE][RESOLVER]).__name__ == RESOLVER
+
+
+class TestResolver:
+    """
+    Tests the .resolver() function
+    """
+
+    def test_resolver_returns_dict(self, config):
+        forge = KnowledgeGraphForge(config)
+        resolvers_dict = forge.resolvers(output="dict")
+        assert type(resolvers_dict) is dict
+
+    def test_resolver_does_not_return_if_print(self, config):
+        forge = KnowledgeGraphForge(config)
+        resolvers_dict = forge.resolvers(output="print")
+        assert resolvers_dict is None
+
+    def test_resolver_returns_correct_dictionary(self, config):
+        dict_result = {'terms': {'sex': {'bucket': 'sex.json'}}}
+        forge = KnowledgeGraphForge(config)
+        resolvers_dict = forge.resolvers(output="dict")
+        assert resolvers_dict == dict_result
