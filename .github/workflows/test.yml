@@ -1,7 +1,7 @@
 name: Test Forge
 on: [ push, pull_request]
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -12,4 +12,6 @@ jobs:
       - name: Install dependencies
         run: pip install .[dev]
       - name: Run tests with pytest
-        run: pytest --cov=./
+        run: |
+          pytest --cov=./
+          codecov
