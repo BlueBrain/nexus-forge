@@ -4,11 +4,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
       - uses: actions/checkout@v2
-      - name: Set up node
+      - name: Install Python 3
         uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
       - name: Install dependencies
         run: pip install .[dev]
-      - name: Run tests
+      - name: Run tests with pytest
         run: pytest --cov=./
