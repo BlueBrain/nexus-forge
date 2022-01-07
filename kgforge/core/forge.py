@@ -219,8 +219,8 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def validate(self, data: Union[Resource, List[Resource]],
-                 execute_actions_before: bool = False) -> None:
-        self._model.validate(data, execute_actions_before)
+                 execute_actions_before: bool = False, schema: str = None) -> None:
+        self._model.validate(data, execute_actions_before, schema=schema)
 
     # Resolving User Interface.
 

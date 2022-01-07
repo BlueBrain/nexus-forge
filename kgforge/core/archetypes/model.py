@@ -150,7 +150,7 @@ class Model(ABC):
         not_supported()
 
     def validate(self, data: Union[Resource, List[Resource]],
-                 execute_actions_before: bool) -> None:
+                 execute_actions_before: bool, schema: str = None) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
         run(self._validate_one, None, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated")
