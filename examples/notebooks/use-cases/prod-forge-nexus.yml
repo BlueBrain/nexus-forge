@@ -15,11 +15,6 @@ Store:
     elastic:
       endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
       default_str_keyword_field: "keyword"
-  params:
-    tag:
-      tag: dksldlskdl
-    register:
-      indexing: async
   vocabulary:
     metadata:
       iri: "https://bluebrain.github.io/nexus/contexts/metadata.json"
