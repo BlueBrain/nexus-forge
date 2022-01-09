@@ -381,8 +381,8 @@ class Store(ABC):
         self, query: str, debug: bool, limit: int, offset: int
     ) -> List[Resource]:
         query_dict = json.loads(query)
-        query_dict["from"] = 0 if offset is None else offset
-        query_dict["size"] = limit
+        query_dict["size"] = limit if limit else query_dict.get("size", 100)
+        query_dict["from"] = offset if offset else query_dict.get("from", 0)
         if debug:
             self._debug_query(query_dict)
         return self._elastic(json.dumps(query_dict), limit, offset)

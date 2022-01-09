@@ -588,7 +588,7 @@ class KnowledgeGraphForge:
         self,
         query: str,
         debug: bool = False,
-        limit: int = 100,
+        limit: Optional[int] = None,
         offset: Optional[int] = None,
     ) -> List[Resource]:
         """
