@@ -226,15 +226,16 @@ SPARQL query if supported by the store (4) or by using an ElasticSearch query if
    forge.elastic(query: str, debug: bool, limit: int, offset: int = None) -> List[Resource] # for elasticsearch query
    forge.download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False, cross_bucket: bool = False) -> None
 
-Currently `forge.search(*filters, **params)` will rewrite the filters as a SPARQL query.
+Currently `forge.search(*filters, **params)` will by default rewrite the filters as a SPARQL query and run it against a configured SPARQL endpoint unless `sparql_endpoint='elastic'` is set and an ElasticSearch search endpoint configured.
 When the `cross_bucket=True` param is set, then it can be complemented with a 'bucket=<str>' param to filter the bucket to search in.
 
-Next are examples of search calls:
+Next are examples of search calls with different query syntax:
 
 .. code-block:: python
 
     from kgforge.core import KnowledgeGraphForge
     from kgforge.specializations.resources import Dataset
+    # see https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml for a full forge config example.
     forge = KnowledgeGraphForge(configuration="./config.yml", **kwargs)
 
     # Retrieve by id at a given version
@@ -246,7 +247,10 @@ Next are examples of search calls:
     distinct_results_filters = forge.search(filters, limit=10, offset=0, distinct=True)
     # Filter by type using a paths
     paths = forge.paths("Dataset")
-    result_paths = forge.search(paths.type=="Dataset", limit=10, offset=0, deprecated=False)
+    result_paths = forge.search(paths.type=="Dataset", limit=10, offset=0, deprecated=False) # all python comparison operators are supported
+    # Filter by type using the built-in forge Filter class and hit a configured Elasticsearch search endpoint
+    filters = Filter(operator="__eq__", path=["type"], value="Dataset") # supported operators can be obtained by running [f"{op.value} ({op.name})" for op in FilterOperator]
+    result_paths = forge.search(filters, search_endpoint="elastic")
 
 Versioning
 ----------

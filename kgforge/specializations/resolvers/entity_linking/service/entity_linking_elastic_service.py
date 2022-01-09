@@ -17,16 +17,30 @@ import requests
 
 from typing import Callable, Dict, List, Optional, Union, Any
 
+from kgforge.core import Resource
 from kgforge.core.archetypes import Store
+from kgforge.core.conversions.json import as_json
+from kgforge.core.resource import encode
+from kgforge.core.wrappings import Filter, FilterOperator
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.resolvers.entity_linking.service.entity_linking_service import EntityLinkerService
-from kgforge.specializations.resources.entity_linking_candidate import EntityLinkingCandidate
+from kgforge.specializations.resolvers.entity_linking.service.entity_linking_service import (
+    EntityLinkerService,
+)
+from kgforge.specializations.resources.entity_linking_candidate import (
+    EntityLinkingCandidate,
+)
 
 
 class EntityLinkerElasticService(EntityLinkerService):
-
-    def __init__(self, store: Callable, targets: Dict[str, str], encoder, result_resource_mapping, **store_config):
+    def __init__(
+        self,
+        store: Callable,
+        targets: Dict[str, str],
+        encoder,
+        result_resource_mapping,
+        **store_config
+    ):
         super().__init__(is_distance=False)
         self.sources: Dict[str, Store] = dict()
         for target, bucket in targets.items():
@@ -43,8 +57,9 @@ class EntityLinkerElasticService(EntityLinkerService):
     def mapper(self) -> Callable:
         return DictionaryMapper
 
-    def generate_candidates(self, mentions, target, mention_context, limit, bulk) -> Optional[Union[EntityLinkingCandidate, List[EntityLinkingCandidate]]]:
-
+    def generate_candidates(
+        self, mentions, target, mention_context, limit, bulk
+    ) -> Optional[Union[EntityLinkingCandidate, List[EntityLinkingCandidate]]]:
         def _(d, resource):
             return EntityLinkingCandidate(d, **resource)
 
@@ -55,44 +70,61 @@ class EntityLinkerElasticService(EntityLinkerService):
         for mention in mentions_labels:
             call_url = self.encoder.format(x=mention)
             embedding_object = requests.get(url=call_url)
-            embedding = self.mapper().map(embedding_object.json(), self.result_mapping, None)
-            if embedding is not None and hasattr(embedding, "embedding"):
-                mention_resources, mention_resources_scores = self._similar(embedding.embedding, target, limit)
+            embedding = self.mapper().map(
+                embedding_object.json(), self.result_mapping, None
+            )
+            if embedding is not None:
+                embedding_json = encode(embedding)
+                vector_field = list(embedding_json.keys())[0]
+                mention_resources, mention_resources_scores = self._similar(
+                    vector_field,embedding_json[vector_field], target, limit
+                )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)
-        i_res = {m: [_(scores[j][i], resource) for i, resource in enumerate(rs)] for j, (m, rs) in
-                 enumerate(zip(itertools.cycle(mentions_labels), resources))}
+        i_res = {
+            m: [_(scores[j][i], resource) for i, resource in enumerate(rs)]
+            for j, (m, rs) in enumerate(
+                zip(itertools.cycle(mentions_labels), resources)
+            )
+        }
         return [(m, i_res[m]) for i, m in mentions_index if m in i_res]
 
-    def _similar(self, item_embedding, target, limit, offset=0):
+    def _similar(self, vector_field, item_embedding, target, limit, offset=0):
         """
         Given a vector, find similar top [limit] resources, ranked by cosine similarity
         """
+        embedding_filter = Filter(
+            operator=FilterOperator.EQUAL.value,
+            path=[vector_field],
+            value=item_embedding,
+        )
 
-        query = """{
-            "size": %s,
-            "_source": {
-                "exclude": ["embedding"]
-            },
-            "query": {
-                "script_score": {
-                    "query": {
-                        "exists": {
-                            "field": "embedding"
-                        }
-                    },
-                    "script": {
-                        "source": "doc['embedding'].size() == 0 ? 0 : (cosineSimilarity(params.queryVector, doc['embedding'])+1.0) / 2",
-                        "params": {
-                            "queryVector": %s
-                        }
-                    }
-                }
-            }
-        }""" % (limit, item_embedding)
-        resources = self.sources[target].elastic(query, False, limit=limit, offset=offset)
+        resources = self.sources[target].search(
+            None,
+            embedding_filter,
+            limit=limit,
+            offset=offset,
+            excludes=[vector_field],
+            search_endpoint="elastic",
+        )
+
         if len(resources) > 0:
-            scores = [r._score for r in resources if hasattr(r, "_score")]
-            return [dict(r._source) for r in resources if hasattr(r, "_source")], scores
+            scores = [
+                r._store_metadata._score
+                for r in resources
+                if hasattr(r._store_metadata, "_score")
+            ]
+
+            return (
+                as_json(
+                    resources,
+                    expanded=False,
+                    store_metadata=True,
+                    model_context=None,
+                    metadata_context=None,
+                    context_resolver=None,
+                ),
+                scores,
+            )
         else:
             return None

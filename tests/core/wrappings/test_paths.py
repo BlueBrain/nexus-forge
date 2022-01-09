@@ -18,27 +18,71 @@ import pytest
 
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 
-@pytest.mark.parametrize("dict_filters, expected", [
-        pytest.param(({"agent":{"name":"EPFL"}}),
-                     ([Filter(["agent", "name"], "__eq__", "EPFL")]),
-                     id="literal"),
-        pytest.param(({"agent": {"name": "EPFL", "address":{"postalCode":"1015"}}}),
-                     ([Filter(["agent", "name"], "__eq__", "EPFL"),
-                       Filter(["agent", "address","postalCode"], "__eq__", "1015")]),
-                     id="one_nested"),
-        pytest.param(({"type":"Contribution","agent": {"type":"Agent","name": "EPFL", "address": {
-                        "type":"PostalAddress","postalCode": "1015","addressCountry":{
-                        "type":"Country","name":"Switzerland"}
-                        }}}),
-                     ([Filter(["type"], "__eq__", "Contribution"),
-                       Filter(["agent", "type"], "__eq__", "Agent"),
-                       Filter(["agent", "name"], "__eq__", "EPFL"),
-                       Filter(["agent", "address", "type"], "__eq__", "PostalAddress"),
-                       Filter(["agent", "address", "postalCode"], "__eq__", "1015"),
-                       Filter(["agent", "address", "addressCountry","type"], "__eq__", "Country"),
-                       Filter(["agent", "address", "addressCountry", "name"], "__eq__", "Switzerland")]),
-                     id="many_nested")
-    ])
+
+@pytest.mark.parametrize(
+    "dict_filters, expected",
+    [
+        pytest.param(
+            ({"agent": {"name": "EPFL"}}),
+            ([Filter(["agent", "name"], "__eq__", "EPFL")]),
+            id="literal",
+        ),
+        pytest.param(
+            ({"agent": {"name": "EPFL", "address": {"postalCode": "1015"}}}),
+            (
+                [
+                    Filter(["agent", "name"], "__eq__", "EPFL"),
+                    Filter(["agent", "address", "postalCode"], "__eq__", "1015"),
+                ]
+            ),
+            id="one_nested",
+        ),
+        pytest.param(
+            (
+                {
+                    "type": "Contribution",
+                    "agent": {
+                        "type": "Agent",
+                        "name": "EPFL",
+                        "address": {
+                            "type": "PostalAddress",
+                            "postalCode": "1015",
+                            "addressCountry": {
+                                "type": "Country",
+                                "name": "Switzerland",
+                            },
+                        },
+                    },
+                }
+            ),
+            (
+                [
+                    Filter(["type"], "__eq__", "Contribution"),
+                    Filter(["agent", "type"], "__eq__", "Agent"),
+                    Filter(["agent", "name"], "__eq__", "EPFL"),
+                    Filter(["agent", "address", "type"], "__eq__", "PostalAddress"),
+                    Filter(["agent", "address", "postalCode"], "__eq__", "1015"),
+                    Filter(
+                        ["agent", "address", "addressCountry", "type"],
+                        "__eq__",
+                        "Country",
+                    ),
+                    Filter(
+                        ["agent", "address", "addressCountry", "name"],
+                        "__eq__",
+                        "Switzerland",
+                    ),
+                ]
+            ),
+            id="many_nested",
+        ),
+    ],
+)
 def test_dict_to_filter(dict_filters, expected):
     filters = create_filters_from_dict(dict_filters)
     assert filters == expected
+
+
+def test_bad_filter_operator():
+    with pytest.raises(ValueError):
+        Filter(["agent", "type"], "__equal__", "Agent")

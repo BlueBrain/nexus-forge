@@ -11,6 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import json
 
 import os
 from unittest import mock
@@ -28,7 +29,11 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
-from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus, build_query_statements, _create_select_query
+from kgforge.specializations.stores.bluebrain_nexus import (
+    BlueBrainNexus,
+    build_sparql_query_statements,
+    _create_select_query,
+)
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
@@ -40,8 +45,9 @@ TOKEN = "token"
 NEXUS_PROJECT_CONTEXT = {"base": "http://data.net/", "vocab": "http://vocab.net/"}
 
 VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
-FILE_RESOURCE_MAPPING = os.sep.join((os.path.curdir, "tests", "data", "nexus-store",
-                                     "file-to-resource-mapping.hjson"))
+FILE_RESOURCE_MAPPING = os.sep.join(
+    (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson")
+)
 
 
 @pytest.fixture
@@ -52,9 +58,13 @@ def nested_resource():
 
 @pytest.fixture
 def nested_registered_resource(nested_resource):
-    ingredients = [Resource(id=i, type='Ingredient') for i in range(3)]
-    resource = Resource(id="a_recipe", type="Recipe", ingridients=ingredients,
-                        author=Resource(id="a_person", type="Person"))
+    ingredients = [Resource(id=i, type="Ingredient") for i in range(3)]
+    resource = Resource(
+        id="a_recipe",
+        type="Recipe",
+        ingridients=ingredients,
+        author=Resource(id="a_person", type="Person"),
+    )
     do_recursive(add_metadata, resource)
     return resource
 
@@ -64,7 +74,7 @@ def metadata_data_compacted():
     return {
         "_deprecated": False,
         "_updatedBy": "http://integration.kfgorge.test",
-        "_rev": 1
+        "_rev": 1,
     }
 
 
@@ -77,8 +87,11 @@ def store_metadata_value(metadata_data_compacted):
 
 @pytest.fixture
 def registered_building(building, model_context, store_metadata_value):
-    building.context = model_context.iri if model_context.is_http_iri() else model_context.document[
-        "@context"]
+    building.context = (
+        model_context.iri
+        if model_context.is_http_iri()
+        else model_context.document["@context"]
+    )
     if model_context.base:
         building.id = f"{model_context.base}{str(uuid4())}"
     else:
@@ -101,11 +114,15 @@ def registered_person(person, store_metadata_value):
 
 
 @pytest.fixture
-@mock.patch('nexussdk.projects.fetch', return_value=NEXUS_PROJECT_CONTEXT)
-@mock.patch('nexussdk.resources.fetch', side_effect=nexussdk.HTTPError('404'))
+@mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
+@mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
 def nexus_store(context_project_patch, metadata_context_patch):
-    return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token=TOKEN,
-                          file_resource_mapping=FILE_RESOURCE_MAPPING)
+    return BlueBrainNexus(
+        endpoint=NEXUS,
+        bucket=BUCKET,
+        token=TOKEN,
+        file_resource_mapping=FILE_RESOURCE_MAPPING,
+    )
 
 
 @pytest.fixture
@@ -149,123 +166,232 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
 
 
 class TestQuerying:
-
     @pytest.fixture
     def context(self):
         document = {
             "@context": {
-                "@vocab":"http://example.org/vocab/",
+                "@vocab": "http://example.org/vocab/",
                 "contribution": {
                     "@id": "https://neuroshapes.org/contribution",
-                    "@type": "@id"
+                    "@type": "@id",
                 },
-                "agent": {
-                    "@id": "http://www.w3.org/ns/prov#agent",
-                    "@type": "@id"
-                },
-                "type":"rdf:type",
+                "agent": {"@id": "http://www.w3.org/ns/prov#agent", "@type": "@id"},
+                "type": "rdf:type",
                 "Person": "http://schema.org/Person",
                 "address": "http://schema.org/address",
                 "name": "http://schema.org/name",
                 "postalCode": "http://schema.org/postalCode",
                 "streetAddress": "http://schema.org/streetAddress",
                 "deprecated": "https://bluebrain.github.io/nexus/vocabulary/deprecated",
-                "identifier": {
-                   "@type":"@id",
-                   "@id":"http://schema.org/identifier"
-                }
+                "identifier": {"@type": "@id", "@id": "http://schema.org/identifier"},
             }
         }
         return Context(document)
 
-    @pytest.mark.parametrize("filters,expected", [
-        pytest.param((Filter(["agent", "name"], "__eq__", "Allen Institute"),),
-                     (["agent/name ?v0"], ["FILTER(?v0 = \"Allen Institute\")"]),
-                     id="literal"),
-        pytest.param((Filter(["address", "postalCode"], "__lt__", 50070),),
-                     (["address/postalCode ?v0"], ["FILTER(?v0 < 50070)"]),
-                     id="number-lt"),
-        pytest.param((Filter(["address", "postalCode"], "__gt__", 50070),),
-                     (["address/postalCode ?v0"], ["FILTER(?v0 > 50070)"]),
-                     id="number-gt"),
-        pytest.param((Filter(["address", "postalCode"], "__ge__", 50070),),
-                     (["address/postalCode ?v0"], ["FILTER(?v0 >= 50070)"]),
-                     id="number-ge"),
-        pytest.param((Filter(["address", "postalCode"], "__le__", 50070),),
-                     (["address/postalCode ?v0"], ["FILTER(?v0 <= 50070)"]),
-                     id="number-le"),
-        pytest.param((Filter(["deprecated"], "__eq__", False),),
-                     (["deprecated ?v0"], ["FILTER(?v0 = false)"]),
-                     id="boolean-false"),
-        pytest.param((Filter(["deprecated"], "__eq__", True),),
-                     (["deprecated ?v0"], ["FILTER(?v0 = true)"]),
-                     id="boolean-true"),
-        pytest.param((Filter(["type"], "__eq__", "Person"),),
-                     (["type Person"], []),
-                     id="iri-eq"),
-        pytest.param((Filter(["type"], "__ne__", "Person"),),
-                     (["type ?v0"], ["FILTER(?v0 != Person)"]),
-                     id="iri-ne"),
-        pytest.param((Filter(["type"], "__eq__", "https://github.com/BlueBrain/nexus-forge"),),
-                     (["type <https://github.com/BlueBrain/nexus-forge>"], []),
-                     id="filter-by-url"),
-        pytest.param((Filter(["type"], "__ne__", "Person"), Filter(["name"], "__eq__", "toto")),
-                     (["type ?v0", "name ?v1"],
-                      ["FILTER(?v0 != Person)", "FILTER(?v1 = \"toto\")"]),
-                     id="iri-ne-name-eq"),
-        pytest.param((Filter(["type"], "__ne__", "Person"),
-                      Filter(operator='__eq__', path=['affiliation', 'id'],
-                                                                   value='https://www.grid.ac/institutes/grid.5333.6'),
-                      Filter(["identifier"], "__eq__", "http://orcid.org/id")),
-                     (["type ?v0", "affiliation <https://www.grid.ac/institutes/grid.5333.6>",
-                       "identifier <http://orcid.org/id>"],
-                      ["FILTER(?v0 != Person)"]),
-                     id="filter-by-id")
-    ])
+    @pytest.mark.parametrize(
+        "filters,expected",
+        [
+            pytest.param(
+                (Filter(["agent", "name"], "__eq__", "Allen Institute"),),
+                (["agent/name ?v0"], ['FILTER(?v0 = "Allen Institute")']),
+                id="literal",
+            ),
+            pytest.param(
+                (Filter(["address", "postalCode"], "__lt__", 50070),),
+                (["address/postalCode ?v0"], ["FILTER(?v0 < 50070)"]),
+                id="number-lt",
+            ),
+            pytest.param(
+                (Filter(["address", "postalCode"], "__gt__", 50070),),
+                (["address/postalCode ?v0"], ["FILTER(?v0 > 50070)"]),
+                id="number-gt",
+            ),
+            pytest.param(
+                (Filter(["address", "postalCode"], "__ge__", 50070),),
+                (["address/postalCode ?v0"], ["FILTER(?v0 >= 50070)"]),
+                id="number-ge",
+            ),
+            pytest.param(
+                (Filter(["address", "postalCode"], "__le__", 50070),),
+                (["address/postalCode ?v0"], ["FILTER(?v0 <= 50070)"]),
+                id="number-le",
+            ),
+            pytest.param(
+                (Filter(["deprecated"], "__eq__", False),),
+                (["deprecated ?v0"], ["FILTER(?v0 = false)"]),
+                id="boolean-false",
+            ),
+            pytest.param(
+                (Filter(["deprecated"], "__eq__", True),),
+                (["deprecated ?v0"], ["FILTER(?v0 = true)"]),
+                id="boolean-true",
+            ),
+            pytest.param(
+                (Filter(["type"], "__eq__", "Person"),),
+                (["type Person"], []),
+                id="iri-eq",
+            ),
+            pytest.param(
+                (Filter(["type"], "__ne__", "Person"),),
+                (["type ?v0"], ["FILTER(?v0 != Person)"]),
+                id="iri-ne",
+            ),
+            pytest.param(
+                (
+                    Filter(
+                        ["type"], "__eq__", "https://github.com/BlueBrain/nexus-forge"
+                    ),
+                ),
+                (["type <https://github.com/BlueBrain/nexus-forge>"], []),
+                id="filter-by-url",
+            ),
+            pytest.param(
+                (
+                    Filter(["type"], "__ne__", "Person"),
+                    Filter(["name"], "__eq__", "toto"),
+                ),
+                (
+                    ["type ?v0", "name ?v1"],
+                    ["FILTER(?v0 != Person)", 'FILTER(?v1 = "toto")'],
+                ),
+                id="iri-ne-name-eq",
+            ),
+            pytest.param(
+                (
+                    Filter(["type"], "__ne__", "Person"),
+                    Filter(
+                        operator="__eq__",
+                        path=["affiliation", "id"],
+                        value="https://www.grid.ac/institutes/grid.5333.6",
+                    ),
+                    Filter(["identifier"], "__eq__", "http://orcid.org/id"),
+                ),
+                (
+                    [
+                        "type ?v0",
+                        "affiliation <https://www.grid.ac/institutes/grid.5333.6>",
+                        "identifier <http://orcid.org/id>",
+                    ],
+                    ["FILTER(?v0 != Person)"],
+                ),
+                id="filter-by-id",
+            ),
+        ],
+    )
     def test_filter_to_query_statements(self, context, filters, expected):
-        statements = build_query_statements(context, filters)
+        statements = build_sparql_query_statements(context, filters)
         assert statements == expected
 
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"
         query = _create_select_query(statements, distinct=False, search_in_graph=True)
-        assert query == "SELECT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        assert (
+            query
+            == "SELECT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        )
         query = _create_select_query(statements, distinct=True, search_in_graph=True)
-        assert query == "SELECT DISTINCT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        assert (
+            query
+            == "SELECT DISTINCT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
+        )
         query = _create_select_query(statements, distinct=False, search_in_graph=False)
-        assert query == "SELECT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+        assert (
+            query
+            == "SELECT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+        )
         query = _create_select_query(statements, distinct=True, search_in_graph=False)
-        assert query == "SELECT DISTINCT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+        assert (
+            query
+            == "SELECT DISTINCT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
+        )
 
-    @pytest.mark.parametrize("filters,expected", [
-        pytest.param(({"type":"Person"}),
-                     ([Filter(operator='__eq__', path=['type'], value='Person')]),
-                     id="json_filter_type"),
-        pytest.param(({"type": "Contribution", "agent":{"name":"John Doe", "affiliation":{"type":"Organization", "name":"EPFL"}},
-                       "hadRole":{"label":"PI"}, "description":"A description"}),
-                     ([Filter(operator='__eq__', path=['type'], value='Contribution'),
-                       Filter(operator='__eq__', path=['agent','name'], value='John Doe'),
-                       Filter(operator='__eq__', path=['agent', 'affiliation','type'], value='Organization'),
-                       Filter(operator='__eq__', path=['agent', 'affiliation','name'], value='EPFL'),
-                       Filter(operator='__eq__', path=['hadRole', 'label'], value='PI'),
-                       Filter(operator='__eq__', path=['description'], value='A description')]),
-                     id="nested_json_filter_type"),
-        pytest.param(({"type": "Person", "affiliation":{"type":"Organization", "id":"https://www.grid.ac/institutes/grid.5333.6"}}),
-                     ([Filter(operator='__eq__', path=['type'], value='Person'),
-                       Filter(operator='__eq__', path=['affiliation', 'type'], value='Organization'),
-                       Filter(operator='__eq__', path=['affiliation', 'id'], value='https://www.grid.ac/institutes/grid.5333.6')]),
-                     id="json_filter_id")
-
-    ])
+    @pytest.mark.parametrize(
+        "filters,expected",
+        [
+            pytest.param(
+                ({"type": "Person"}),
+                ([Filter(operator="__eq__", path=["type"], value="Person")]),
+                id="json_filter_type",
+            ),
+            pytest.param(
+                (
+                    {
+                        "type": "Contribution",
+                        "agent": {
+                            "name": "John Doe",
+                            "affiliation": {"type": "Organization", "name": "EPFL"},
+                        },
+                        "hadRole": {"label": "PI"},
+                        "description": "A description",
+                    }
+                ),
+                (
+                    [
+                        Filter(operator="__eq__", path=["type"], value="Contribution"),
+                        Filter(
+                            operator="__eq__", path=["agent", "name"], value="John Doe"
+                        ),
+                        Filter(
+                            operator="__eq__",
+                            path=["agent", "affiliation", "type"],
+                            value="Organization",
+                        ),
+                        Filter(
+                            operator="__eq__",
+                            path=["agent", "affiliation", "name"],
+                            value="EPFL",
+                        ),
+                        Filter(
+                            operator="__eq__", path=["hadRole", "label"], value="PI"
+                        ),
+                        Filter(
+                            operator="__eq__",
+                            path=["description"],
+                            value="A description",
+                        ),
+                    ]
+                ),
+                id="nested_json_filter_type",
+            ),
+            pytest.param(
+                (
+                    {
+                        "type": "Person",
+                        "affiliation": {
+                            "type": "Organization",
+                            "id": "https://www.grid.ac/institutes/grid.5333.6",
+                        },
+                    }
+                ),
+                (
+                    [
+                        Filter(operator="__eq__", path=["type"], value="Person"),
+                        Filter(
+                            operator="__eq__",
+                            path=["affiliation", "type"],
+                            value="Organization",
+                        ),
+                        Filter(
+                            operator="__eq__",
+                            path=["affiliation", "id"],
+                            value="https://www.grid.ac/institutes/grid.5333.6",
+                        ),
+                    ]
+                ),
+                id="json_filter_id",
+            ),
+        ],
+    )
     def test_dict_to_filters(self, filters, expected):
         filters_from_dict = create_filters_from_dict(filters)
         assert filters_from_dict == expected
+
 
 # Helpers
 
 
 def assert_frozen_id(resource: Resource):
-    assert resource.id.endswith('?rev=' + str(resource._store_metadata['_rev']))
+    assert resource.id.endswith("?rev=" + str(resource._store_metadata["_rev"]))
 
 
 def add_metadata(resource: Resource):
@@ -280,7 +406,7 @@ def add_metadata(resource: Resource):
         "_updatedAt": "2019-03-28T13:40:38.934Z",
         "_updatedBy": "https://nexus/u1",
         "_incoming": "https:/nexus/incoming",
-        "_outgoing": "https://nexux/outgoing"
+        "_outgoing": "https://nexux/outgoing",
     }
     resource._synchronized = True
     resource._validated = True
