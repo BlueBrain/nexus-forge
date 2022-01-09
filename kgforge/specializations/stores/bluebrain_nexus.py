@@ -717,6 +717,9 @@ class BlueBrainNexus(Store):
             deprecated_property_context_term = self.service.metadata_context.find_term(
                 self.service.deprecated_property
             )
+            project_property_context_term = self.service.metadata_context.find_term(
+                self.service.project_property
+            )
             filters.append(
                 Filter(
                     operator="__eq__",
@@ -727,7 +730,28 @@ class BlueBrainNexus(Store):
                     ],
                     value=deprecated,
                 )
+
             )
+            _project = None
+            if bucket:
+                _project = '/'.join([self.endpoint, 'projects', bucket])
+
+            elif not cross_bucket:
+                _project = '/'.join([self.endpoint, 'projects', self.organisation, self.project])
+
+            if _project:
+                filters.append(
+                    Filter(
+                        operator="__eq__",
+                        path=[
+                            project_property_context_term.name
+                            if project_property_context_term is not None
+                            else "_project"
+                        ],
+                        value=_project
+                    )
+                )
+
             query = ESQueryBuilder.build(
                 elastic_mapping,
                 resolvers,

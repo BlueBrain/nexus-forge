@@ -16,7 +16,6 @@ import copy
 import datetime
 import dateutil
 import elasticsearch_dsl
-import json
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
 from typing import Tuple, List, Dict, Optional, Any
@@ -48,7 +47,7 @@ class ESQueryBuilder(QueryBuilder):
         must_nots = list()
         script_scores = list()
 
-        default_str_keyword_field = params.get("default_str_keyword_field", None)
+        default_str_keyword_field = params.get("default_str_keyword_field", "keyword")
         includes = params.get("includes", None)
         excludes = params.get("excludes", None)
 
@@ -65,8 +64,8 @@ class ESQueryBuilder(QueryBuilder):
             script_score = None
             last_path = f.path[-1]
             property_path = ".".join(f.path)
+            found_path_parts = None
             nested_path, mapping_type = m.resolve_nested(field_path=property_path)
-
             if isinstance(mapping_type, elasticsearch_dsl.Nested) or isinstance(
                 mapping_type, elasticsearch_dsl.Object
             ):
@@ -91,11 +90,11 @@ class ESQueryBuilder(QueryBuilder):
                 else:
                     (
                         nested_path,
+                        found_path_parts,
                         mapping_type,
                     ), property_path = _look_up_known_parent_paths(
                         f, last_path, property_path, m
                     )
-
             # else (i.e mapping_type == Text, Keyword, ...) (i.e nested_path with value => in a nested field
             if len(nested_path) >= 1:
                 keyword_path = _build_keyword_path(mapping_type, property_path)
@@ -119,13 +118,14 @@ class ESQueryBuilder(QueryBuilder):
 
             # nested_path = [] => (i.e mapping_type == Text, Date, Keyword, ...) - nested_path empty
             else:
-                if mapping_type is None:
+                found_path = ".".join(found_path_parts) if found_path_parts else None
+                if mapping_type is None or (found_path and found_path != property_path):
                     mapping_type = _detect_mapping_type(f.value)
                     keyword_path = _build_keyword_path(
                         None,
                         property_path,
                         dynamic_mapping_type=mapping_type,
-                        default_str_keyword_field=default_str_keyword_field,
+                        default_str_keyword_field=default_str_keyword_field
                     )
                 else:
                     keyword_path = _build_keyword_path(mapping_type, property_path)
@@ -147,7 +147,7 @@ class ESQueryBuilder(QueryBuilder):
                     term_or_match = "match"
                 n_path = None
 
-            _filter, must, must_not, script_score = _create_bool_query_template(
+            _filter, must, must_not, script_score = _build_bool_query(
                 f,
                 mapping_type,
                 k_path,
@@ -249,10 +249,10 @@ def _recursive_resolve_nested(m, field_path):
                 m, field_path=field_path[0 : len(field_path) - 1]
             )
         else:
-            return nested_path, mapping_type
+            return nested_path, field_path, mapping_type
 
     else:
-        return nested_path, mapping_type
+        return nested_path, field_path, mapping_type
 
 
 def _build_keyword_path(
@@ -261,7 +261,6 @@ def _build_keyword_path(
     dynamic_mapping_type=None,
     default_str_keyword_field=None,
 ):
-
     if isinstance(mapping_type, elasticsearch_dsl.Keyword):
         keyword_path = property_path
     elif (
@@ -286,7 +285,7 @@ def _build_keyword_path(
     return keyword_path
 
 
-def _create_bool_query_template(
+def _build_bool_query(
     filter: Filter,
     mapping_type: Field,
     k_path: str,

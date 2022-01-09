@@ -80,7 +80,7 @@ class TestESQueryBuilder:
             ),
         ],
     )
-    def test__get_keyword_path(
+    def test__build_keyword_path(
         self,
         property_path,
         mapping_type,
@@ -94,51 +94,61 @@ class TestESQueryBuilder:
         assert k_p == keyword_path
 
     @pytest.mark.parametrize(
-        "field_path, nested_path, mapping_type",
+        "field_path, nested_path, found_path, mapping_type",
         [
             pytest.param(
                 (["annotation", "hasBody", "label"]),
                 (["annotation.hasBody"]),
+                (["annotation","hasBody", "label"]),
                 (Text(fields={"keyword": Keyword()})),
                 id="text_keyword_field_in_nested",
             ),
             pytest.param(
                 (["annotation", "hasBody"]),
                 (["annotation.hasBody"]),
+                (["annotation","hasBody"]),
                 (Nested()),
                 id="nested_field",
             ),
             pytest.param(
                 (["annotation", "hasBody", "isMeasurementOf", "label"]),
                 (["annotation.hasBody"]),
+                (["annotation","hasBody"]),
                 (Nested()),
                 id="non_existing_field_in_nested",
             ),
             pytest.param(
-                (["brainLocation", "brainRegion"]), ([]), (Object()), id="object_field"
+                (["brainLocation", "brainRegion"]),
+                ([]),
+                (["brainLocation","brainRegion"]),
+                (Object()),
+                id="object_field"
             ),
             pytest.param(
                 (["brainLocation", "brainRegion", "label"]),
                 ([]),
+                (["brainLocation", "brainRegion", "label"]),
                 (Text(fields={"keyword": Keyword()})),
                 id="text_keyword_field_in_object",
             ),
             pytest.param(
                 (["an_integer"]),
                 ([]),
+                (["an_integer"]),
                 (Integer(fields={"keyword": Keyword()})),
                 id="integer_field",
             ),
-            pytest.param((["@type"]), ([]), (Keyword()), id="keyword_field"),
+            pytest.param((["@type"]), ([]), (["@type"]), (Keyword()), id="keyword_field"),
         ],
     )
     def test__recursive_resolve_nested(
-        self, field_path, nested_path, mapping_type, es_mapping_dict
+        self, field_path, nested_path, found_path, mapping_type, es_mapping_dict
     ):
         es_mapping = elasticsearch_dsl.Mapping()
         es_mapping._update_from_dict(es_mapping_dict)
-        n_p, m_t = _recursive_resolve_nested(es_mapping, field_path)
+        n_p, f_p, m_t = _recursive_resolve_nested(es_mapping, field_path)
         assert n_p == nested_path
+        assert f_p == found_path
         assert str(m_t) == str(mapping_type)
 
     @pytest.mark.parametrize(
@@ -298,17 +308,17 @@ class TestESQueryBuilder:
                 (
                     elasticsearch_dsl.Search().query(
                         elasticsearch_dsl.query.Bool(
-                            must=[
-                                elasticsearch_dsl.query.Match(
+                            filter=[
+                                elasticsearch_dsl.query.Term(
                                     **{
-                                        "brainLocation.brainRegion.isDefinedBy": "A definition"
+                                        "brainLocation.brainRegion.isDefinedBy.keyword": "A definition"
                                     }
                                 )
                             ]
                         )
                     )
                 ),
-                id="build_unknown_match_query",
+                id="build_unknown_filter_query",
             ),
             pytest.param(
                 (
@@ -432,15 +442,15 @@ class TestESQueryBuilder:
                 (
                     elasticsearch_dsl.Search().query(
                         elasticsearch_dsl.query.Bool(
-                            must=[
-                                elasticsearch_dsl.query.Match(
-                                    **{"unknown.path": "Unknown value"}
+                            filter=[
+                                elasticsearch_dsl.query.Term(
+                                    **{"unknown.path.keyword": "Unknown value"}
                                 )
                             ]
                         )
                     )
                 ),
-                id="build_complete_unknown_path_must_match_text",
+                id="build_complete_unknown_path_filter_text_no_default_str_keyword_field",
             ),
             pytest.param(
                 ([Filter(operator="__eq__", path=["unknown", "path"], value="3.0")]),

@@ -77,7 +77,7 @@ class EntityLinkerElasticService(EntityLinkerService):
                 embedding_json = encode(embedding)
                 vector_field = list(embedding_json.keys())[0]
                 mention_resources, mention_resources_scores = self._similar(
-                    vector_field, target, limit
+                    vector_field,embedding_json[vector_field], target, limit
                 )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)
@@ -89,13 +89,13 @@ class EntityLinkerElasticService(EntityLinkerService):
         }
         return [(m, i_res[m]) for i, m in mentions_index if m in i_res]
 
-    def _similar(self, item_embedding, target, limit, offset=0):
+    def _similar(self, vector_field, item_embedding, target, limit, offset=0):
         """
         Given a vector, find similar top [limit] resources, ranked by cosine similarity
         """
         embedding_filter = Filter(
             operator=FilterOperator.EQUAL.value,
-            path=["embedding"],
+            path=[vector_field],
             value=item_embedding,
         )
 
@@ -104,7 +104,7 @@ class EntityLinkerElasticService(EntityLinkerService):
             embedding_filter,
             limit=limit,
             offset=offset,
-            excludes="embedding",
+            excludes=[vector_field],
             search_endpoint="elastic",
         )
 

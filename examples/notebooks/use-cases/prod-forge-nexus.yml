@@ -14,6 +14,7 @@ Store:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
     elastic:
       endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
+      mapping: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
       default_str_keyword_field: "keyword"
   vocabulary:
     metadata:
