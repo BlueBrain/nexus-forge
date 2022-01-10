@@ -107,11 +107,11 @@ class RdfModel(Model):
         except KeyError:
             raise ValueError("type not found")
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, schema: str = None) -> None:
+    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, schema: str=None) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated", schema=schema)
 
-    def _validate_many(self, resources: List[Resource], schema: str = None) -> None:
+    def _validate_many(self, resources: List[Resource], schema: str=None) -> None:
         for resource in resources:
             conforms, graph, _ = self.service.validate(resource, schema=schema)
             if conforms:
@@ -125,7 +125,7 @@ class RdfModel(Model):
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
             resource._last_action = action
 
-    def _validate_one(self, resource: Resource, schema: str = None) -> None:
+    def _validate_one(self, resource: Resource, schema: str=None) -> None:
         conforms, _, report = self.service.validate(resource, schema)
         if conforms is False:
             raise ValidationError("\n" + report)
