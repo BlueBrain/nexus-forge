@@ -280,8 +280,12 @@ class KnowledgeGraphForge:
         return self._model.template(type, only_required, output)
 
     # No @catch because the error handling is done by execution.run().
-    def validate(self, data: Union[Resource, List[Resource]],
-                 execute_actions_before: bool = False, schema: str = None) -> None:
+    def validate(
+        self,
+        data: Union[Resource, List[Resource]],
+        execute_actions_before: bool=False,
+        schema=None
+    ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
         For this method to work, a provided resource should have a type property which is listed in forge.type(...).
@@ -290,6 +294,7 @@ class KnowledgeGraphForge:
 
         :param data: a resource or a list of resources to validate
         :param execute_actions_before: whether to execute a LazyAction value of one of a resource property (True) or not (False) prior to validation
+        :param schema: the schema to validate the data. If None, the validation function will look for a type attribute in the Resource
         :return: None
         """
         self._model.validate(data, execute_actions_before, schema=schema)
