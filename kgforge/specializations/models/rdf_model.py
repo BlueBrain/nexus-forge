@@ -111,9 +111,9 @@ class RdfModel(Model):
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated", schema=schema)
 
-    def _validate_many(self, resources: List[Resource]) -> None:
+    def _validate_many(self, resources: List[Resource], schema: str = None) -> None:
         for resource in resources:
-            conforms, graph, _ = self.service.validate(resource)
+            conforms, graph, _ = self.service.validate(resource, schema=schema)
             if conforms:
                 resource._validated = True
                 action = Action(self._validate_many.__name__, conforms, None)

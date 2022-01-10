@@ -81,7 +81,7 @@ class DemoModel(Model):
 
     # Validation.
 
-    def _validate_one(self, resource: Resource) -> None:
+    def _validate_one(self, resource: Resource, **kwargs) -> None:
         # If the resource is not typed, AttributeError is raised: run() sets _validated to False.
         type_ = resource.type
         type_expanded = self.service.expand(type_)
