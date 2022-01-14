@@ -155,12 +155,12 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, schema: str=None):
+    def validate(self, resource: Resource, type_id: str=None):
         try:
-            if schema is None:
+            if type_id is None:
                 shape_iri = self.types_to_shapes[resource.type]
             else:
-                shape_iri = self.types_to_shapes[schema]
+                shape_iri = self.types_to_shapes[type_id]
         except AttributeError:
             raise TypeError("resource requires a type attribute")
         else:
