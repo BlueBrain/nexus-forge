@@ -16,16 +16,13 @@ import datetime
 import asyncio
 import copy
 
-import dateutil
 import json
 import mimetypes
-import rdflib
 import re
 from asyncio import Semaphore, Task
 from enum import Enum
 from json import JSONDecodeError
 
-from dateutil.parser import ParserError
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -39,17 +36,6 @@ from numpy import nan
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
-from elasticsearch_dsl import (
-    Mapping,
-    Nested,
-    Object,
-    Keyword,
-    AttrDict,
-    Text,
-    Date,
-    Float,
-    Boolean,
-)
 
 from requests import HTTPError
 
@@ -651,6 +637,8 @@ class BlueBrainNexus(Store):
 
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
+        filters = list(filters) if not isinstance(filters, list) else filters
+
         if search_endpoint == self.service.sparql_endpoint["type"]:
             if includes or excludes:
                 raise ValueError(
