@@ -1,0 +1,32 @@
+Model:
+  name: DemoModel
+  origin: directory
+  source: ../../../tests/data/demo-model/
+Store:
+  name: DemoStore
+
+Resolvers:
+  entities:
+  - origin: directory
+    resolver: DemoResolver
+    result_resource_mapping: ../../configurations/demo-resolver/entity-to-resource-mapping.hjson
+    source: ../../../tests/data/demo-resolver/
+    targets:
+    - bucket: agents.json
+      identifier: agents
+  schemaorg:
+  - origin: directory
+    resolver: EntityLinkerSkLearn from kgentitylinkingsklearn
+    result_resource_mapping: ../../configurations/entitylinking-resolver/entitylinking-mapper.hjson
+    source: ../../data/
+    targets:
+    - bucket: tfidfvectorizer_model_schemaorg_linking
+      identifier: terms
+  terms:
+  - origin: directory
+    resolver: DemoResolver
+    result_resource_mapping: ../../configurations/demo-resolver/term-to-resource-mapping.hjson
+    source: ../../../tests/data/demo-resolver/
+    targets:
+    - bucket: sex.json
+      identifier: sexontology
