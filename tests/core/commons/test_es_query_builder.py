@@ -562,6 +562,11 @@ class TestESQueryBuilder:
                     [
                         Filter(
                             operator="__eq__",
+                            path=["type", "id"],
+                            value="Dataset",
+                        ),
+                        Filter(
+                            operator="__eq__",
                             path=["contribution", "agent", "type"],
                             value="Person",
                         ),
@@ -582,6 +587,11 @@ class TestESQueryBuilder:
                     elasticsearch_dsl.Search().query(
                         "bool",
                         filter=[
+                            elasticsearch_dsl.query.Term(
+                                **{
+                                    "@type": "Dataset"
+                                }
+                            ).to_dict(),
                             elasticsearch_dsl.query.Nested(
                                 path="contribution.agent",
                                 query=elasticsearch_dsl.query.Bool(
