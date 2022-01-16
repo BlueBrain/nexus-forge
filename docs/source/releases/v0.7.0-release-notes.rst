@@ -2,7 +2,17 @@
 vO.7.0 Release Notes
 ====================
 
+Welcome to two new contributors @Nabil-AL and @kplatis.
+
 This release adds new features and enhancements to Nexus Forge as well as bug fixes.
+
+New Contributors
+================
+
+The following people made their first contributions:
+
+* Alibou Nabil William (@Nabil-AL): `#196 <https://github.com/BlueBrain/nexus-forge/pull/196>`__
+* Platis Konstantinos (@kplatis): `#210 <https://github.com/BlueBrain/nexus-forge/pull/210>`__
 
 New Features
 ============
@@ -80,6 +90,10 @@ Bug Fixes
 * Updated BlueBrainNexus store parallel batch requests to avoid tasks parameters overriding. `#191 <https://github.com/BlueBrain/nexus-forge/pull/191>`__
 
 
+Changelog
+=========
+
+`Full changelog <https://github.com/BlueBrain/nexus-forge/compare/v0.6.3...v0.7.0>`__.
 
 .. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Querying
