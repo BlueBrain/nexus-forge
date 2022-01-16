@@ -26,6 +26,27 @@ Querying
     filters = {"type":"Dataset"} # any supported forge filter syntax can be provided: https://nexus-forge.readthedocs.io/en/latest/interaction.html#querying
     results_filters = forge.search(filters, search_endpoint="elastic")
 
+ElasticSearch support in `forge.search(...)` is based on a `kgforge.core.wrappings.Filter` to ElasticSearch DSL
+rewriting strategy completely driven by either a user provided ElasticSearch mapping or by ElasticSearch dynamic field mapping.
+
+When using the `BlueBrainNexus` store, the ElasticSearch endpoint (an actual ElasticSearch View) to query as well as the
+(optional) mapping to use can be configured as follows:
+
+.. code-block:: python
+
+    Store:
+      name: BlueBrainNexus
+      endpoint: https://sandbox.bluebrainnexus.io/v1
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+        elastic:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+          mapping: "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+          default_str_keyword_field: "keyword"
+
+For a more detailed forge configuration, see an example `available from github <https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml>`__.
+
 Enhancements
 ============
 
