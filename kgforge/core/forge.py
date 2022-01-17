@@ -284,7 +284,7 @@ class KnowledgeGraphForge:
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool=False,
-        type_id=None
+        type_=None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -294,10 +294,10 @@ class KnowledgeGraphForge:
 
         :param data: a resource or a list of resources to validate
         :param execute_actions_before: whether to execute a LazyAction value of one of a resource property (True) or not (False) prior to validation
-        :param type_id: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
+        :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_id=type_id)
+        self._model.validate(data, execute_actions_before, type_=type_)
 
     # Resolving User Interface.
 

@@ -106,7 +106,7 @@ class TestValidation:
             rdf_model._validate_one(invalid_activity_resource)
 
     def test_validate_with_schema(self, rdf_model: RdfModel, valid_activity_resource):
-        rdf_model.validate(valid_activity_resource, False, type_id="Activity")
+        rdf_model.validate(valid_activity_resource, False, type_="Activity")
 
     def test_validate_many(self, rdf_model: RdfModel, valid_activity_resource,
                            invalid_activity_resource):
