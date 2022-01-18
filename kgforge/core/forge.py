@@ -571,6 +571,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: int = 100,
         offset: Optional[int] = None,
+        **params
     ) -> List[Resource]:
         """
         Search for resources using a SPARQL query. See SPARQL docs: https://www.w3.org/TR/sparql11-query.
@@ -579,9 +580,10 @@ class KnowledgeGraphForge:
         :param debug: a boolean
         :param limit: the number of resources to retrieve
         :param offset: how many results to skip from the first one
+        :param params: a dictionary of parameters. Supported params are: rewrite (whether to rewrite the sparql query or run it as is)
         :return: List[Resource]
         """
-        return self._store.sparql(query, debug, limit, offset)
+        return self._store.sparql(query, debug, limit, offset, **params)
 
     @catch
     def elastic(

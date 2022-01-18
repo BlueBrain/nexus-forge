@@ -382,6 +382,7 @@ def _wrap_in_nested_query(path: str, query: Dict):
     return elasticsearch_dsl.query.Nested(path=path, query=query)
 
 
+# TODO: reuse kgforge.core.commons.parser._parse_type
 def _detect_mapping_type(value: Any):
 
     try:

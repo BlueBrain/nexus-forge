@@ -217,6 +217,11 @@ class TestQuerying:
                 id="number-le",
             ),
             pytest.param(
+                (Filter(["createdAt"], "__ge__", "2020-10-20T13:53:22.880Z"),),
+                (["createdAt ?v0"], ['FILTER(?v0 >= "2020-10-20T13:53:22.880Z"^^xsd:dateTime)']),
+                id="datetime-ge",
+            ),
+            pytest.param(
                 (Filter(["deprecated"], "__eq__", False),),
                 (["deprecated ?v0"], ["FILTER(?v0 = false)"]),
                 id="boolean-false",
@@ -281,6 +286,19 @@ class TestQuerying:
     def test_filter_to_query_statements(self, context, filters, expected):
         statements = build_sparql_query_statements(context, filters)
         assert statements == expected
+
+    @pytest.mark.parametrize(
+        "filters",
+        [
+            pytest.param(
+                (Filter(["agent", "name"], "__le__", "Allen Institute"),),
+                id="range_query_str",
+            )
+        ]
+    )
+    def test_filter_to_query_statements_exceptions(self, context, filters):
+        with pytest.raises(ValueError):
+            build_sparql_query_statements(context, filters)
 
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"
