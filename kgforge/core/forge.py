@@ -569,7 +569,7 @@ class KnowledgeGraphForge:
         self,
         query: str,
         debug: bool = False,
-        limit: int = 100,
+        limit: Optional[int] = None,
         offset: Optional[int] = None,
         **params
     ) -> List[Resource]:
@@ -578,8 +578,8 @@ class KnowledgeGraphForge:
 
         :param query: a SPARQL query
         :param debug: a boolean
-        :param limit: the number of resources to retrieve
-        :param offset: how many results to skip from the first one
+        :param limit: the number of resources to retrieve. Default to 100. If provided in query limit will be replaced
+        :param offset: how many results to skip from the first one. If provided in query offset will be replaced
         :param params: a dictionary of parameters. Supported params are: rewrite (whether to rewrite the sparql query or run it as is)
         :return: List[Resource]
         """

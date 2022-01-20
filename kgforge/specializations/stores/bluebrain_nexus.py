@@ -23,7 +23,6 @@ from asyncio import Semaphore, Task
 from enum import Enum
 from json import JSONDecodeError
 
-from kgforge.core.wrappings import FilterOperator
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -760,10 +759,6 @@ class BlueBrainNexus(Store):
             )
 
     def _sparql(self, query: str, limit: int, offset: int = None, **params) -> List[Resource]:
-
-        s_offset = "" if offset is None else f"OFFSET {offset}"
-        s_limit = "" if limit is None else f"LIMIT {limit}"
-        query = f"{query} {s_limit} {s_offset}"
         try:
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"],

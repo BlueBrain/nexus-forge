@@ -17,8 +17,6 @@ import re
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from rdflib.plugins.sparql import parser
-from rdflib.plugins.sparql.parser import Query
 from typing import Any, Callable, Dict, List, Match, Optional, Union
 
 from kgforge.core import Resource
@@ -362,7 +360,7 @@ class Store(ABC):
         not_supported()
 
     def sparql(
-        self, query: str, debug: bool, limit: int, offset: int = None, **params
+        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
@@ -370,6 +368,23 @@ class Store(ABC):
             if self.model_context is not None and rewrite
             else query
         )
+        limit_in_query = bool(re.search(r" LIMIT \d+", qr, flags=re.IGNORECASE))
+        offset_in_query = bool(re.search(r" OFFSET \d+", qr, flags=re.IGNORECASE))
+        if limit:
+            s_limit = f" LIMIT {limit}"
+            if limit_in_query:
+                qr = re.sub(r" LIMIT \d+", s_limit, qr, flags=re.IGNORECASE)
+            else:
+                qr = f"{qr} {s_limit}"
+        elif not limit_in_query:
+            qr = f"{qr} LIMIT 100"
+
+        if offset:
+            s_offset = f" OFFSET {offset}"
+            if offset_in_query:
+                qr = re.sub(r" OFFSET \d+", s_offset, qr, flags=re.IGNORECASE)
+            else:
+                qr = f"{qr} {s_offset}"
         if debug:
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
@@ -489,7 +504,7 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
             if v is None:
                 raise QueryingError(
                     f"Failed to construct a valid SPARQL query: add '{m4}'"
-                    f" or define an @vocab in the configured JSON-LD context."
+                    f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
                 )
             m5 = match.group(5)
             if "//" in v:
