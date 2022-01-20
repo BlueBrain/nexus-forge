@@ -284,7 +284,7 @@ class KnowledgeGraphForge:
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool=False,
-        type_=None
+        type_: str=None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.

@@ -155,7 +155,7 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, type_: str=None):
+    def validate(self, resource: Resource, type_: str):
         try:
             if isinstance(resource.type, list) and type_ is None:
                 raise ValueError("Resource has list of types as attribute and type_ parameter is not specified. "
