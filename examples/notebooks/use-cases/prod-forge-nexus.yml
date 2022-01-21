@@ -13,7 +13,7 @@ Store:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
     elastic:
-      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
+      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
       mapping: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
       default_str_keyword_field: "keyword"
   vocabulary:
@@ -35,6 +35,9 @@ Resolvers:
       targets:
         - identifier: terms
           bucket: neurosciencegraph/datamodels
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
       result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/term-to-resource-mapping.hjson
   agent:
     - resolver: AgentResolver
@@ -43,6 +46,9 @@ Resolvers:
       targets:
         - identifier: agents
           bucket: bbp/agents
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
       result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/agent-to-resource-mapping.hjson
 
 Formatters:

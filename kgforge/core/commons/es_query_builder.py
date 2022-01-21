@@ -184,13 +184,13 @@ def _look_up_known_parent_paths(f, last_path, property_path, m):
         len(f.path) >= 2
         and last_path in ["id", "@id"]
         and f.path[-2] in ["type", "@type"]
-    ):  # to cope with paths.type.id
+    ):  # to cope with paths.type.id TODO: fix forge.paths to not add id after type
         property_path = _join_property_path(f.path[:-2], "@type")
 
-    if len(f.path) >= 1 and last_path in ["type", "@type"]:
+    elif len(f.path) >= 1 and last_path in ["type", "@type"]:
         property_path = _join_property_path(f.path[:-1], "@type")
 
-    if len(f.path) >= 1 and last_path in ["id", "@id"]:
+    elif len(f.path) >= 1 and last_path in ["id", "@id"]:
         property_path = _join_property_path(f.path[:-1], "@id")
 
     parts = property_path.split(".")
@@ -382,6 +382,7 @@ def _wrap_in_nested_query(path: str, query: Dict):
     return elasticsearch_dsl.query.Nested(path=path, query=query)
 
 
+# TODO: reuse kgforge.core.commons.parser._parse_type
 def _detect_mapping_type(value: Any):
 
     try:

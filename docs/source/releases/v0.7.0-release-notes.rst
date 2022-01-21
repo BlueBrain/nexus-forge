@@ -2,10 +2,115 @@
 vO.7.0 Release Notes
 ====================
 
-This is a ...
+Welcome to two new contributors @Nabil-AL and @kplatis.
+
+This release adds new features and enhancements to Nexus Forge as well as bug fixes.
+
+New Contributors
+================
+
+The following people made their first contributions:
+
+* Alibou Nabil William (@Nabil-AL): `#196 <https://github.com/BlueBrain/nexus-forge/pull/196>`__
+* Platis Konstantinos (@kplatis): `#210 <https://github.com/BlueBrain/nexus-forge/pull/210>`__
+
+New Features
+============
+
+Querying
+--------
+
+* Added support for running forge search queries against ElasticSearch indices and not just SPARQL endpoints. `#192 <https://github.com/BlueBrain/nexus-forge/pull/192>`__, `#221 <https://github.com/BlueBrain/nexus-forge/pull/221>`__ (Try it using the `Querying` notebook |Binder_Querying|)
+  When calling `forge.search(...)`, a `search_endpoint` argument can be set to:
+
+  * `elastic` to search a configured ElasticSearch search endpoint
+
+  * `sparql` to search a configured SPARQL endpoint (which is also the default search endpoint when no `search_endpoint` value is provided).
+
+.. code-block:: python
+
+    from kgforge.core import KnowledgeGraphForge
+    # see https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml for a full forge config example.
+    forge = KnowledgeGraphForge(configuration="./config.yml", **kwargs)
+    # Search for resources  by type using a dictionary
+    filters = {"type":"Dataset"} # any supported forge filter syntax can be provided: https://nexus-forge.readthedocs.io/en/latest/interaction.html#querying
+    results_filters = forge.search(filters, search_endpoint="elastic")
+
+ElasticSearch support in `forge.search(...)` is based on a `kgforge.core.wrappings.Filter` to ElasticSearch DSL
+rewriting strategy completely driven by either a user provided ElasticSearch mapping or by ElasticSearch dynamic field mapping.
+
+When using the `BlueBrainNexus` store, the ElasticSearch endpoint (an actual ElasticSearch View) to query as well as the
+(optional) mapping to use can be configured as follows:
+
+.. code-block:: python
+
+    Store:
+      name: BlueBrainNexus
+      endpoint: https://sandbox.bluebrainnexus.io/v1
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+        elastic:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+          mapping: "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+          default_str_keyword_field: "keyword"
+
+For a more detailed forge configuration, see an example `available from github <https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml>`__.
 
 Enhancements
 ============
 
+Querying
+--------
+* Applied user provided limit and offset arguments with higher priority than:
+
+  * `size` and `from` set in a ElasticSearch query when using `forge.elastic(...)`  `#192 <https://github.com/BlueBrain/nexus-forge/pull/192>`__ (issue `#176 <https://github.com/BlueBrain/nexus-forge/pull/176>`__) (Try it using the `Querying` notebook |Binder_Querying|)
+
+* Returned a set of Resource objects as result of a forge.elastic(..) call instead of raw ES hits. ES metadata (_index, _score) are added in _store_metadata. `#192 <https://github.com/BlueBrain/nexus-forge/pull/192>`__ (issue `#177 <https://github.com/BlueBrain/nexus-forge/pull/177>`__) (Try it using the `Querying` notebook |Binder_Querying|)
+
+Resolving
+---------
+* Added support for returning resolvers as dictionary. `#210 <https://github.com/BlueBrain/nexus-forge/pull/210>`__ (issue `#208 <https://github.com/BlueBrain/nexus-forge/pull/208>`__) (Try it using the `Resolving` notebook |Binder_Resolving|)
+
+Tutorial
+--------
+* Added a jupyter notebook for accessing data in a BlueBrainNexus Store's view or tag. (|Binder_BBP-KG-Search-and-Download-Data-at-a-given-tag| to try it)
+* Added a jupyter notebook for ontology types search and exploration. (|Binder_BBP-KG-Ontology-types-Search-and-Exploration| to try it)
+
+Setup
+-----
+* Set `python>=3.7`, `rdflib>=6.0.0`, `pyshacl==v0.17.2` and `pyparsing>=2.0.2`. `#201 <https://github.com/BlueBrain/nexus-forge/pull/201>`__, `#204 <https://github.com/BlueBrain/nexus-forge/pull/204>`__, `#196 <https://github.com/BlueBrain/nexus-forge/pull/196>`__ (issue `#198 <https://github.com/BlueBrain/nexus-forge/pull/198>`__)
+  Releases of `rdflib>=6.0.0` now includes the plugin `rdflib-jsonld`, so there is no need to install it separately.
+
 Bug Fixes
 =========
+
+* Added a fix list of JSONLD keys to JSONify (i.e. to remove the `@` prefix) to avoid removing `@` prefix for JSON-LD literal `@value`. `#200 <https://github.com/BlueBrain/nexus-forge/pull/200>`__ (issue `#194 <https://github.com/BlueBrain/nexus-forge/pull/194>`__) (Try it using the `JSON-LD IO` notebook |Binder_JSON-LD-IO|)
+* Added bucket first resolving of JSON-LD contexts (before attempting to resolve them following their HTTP URI) when using BlueBrainNexus store. This capability avoid failure when initializing a KnowledgeGraphForge session in a closed network such as Openshift pods. `#190 <https://github.com/BlueBrain/nexus-forge/pull/190>`__, `#193 <https://github.com/BlueBrain/nexus-forge/pull/193>`__ (issue `#178 <https://github.com/BlueBrain/nexus-forge/pull/178>`__)
+* Updated BlueBrainNexus store parallel batch requests to avoid tasks parameters overriding. `#191 <https://github.com/BlueBrain/nexus-forge/pull/191>`__
+
+
+Changelog
+=========
+
+`Full changelog <https://github.com/BlueBrain/nexus-forge/compare/v0.6.3...v0.7.0>`__.
+
+.. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Querying
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.7.0?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
+
+.. |Binder_BBP-KG-Search-and-Download-Data-at-a-given-tag| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_BBP-KG-Search-and-Download-Data-at-a-given-tag
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.7.0?filepath=examples%2Fnotebooks%2Fuse-cases%2FBBP-KG-Search-and-Download-Data-at-a-given-tag.ipynb
+
+.. |Binder_BBP-KG-Ontology-types-Search-and-Exploration| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_BBP-KG-Search-and-Download-Data-at-a-given-tag
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.7.0?filepath=examples%2Fnotebooks%2Fuse-cases%2FBBP%20KG%20Ontology%20types%20Search%20and%20Exploration.ipynb
+
+.. |Binder_JSON-LD-IO| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_JSON-LD-IO
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.7.0?filepath=examples%2Fnotebooks%2Fgetting-started%2F13%20-%20JSON-LD%20IO.ipynb
+
+.. |Binder_Querying| image:: https://mybinder.org/badge_logo.svg
+    :alt: Binder_Querying
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.7.0?filepath=examples%2Fnotebooks%2Fgetting-started%2F04%20-%20Querying.ipynb

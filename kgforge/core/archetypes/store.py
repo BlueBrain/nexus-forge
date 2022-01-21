@@ -360,18 +360,36 @@ class Store(ABC):
         not_supported()
 
     def sparql(
-        self, query: str, debug: bool, limit: int, offset: int = None
+        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
         qr = (
-            rewrite_sparql(query, self.model_context)
-            if self.model_context is not None
+            rewrite_sparql(query, self.model_context, self.service.metadata_context)
+            if self.model_context is not None and rewrite
             else query
         )
+        limit_in_query = bool(re.search(r" LIMIT \d+", qr, flags=re.IGNORECASE))
+        offset_in_query = bool(re.search(r" OFFSET \d+", qr, flags=re.IGNORECASE))
+        if limit:
+            s_limit = f" LIMIT {limit}"
+            if limit_in_query:
+                qr = re.sub(r" LIMIT \d+", s_limit, qr, flags=re.IGNORECASE)
+            else:
+                qr = f"{qr} {s_limit}"
+        elif not limit_in_query:
+            qr = f"{qr} LIMIT 100"
+
+        if offset:
+            s_offset = f" OFFSET {offset}"
+            if offset_in_query:
+                qr = re.sub(r" OFFSET \d+", s_offset, qr, flags=re.IGNORECASE)
+            else:
+                qr = f"{qr} {s_offset}"
         if debug:
             self._debug_query(qr)
-        return self._sparql(qr, limit, offset)
+        return self._sparql(qr, limit, offset, **params)
 
-    def _sparql(self, query: str, limit: int, offset: int) -> List[Resource]:
+    def _sparql(self, query: str, limit: int, offset: int, **params) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
@@ -447,17 +465,23 @@ class Store(ABC):
         print()
 
 
-def rewrite_sparql(query: str, context: Context) -> str:
+def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
     """Rewrite local property and type names from Model.template() as IRIs.
 
     Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }} from a kgforge.core.commons.Context.
     In the case of contexts using prefixed names, prefixes are added to the SPARQL query prologue.
     In the case of non available contexts and vocab then the query is returned unchanged.
     """
-    ctx = {
+    ctx = {}
+    if metadata_context and metadata_context.document:
+        ctx.update({
+            k: v["@id"] if isinstance(v, Dict) else v
+            for k, v in metadata_context.document["@context"].items()
+        })
+    ctx.update({
         k: v["@id"] if isinstance(v, Dict) else v
         for k, v in context.document["@context"].items()
-    }
+    })
     prefixes = context.prefixes
     has_prefixes = prefixes is not None and len(prefixes.keys()) > 0
     if ctx.get("type") == "@type":
@@ -480,7 +504,7 @@ def rewrite_sparql(query: str, context: Context) -> str:
             if v is None:
                 raise QueryingError(
                     f"Failed to construct a valid SPARQL query: add '{m4}'"
-                    f" or define an @vocab in the configured JSON-LD context."
+                    f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
                 )
             m5 = match.group(5)
             if "//" in v:

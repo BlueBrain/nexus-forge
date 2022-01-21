@@ -89,12 +89,20 @@ class Dataset(Resource):
 
     def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
 
-        if versioned and isinstance(resource,str):
-            not_supported(("versioned with resource:str", True))
+        if versioned and isinstance(resource, str):
+            not_supported((f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str.", True))
         if isinstance(resource, str):
             reference = Resource(type=reference_type, id=resource)
         elif isinstance(resource, Resource):
-            reference = self._forge.reshape(resource, keep, versioned)
+            try:
+                reference = self._forge.reshape(resource, keep, versioned)
+            except AttributeError as ae:
+                if '_rev' in str(ae) and versioned:
+                    raise ValueError(f"Missing resource revision value to build a versioned ({versioned}) reference. "
+                                     f"Provide a revision number to the resource (by registering it for example) or set 'versioned' argument to False if no versioned reference is needed.")
+                else:
+                    raise ae
+
         result = Resource(type=prov_type, **kwargs)
         result.__setattr__(reference_property,reference)
         return result

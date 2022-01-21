@@ -288,8 +288,8 @@ def _as_jsonld_one(
                 if key_metadata and isinstance(v, str):
                     frame_metadata[key_metadata] = v
 
-    frame_resource["@embed"] = "@link"
-    frame_metadata["@embed"] = "@link"
+    frame_resource["@embed"] = True
+    frame_metadata["@embed"] = True
     data_framed = jsonld.frame(
         jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
     )

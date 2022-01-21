@@ -11,6 +11,32 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+from typing import Any
 
-from .context import Context
-from .parser import _parse_type
+import dateutil
+import datetime
+from dateutil.parser import ParserError
+
+
+def _parse_type(value: Any):
+
+    try:
+        # integer
+        if str(value).isnumeric():
+            return int
+        # bool
+        if value is True or value is False:
+            return bool
+        # double
+        if float(value):
+            return float
+    except ValueError as ve:
+        pass
+    except TypeError as te:
+        pass
+    try:
+        # Date
+        if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
+            return datetime.datetime
+    except ParserError as pe:
+        return str

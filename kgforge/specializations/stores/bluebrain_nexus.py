@@ -16,16 +16,13 @@ import datetime
 import asyncio
 import copy
 
-import dateutil
 import json
 import mimetypes
-import rdflib
 import re
 from asyncio import Semaphore, Task
 from enum import Enum
 from json import JSONDecodeError
 
-from dateutil.parser import ParserError
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -39,18 +36,7 @@ from numpy import nan
 from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
-from elasticsearch_dsl import (
-    Mapping,
-    Nested,
-    Object,
-    Keyword,
-    AttrDict,
-    Text,
-    Date,
-    Float,
-    Boolean,
-)
-
+from datetime import datetime
 from requests import HTTPError
 
 from kgforge.core import Resource
@@ -69,6 +55,7 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
+from kgforge.core.commons.parser import _parse_type
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
@@ -76,14 +63,15 @@ from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service
 
-
 class CategoryDataType(Enum):
+    DATETIME = "datetime"
     NUMBER = "number"
     BOOLEAN = "boolean"
     LITERAL = "literal"
 
 
 type_map = {
+    datetime: CategoryDataType.DATETIME,
     str: CategoryDataType.LITERAL,
     bool: CategoryDataType.BOOLEAN,
     int: CategoryDataType.NUMBER,
@@ -92,6 +80,7 @@ type_map = {
 }
 
 format_type = {
+    CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
     CategoryDataType.BOOLEAN: lambda x: "true" if x is True else "false",
@@ -651,6 +640,8 @@ class BlueBrainNexus(Store):
 
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
+        filters = list(filters) if not isinstance(filters, list) else filters
+
         if search_endpoint == self.service.sparql_endpoint["type"]:
             if includes or excludes:
                 raise ValueError(
@@ -766,11 +757,7 @@ class BlueBrainNexus(Store):
                 json.dumps(query), debug=debug, limit=limit, offset=offset
             )
 
-    def _sparql(self, query: str, limit: int, offset: int = None) -> List[Resource]:
-
-        s_offset = "" if offset is None else f"OFFSET {offset}"
-        s_limit = "" if limit is None else f"LIMIT {limit}"
-        query = f"{query} {s_limit} {s_offset}"
+    def _sparql(self, query: str, limit: int, offset: int = None, **params) -> List[Resource]:
         try:
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"],
@@ -956,32 +943,36 @@ def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, 
             property_path = "/".join(minus_last_path)
         else:
             property_path = "/".join(f.path)
-        if (
-            last_path in ["type", "@type"]
-            or last_path in ["id", "@id"]
-            or (last_term is not None and last_term.type == "@id")
-        ):
-            if f.operator == "__eq__":
-                statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
-            elif f.operator == "__ne__":
-                statements.append(f"{property_path} ?v{index}")
-                filters.append(f"FILTER(?v{index} != {f.value})")
+        try:
+            if (
+                last_path in ["type", "@type"]
+                or last_path in ["id", "@id"]
+                or (last_term is not None and last_term.type == "@id")
+            ):
+                if f.operator == "__eq__":
+                    statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
+                elif f.operator == "__ne__":
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(f"FILTER(?v{index} != {f.value})")
+                else:
+                    raise NotImplementedError(
+                        f"supported operators are '==' and '!=' when filtering by type or id."
+                    )
             else:
-                raise NotImplementedError(
-                    f"operator '{f.operator}' is not supported in this query"
-                )
-        else:
-            value_type = type_map[type(f.value)]
-            value = format_type[value_type](f.value)
-            if value_type is CategoryDataType.LITERAL:
-                statements.append(f"{property_path} ?v{index}")
-                filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
-            else:
-                statements.append(f"{property_path} ?v{index}")
-                filters.append(
-                    f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
-                )
-
+                value_type = type_map[_parse_type(f.value)]
+                value = format_type[value_type](f.value)
+                if value_type is CategoryDataType.LITERAL:
+                    if f.operator not in ["__eq__", "__ne__"]:
+                        raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
+                else:
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(
+                        f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
+                    )
+        except NotImplementedError as nie:
+            raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
     return statements, filters
 
 
