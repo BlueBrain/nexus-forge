@@ -82,7 +82,11 @@ class DemoModel(Model):
     # Validation.
 
     def _validate_one(self, resource: Resource, type_: str) -> None:
-        # If the resource is not typed, AttributeError is raised: run() sets _validated to False.
+        """
+        Validates the model against a given type provided by type_ parameter.
+        If type_ is None then it looks for type attribute in resource.
+        If the resource is not typed, AttributeError is raised
+        """
         type_expanded = self.service.expand(type_)
         schema = self.service.schema(type_expanded)
         result, reason = self.service.check(resource, schema)
