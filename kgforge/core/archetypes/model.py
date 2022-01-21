@@ -150,18 +150,18 @@ class Model(ABC):
         not_supported()
 
     def validate(self, data: Union[Resource, List[Resource]],
-                 execute_actions_before: bool) -> None:
+                 execute_actions_before: bool, type_: str) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
         run(self._validate_one, None, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated")
+            exception=ValidationError, monitored_status="_validated", type_=type_)
 
-    def _validate_many(self, resources: List[Resource]) -> None:
+    def _validate_many(self, resources: List[Resource], type_: str) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
-    def _validate_one(self, resource: Resource) -> None:
+    def _validate_one(self, resource: Resource, type_: str) -> None:
         # POLICY Should notify of failures with exception ValidationError including a message.
         pass
 

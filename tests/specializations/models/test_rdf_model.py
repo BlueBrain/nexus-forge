@@ -99,17 +99,20 @@ class TestValidation:
         assert rdf_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]
 
     def test_validate_one(self, rdf_model: RdfModel, valid_activity_resource):
-        rdf_model.validate(valid_activity_resource, False)
+        rdf_model.validate(valid_activity_resource, False, type_="Activity")
 
     def test_validate_one_fail(self, rdf_model: RdfModel, invalid_activity_resource):
         with pytest.raises(ValidationError):
-            rdf_model._validate_one(invalid_activity_resource)
+            rdf_model._validate_one(invalid_activity_resource, type_="Activity")
+
+    def test_validate_with_schema(self, rdf_model: RdfModel, valid_activity_resource):
+        rdf_model.validate(valid_activity_resource, False, type_="Activity")
 
     def test_validate_many(self, rdf_model: RdfModel, valid_activity_resource,
                            invalid_activity_resource):
         resources = [valid_activity_resource,
                      invalid_activity_resource]
-        rdf_model.validate(resources, False)
+        rdf_model.validate(resources, False, type_="Activity")
         assert valid_activity_resource._validated is True
         assert invalid_activity_resource._validated is False
         assert (valid_activity_resource._last_action.operation ==

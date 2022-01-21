@@ -107,13 +107,13 @@ class RdfModel(Model):
         except KeyError:
             raise ValueError("type not found")
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool) -> None:
+    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated")
+            exception=ValidationError, monitored_status="_validated", type_=type_)
 
-    def _validate_many(self, resources: List[Resource]) -> None:
+    def _validate_many(self, resources: List[Resource], type_: str) -> None:
         for resource in resources:
-            conforms, graph, _ = self.service.validate(resource)
+            conforms, graph, _ = self.service.validate(resource, type_=type_)
             if conforms:
                 resource._validated = True
                 action = Action(self._validate_many.__name__, conforms, None)
@@ -125,8 +125,8 @@ class RdfModel(Model):
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
             resource._last_action = action
 
-    def _validate_one(self, resource: Resource) -> None:
-        conforms, _, report = self.service.validate(resource)
+    def _validate_one(self, resource: Resource, type_: str) -> None:
+        conforms, _, report = self.service.validate(resource, type_)
         if conforms is False:
             raise ValidationError("\n" + report)
 
