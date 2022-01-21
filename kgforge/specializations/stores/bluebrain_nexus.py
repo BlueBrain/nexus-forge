@@ -684,7 +684,6 @@ class BlueBrainNexus(Store):
                     self.service.synchronize_resource(
                         resource, result.response, self.search.__name__, False, False
                     )
-                    print(result.response)
                     raise ValueError(e)
                 finally:
                     self.service.synchronize_resource(
