@@ -77,31 +77,33 @@ form_store_metadata_combinations = [
     ("SELECT DISTINCT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
      "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
     ("SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}",
-     "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}")
+     "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}"),
+    ("SELECT * WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person; deprecated false.}",
+     "\nSELECT * WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext, schema:Person; <https://store.net/vocabulary/deprecated> false.}")
 ]
 
 
 @pytest.mark.parametrize("query, expected", form_store_metadata_combinations)
-def test_rewrite_sparql(query, expected):
+def test_rewrite_sparql(query, expected, metadata_context):
     prefixes_string_vocab = "\n".join([prefixes_string, f"PREFIX : <http://example.org/vocab/>"])
     context_object = Context(document=context)
-    result = rewrite_sparql(query, context_object)
+    result = rewrite_sparql(query, context_object, metadata_context=metadata_context)
     assert result == prefixes_string_vocab + expected
 
 
-def test_rewrite_sparql_unknownterm_missing_vocab(custom_context):
+def test_rewrite_sparql_unknownterm_missing_vocab(custom_context, metadata_context):
     context_object = Context(document=custom_context)
     assert not context_object.has_vocab()
     with pytest.raises(QueryingError):
         query = "SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}"
-        rewrite_sparql(query, context_object)
+        rewrite_sparql(query, context_object, metadata_context)
 
 
-def test_rewrite_sparql_missingvocab(custom_context):
+def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
     query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
     expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
     context_object = Context(document=custom_context)
-    result = rewrite_sparql(query, context_object)
+    result = rewrite_sparql(query, context_object, metadata_context)
     assert result == expected
 
 

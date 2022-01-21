@@ -222,8 +222,8 @@ SPARQL query if supported by the store (4) or by using an ElasticSearch query if
    forge.retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False) -> Resource
    forge.paths(type: str) -> PathsWrapper # introspect a schema by type and return all defined property paths
    forge.search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross bucket search (True) or not (False)
-   forge.sparql(query: str, debug: bool, limit: int, offset: int = None) -> List[Resource]
-   forge.elastic(query: str, debug: bool, limit: int, offset: int = None) -> List[Resource] # for elasticsearch query
+   forge.sparql(query: str, debug: bool=False, limit: Optional[int] = None, offset: Optional[int] = None, **params) -> List[Resource]
+   forge.elastic(query: str, debug: bool=False, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Resource] # for elasticsearch query
    forge.download(data: Union[Resource, List[Resource]], follow: str, path: str, overwrite: bool = False, cross_bucket: bool = False) -> None
 
 Currently `forge.search(*filters, **params)` will by default rewrite the filters as a SPARQL query and run it against a configured SPARQL endpoint unless `sparql_endpoint='elastic'` is set and an ElasticSearch search endpoint configured.
