@@ -69,13 +69,10 @@ Development version
 Funding and Acknowledgements
 ----------------------------
 
-This project has received funding from the EPFL Blue Brain Project (funded by
-the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology)
-and from the European Union’s Horizon 2020 Framework Programme for Research and
-Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SGA2).
+The development of this software was supported by funding to the Blue Brain Project, a research center of the École polytechnique fédérale de Lausanne (EPFL), from the Swiss government's ETH Board of the Swiss Federal Institutes of Technology, and from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Specific Grant Agreement No. 785907 (Human Brain Project SGA2).
 
 
-COPYRIGHT © 2019–2021 Blue Brain Project/EPFL
+COPYRIGHT © 2019–2022 Blue Brain Project/EPFL
 
 .. |Binder| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder
