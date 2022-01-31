@@ -475,11 +475,11 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
     ctx = {}
     if metadata_context and metadata_context.document:
         ctx.update({
-            k: v["@id"] if isinstance(v, Dict) else v
+            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
             for k, v in metadata_context.document["@context"].items()
         })
     ctx.update({
-        k: v["@id"] if isinstance(v, Dict) else v
+        k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
         for k, v in context.document["@context"].items()
     })
     prefixes = context.prefixes
