@@ -529,6 +529,7 @@ class KnowledgeGraphForge:
         id: str,
         version: Optional[Union[int, str]] = None,
         cross_bucket: bool = False,
+        **params
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -536,9 +537,10 @@ class KnowledgeGraphForge:
         :param id: the resource identifier to retrieve
         :param version: a version of the resource to retrieve
         :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters.
         :return: Resource
         """
-        return self._store.retrieve(id, version, cross_bucket)
+        return self._store.retrieve(id, version, cross_bucket, **params)
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
@@ -732,6 +734,7 @@ class KnowledgeGraphForge:
         data: Union[Resource, List[Resource]],
         form: str = Form.COMPACTED.value,
         store_metadata: bool = False,
+        **params
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -739,6 +742,8 @@ class KnowledgeGraphForge:
         :param data: the resources to convert
         :param form: whether to expand ('expanded') or compact ('compacted') the JSON-LD output
         :param store_metadata: whether to add (True) store related metadata (e.g rev) to the output or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [array_as_set] whether to consider JSON arrays as RDF set (default: False)
         :return: Union[Dict, List[Dict]]
         """
         return as_jsonld(
@@ -749,6 +754,7 @@ class KnowledgeGraphForge:
             self._store.metadata_context,
             self._model.resolve_context,
             None,
+            **params
         )
 
     @catch

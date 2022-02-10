@@ -180,7 +180,7 @@ class Store(ABC):
 
     @abstractmethod
     def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool
+        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().

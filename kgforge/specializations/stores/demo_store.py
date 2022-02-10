@@ -53,7 +53,7 @@ class DemoStore(Store):
     # C[R]UD.
 
     def retrieve(self, id: str, version: Optional[Union[int, str]],
-                 cross_bucket: bool) -> Resource:
+                 cross_bucket: bool, **params) -> Resource:
         if cross_bucket:
             not_supported(("cross_bucket", True))
         try:
