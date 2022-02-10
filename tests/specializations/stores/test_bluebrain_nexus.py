@@ -223,12 +223,12 @@ class TestQuerying:
             ),
             pytest.param(
                 (Filter(["deprecated"], "__eq__", False),),
-                (["deprecated ?v0"], ["FILTER(?v0 = false)"]),
+                (["deprecated ?v0"], ["FILTER(?v0 = 'false'^^xsd:boolean)"]),
                 id="boolean-false",
             ),
             pytest.param(
                 (Filter(["deprecated"], "__eq__", True),),
-                (["deprecated ?v0"], ["FILTER(?v0 = true)"]),
+                (["deprecated ?v0"], ["FILTER(?v0 = 'true'^^xsd:boolean)"]),
                 id="boolean-true",
             ),
             pytest.param(
@@ -302,22 +302,23 @@ class TestQuerying:
 
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"
-        query = _create_select_query(statements, distinct=False, search_in_graph=True)
+        vars_ = ["?id", "?project"]
+        query = _create_select_query(vars_, statements, distinct=False, search_in_graph=True)
         assert (
             query
             == "SELECT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
         )
-        query = _create_select_query(statements, distinct=True, search_in_graph=True)
+        query = _create_select_query(vars_, statements, distinct=True, search_in_graph=True)
         assert (
             query
             == "SELECT DISTINCT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
         )
-        query = _create_select_query(statements, distinct=False, search_in_graph=False)
+        query = _create_select_query(vars_, statements, distinct=False, search_in_graph=False)
         assert (
             query
             == "SELECT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
         )
-        query = _create_select_query(statements, distinct=True, search_in_graph=False)
+        query = _create_select_query(vars_, statements, distinct=True, search_in_graph=False)
         assert (
             query
             == "SELECT DISTINCT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"

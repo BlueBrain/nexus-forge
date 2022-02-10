@@ -107,7 +107,11 @@ class Service:
         self.store_local_context = store_local_context
         self.namespace = namespace
         self.project_property = project_property
+        self.store_metadata_keys = ["_constrainedBy","_createdAt","_createdBy","_deprecated","_incoming",
+                                   "_outgoing","_project","_rev","_schemaProject", "_self","_updatedAt","_updatedBy"]
+
         self.deprecated_property = deprecated_property
+        self.revision_property = f"{self.namespace}rev"
         self.default_sparql_index = f"{self.namespace}defaultSparqlIndex"
         self.default_es_index = f"{self.namespace}defaultElasticSearchIndex"
 
@@ -296,6 +300,7 @@ class Service:
                         metadata_context=None,
                         context_resolver=self.resolve_context,
                         na=nan,
+                        array_as_set=True
                     )
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
@@ -325,6 +330,7 @@ class Service:
                         metadata_context=None,
                         context_resolver=self.resolve_context,
                         na=nan,
+                        array_as_set=True
                     )
                     prepared_request = loop.create_task(
                         queue(
@@ -375,7 +381,7 @@ class Service:
                     )
 
                 if batch_action == BatchAction.FETCH:
-                    resource_org, resource_prj = resource.project.split("/")[-2:]
+                    resource_org, resource_prj = resource._project.split("/")[-2:]
                     resource_url = "/".join(
                         (
                             self.endpoint,
@@ -385,8 +391,14 @@ class Service:
                         )
                     )
                     url = "/".join((resource_url, "_", quote_plus(resource.id)))
+                    if hasattr(resource, "_rev"):
+                        params["rev"] = resource._rev
+                    source = params.get("source", False)
+                    if source:
+                        url = "/".join((url, "source"))
+                    params.pop("source")
                     prepared_request = loop.create_task(
-                        queue(hdrs.METH_GET, semaphore, session, url, resource, error)
+                        queue(hdrs.METH_GET, semaphore, session, url, resource, error, params=params)
                     )
 
                 if f_callback:
@@ -447,9 +459,11 @@ class Service:
             )
         )
         keys = sorted(self.metadata_context.terms.keys())
-        keys.extend(["_index", "_score"])
+        keys.extend(["_index", "_score", "id", "@id"])
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
+        if not hasattr(resource, "id") and not hasattr(resource, "@id"):
+            resource.id= result.get("id", result.get("@id",None))
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(

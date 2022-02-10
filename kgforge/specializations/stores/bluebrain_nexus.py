@@ -56,6 +56,7 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
+from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
@@ -83,7 +84,7 @@ format_type = {
     CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda x: "true" if x is True else "false",
+    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x is True else "'false'^^xsd:boolean",
 }
 
 sparql_operator_map = {
@@ -204,6 +205,7 @@ class BlueBrainNexus(Store):
             metadata_context=None,
             context_resolver=self.service.resolve_context,
             na=nan,
+            array_as_set=True
         )
 
         try:
@@ -287,19 +289,28 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool
+        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
+        """
+        Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
-        parsed_id = urlparse(id)
-        params = None
+        :param id: the resource identifier to retrieve
+        :param version: a version of the resource to retrieve
+        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [retrieve_source] whether to retrieve the resource payload as registered in the last update
+              (default: False)
+        :return: Resource
+        """
+        version_params = None
         if version is not None:
             if isinstance(version, int):
-                params = {"rev": version}
+                version_params = {"rev": version}
             elif isinstance(version, str):
-                params = {"tag": version}
+                version_params = {"tag": version}
             else:
                 raise RetrievalError("incorrect 'version'")
-
+        parsed_id = urlparse(id)
         fragment = None
         query_params = None
         # urlparse is not separating fragment and query params when the latter are put after a fragment
@@ -312,26 +323,59 @@ class BlueBrainNexus(Store):
         elif parsed_id.query is not None and parsed_id.query != "":
             query_params = parse_qs(parsed_id.query)
 
-        if params is not None and isinstance(query_params, dict):
-            query_params.update(params)
+        if version_params is not None:
+            if not isinstance(query_params, dict):
+                query_params = {}
+            query_params.update(version_params)
 
         id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{'#' + fragment if fragment is not None else ''}"
         url_base = (
             self.service.url_resolver if cross_bucket else self.service.url_resources
         )
-        url = "/".join((url_base, "_", quote_plus(id_without_query)))
+        url_resource = "/".join((url_base, "_", quote_plus(id_without_query)))
+        retrieve_source = params.get('retrieve_source', True)
+
+        if retrieve_source and not cross_bucket:
+            url_source = "/".join((url_resource, "source"))
+            url = url_source
+        else:
+            url = url_resource
         try:
             response = requests.get(
                 url, params=query_params, headers=self.service.headers
             )
             response.raise_for_status()
+            if retrieve_source and not cross_bucket:
+
+                response_metadata = requests.get(
+                    url_resource, params=query_params, headers=self.service.headers
+                )
+                response_metadata.raise_for_status()
+            if retrieve_source and cross_bucket:
+                response_metadata = requests.get(
+                    "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
+                )
+                response_metadata.raise_for_status()
+
         except HTTPError as e:
             raise RetrievalError(_error_message(e))
         else:
-            data = response.json()
-            resource = self.service.to_resource(data)
-            resource._synchronized = True
-            self.service.sync_metadata(resource, data)
+            try:
+                data = response.json()
+                resource = self.service.to_resource(data)
+                if retrieve_source and not cross_bucket:
+                    data = response_metadata.json()
+                if retrieve_source and cross_bucket:
+                    resource = self.service.to_resource(response_metadata.json())
+            except Exception as e:
+                self.service.synchronize_resource(
+                    resource, data, self.retrieve.__name__, False, False
+                )
+                raise ValueError(e)
+            finally:
+                self.service.synchronize_resource(
+                    resource, data, self.retrieve.__name__, True, True
+                )
             return resource
 
     def _retrieve_filename(self, id: str) -> str:
@@ -492,6 +536,7 @@ class BlueBrainNexus(Store):
             metadata_context=None,
             context_resolver=self.service.resolve_context,
             na=nan,
+            array_as_set=True
         )
         params_update = copy.deepcopy(self.service.params.get("update", {}))
         params_update["rev"] = resource._store_metadata._rev
@@ -649,45 +694,68 @@ class BlueBrainNexus(Store):
                 )
             project_statements = ""
             if bucket:
-                project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
+                project_statements = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
             elif not cross_bucket:
-                project_statements = f"Filter (?project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
+                project_statements = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = build_sparql_query_statements(
                 self.model_context, filters
             )
-            query_statements.insert(0, f"<{self.service.project_property}> ?project")
-            query_statements.insert(
-                1,
-                f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}",
-            )
-            statements = "\n".join(
-                (";\n ".join(query_statements), ".\n ".join(query_filters))
-            )
+            query_statements.append(f"<{self.service.project_property}> ?_project")
+            retrieve_source = params.get("retrieve_source", True)
+            store_metadata_statements = []
+            if retrieve_source:
+                for i, k in enumerate(self.service.store_metadata_keys):
+                    store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
+                deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
+                _vars = ["?" + mk for mk in self.service.store_metadata_keys]
+                _vars.append("?id")
+                statements = ";\n ".join(query_statements)
+                _filters = "\n".join(
+                    (".\n ".join(query_filters), project_statements, deprecated_filter)
+                )
+            else:
+                query_statements.append(
+                    f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}",
+                )
+                store_metadata_statements.append(f"<{self.service.revision_property}> ?_rev")
+                statements = ";\n ".join(query_statements)
+                _vars = ["?id", "?_project", "?_rev"]
+                _filters = "\n".join(
+                    (".\n ".join(query_filters), project_statements)
+                )
+            store_metadata_statements_str = ";\n ".join(store_metadata_statements)
             query = _create_select_query(
-                f"?id {statements} {project_statements}", distinct, search_in_graph
+                _vars, f"?id {statements} .\n ?id {store_metadata_statements_str} \n {_filters}", distinct,
+                search_in_graph
             )
-
-            # consider retrieving resources at their indexed revision
             # support @id and @type
             resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
-            # TODO: Move away from sync and stick to what is retrieved from the view
+            params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
+            params_retrieve['source'] = params.get("source", True)
             results = self.service.batch_request(
-                resources, BatchAction.FETCH, None, QueryingError
+                resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
             )
             resources = list()
             for result in results:
                 resource = result.resource
+                if retrieve_source:
+                    store_metadata_response = as_json(result.resource, expanded=False, store_metadata=False,
+                                                      model_context=None,
+                                                      metadata_context=None,
+                                                      context_resolver=None)  # store_metadata is obtained from SPARQL (resource) and not from server (response) because of retrieve_source==True
+                else:
+                    store_metadata_response = result.response  # dict
                 try:
                     resource = self.service.to_resource(result.response)
                 except Exception as e:
                     self.service.synchronize_resource(
-                        resource, result.response, self.search.__name__, False, False
+                        resource, store_metadata_response, self.search.__name__, False, False
                     )
                     raise ValueError(e)
                 finally:
                     self.service.synchronize_resource(
-                        resource, result.response, self.search.__name__, True, True
+                        resource, store_metadata_response, self.search.__name__, True, False
                     )
                 resources.append(resource)
             return resources
@@ -812,7 +880,14 @@ class BlueBrainNexus(Store):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return [
-                    Resource(**{k: v["value"] for k, v in x.items()}) for x in results
+                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] =='literal' and
+                                                                          ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#boolean')
+                                                                       else (int(v["value"]) if v['type'] =='literal' and
+                                                                             ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#integer')
+                                                                             else v["value"]
+                                                                             )
+                                for k, v in x.items()} )
+                    for x in results
                 ]
 
     def _elastic(self, query: str, limit: int, offset: int = None) -> List[Resource]:
@@ -980,9 +1055,10 @@ def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
 
 
-def _create_select_query(statements, distinct, search_in_graph):
+def _create_select_query(vars_, statements, distinct, search_in_graph):
     where_clauses = (
         f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else f"{{{statements}}}"
     )
-    select_vars = "DISTINCT ?id ?project" if distinct else "?id ?project"
+    join_vars_ = ' '.join(vars_)
+    select_vars = f"DISTINCT {join_vars_}" if distinct else f"{join_vars_}"
     return f"SELECT {select_vars} WHERE {where_clauses}"

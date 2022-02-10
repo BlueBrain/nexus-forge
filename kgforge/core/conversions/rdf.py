@@ -66,6 +66,7 @@ def as_jsonld(
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
     na: Union[Any, List[Any]],
+    **params
 ) -> Union[Dict, List[Dict]]:
     try:
         valid_form = Form(form.lower())
@@ -83,6 +84,7 @@ def as_jsonld(
         metadata_context,
         context_resolver,
         na,
+        **params
     )
 
 
@@ -180,6 +182,7 @@ def _as_jsonld_many(
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
     na: Optional[List[Any]],
+    **params
 ) -> List[Dict]:
     if na is not None and len(na) != len(resources):
         raise ValueError(
@@ -195,6 +198,7 @@ def _as_jsonld_many(
             metadata_context,
             context_resolver,
             na[i],
+            **params
         )
         if na is not None
         else _as_jsonld_one(
@@ -205,6 +209,7 @@ def _as_jsonld_many(
             metadata_context,
             context_resolver,
             na,
+            **params
         )
         for i, resource in enumerate(resources)
     ]
@@ -218,9 +223,10 @@ def _as_jsonld_one(
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
     na: Any,
+    **params
 ) -> Dict:
     context = _resource_context(resource, model_context, context_resolver)
-    resolved_context = context.document
+    resolved_context = deepcopy(context.document)
     output_context = (
         context.iri if context.is_http_iri() else context.document["@context"]
     )
@@ -240,9 +246,19 @@ def _as_jsonld_one(
         else:
             raise NotSupportedError("no available context in the metadata")
     try:
-        data_graph, metadata_graph, encoded_resource = _as_graphs(
+
+        data_graph, metadata_graph, encoded_resource, json_array = _as_graphs(
             resource, store_metadata, context, metadata_context
         )
+        json_array_as_set = params.get("array_as_set", False)
+        if json_array_as_set:
+            for array_key in json_array:
+                array_key_context = resolved_context["@context"].get(array_key, None)
+                if array_key_context and isinstance(array_key_context, dict) and "@container" not in array_key_context:
+                    array_key_context.update({"@container":"@set"})
+                elif isinstance(array_key_context, str):
+                    array_key_context = {"@id":array_key_context,"@container": "@set"}
+                resolved_context["@context"].update({array_key: array_key_context if array_key_context else {"@container":"@set"}})
         data_graph.remove((None, None, Literal(na)))
     except Exception as e:
         raise ValueError(e)
@@ -381,7 +397,7 @@ def _as_graphs(
     store_metadata: bool,
     context: Context,
     metadata_context: Context,
-) -> Tuple[Graph, Graph, Dict]:
+) -> Tuple[Graph, Graph, Dict, List[str]]:
     """Returns a data and a metadata graph"""
     if hasattr(resource, "context"):
         output_context = resource.context
@@ -389,11 +405,10 @@ def _as_graphs(
         output_context = (
             context.iri if context.is_http_iri() else context.document["@context"]
         )
-    converted = _add_ld_keys(resource, output_context, context.base)
+    converted, json_array = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(
-        converted, resource._store_metadata, store_metadata, metadata_context
-    ) + (converted,)
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context
+                           )+(converted, ) + (json_array, )
 
 
 def _dicts_to_graph(
@@ -405,7 +420,7 @@ def _dicts_to_graph(
     if store_meta is True and metadata is not None:
         if "id" not in metadata:
             raise ValueError("no id in the metadata")
-        metadata = _add_ld_keys(metadata, None, None)
+        metadata, _ = _add_ld_keys(metadata, None, None)
         metadata["@context"] = metadata_context.document["@context"]
         try:
             meta_data_graph.parse(data=json.dumps(metadata), format="json-ld")
@@ -481,31 +496,14 @@ def _unpack_from_list(data):
         return node
 
 
-def _dicts_to_graph(
-    data: Dict, metadata: Dict, store_meta: bool, metadata_context: Context
-) -> Tuple[Graph, Graph]:
-    json_str = json.dumps(data)
-    graph = Graph().parse(data=json_str, format="json-ld")
-    meta_data_graph = Graph()
-    if store_meta is True and metadata is not None:
-        if "id" not in metadata:
-            raise ValueError("no id in the metadata")
-        metadata = _add_ld_keys(metadata, None, None)
-        metadata["@context"] = metadata_context.document["@context"]
-        try:
-            meta_data_graph.parse(data=json.dumps(metadata), format="json-ld")
-        except Exception:
-            raise ValueError("generated an invalid json-ld")
-    return graph, meta_data_graph
-
-
 def _add_ld_keys(
     rsc: [Resource, Dict],
     context: Optional[Union[Dict, List, str]],
     base: Optional[str],
-) -> Dict:
+) -> Union[Dict, List[str]]:
     local_attrs = dict()
     local_context = None
+    json_arrays = []
     items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
     for k, v in items:
         if k not in Resource._RESERVED:
@@ -518,15 +516,26 @@ def _add_ld_keys(
                 if key == "@id" and local_context is not None:
                     local_attrs[key] = local_context.resolve(v)
                 else:
+
                     if isinstance(v, Resource) or isinstance(v, Dict):
-                        local_attrs[key] = _add_ld_keys(v, context, base)
+                        attrs = _add_ld_keys(v, context, base)
+                        local_attrs[key] = attrs[0]
+                        json_arrays.extend(attrs[1])
                     elif isinstance(v, list):
-                        local_attrs[key] = [
-                            _add_ld_keys(item, context, base)
-                            if isinstance(item, Resource) or isinstance(item, Dict)
-                            else item
-                            for item in v
-                        ]
+
+                        l_a = []
+                        j_a = []
+                        for item in v:
+                            if isinstance(item, Resource) or isinstance(item, Dict):
+                                attrs = _add_ld_keys(item, context, base)
+                                l_a.append(attrs[0])
+                                j_a.extend(attrs[1])
+                            else:
+                                l_a.append(item)
+                        local_attrs[key] = l_a
+                        json_arrays.append(k)
+                        json_arrays.extend(j_a)
+
                     else:
                         if isinstance(v, LazyAction):
                             raise ValueError(
@@ -535,7 +544,7 @@ def _add_ld_keys(
                         local_attrs[key] = (
                             v.replace(base, "") if base and isinstance(v, str) else v
                         )
-    return local_attrs
+    return local_attrs, json_arrays
 
 
 def _remove_ld_keys(

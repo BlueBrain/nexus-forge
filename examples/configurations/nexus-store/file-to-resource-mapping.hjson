@@ -19,6 +19,8 @@
         store: 
         {
             id: x._storage["@id"]
+            type: x._storage["@type"] if '@type' in x._storage else None
+            _rev: x._storage["_rev"] if '_rev' in x._storage else None
         }
         location: x._location if '_location' in x else None
     }

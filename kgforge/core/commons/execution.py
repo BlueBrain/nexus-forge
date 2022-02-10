@@ -87,12 +87,12 @@ def catch(fun):
 
 # @functools.singledispatchmethod is introduced in Python 3.8.
 def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
-             fun_one: Callable, *args) -> Any:
+             fun_one: Callable, *args, **params) -> Any:
     # POLICY The method calling this function should be decorated with execution.catch().
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
-        return fun_many(data, *args)
+        return fun_many(data, *args, **params)
     elif isinstance(data, Resource):
-        return fun_one(data, *args)
+        return fun_one(data, *args, **params)
     else:
         raise TypeError("not a Resource nor a list of Resource")
 
