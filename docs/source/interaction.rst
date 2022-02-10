@@ -219,7 +219,7 @@ SPARQL query if supported by the store (4) or by using an ElasticSearch query if
 
 .. code-block:: python
 
-   forge.retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False) -> Resource
+   forge.retrieve(id: str, version: Optional[Union[int, str]] = None, cross_bucket: bool = False, **params) -> Resource
    forge.paths(type: str) -> PathsWrapper # introspect a schema by type and return all defined property paths
    forge.search(*filters, **params) -> List[Resource] # a cross_bucket param can be used to enable cross bucket search (True) or not (False)
    forge.sparql(query: str, debug: bool=False, limit: Optional[int] = None, offset: Optional[int] = None, **params) -> List[Resource]
@@ -290,7 +290,7 @@ different conversion functions are available.
 .. code-block:: python
 
    forge.as_json(data: Union[Resource, List[Resource]], expanded: bool = False, store_metadata: bool = False) -> Union[Dict, List[Dict]]
-   forge.as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True, store_metadata: bool = False) -> Union[Dict, List[Dict]]
+   forge.as_jsonld(data: Union[Resource, List[Resource]], compacted: bool = True, store_metadata: bool = False, **params) -> Union[Dict, List[Dict]]
    forge.as_graph(data: Union[Resource, List[Resource]], store_metadata: bool = False) -> Graph
    forge.as_dataframe(data: Union[Resource, List[Resource]], na: Union[Any, List[Any]] = [None], nesting: str = ".", expanded: bool = False, store_metadata: bool = False) -> DataFrame
    forge.from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None) -> Union[Resource, List[Resource]]
