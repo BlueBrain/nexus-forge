@@ -65,10 +65,10 @@ class AgentResolver(Resolver):
                 givenName ?givenName ;
                 familyName ?familyName
             }} WHERE {{
-              ?id a ?type . 
+              ?id a ?type .
               OPTIONAL {{
                 ?id name ?name .
-                ?id givenName ?givenName . 
+                ?id givenName ?givenName .
                 ?id familyName ?familyName .
               }}
               {{

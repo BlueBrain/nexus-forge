@@ -68,7 +68,7 @@ class OntologyResolver(Resolver):
                   notation ?notation
             }} WHERE {{
               ?id a ?type ;
-                  label ?label ; 
+                  label ?label ;
               OPTIONAL {{
                 ?id subClassOf ?subClassOf ;
               }}
@@ -77,10 +77,10 @@ class OntologyResolver(Resolver):
               }}
               OPTIONAL {{
                 ?id isDefinedBy ?isDefinedBy .
-              }}     
+              }}
               OPTIONAL {{
                 ?id notation ?notation .
-              }}    
+              }}
               {{
                 SELECT * WHERE {{
                   {{ {0} ; label ?label {1} }} UNION
