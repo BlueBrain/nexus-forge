@@ -22,14 +22,13 @@ from copy import deepcopy
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 from urllib.error import URLError
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
 from numpy import nan
-from requests import HTTPError
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import (
@@ -100,15 +99,15 @@ class Service:
         self.organisation = org
         self.project = prj
         self.model_context = model_context
-        self.context_cache: Dict = dict()
+        self.context_cache: Dict = {}
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
         self.store_context = store_context
         self.store_local_context = store_local_context
         self.namespace = namespace
         self.project_property = project_property
-        self.store_metadata_keys = ["_constrainedBy","_createdAt","_createdBy","_deprecated","_incoming",
-                                   "_outgoing","_project","_rev","_schemaProject", "_self","_updatedAt","_updatedBy"]
+        self.store_metadata_keys = ["_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming",
+                                    "_outgoing", "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"]
 
         self.deprecated_property = deprecated_property
         self.revision_property = f"{self.namespace}rev"
@@ -196,8 +195,8 @@ class Service:
             else None
         )
 
-        self.sparql_endpoint = dict()
-        self.elastic_endpoint = dict()
+        self.sparql_endpoint = {}
+        self.elastic_endpoint = {}
         self.sparql_endpoint["endpoint"] = "/".join(
             (
                 self.endpoint,
@@ -254,8 +253,8 @@ class Service:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
-        except Exception as e:
-            if local_only is False:
+        except Exception:
+            if not local_only:
                 try:
                     context = Context(context_to_resolve)
                 except URLError:
@@ -455,7 +454,7 @@ class Service:
             else (
                 {"id": resource.__getattribute__("@id")}
                 if hasattr(resource, "@id")
-                else dict()
+                else {}
             )
         )
         keys = sorted(self.metadata_context.terms.keys())
@@ -463,7 +462,7 @@ class Service:
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
         if not hasattr(resource, "id") and not hasattr(resource, "@id"):
-            resource.id= result.get("id", result.get("@id",None))
+            resource.id = result.get("id", result.get("@id", None))
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(
@@ -505,7 +504,7 @@ class Service:
         required_synchronized: bool,
         execute_actions: bool,
     ) -> List[Resource]:
-        valid = list()
+        valid = []
         for resource in resources:
             if id_required and not hasattr(resource, "id"):
                 error = exception("resource should have an id")
@@ -544,8 +543,8 @@ class Service:
         if self.store_local_context in data_context:
             data_context.remove(self.store_local_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
-        metadata = dict()
-        data = dict()
+        metadata = {}
+        data = {}
         for k, v in payload.items():
             if k in self.metadata_context.terms.keys():
                 metadata[k] = v

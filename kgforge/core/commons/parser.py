@@ -30,13 +30,13 @@ def _parse_type(value: Any):
         # double
         if float(value):
             return float
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # Date
         if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
             return datetime.datetime
-    except ParserError as pe:
+    except ParserError:
         return str

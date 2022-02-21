@@ -56,8 +56,8 @@ class Reshaper:
             if value is not None:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leaves, versioned)
-                    for i,nv in enumerate(new_value):
-                        if nv is None and isinstance(value[i],str):
+                    for i, nv in enumerate(new_value):
+                        if nv is None and isinstance(value[i], str):
                             new_value[i] = value[i]
                 elif isinstance(value, Resource):
                     if leaves:
@@ -78,12 +78,12 @@ class Reshaper:
 
 
 # TODO Use an implementation of JSONPath for Python instead to get values. DKE-147.
-def collect_values(data: Union[Resource, List[Resource]],  follow: str,
+def collect_values(data: Union[Resource, List[Resource]], follow: str,
                    exception: Callable = Exception) -> List[str]:
     def _collect(things: List) -> Iterator[str]:
         for x in things:
             if isinstance(x, Dict):
-                for k, v in x.items():
+                for v in x.values():
                     if isinstance(v, List):
                         yield from _collect(v)
                     elif isinstance(v, Dict):
@@ -94,7 +94,7 @@ def collect_values(data: Union[Resource, List[Resource]],  follow: str,
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
         if reshaped is None:
-            raise Exception(f"Nothing to collect")
+            raise Exception("Nothing to collect")
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))

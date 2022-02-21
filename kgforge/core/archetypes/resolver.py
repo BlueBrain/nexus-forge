@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -22,6 +22,7 @@ from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
+
 
 class Resolver(ABC):
 
@@ -50,13 +51,11 @@ class Resolver(ABC):
     @abstractmethod
     def mapping(self) -> Callable:
         """Mapping class to load result_resource_mapping."""
-        pass
 
     @property
     @abstractmethod
     def mapper(self) -> Callable:
         """Mapper class to map the result data to a Resource with result_resource_mapping."""
-        pass
 
     def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
                 strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
@@ -101,9 +100,13 @@ class Resolver(ABC):
             return resolved_mapped
 
     @abstractmethod
-    def _resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
-                 strategy: ResolvingStrategy, resolving_context: Any, limit: int, threshold: float) -> Optional[
-        List[Any]]:
+    def _resolve(self,
+                 text: Union[str, List[str], Resource],
+                 target: str, type: str,
+                 strategy: ResolvingStrategy,
+                 resolving_context: Any,
+                 limit: int,
+                 threshold: float) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 

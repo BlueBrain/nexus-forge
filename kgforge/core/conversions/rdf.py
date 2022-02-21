@@ -103,7 +103,6 @@ def from_graph(
     frame: Dict = None,
     model_context: Optional[Context] = None,
 ) -> Union[Resource, List[Resource]]:
-    from collections import OrderedDict
 
     if not type:
         _types = data.triples(
@@ -255,10 +254,10 @@ def _as_jsonld_one(
             for array_key in json_array:
                 array_key_context = resolved_context["@context"].get(array_key, None)
                 if array_key_context and isinstance(array_key_context, dict) and "@container" not in array_key_context:
-                    array_key_context.update({"@container":"@set"})
+                    array_key_context.update({"@container": "@set"})
                 elif isinstance(array_key_context, str):
-                    array_key_context = {"@id":array_key_context,"@container": "@set"}
-                resolved_context["@context"].update({array_key: array_key_context if array_key_context else {"@container":"@set"}})
+                    array_key_context = {"@id": array_key_context, "@container": "@set"}
+                resolved_context["@context"].update({array_key: array_key_context if array_key_context else {"@container": "@set"}})
         data_graph.remove((None, None, Literal(na)))
     except Exception as e:
         raise ValueError(e)
@@ -282,15 +281,16 @@ def _as_jsonld_one(
         frame_resource = {"@id": uri}
         frame_metadata = {"@id": uri}
     else:
-        frame_resource = dict()
-        frame_metadata = dict()
+        frame_resource = {}
+        frame_metadata = {}
         for k, v in resource.__dict__.items():
             if k not in Resource._RESERVED and not isinstance(
                 v, (Resource, dict, list)
             ):
                 if k == "context":
                     continue
-                elif k == "type" or k == TYPE:
+
+                if k in ("type", TYPE, ):
                     t = context.expand(v)
                     if t:
                         frame_resource["@type"] = context.expand(v)
@@ -408,7 +408,7 @@ def _as_graphs(
     converted, json_array = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
     return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context
-                           )+(converted, ) + (json_array, )
+                           ) + (converted, ) + (json_array, )
 
 
 def _dicts_to_graph(
@@ -434,7 +434,7 @@ def recursive_resolve(
     resolver: Optional[Callable],
     already_loaded: List = [],
 ) -> Dict:
-    document = dict()
+    document = {}
     if isinstance(context, list):
         for x in context:
             if x not in already_loaded:
@@ -501,7 +501,7 @@ def _add_ld_keys(
     context: Optional[Union[Dict, List, str]],
     base: Optional[str],
 ) -> Union[Dict, List[str]]:
-    local_attrs = dict()
+    local_attrs = {}
     local_context = None
     json_arrays = []
     items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
@@ -550,7 +550,7 @@ def _add_ld_keys(
 def _remove_ld_keys(
     dictionary: dict, context: Context, to_resource: Optional[bool] = True
 ) -> Union[Dict, Resource]:
-    local_attrs = dict()
+    local_attrs = {}
     for k, v in dictionary.items():
         if k == "@context":
             if v != context:

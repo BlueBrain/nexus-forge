@@ -74,7 +74,7 @@ class RdfModel(Model):
         return self.service.context.prefixes
 
     def _types(self) -> List[str]:
-        return list(self.service.types_to_shapes.keys())
+        return list(self.service.types_to_shapes)
 
     def context(self) -> Context:
         return self.service.context
@@ -167,7 +167,7 @@ class RdfModel(Model):
 
 def parse_attributes(node: NodeProperties, only_required: bool,
                      inherited_constraint: Optional[str]) -> Dict:
-    attributes = dict()
+    attributes = {}
     if hasattr(node, "path"):
         if only_required is True:
             if not hasattr(node, "mandatory"):
@@ -185,7 +185,7 @@ def parse_attributes(node: NodeProperties, only_required: bool,
 
 
 def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
-    props = dict()
+    props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
     return props

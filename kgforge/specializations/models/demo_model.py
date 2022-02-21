@@ -89,7 +89,7 @@ class DemoModel(Model):
         """
         type_expanded = self.service.expand(type_)
         schema = self.service.schema(type_expanded)
-        result, reason = self.service.check(resource, schema)
+        _, reason = self.service.check(resource, schema)
         if reason is not None:
             raise ValidationError(reason)
 
@@ -141,5 +141,4 @@ class ModelLibrary:
                 else:
                     if not checked:
                         return False, f"{compacted} is missing"
-        else:
-            return result, reason
+        return result, reason

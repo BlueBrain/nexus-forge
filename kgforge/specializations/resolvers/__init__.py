@@ -16,4 +16,4 @@ from .demo_resolver import DemoResolver
 from .agent_resolver import AgentResolver
 from .ontology_resolver import OntologyResolver
 from kgforge.specializations.resolvers.entity_linking.entity_linker import EntityLinker
-from kgforge.specializations.resolvers.entity_linking.entity_linker_elastic import EntityLinker, EntityLinkerElastic
+from kgforge.specializations.resolvers.entity_linking.entity_linker_elastic import EntityLinkerElastic

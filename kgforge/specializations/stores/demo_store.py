@@ -124,7 +124,7 @@ class DemoStore(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict]):
+                            token: Optional[str], searchendpoints: Optional[Dict]):
         return StoreLibrary()
 
 
@@ -147,7 +147,7 @@ class StoreLibrary:
     def create(self, data: Dict) -> Dict:
         record = self._record(data, 1, False)
         rid = record["data"]["id"]
-        if rid in self.records.keys():
+        if rid in self.records:
             raise self.RecordExists
         self.records[rid] = record
         return record
@@ -206,8 +206,7 @@ class StoreLibrary:
             key = self._tag_id(rid, value)
             if key in self.tags:
                 raise self.TagExists
-            else:
-                self.tags[key] = version
+            self.tags[key] = version
         else:
             raise self.RecordMissing
 

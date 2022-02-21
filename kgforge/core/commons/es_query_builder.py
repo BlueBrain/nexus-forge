@@ -42,10 +42,10 @@ class ESQueryBuilder(QueryBuilder):
         **params,
     ) -> Tuple[List, List, List]:
 
-        es_filters = list()
-        musts = list()
-        must_nots = list()
-        script_scores = list()
+        es_filters = []
+        musts = []
+        must_nots = []
+        script_scores = []
 
         default_str_keyword_field = params.get("default_str_keyword_field", "keyword")
         includes = params.get("includes", None)
@@ -87,14 +87,13 @@ class ESQueryBuilder(QueryBuilder):
                         f"The provided path {f.path} is not present in the provided elasticsearch mapping (dynamic == {dynamic}). "
                         f"Please search with a path present in the elasticsearch mapping or provide a dynamic mapping."
                     )
-                else:
-                    (
-                        nested_path,
-                        found_path_parts,
-                        mapping_type,
-                    ), property_path = _look_up_known_parent_paths(
-                        f, last_path, property_path, m
-                    )
+                (
+                    nested_path,
+                    found_path_parts,
+                    mapping_type,
+                ), property_path = _look_up_known_parent_paths(
+                    f, last_path, property_path, m
+                )
             # else (i.e mapping_type == Text, Keyword, ...) (i.e nested_path with value => in a nested field
             if len(nested_path) >= 1:
                 keyword_path = _build_keyword_path(mapping_type, property_path)
@@ -246,7 +245,7 @@ def _recursive_resolve_nested(m, field_path):
     if mapping_type is None and nested_path == ():
         if len(field_path) > 1:
             return _recursive_resolve_nested(
-                m, field_path=field_path[0 : len(field_path) - 1]
+                m, field_path=field_path[0:len(field_path) - 1]
             )
         else:
             return nested_path, field_path, mapping_type
@@ -299,7 +298,7 @@ def _build_bool_query(
     must_not = None
     script_score = None
     if (
-        filter.operator in elasticsearch_operator_range_map.keys()
+        filter.operator in elasticsearch_operator_range_map
         and not isinstance(mapping_type, elasticsearch_dsl.Text)
         and not isinstance(mapping_type, elasticsearch_dsl.Boolean)
     ):  # range filter query
@@ -321,9 +320,9 @@ def _build_bool_query(
                 {elasticsearch_operator_range_map[filter.operator]: filter.value},
             )
 
-    elif filter.operator in elasticsearch_operator_range_map.keys() and (
-        isinstance(mapping_type, elasticsearch_dsl.Text)
-        or isinstance(mapping_type, elasticsearch_dsl.Boolean)
+    elif filter.operator in elasticsearch_operator_range_map and (
+        isinstance(mapping_type, (elasticsearch_dsl.Text,
+                                  elasticsearch_dsl.Boolean))
     ):
         raise ValueError(
             f"Using the range operator {filter.operator} on the Text field/path {filter.path} is not supported."
@@ -395,15 +394,15 @@ def _detect_mapping_type(value: Any):
         # double
         if float(value):
             return elasticsearch_dsl.Float()
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # Date
         if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
             return elasticsearch_dsl.Date()
-    except ParserError as pe:
+    except ParserError:
         return elasticsearch_dsl.Text()
 
 

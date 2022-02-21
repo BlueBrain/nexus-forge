@@ -26,7 +26,7 @@ class AgentResolver(Resolver):
 
     def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
                  **source_config) -> None:
-        super().__init__(source,  targets, result_resource_mapping, **source_config)
+        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -91,4 +91,3 @@ class AgentResolver(Resolver):
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
-

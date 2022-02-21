@@ -17,7 +17,6 @@ import requests
 
 from typing import Callable, Dict, List, Optional, Union, Any
 
-from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
@@ -42,7 +41,7 @@ class EntityLinkerElasticService(EntityLinkerService):
         **store_config
     ):
         super().__init__(is_distance=False)
-        self.sources: Dict[str, Store] = dict()
+        self.sources: Dict[str, Store] = {}
         for target, bucket in targets.items():
             store_config.update(bucket=bucket)
             self.sources[target] = store(**store_config)
@@ -77,7 +76,7 @@ class EntityLinkerElasticService(EntityLinkerService):
                 embedding_json = encode(embedding)
                 vector_field = list(embedding_json.keys())[0]
                 mention_resources, mention_resources_scores = self._similar(
-                    vector_field,embedding_json[vector_field], target, limit
+                    vector_field, embedding_json[vector_field], target, limit
                 )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)

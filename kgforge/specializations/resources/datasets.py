@@ -58,7 +58,7 @@ class Dataset(Resource):
 
         keep = ["id", "type", "_store_metadata"]
         contribution = self._add_prov_property(resource, "Contribution", "agent", "Agent", keep, versioned,
-                                             **kwargs)
+                                               **kwargs)
         _set(self, "contribution", contribution)
 
     @catch
@@ -84,10 +84,16 @@ class Dataset(Resource):
         """Add information about the invalidation of the dataset."""
 
         keep = ["id", "type", "_store_metadata"]
-        invalidation = self._add_prov_property(resource,"Invalidation","activity","Activity",keep,versioned, **kwargs)
+        invalidation = self._add_prov_property(resource,
+                                               "Invalidation",
+                                               "activity",
+                                               "Activity",
+                                               keep,
+                                               versioned,
+                                               **kwargs)
         _set(self, "invalidation", invalidation)
 
-    def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
+    def _add_prov_property(self, resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
 
         if versioned and isinstance(resource, str):
             not_supported((f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True))
@@ -100,11 +106,10 @@ class Dataset(Resource):
                 if '_rev' in str(ae) and versioned:
                     raise ValueError(f"Missing resource revision value to build a versioned ({versioned}) reference. "
                                      f"Provide a revision number to the resource (by registering it for example) or set 'versioned' argument to False if no versioned reference is needed.")
-                else:
-                    raise ae
+                raise ae
 
         result = Resource(type=prov_type, **kwargs)
-        result.__setattr__(reference_property,reference)
+        result.__setattr__(reference_property, reference)
         return result
 
     @catch

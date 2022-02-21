@@ -14,9 +14,7 @@
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
-from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
-from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
@@ -28,7 +26,7 @@ class OntologyResolver(Resolver):
 
     def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
                  **source_config) -> None:
-        super().__init__(source,  targets, result_resource_mapping, **source_config)
+        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:

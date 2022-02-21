@@ -61,4 +61,3 @@ def _remove_context(dictionary: dict):
                 elif isinstance(dictionary[i], list):
                     for x in dictionary[i]:
                         _remove_context(x)
-

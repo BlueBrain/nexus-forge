@@ -75,10 +75,8 @@ class Mapping(ABC):
     @abstractmethod
     def _load_rules(mapping: str) -> Any:
         """Load the mapping rules according to there interpretation."""
-        pass
 
     @staticmethod
     @abstractmethod
     def _normalize_rules(rules: Any) -> str:
         """Normalize the representation of the rules to compare saved mappings."""
-        pass

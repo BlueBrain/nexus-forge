@@ -17,15 +17,14 @@ import json
 
 from pyshacl import Validator
 
-from kgforge.core import Resource
 from kgforge.core.commons.exceptions import RetrievalError
-from kgforge.core.conversions.rdf import as_jsonld, as_graph
-from rdflib import URIRef, Namespace, Graph
-
+from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.archetypes import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
 from kgforge.specializations.stores.nexus import Service
+
+from rdflib import URIRef, Namespace, Graph
 
 
 class StoreService(RdfService):
@@ -41,7 +40,7 @@ class StoreService(RdfService):
         self.store_metadata_iri = self.default_store.service.store_context if hasattr(self.default_store.service, "store_context") \
             else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
         self._shapes_to_resources: Dict
-        self._imported = list()
+        self._imported = []
         self._graph = Graph()
         self._sg = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
@@ -96,8 +95,8 @@ class StoreService(RdfService):
         limit = 100
         offset = 0
         count = limit
-        class_to_shapes = dict()
-        shape_resource = dict()
+        class_to_shapes = {}
+        shape_resource = {}
         while count == limit:
             resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
             for r in resources:
@@ -110,7 +109,7 @@ class StoreService(RdfService):
         return class_to_shapes
 
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
-        document = dict()
+        document = {}
         if isinstance(context, list):
             if self.store_metadata_iri in context:
                 context.remove(self.store_metadata_iri)
@@ -121,7 +120,7 @@ class StoreService(RdfService):
                 document.update(self.recursive_resolve(x))
         elif isinstance(context, str):
             try:
-                local_only = False if self.default_store == self.context_store else True
+                local_only = self.default_store != self.context_store
                 doc = self.default_store.service.resolve_context(context, local_only=local_only)
             except ValueError:
                 try:

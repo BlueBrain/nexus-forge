@@ -63,7 +63,7 @@ class DemoResolver(Resolver):
                 return None
         else:
             results = [(_dist([str(x[prop]) for prop in resolve_with_properties if prop in x][0], text), x) for x in data
-                       if text and any ([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
+                       if text and any([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
             if results:
                 ordered = sorted(results, key=lambda x: x[0])
                 if strategy == ResolvingStrategy.BEST_MATCH:

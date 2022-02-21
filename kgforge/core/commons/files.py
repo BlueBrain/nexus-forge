@@ -18,6 +18,7 @@ import requests
 from requests import RequestException
 from urllib.parse import urlparse
 
+
 def load_file_as_byte(source: str):
     # source: Union[str, Path, URL].
     filepath = Path(source)
@@ -32,9 +33,10 @@ def load_file_as_byte(source: str):
             raise AttributeError(f"Failed to load the configuration from {source}. The provided source is not a valid file path or URL: {str(re)}")
     return data
 
+
 def is_valid_url(url):
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
-    except Exception as e:
+    except Exception:
         return False

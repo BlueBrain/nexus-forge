@@ -65,8 +65,8 @@ def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
     """
 
     parameters = self.parameters()
-    properties = list()
-    attributes = dict()
+    properties = []
+    attributes = {}
     done_collectors = set()
     for param in iter(parameters):
         if param in ALL_COLLECTORS_MAP:
@@ -131,9 +131,9 @@ class RdfService:
     def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 
         if context_iri is None:
-            raise ConfigurationError(f"RdfModel requires a context")
+            raise ConfigurationError("RdfModel requires a context")
         self._graph = graph
-        self._context_cache = dict()
+        self._context_cache = {}
         self.classes_to_shapes = self._build_shapes_map()
         resolved_context = self.resolve_context(context_iri)
         self.context = Context(resolved_context, context_iri)
@@ -160,15 +160,16 @@ class RdfService:
             if isinstance(resource.type, list) and type_ is None:
                 raise ValueError("Resource has list of types as attribute and type_ parameter is not specified. "
                                  "Please provide a type_ parameter to validate against it.")
-            elif type_ is None:
+
+            if type_ is None:
                 shape_iri = self.types_to_shapes[resource.type]
             else:
                 shape_iri = self.types_to_shapes[type_]
         except AttributeError:
             raise TypeError("resource requires a type attribute")
-        else:
-            data_graph = as_graph(resource, False, self.context, None, None)
-            return self._validate(shape_iri, data_graph)
+
+        data_graph = as_graph(resource, False, self.context, None, None)
+        return self._validate(shape_iri, data_graph)
 
     @abstractmethod
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
@@ -192,7 +193,7 @@ class RdfService:
     def _build_types_to_shapes(self):
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
          the terms available in the context """
-        types_to_shapes: Dict = dict()
+        types_to_shapes: Dict = {}
         for k, v in self.classes_to_shapes.items():
             term = self.context.find_term(str(k))
             if term:
@@ -207,14 +208,14 @@ class RdfService:
         """Materializes all Types into templates and parses the templates to generate a context"""
         # FIXME: the status of this function is experimental
         # TODO: check if there are conflicting terms, and throw error
-        context = dict()
-        prefixes = dict()
-        types_ = dict()
-        terms = dict()
+        context = {}
+        prefixes = {}
+        types_ = {}
+        terms = {}
 
         def traverse_properties(properties) -> Tuple[Dict, Dict]:
-            l_prefixes = dict()
-            l_terms = dict()
+            l_prefixes = {}
+            l_terms = {}
             for property_ in properties:
                 if hasattr(property_, "path"):
                     if property_.path != RDF.type and str(property_.path) != "id":
@@ -246,7 +247,7 @@ class RdfService:
                     l_terms.update(l_t)
             return l_prefixes, l_terms
 
-        target_classes = list()
+        target_classes = []
         for k in self.classes_to_shapes.keys():
             key = as_term(k)
             if key not in target_classes:
@@ -269,4 +270,4 @@ class RdfService:
         context.update({key: types_[key] for key in sorted(types_)})
         context.update({key: terms[key] for key in sorted(terms)})
 
-        return {"@context":  context} if len(context) > 0 else None
+        return {"@context": context} if len(context) > 0 else None

@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from enum import Enum, auto
+from enum import Enum
 
 from typing import Any, Dict, List, Union
 
@@ -32,7 +32,7 @@ class Filter:
         self.path: List[str] = path
         try:
             self.operator: str = FilterOperator(operator).value
-        except Exception as e:
+        except Exception:
             raise ValueError(
                 f"Invalid operator value '{operator}'. Allowed operators are {[member.value for name, member in FilterOperator.__members__.items()]}"
             )
@@ -106,7 +106,7 @@ def _wrap(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:
 
 
 def create_filters_from_dict(filter_dict: Dict, path_prefix=None) -> List[Filter]:
-    filters = list()
+    filters = []
     if path_prefix is None:
         path_prefix = []
     for k, v in filter_dict.items():

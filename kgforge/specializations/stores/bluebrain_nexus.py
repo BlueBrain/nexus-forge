@@ -23,7 +23,6 @@ from asyncio import Semaphore, Task
 from enum import Enum
 from json import JSONDecodeError
 
-from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
@@ -43,6 +42,7 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
     DeprecationError,
     DownloadingError,
@@ -63,6 +63,7 @@ from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service
+
 
 class CategoryDataType(Enum):
     DATETIME = "datetime"
@@ -706,7 +707,7 @@ class BlueBrainNexus(Store):
             store_metadata_statements = []
             if retrieve_source:
                 for i, k in enumerate(self.service.store_metadata_keys):
-                    store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
+                    store_metadata_statements.insert(i + 2, f"<{self.metadata_context.terms[k].id}> ?{k}")
                 deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
                 _vars = ["?" + mk for mk in self.service.store_metadata_keys]
                 _vars.append("?id")
@@ -736,7 +737,7 @@ class BlueBrainNexus(Store):
             results = self.service.batch_request(
                 resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
             )
-            resources = list()
+            resources = []
             for result in results:
                 resource = result.resource
                 if retrieve_source:
@@ -880,13 +881,15 @@ class BlueBrainNexus(Store):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return [
-                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] =='literal' and
-                                                                          ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#boolean')
-                                                                       else (int(v["value"]) if v['type'] =='literal' and
-                                                                             ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#integer')
-                                                                             else v["value"]
-                                                                             )
-                                for k, v in x.items()} )
+                    Resource(**{k: json.loads(str(v["value"]).lower()) if (v['type'] == 'literal' and
+                                                                           'datatype' in v and
+                                                                           v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
+                                else (int(v["value"]) if (v['type'] == 'literal' and
+                                                          'datatype' in v and
+                                                          v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
+                                      else v["value"]
+                                      )
+                                for k, v in x.items()})
                     for x in results
                 ]
 
@@ -991,9 +994,9 @@ def _error_message(error: HTTPError) -> str:
         error_json = error.response.json()
         if "reason" in error_json:
             return format_message(error_json["reason"])
-    except AttributeError as e:
+    except AttributeError:
         pass
-    except JSONDecodeError as jde:
+    except JSONDecodeError:
         pass
     try:
         return format_message(error.response.text())
@@ -1002,8 +1005,8 @@ def _error_message(error: HTTPError) -> str:
 
 
 def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
-    statements = list()
-    filters = list()
+    statements = []
+    filters = []
     for index, f in enumerate(*conditions):
         last_path = f.path[-1]
         try:
@@ -1031,14 +1034,14 @@ def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, 
                     filters.append(f"FILTER(?v{index} != {f.value})")
                 else:
                     raise NotImplementedError(
-                        f"supported operators are '==' and '!=' when filtering by type or id."
+                        "supported operators are '==' and '!=' when filtering by type or id."
                     )
             else:
                 value_type = type_map[_parse_type(f.value)]
                 value = format_type[value_type](f.value)
                 if value_type is CategoryDataType.LITERAL:
                     if f.operator not in ["__eq__", "__ne__"]:
-                        raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
+                        raise NotImplementedError("supported operators are '==' and '!=' when filtering with a str.")
                     statements.append(f"{property_path} ?v{index}")
                     filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
                 else:

@@ -13,7 +13,6 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -283,8 +282,8 @@ class KnowledgeGraphForge:
     def validate(
         self,
         data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
-        type_: str=None
+        execute_actions_before: bool = False,
+        type_: str = None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -330,10 +329,10 @@ class KnowledgeGraphForge:
                         "         - targets: ", ",".join(resolver_value.targets.keys())
                     )
         elif output == "dict":
-            resolvers_dict = dict()
+            resolvers_dict = {}
             # iterate over resolvers and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
-                individual_dict = dict()
+                individual_dict = {}
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
                         individual_dict[target_key] = {"bucket": target_value}
@@ -366,10 +365,14 @@ class KnowledgeGraphForge:
         :param resolver: a resolver name
         :param target: a target identifier
         :param type: a type of resources to resolve
-        :param strategy:  the ResolvingStrategy to apply: BEST_MATCH (return the resource with the best score), EXACT_MATCH (return the resource with the highest score), ALL_MATCHES (return all retrieved resources sorted by score)
+        :param strategy:  the ResolvingStrategy to apply:
+            BEST_MATCH (return the resource with the best score)
+            EXACT_MATCH (return the resource with the highest score)
+            ALL_MATCHES (return all retrieved resources sorted by score)
         :param resolving_context: A context (e.g JSON-LD context) to use during resolving
         :param property_to_resolve: the property from which the text(s) to resolve is taken when 'text' is a Resource
-        :param merge_inplace_as: the property name that should hold the resolving result when 'text' is a Resource. When missing, the resolving result is returned insteada of being added to the provided resource.
+        :param merge_inplace_as: the property name that should hold the resolving result when 'text' is a Resource.
+        When missing, the resolving result is returned insteada of being added to the provided resource.
         :param limit: the number of resources to retrieve
         :param threshold: the threshold score
         :return: Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]
@@ -411,9 +414,11 @@ class KnowledgeGraphForge:
                     if isinstance(strategy, ResolvingStrategy)
                     else ResolvingStrategy[strategy]
                 )
-            except Exception as e:
+            except Exception:
                 raise AttributeError(
-                    f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
+                    f"Invalid ResolvingStrategy value '{strategy}'. "
+                    f"Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} "
+                    f"and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
                 )
             return rov.resolve(
                 text,

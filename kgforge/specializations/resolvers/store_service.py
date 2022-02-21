@@ -13,17 +13,14 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from typing import Callable, Dict, List, Optional
 
-from rdflib.plugins.sparql.parser import Query
-
 from kgforge.core.archetypes import Store
-from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.json import as_json
 
 
 class StoreService:
 
     def __init__(self, store: Callable, targets: Dict[str, str], **store_config):
-        self.sources: Dict[str, Store] = dict()
+        self.sources: Dict[str, Store] = {}
         for target, bucket in targets.items():
             store_config.update(bucket=bucket)
             self.sources[target] = store(**store_config)
@@ -49,7 +46,7 @@ class StoreService:
             else:
                 raise ValueError(f"Target {target} not identified")
         else:
-            resources = list()
+            resources = []
             for source in self.sources.values():
                 resources.extend(source.sparql(query, debug=False, limit=limit))
 

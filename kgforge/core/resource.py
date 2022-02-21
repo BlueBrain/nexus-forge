@@ -79,7 +79,7 @@ class Resource:
 
         def _(d: Union[Dict, List[Dict]], nas: List[Any]) -> Resource:
             if isinstance(d, List):
-                return [_(x,  nas) for x in d]
+                return [_(x, nas) for x in d]
             elif isinstance(d, Dict):
                 properties = {k: _(v, nas) for k, v in d.items() if v not in nas}
                 return Resource(**properties)

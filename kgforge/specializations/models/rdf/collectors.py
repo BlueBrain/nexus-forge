@@ -90,7 +90,7 @@ class HasValueCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        attrs = dict()
+        attrs = {}
         attrs["values"] = self.has_value
         return None, attrs
 
@@ -108,7 +108,7 @@ class DatatypeCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        attrs = dict()
+        attrs = {}
         attrs["values"] = self.data_type_rule
         return None, attrs
 
@@ -126,8 +126,8 @@ class MinCountCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        attrs = dict()
-        attrs["mandatory"] = True if self.min_count.toPython() >= 1 else False
+        attrs = {}
+        attrs["mandatory"] = self.min_count.toPython() >= 1
         return None, attrs
 
 
@@ -144,7 +144,7 @@ class NodeKindCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
+        properties = []
         if self.node_kind_rule == SH_IRI:
             properties.append(id_node_property(True))
         elif self.node_kind_rule == SH_BlankNodeOrIRI:
@@ -168,7 +168,7 @@ class InCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        attrs = dict()
+        attrs = {}
         attrs.update(constraint="in")
         attrs.update(values=[v.toPython() for v in self.in_values])
         return None, attrs
@@ -187,8 +187,8 @@ class ClassCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        attributes = dict()
-        properties = list()
+        attributes = {}
+        properties = []
         for target_class in self.class_rules:
             target_class_shapes = [s for s in self.shape.sg.graph.subjects(SH_targetClass, target_class)]
             if target_class_shapes:
@@ -229,8 +229,8 @@ class NodeCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
-        attributes = dict()
+        properties = []
+        attributes = {}
         for n_shape in self.node_shapes:
             ns = self.shape.get_other_shape(n_shape)
             if ns.node not in predecessors:
@@ -263,7 +263,7 @@ class PropertyCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
+        properties = []
         for p_shape in self.property_shapes:
             ps = self.shape.get_other_shape(p_shape)
             if ps.node not in predecessors:
@@ -296,7 +296,7 @@ class AndCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
+        properties = []
         sg = self.shape.sg.graph
         for and_c in self.and_list:
             and_list = set(sg.items(and_c))
@@ -333,8 +333,8 @@ class OrCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
-        attributes = dict()
+        properties = []
+        attributes = {}
         sg = self.shape.sg.graph
         for or_c in self.or_list:
             or_list = set(sg.items(or_c))
@@ -385,8 +385,8 @@ class XoneCollector(Collector):
 
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
-        properties = list()
-        attributes = dict()
+        properties = []
+        attributes = {}
         sg = self.shape.sg.graph
 
         for xone_c in self.xone_list:
@@ -439,7 +439,7 @@ def id_node_property(mandatory: bool) -> NodeProperties:
 
 
 def merge_dicts(first: Dict, second: Dict):
-    result = dict()
+    result = {}
     result.update({k: first[k] for k in first.keys() - second.keys()})
     result.update({k: second[k] for k in second.keys() - first.keys()})
     same = first.keys() & second.keys()
@@ -476,7 +476,7 @@ def get_nodes_path(nodes: List, path: URIRef, field: str):
 
 
 def get_node_path(node: NodeProperties, path: URIRef, field: str):
-    result = list()
+    result = []
     if hasattr(node, "properties"):
         for pp in node.properties:
             if hasattr(pp, "path"):
