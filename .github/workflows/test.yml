@@ -9,9 +9,18 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
+
       - name: Install dependencies
-        run: pip install .[dev]
+        run: |
+          python -m pip install --upgrade pip setuptools
+          pip install tox
+
+       # this should be upgraded to use `tox -elint` once pylint warnings are fixed
+      - name: 'Lint: pycodestyle the code'
+        run: |
+          tox -elint
+
       - name: Run tests with pytest
         run: |
-          pytest --cov=./
+          tox -ecoverage
           codecov
