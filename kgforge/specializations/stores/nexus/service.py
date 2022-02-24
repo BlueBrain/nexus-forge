@@ -536,7 +536,9 @@ class Service:
     def to_resource(
         self, payload: Dict, sync_metadata: bool = True, **kwargs
     ) -> Resource:
-        data_context = deepcopy(payload.get("@context", None))
+        # Use JSONLD context defined in Model if no context is retrieved from payload
+        # Todo: BlueBrainNexus store is not indexing in ES the JSONLD context, user provided context can be changed to Model defined one
+        data_context = deepcopy(payload.get("@context", self.model_context.iri if self.model_context else None))
         if not isinstance(data_context, list):
             data_context = [data_context]
         if self.store_context in data_context:
@@ -576,4 +578,6 @@ class Service:
         if len(metadata) > 0 and sync_metadata:
             metadata.update(kwargs)
             self.sync_metadata(resource, metadata)
+        if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
+            resource.id = kwargs.get("id")
         return resource
