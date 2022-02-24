@@ -907,6 +907,7 @@ class BlueBrainNexus(Store):
                     hit["_source"],
                     True,
                     **{
+                        "id": hit.get("_id", None),
                         "_index": hit.get("_index", None),
                         "_score": hit.get("_score", None),
                     },
