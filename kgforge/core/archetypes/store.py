@@ -368,8 +368,8 @@ class Store(ABC):
             if self.model_context is not None and rewrite
             else query
         )
-        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, " LIMIT \d+")
-        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, " OFFSET \d+")
+        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
+        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
         if debug:
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
