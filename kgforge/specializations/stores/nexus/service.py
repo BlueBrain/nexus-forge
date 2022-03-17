@@ -393,10 +393,10 @@ class Service:
                     url = "/".join((resource_url, "_", quote_plus(resource.id)))
                     if hasattr(resource, "_rev"):
                         params["rev"] = resource._rev
-                    source = params.get("source", False)
-                    if source:
+                    retrieve_source = params.get("retrieve_source", False)
+                    if retrieve_source:
                         url = "/".join((url, "source"))
-                    params.pop("source")
+                    params.pop("retrieve_source")
                     prepared_request = loop.create_task(
                         queue(hdrs.METH_GET, semaphore, session, url, resource, error, params=params)
                     )

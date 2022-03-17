@@ -18,25 +18,27 @@ import datetime
 from dateutil.parser import ParserError
 
 
-def _parse_type(value: Any):
-
+def _parse_type(value: Any, parse_str:bool = False):
+    _type = type(value)
     try:
-        # integer
-        if str(value).isnumeric():
-            return int
-        # bool
-        if value is True or value is False:
-            return bool
-        # double
-        if float(value):
-            return float
+        if _type == str and parse_str:
+            # integer
+            if str(value).isnumeric():
+                return int
+            # double
+            if float(value):
+                return float
+
     except ValueError as ve:
         pass
     except TypeError as te:
         pass
     try:
-        # Date
-        if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
-            return datetime.datetime
+        if _type == str: #always parse str for date
+            # Date
+            if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
+                return datetime.datetime
+        else:
+            return _type
     except ParserError as pe:
-        return str
+        return _type

@@ -436,20 +436,20 @@ class BlueBrainNexus(Store):
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
     ) -> None:
+        url_base, org, project = self._prepare_download_one(
+            url, path, store_metadata, cross_bucket
+        )
         try:
-            url_base, org, project = self._prepare_download_one(
-                url, path, store_metadata, cross_bucket
-            )
             params_download = copy.deepcopy(self.service.params.get("download", {}))
             response = requests.get(
                 url=url_base,
                 headers=self.service.headers_download,
-                params=params_download,
+                params=params_download
             )
             response.raise_for_status()
         except Exception as e:
             raise DownloadingError(
-                f"Downloading from {org}/{project}:{_error_message(e)}"
+                f"Downloading from {org}/{project} failed :{_error_message(e)}"
             )
         else:
             with open(path, "wb") as f:
@@ -680,6 +680,9 @@ class BlueBrainNexus(Store):
                 f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
                 f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
             )
+        if "filters" in params:
+            raise ValueError("A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
 
@@ -692,47 +695,44 @@ class BlueBrainNexus(Store):
                 raise ValueError(
                     "Field inclusion and exclusion are not supported when using SPARQL"
                 )
-            project_statements = ""
+            project_filter = ""
             if bucket:
-                project_statements = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
+                project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', bucket])}>)"
             elif not cross_bucket:
-                project_statements = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
+                project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = build_sparql_query_statements(
                 self.model_context, filters
             )
-            query_statements.append(f"<{self.service.project_property}> ?_project")
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
             if retrieve_source:
+                _vars = ["?id"]
                 for i, k in enumerate(self.service.store_metadata_keys):
+                    _vars.append(f"?{k}")
                     store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
                 deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
-                _vars = ["?" + mk for mk in self.service.store_metadata_keys]
-                _vars.append("?id")
-                statements = ";\n ".join(query_statements)
-                _filters = "\n".join(
-                    (".\n ".join(query_filters), project_statements, deprecated_filter)
-                )
+                query_filters.append(deprecated_filter)
             else:
+                _vars = ["?id", "?_project", "?_rev"]
+                store_metadata_statements.append(f"<{self.service.revision_property}> ?_rev")
+                store_metadata_statements.append(f"<{self.service.project_property}> ?_project")
                 query_statements.append(
                     f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}",
                 )
-                store_metadata_statements.append(f"<{self.service.revision_property}> ?_rev")
-                statements = ";\n ".join(query_statements)
-                _vars = ["?id", "?_project", "?_rev"]
-                _filters = "\n".join(
-                    (".\n ".join(query_filters), project_statements)
-                )
-            store_metadata_statements_str = ";\n ".join(store_metadata_statements)
+            query_statements.extend(store_metadata_statements)
+            statements = ";\n ".join(query_statements)
+            _filters = "\n".join(
+                (".\n ".join(query_filters), project_filter)
+            )
             query = _create_select_query(
-                _vars, f"?id {statements} .\n ?id {store_metadata_statements_str} \n {_filters}", distinct,
+                _vars, f"?id {statements} . \n {_filters}", distinct,
                 search_in_graph
             )
             # support @id and @type
             resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
             params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
-            params_retrieve['source'] = params.get("source", True)
+            params_retrieve['retrieve_source'] = retrieve_source
             results = self.service.batch_request(
                 resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
             )
@@ -990,8 +990,12 @@ def _error_message(error: HTTPError) -> str:
 
     try:
         error_json = error.response.json()
+        message = []
         if "reason" in error_json:
-            return format_message(error_json["reason"])
+            message.append(format_message(error_json["reason"]))
+        if "details" in error_json:
+            message.append(format_message(error_json["details"]))
+        return ". ".join(message)
     except AttributeError as e:
         pass
     except JSONDecodeError as jde:
@@ -1035,7 +1039,8 @@ def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, 
                         f"supported operators are '==' and '!=' when filtering by type or id."
                     )
             else:
-                value_type = type_map[_parse_type(f.value)]
+                parsed_type = _parse_type(f.value, parse_str=False)
+                value_type = type_map[parsed_type]
                 value = format_type[value_type](f.value)
                 if value_type is CategoryDataType.LITERAL:
                     if f.operator not in ["__eq__", "__ne__"]:
