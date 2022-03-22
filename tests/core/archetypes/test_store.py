@@ -16,7 +16,7 @@
 import pytest
 
 from kgforge.core import Resource, KnowledgeGraphForge
-from kgforge.core.archetypes.store import rewrite_sparql
+from kgforge.core.archetypes.store import rewrite_sparql, _replace_in_sparql
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import DownloadingError, FreezingError, QueryingError
 from kgforge.specializations.resources import Dataset
@@ -59,6 +59,8 @@ form_store_metadata_combinations = [
      "\nSELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
     ("SELECT ?agent WHERE { ?agent type ?v0 FILTER(?v0 != Person) }",
      "\nSELECT ?agent WHERE { ?agent rdf:type ?v0 FILTER(?v0 != schema:Person) }"),
+    ("SELECT ?agent WHERE { ?agent type ?v0 FILTER (?v0 in (Person, Agent)) }",
+     "\nSELECT ?agent WHERE { ?agent rdf:type ?v0 FILTER (?v0 in (schema:Person, :Agent)) }"),
     ("SELECT ?x ?name WHERE { ?x type Association ; agent/name ?name }",
      "\nSELECT ?x ?name WHERE { ?x rdf:type prov:Association ; prov:agent/schema:name ?name }"),
     ("SELECT ?name WHERE { ?x agent/name ?name FILTER regex(?name, \"^j\", \"i\") }",
@@ -105,6 +107,52 @@ def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
     context_object = Context(document=custom_context)
     result = rewrite_sparql(query, context_object, metadata_context)
     assert result == expected
+
+replace_in_sparql_combinations = [
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
+     "LIMIT", 3, 100, r" LIMIT \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  LIMIT 3"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
+     "LIMIT", None, 100, r" LIMIT \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  LIMIT 100"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
+     "LIMIT", None, None, r" LIMIT \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10",
+     "LIMIT", None, None, r" LIMIT \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10",
+     "LIMIT", None, 100, r" LIMIT \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 100"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10",
+     "LIMIT", None, 100, r" LIMIT \d+", False,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
+         "OFFSET", 1, 0, r" OFFSET \d+", True,
+         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  OFFSET 1"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
+         "OFFSET", None, 0, r" OFFSET \d+", True,
+         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 3",
+         "OFFSET", None, 20, r" OFFSET \d+", True,
+         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 20"),
+    ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 3",
+         "OFFSET", 5, None, r" OFFSET \d+", True,
+         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 5")
+]
+
+@pytest.mark.parametrize("query, what, value, default_value, search_regex, replace_if_in_query, expected",
+                         replace_in_sparql_combinations)
+def test__replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query, expected):
+    result = _replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query)
+    assert result == expected
+
+
+def test__replace_in_sparql_exception():
+    with pytest.raises(QueryingError):
+        query = "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"
+        _replace_in_sparql(query, what="LIMIT", value=10, default_value=None, search_regex=r" LIMIT \d+",
+                           replace_if_in_query=False)
 
 
 def test_download(config):

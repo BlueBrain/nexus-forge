@@ -217,9 +217,24 @@ class TestQuerying:
                 id="number-le",
             ),
             pytest.param(
-                (Filter(["createdAt"], "__ge__", "2020-10-20T13:53:22.880Z"),),
+                (Filter(["building", "height"], "__eq__", 7.0),),
+                (["building/height ?v0"], ["FILTER(?v0 = 7.0)"]),
+                id="float-str-parsed",
+            ),
+            pytest.param(
+                (Filter(["building", "height"], "__eq__", "2022"),),
+                (["building/height ?v0"], ['FILTER(?v0 = "2022")']),
+                id="number-str-not-parsed",
+            ),
+            pytest.param(
+                (Filter(["createdAt"], "__ge__", "2020-10-20T13:53:22.880Z^^xsd:dateTime"),),
                 (["createdAt ?v0"], ['FILTER(?v0 >= "2020-10-20T13:53:22.880Z"^^xsd:dateTime)']),
                 id="datetime-ge",
+            ),
+            pytest.param(
+                (Filter(["createdAt"], "__eq__", "2020-10-20T13:53:22.880Z"),),
+                (["createdAt ?v0"], ['FILTER(?v0 = "2020-10-20T13:53:22.880Z")']),
+                id="datetime-str-eq-not-parsed",
             ),
             pytest.param(
                 (Filter(["deprecated"], "__eq__", False),),

@@ -1039,9 +1039,9 @@ def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, 
                         f"supported operators are '==' and '!=' when filtering by type or id."
                     )
             else:
-                parsed_type = _parse_type(f.value, parse_str=False)
+                parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
                 value_type = type_map[parsed_type]
-                value = format_type[value_type](f.value)
+                value = format_type[value_type](parsed_value if parsed_value else f.value)
                 if value_type is CategoryDataType.LITERAL:
                     if f.operator not in ["__eq__", "__ne__"]:
                         raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")

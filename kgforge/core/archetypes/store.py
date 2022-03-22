@@ -56,6 +56,7 @@ SPARQL_CLAUSES = [
     "prefix",
     "graph",
     "distinct",
+    "in"
 ]
 
 
@@ -452,13 +453,12 @@ class Store(ABC):
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):
 
-    is_what_in_query = bool(re.search(f'r"{search_regex}"', qr, flags=re.IGNORECASE))
+    is_what_in_query = bool(re.search(f"{search_regex}", qr, flags=re.IGNORECASE))
     if is_what_in_query and value and not replace_if_in_query:
-        raise(f"Value for '{what}' is present in the provided query and set as argument: replacing '{what}' when present in the query is not supported.")
-
+        raise QueryingError(f"Value for '{what}' is present in the provided query and set as argument: set 'replace_if_in_query' to True to replace '{what}' when present in the query.")
     replace_value = f" {what} {value}" if value else (f" {what} {default_value}" if default_value else None)
     if is_what_in_query and replace_if_in_query and replace_value:
-        qr = re.sub(f'r"{search_regex}"', replace_value, qr, flags=re.IGNORECASE)
+        qr = re.sub(f"{search_regex}", replace_value, qr, flags=re.IGNORECASE)
     if not is_what_in_query and replace_value:
         qr = f"{qr} {replace_value}"
     return qr
