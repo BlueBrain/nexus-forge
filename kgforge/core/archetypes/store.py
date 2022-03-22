@@ -56,6 +56,7 @@ SPARQL_CLAUSES = [
     "prefix",
     "graph",
     "distinct",
+    "in"
 ]
 
 
@@ -229,7 +230,7 @@ class Store(ABC):
         if count > 1:
             self._download_many(urls, filepaths, store_metadata, cross_bucket)
         else:
-            self._download_one(urls[0], filepaths[0], store_metadata, cross_bucket)
+            self._download_one(urls[0], filepaths[0], store_metadata[0], cross_bucket)
 
     def _download_many(
         self,
@@ -368,23 +369,8 @@ class Store(ABC):
             if self.model_context is not None and rewrite
             else query
         )
-        limit_in_query = bool(re.search(r" LIMIT \d+", qr, flags=re.IGNORECASE))
-        offset_in_query = bool(re.search(r" OFFSET \d+", qr, flags=re.IGNORECASE))
-        if limit:
-            s_limit = f" LIMIT {limit}"
-            if limit_in_query:
-                qr = re.sub(r" LIMIT \d+", s_limit, qr, flags=re.IGNORECASE)
-            else:
-                qr = f"{qr} {s_limit}"
-        elif not limit_in_query:
-            qr = f"{qr} LIMIT 100"
-
-        if offset:
-            s_offset = f" OFFSET {offset}"
-            if offset_in_query:
-                qr = re.sub(r" OFFSET \d+", s_offset, qr, flags=re.IGNORECASE)
-            else:
-                qr = f"{qr} {s_offset}"
+        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
+        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
         if debug:
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
@@ -463,6 +449,19 @@ class Store(ABC):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
+
+
+def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):
+
+    is_what_in_query = bool(re.search(f"{search_regex}", qr, flags=re.IGNORECASE))
+    if is_what_in_query and value and not replace_if_in_query:
+        raise QueryingError(f"Value for '{what}' is present in the provided query and set as argument: set 'replace_if_in_query' to True to replace '{what}' when present in the query.")
+    replace_value = f" {what} {value}" if value else (f" {what} {default_value}" if default_value else None)
+    if is_what_in_query and replace_if_in_query and replace_value:
+        qr = re.sub(f"{search_regex}", replace_value, qr, flags=re.IGNORECASE)
+    if not is_what_in_query and replace_value:
+        qr = f"{qr} {replace_value}"
+    return qr
 
 
 def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
