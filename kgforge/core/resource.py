@@ -95,5 +95,7 @@ def encode(data: Any) -> Union[str, Dict]:
         return {k: v for k, v in data.__dict__.items() if k not in data._RESERVED}
     elif type(data).__name__ == "LazyAction":
         return str(data)
+    elif isinstance(data, set) or isinstance(data, list):
+        return {encode(r) for r in data}
     else:
         return data.__dict__

@@ -211,8 +211,8 @@ def metadata_data_compacted():
 @pytest.fixture
 def metadata_data_expanded():
     return {
-        "https://store.net/vocabulary/deprecated": False,
-        "https://store.net/vocabulary/version": 1,
+        "https://store.net/vocabulary/deprecated": [{"@value": False}],
+        "https://store.net/vocabulary/version": [{"@value": 1}],
     }
 
 
@@ -314,21 +314,20 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
             else Context(context)
         )
         latitude_term = ctx.terms.get("latitude")
+        latitude_node = {
+            "@value": resource.geo["latitude"],
+        }
         if latitude_term.type:
-            latitude_node = {
-                "@type": latitude_term.type,
-                "@value": resource.geo["latitude"],
-            }
-        else:
-            latitude_node = resource.geo["latitude"]
-        geo_expanded = {latitude_term.id: latitude_node}
+            latitude_node = {**{"@type": latitude_term.type}, **latitude_node}
+
+        geo_expanded = {latitude_term.id: [latitude_node]}
         data.update(
             {
-                "@type": ctx.expand(resource.type),
-                ctx.expand("description"): resource.description,
-                ctx.expand("geo"): geo_expanded,
-                ctx.expand("image"): {"@id": resource.image},
-                ctx.expand("name"): resource.name,
+                "@type": [ctx.expand(resource.type)],
+                ctx.expand("description"): [{"@value":resource.description}],
+                ctx.expand("geo"): [geo_expanded],
+                ctx.expand("image"): [{"@id": resource.image}],
+                ctx.expand("name"): [{"@value":resource.name}]
             }
         )
         if store_metadata and resource._store_metadata is not None:
