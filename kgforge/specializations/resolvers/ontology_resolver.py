@@ -51,10 +51,14 @@ class OntologyResolver(Resolver):
         if strategy == strategy.EXACT_MATCH:
             label_filter = f" FILTER (?label = \"{text}\")"
             notation_filter = f" FILTER (?notation = \"{text}\")"
+            prefLabel_filter = f" FILTER (?prefLabel = \"{text}\")"
+            altLabel_filter = f" FILTER (?altLabel = \"{text}\")"
             limit = 1
         else:
             label_filter = f" FILTER regex(?label, \"{text}\", \"i\")"
             notation_filter = f" FILTER regex(?notation, \"{text}\", \"i\")"
+            prefLabel_filter = f" FILTER regex(?prefLabel, \"{text}\", \"i\")"
+            altLabel_filter = f" FILTER regex(?altLabel, \"{text}\", \"i\")"
             if strategy == strategy.BEST_MATCH:
                 limit = 1
 
@@ -63,6 +67,8 @@ class OntologyResolver(Resolver):
                ?id a ?type ;
                   label ?label ;
                   prefLabel ?prefLabel ;
+                  altLabel ?altLabel ;
+                  definition ?definition;
                   subClassOf ?subClassOf ;
                   isDefinedBy ?isDefinedBy ;
                   notation ?notation
@@ -73,7 +79,13 @@ class OntologyResolver(Resolver):
                 ?id subClassOf ?subClassOf ;
               }}
               OPTIONAL {{
+                ?id definition ?definition ;
+              }}
+              OPTIONAL {{
                 ?id prefLabel ?prefLabel .
+              }}
+              OPTIONAL {{
+                ?id altLabel ?altLabel .
               }}
               OPTIONAL {{
                 ?id isDefinedBy ?isDefinedBy .
@@ -84,11 +96,13 @@ class OntologyResolver(Resolver):
               {{
                 SELECT * WHERE {{
                   {{ {0} ; label ?label {1} }} UNION
-                  {{ {0} ; notation ?notation {2} }}
-                }} LIMIT {3}
+                  {{ {0} ; notation ?notation {2} }} UNION
+                  {{ {0} ; prefLabel ?prefLabel {3} }} UNION
+                  {{ {0} ; altLabel ?altLabel {4} }}
+                }} LIMIT {5}
               }}
             }}
-            """.format(first_filters, label_filter, notation_filter, limit)
+            """.format(first_filters, label_filter, notation_filter, prefLabel_filter, altLabel_filter, limit)
 
         expected_fields = ["type", "label", "prefLabel", "subClassOf", "isDefinedBy", "notation"]
 
