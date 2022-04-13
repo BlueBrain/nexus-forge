@@ -65,7 +65,6 @@ def as_jsonld(
     model_context: Optional[Context],
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
-    na: Union[Any, List[Any]],
     **params
 ) -> Union[Dict, List[Dict]]:
     try:
@@ -83,7 +82,6 @@ def as_jsonld(
         model_context,
         metadata_context,
         context_resolver,
-        na,
         **params
     )
 
@@ -181,37 +179,17 @@ def _as_jsonld_many(
     model_context: Optional[Context],
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
-    na: Optional[List[Any]],
     **params
 ) -> List[Dict]:
-    if na is not None and len(na) != len(resources):
-        raise ValueError(
-            f"len(na) should be equal to len(resources): {len(na)} != {len(resources)}"
-        )
-
     return [
-        _as_jsonld_one(
+         _as_jsonld_one(
             resource,
             form,
             store_metadata,
             model_context,
             metadata_context,
             context_resolver,
-            na[i],
-            **params
-        )
-        if na is not None
-        else _as_jsonld_one(
-            resource,
-            form,
-            store_metadata,
-            model_context,
-            metadata_context,
-            context_resolver,
-            na,
-            **params
-        )
-        for i, resource in enumerate(resources)
+            **params) for i, resource in enumerate(resources)
     ]
 
 
@@ -222,7 +200,6 @@ def _as_jsonld_one(
     model_context: Optional[Context],
     metadata_context: Optional[Context],
     context_resolver: Optional[Callable],
-    na: Any,
     **params
 ) -> Dict:
     context = _resource_context(resource, model_context, context_resolver)
@@ -230,9 +207,6 @@ def _as_jsonld_one(
     output_context = (
         context.iri if context.is_http_iri() else context.document["@context"]
     )
-    resource_types = getattr(resource, "type", getattr(resource, "@type", None))
-    # this is to ensure the framing is centered on the provided resource in case nested resources share the same type
-    resource.type = "https://bluebrain.github.io/nexus/vocabulary/FramedType"
     if store_metadata and resource._store_metadata:
         if metadata_context:
             resolved_context = _merge_jsonld(
@@ -246,108 +220,45 @@ def _as_jsonld_one(
         else:
             raise NotSupportedError("no available context in the metadata")
     try:
-
         data_graph, metadata_graph, encoded_resource, json_array = _as_graphs(
             resource, store_metadata, context, metadata_context
         )
-        json_array_as_set = params.get("array_as_set", False)
-        if json_array_as_set:
-            for array_key in json_array:
-                array_key_context = resolved_context["@context"].get(array_key, None)
-                if array_key_context and isinstance(array_key_context, dict) and "@container" not in array_key_context:
-                    array_key_context.update({"@container":"@set"})
-                elif isinstance(array_key_context, str):
-                    array_key_context = {"@id":array_key_context,"@container": "@set"}
-                resolved_context["@context"].update({array_key: array_key_context if array_key_context else {"@container":"@set"}})
-        data_graph.remove((None, None, Literal(na)))
     except Exception as e:
         raise ValueError(e)
-    jsonld_data_expanded = jsonld.expand(
-        encoded_resource, options={"expandContext": resolved_context}
-    )
-    resource_id = None
-    if hasattr(resource, "id") or hasattr(resource, "@id"):
-        resource_id = (
-            resource.id if hasattr(resource, "id") else getattr(resource, "@id")
-        )
-    if resource_id:
-        if context.base:
-            uri = context.resolve(resource_id)
-        else:
-            uri = (
-                str(data_graph.namespace_manager.absolutize(resource_id, defrag=0))
-                if not str(resource_id).startswith("_:")
-                else resource_id
-            )
-        frame_resource = {"@id": uri}
-        frame_metadata = {"@id": uri}
-    else:
-        frame_resource = dict()
-        frame_metadata = dict()
-        for k, v in resource.__dict__.items():
-            if k not in Resource._RESERVED and not isinstance(
-                v, (Resource, dict, list)
-            ):
-                if k == "context":
-                    continue
-                elif k == "type" or k == TYPE:
-                    t = context.expand(v)
-                    if t:
-                        frame_resource["@type"] = context.expand(v)
-                else:
-                    key = context.expand(k)
-                    if key and isinstance(v, str):
-                        frame_resource[key] = v
-        if resource._store_metadata:
-            for k, v in resource._store_metadata.__dict__.items():
-                key_metadata = metadata_context.expand(k)
-                if key_metadata and isinstance(v, str):
-                    frame_metadata[key_metadata] = v
 
-    frame_resource["@embed"] = True
-    frame_metadata["@embed"] = True
-    data_framed = jsonld.frame(
-        jsonld_data_expanded, frame_resource, options={"processingMode": "json-ld-1.1"}
-    )
-    resource_graph_node = _graph_free_jsonld(data_framed)
-    if resource_types is None:
-        resource_graph_node.pop(TYPE)
-    else:
-        resource_graph_node[TYPE] = (
-            context.expand(resource_types)
-            if isinstance(resource_types, str)
-            else [context.expand(resource_type) for resource_type in resource_types]
-        )
-    resource.type = resource_types
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld"))
-        metadata_framed = jsonld.frame(metadata_expanded, frame_metadata)
         if form is Form.COMPACTED:
-            data_compacted = jsonld.compact(data_framed, resolved_context)
-            metadata_compacted = jsonld.compact(metadata_framed, resolved_context)
-            metadata_compacted = dict(sorted(metadata_compacted.items()))
-            data_and_meta = _merge_jsonld(data_compacted, metadata_compacted)
-            data_and_meta["@context"] = output_context
-            # this is to be able to register contexts documents
-            if len(data_compacted) == 1 and hasattr(resource, "id"):
-                data_compacted["@id"] = resource.id
-            return data_and_meta
+            metadata_compacted = jsonld.compact(metadata_expanded, resolved_context)
+            metadata_update = dict(sorted(metadata_compacted.items()))
+            result = encoded_resource
         elif form is Form.EXPANDED:
-            data_expanded = _unpack_from_list(data_framed)
-
-            metadata_expanded = _unpack_from_list(metadata_framed)
-            metadata_expanded = dict(sorted(metadata_expanded.items()))
-            return _merge_jsonld(data_expanded, metadata_expanded)
+            jsonld_data_expanded = jsonld.expand(
+                encoded_resource, options={"expandContext": resolved_context}
+            )
+            jsonld_data_expanded = _unpack_from_list(jsonld_data_expanded)
+            metadata_expanded = _unpack_from_list(metadata_expanded)
+            metadata_update = dict(sorted(metadata_expanded.items()))
+            result = jsonld_data_expanded
+        result.update(metadata_update)
     else:
         if form is Form.COMPACTED:
-            compacted = jsonld.compact(data_framed, resolved_context)
-            compacted["@context"] = output_context
-            # this is to be able to register contexts documents
-            if len(compacted) == 1 and resource_id:
-                compacted["@id"] = resource_id
-            return compacted
+            result = encoded_resource
         elif form is Form.EXPANDED:
-            return _unpack_from_list(data_framed)
+            jsonld_data_expanded = jsonld.expand(
+                encoded_resource, options={"expandContext": resolved_context}
+            )
+            result = _unpack_from_list(jsonld_data_expanded)
+    if isinstance(result, dict):
+        if "@context" in result:
+            result.pop("@context")
+        result = {**{"@context": output_context}, **result} if form is Form.COMPACTED else result
+        resource_id = resource.id if hasattr(resource, "id") else (getattr(resource, "@id") if hasattr(resource, "@id") else None)
+        if resource_id:
+            result["@id"] = resource_id
+    else:
+        raise ValueError("Unable to convert to JSON-LD")
+    return result
 
 
 def _as_graph_many(
@@ -366,8 +277,7 @@ def _as_graph_many(
             store_metadata,
             model_context,
             metadata_context,
-            context_resolver,
-            None,
+            context_resolver
         )
         graph.parse(data=json.dumps(json_ld), format="json-ld")
     return graph
@@ -386,8 +296,7 @@ def _as_graph_one(
         store_metadata,
         model_context,
         metadata_context,
-        context_resolver,
-        None,
+        context_resolver
     )
     return Graph().parse(data=json.dumps(json_ld), format="json-ld")
 
@@ -407,8 +316,7 @@ def _as_graphs(
         )
     converted, json_array = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context
-                           )+(converted, ) + (json_array, )
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)+(converted, ) + (json_array, )
 
 
 def _dicts_to_graph(

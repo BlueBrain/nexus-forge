@@ -753,7 +753,6 @@ class KnowledgeGraphForge:
             self._model.context(),
             self._store.metadata_context,
             self._model.resolve_context,
-            None,
             **params
         )
 

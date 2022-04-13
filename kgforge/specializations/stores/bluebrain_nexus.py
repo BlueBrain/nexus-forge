@@ -203,9 +203,7 @@ class BlueBrainNexus(Store):
             False,
             model_context=context,
             metadata_context=None,
-            context_resolver=self.service.resolve_context,
-            na=nan,
-            array_as_set=True
+            context_resolver=self.service.resolve_context
         )
 
         try:
@@ -299,7 +297,7 @@ class BlueBrainNexus(Store):
         :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
         :param params: a dictionary of parameters. Supported parameters are:
               [retrieve_source] whether to retrieve the resource payload as registered in the last update
-              (default: False)
+              (default: True)
         :return: Resource
         """
         version_params = None
@@ -534,9 +532,7 @@ class BlueBrainNexus(Store):
             False,
             model_context=context,
             metadata_context=None,
-            context_resolver=self.service.resolve_context,
-            na=nan,
-            array_as_set=True
+            context_resolver=self.service.resolve_context
         )
         params_update = copy.deepcopy(self.service.params.get("update", {}))
         params_update["rev"] = resource._store_metadata._rev
@@ -990,12 +986,15 @@ def _error_message(error: HTTPError) -> str:
 
     try:
         error_json = error.response.json()
-        message = []
-        if "reason" in error_json:
-            message.append(format_message(error_json["reason"]))
-        if "details" in error_json:
-            message.append(format_message(error_json["details"]))
-        return ". ".join(message)
+        messages = []
+        reason = error_json.get("reason", None)
+        details = error_json.get("details", None)
+        if reason:
+            messages.append(format_message(reason))
+        if details:
+            messages.append(format_message(details))
+        messages = messages if reason or details else [str(error)]
+        return ". ".join(messages)
     except AttributeError as e:
         pass
     except JSONDecodeError as jde:

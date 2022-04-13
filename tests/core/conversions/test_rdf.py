@@ -22,7 +22,7 @@ from urllib.request import pathname2url
 import json
 import pytest
 from rdflib import Graph, BNode, term
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, Namespace
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
@@ -54,8 +54,7 @@ class TestJsonLd:
                               store_metadata, model_context, metadata_context):
         compacted = organization_jsonld_compacted(organization, store_metadata=store_metadata)
         result = as_jsonld(organization, form=Form.COMPACTED.value, store_metadata=store_metadata,
-                           model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None, na=None)
+                           model_context=model_context, metadata_context=metadata_context, context_resolver=None)
         compacted["founder"]["@type"] = sorted(compacted["founder"]["@type"])
         result["founder"]["@type"] = sorted(result["founder"]["@type"])
         assert compacted == result
@@ -64,7 +63,7 @@ class TestJsonLd:
     def test_no_context(self, form, store_metadata, valid_resource):
         with pytest.raises(NotSupportedError):
             as_jsonld(valid_resource, form=form, store_metadata=store_metadata, model_context=None,
-                      metadata_context=None, context_resolver=None, na=None)
+                      metadata_context=None, context_resolver=None)
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
     def test_unregistered_resource_with_context(self, building_with_context, building_jsonld,
@@ -73,7 +72,7 @@ class TestJsonLd:
 
         result = as_jsonld(building_with_context, form=form, store_metadata=store_metadata,
                            model_context=None, metadata_context=metadata_context,
-                           context_resolver=None, na=None)
+                           context_resolver=None)
         assert expected == result
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
@@ -85,7 +84,7 @@ class TestJsonLd:
         expected = building_jsonld(registered_resource, form, store_metadata, None)
         result = as_jsonld(registered_resource, form=form, store_metadata=store_metadata,
                            model_context=None, metadata_context=metadata_context,
-                           context_resolver=None, na=None)
+                           context_resolver=None)
         assert expected == result
 
     @pytest.mark.parametrize("form, store_metadata", form_store_metadata_combinations)
@@ -94,7 +93,7 @@ class TestJsonLd:
         expected = building_jsonld(building, form, store_metadata, model_context.document["@context"])
         result = as_jsonld(building, form=form, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None, na=None)
+                           context_resolver=None)
 
         assert expected == result
 
@@ -108,7 +107,7 @@ class TestJsonLd:
         expected = building_jsonld(registered_resource, form, store_metadata, None)
         result = as_jsonld(registered_resource, form=form, store_metadata=store_metadata,
                            model_context=model_context, metadata_context=metadata_context,
-                           context_resolver=None, na=None)
+                           context_resolver=None)
         assert expected == result
 
     def test_from_jsonld(self, building, model_context, building_jsonld):
@@ -127,7 +126,6 @@ class TestJsonLd:
         assert hasattr(resource_with_atvalue, "status")
         assert resource_with_atvalue.status == Resource.from_json({"type":"xsd:string", "@value":"opened"})
 
-
     def test_as_jsonld(self, building, model_context, building_jsonld, forge):
         building.context = model_context.document["@context"]
         building.context["embedding"] = {
@@ -137,14 +135,52 @@ class TestJsonLd:
         building.embedding = [0, 1, 2, 0]
         result = forge.as_jsonld(building, form="expanded")
         payload = building_jsonld(building, "expanded", False, None)
-        payload["http://example.org/embedding"] = {'@list': [0, 1, 2, 0]}
+        payload["http://example.org/embedding"] = [{'@list': [
+                                                             {"@value": 0},
+                                                             {"@value": 1},
+                                                             {"@value": 2},
+                                                             {"@value": 0}
+                                                             ]
+                                                   }]
+
         assert result == payload
 
         building.embedding = [1, 2, 0, 0]
+        building.a_list = [1, 9, 2, 0]
+        building.a = []
+        building.b = [None]
+        building.c = [None, ""]
+        building.d = ""
+        building.e = None
         result = forge.as_jsonld(building, form="expanded")
         payload = building_jsonld(building, "expanded", False, None)
-        payload["http://example.org/embedding"] = {'@list': [1, 2, 0, 0]}
+        payload["http://example.org/embedding"] = [{'@list': [
+            {"@value": 1},
+            {"@value": 2},
+            {"@value": 0},
+            {"@value": 0}
+        ]
+        }]
+        payload["http://example.org/vocab/a"] = []
+        payload["http://example.org/vocab/b"] = []
+        payload["http://example.org/vocab/c"] = [{"@value": ""}]
+        payload["http://example.org/vocab/d"] = [{"@value": ""}]
+        payload["http://example.org/vocab/a_list"] = [{'@value': 1}, {'@value': 9}, {'@value': 2}, {'@value': 0}]
+
         assert result == payload
+
+        result = forge.as_jsonld(building, form="compacted")
+        payload = building_jsonld(building, "compacted", False, None)
+        payload["embedding"] = [1,2,0,0]
+        payload["a_list"] = [1, 9, 2, 0]
+        payload["a"] = []
+        payload["b"] = [None]
+        payload["c"] = [None, ""]
+        payload["d"] = ""
+        payload["e"] = None
+
+        assert result == payload
+
 
     def test_unresolvable_context(self, building, building_jsonld):
         building.context = "http://unresolvable.context.example.org/"
@@ -167,7 +203,7 @@ class TestGraph:
 
         organization_jsonld = as_jsonld(organization, form="compacted", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None, na=None)
+                  context_resolver=None)
         expected = Graph()
         expected.parse(data=json.dumps(data), format="json-ld")
         expected.parse(data=json.dumps(organization_jsonld), format="json-ld")
@@ -180,22 +216,27 @@ class TestGraph:
         id = "http://test/1234"
         id_uri = term.URIRef(id)
         graph = Graph()
+        graph.bind("schemaorg", Namespace("http://schema.org/"))
         graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
         graph.add((id_uri,term.URIRef("http://schema.org/name"),term.Literal("The Empire State Building")))
         graph.add((id_uri,term.URIRef("http://schema.org/description"),term.Literal("The Empire State Building is a 102-story landmark in New York City.")))
         graph.add((id_uri,term.URIRef("http://schema.org/image"),term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg")))
         bNode = term.BNode()
         graph.add((id_uri,term.URIRef("http://schema.org/geo"),bNode))
-        graph.add((bNode,term.URIRef("http://schema.org/latitude"),term.Literal("40.75")))
+        graph.add((bNode,term.URIRef("http://schema.org/latitude"), term.Literal("40.75")))
         results = from_graph(graph)
 
         assert isinstance(results, Resource)
+        results.context.update({"schemaorg:latitude": {
+                                  "@id": "http://schema.org/latitude",
+                                  "@type": "xsd:float"
+                                }})
         building.id = id
         building.context = model_context.document["@context"]
         expected = building_jsonld(building, "expanded", store_metadata, None)
         result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None, na=None)
+                  context_resolver=None)
         assert result_jsonld == expected
 
         graph.remove((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
@@ -211,13 +252,13 @@ class TestGraph:
 
         result_0 = as_jsonld(results[0], form="expanded", store_metadata=store_metadata,
                   model_context=model_context, metadata_context=metadata_context,
-                  context_resolver=None, na=None)
+                  context_resolver=None)
 
         result_1 = as_jsonld(results[1], form="expanded", store_metadata=store_metadata,
                              model_context=model_context, metadata_context=metadata_context,
-                             context_resolver=None, na=None)
+                             context_resolver=None)
         results = [result_0, result_1]
-        assert set(["http://schema.org/Building","http://schema.org/Image"]) == {result["@type"] for result in results}
+        assert set(["http://schema.org/Building","http://schema.org/Image"]) == {result["@type"][0] for result in results}
 
         frame = {
             "@type": ['http://schema.org/Image'],
@@ -225,10 +266,10 @@ class TestGraph:
         }
         results = from_graph(graph, frame=frame)
         assert isinstance(results, Resource)
-        expected = {'@type': 'http://schema.org/Image', '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
+        expected = {'@type': ['http://schema.org/Image'], '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
         result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                          model_context=model_context, metadata_context=metadata_context,
-                         context_resolver=None, na=None)
+                         context_resolver=None)
         assert result_jsonld == expected
 
 

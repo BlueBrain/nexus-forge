@@ -91,7 +91,8 @@
     },
     "label": "rdfs:label",
     "latitude": {
-      "@id": "schema:latitude"
+      "@id": "schema:latitude",
+      "@type": "xsd:float"
     },
     "longitude": {
       "@id": "schema:longitude"

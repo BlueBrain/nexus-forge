@@ -29,7 +29,7 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool, store_metadat
             context_resolver: Optional[Callable]) -> Union[Dict, List[Dict]]:
     if expanded:
         return as_jsonld(data, "expanded", store_metadata, model_context=model_context,
-                         metadata_context=metadata_context, context_resolver=context_resolver, na=None)
+                         metadata_context=metadata_context, context_resolver=context_resolver)
     else:
         if isinstance(data, Resource):
             return _as_json(data, store_metadata)

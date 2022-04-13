@@ -298,9 +298,7 @@ class Service:
                         False,
                         model_context=context,
                         metadata_context=None,
-                        context_resolver=self.resolve_context,
-                        na=nan,
-                        array_as_set=True
+                        context_resolver=self.resolve_context
                     )
                     url = f"{self.url_resources}/{schema_id}"
                     prepared_request = loop.create_task(
@@ -328,9 +326,7 @@ class Service:
                         False,
                         model_context=self.model_context,
                         metadata_context=None,
-                        context_resolver=self.resolve_context,
-                        na=nan,
-                        array_as_set=True
+                        context_resolver=self.resolve_context
                     )
                     prepared_request = loop.create_task(
                         queue(

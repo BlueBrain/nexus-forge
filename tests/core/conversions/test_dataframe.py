@@ -35,8 +35,8 @@ def df_from_one_resource():
 @pytest.fixture
 def df_expanded_from_one_resource():
     return DataFrame({
-        "@type": {0: "schema:Person"},
-        "schema:name": {0: "John Doe"}
+        "@type": {0: ["schema:Person"]},
+        "schema:name": {0: [{"@value": "John Doe"}]}
     })
 
 
