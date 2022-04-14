@@ -1,6 +1,6 @@
-====================
-vO.7.1 Release Notes
-====================
+=============
+Release Notes
+=============
 
 This release adds new features and enhancements to Nexus Forge as well as bug fixes.
 
