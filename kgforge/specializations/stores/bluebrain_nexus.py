@@ -995,9 +995,7 @@ def _error_message(error: HTTPError) -> str:
             messages.append(format_message(details))
         messages = messages if reason or details else [str(error)]
         return ". ".join(messages)
-    except AttributeError as e:
-        pass
-    except JSONDecodeError as jde:
+    except Exception as e:
         pass
     try:
         return format_message(error.response.text())
