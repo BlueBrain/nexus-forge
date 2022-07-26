@@ -93,7 +93,7 @@ class RdfModel(Model):
         try:
             uri = self.service.types_to_shapes[type]
         except KeyError:
-            raise ValueError("type not found")
+            raise ValueError("type '"+type+"' not found in "+self.source)
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
