@@ -23,6 +23,7 @@ from asyncio import Semaphore, Task
 from enum import Enum
 from json import JSONDecodeError
 
+from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -209,18 +210,23 @@ class BlueBrainNexus(Store):
         try:
             schema = quote_plus(schema_id) if schema_id else "_"
             url_base = f"{self.service.url_resources}/{schema}"
-            url = (
-                f"{url_base}/{quote_plus(data['@id'])}"
-                if hasattr(data, "@id")
-                else url_base
-            )
             params_register = copy.deepcopy(self.service.params.get("register", None))
-            response = requests.post(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-            )
+            if resource.has_identifier()[0]:
+                url = f"{url_base}/{quote_plus(resource.get_identifier())}"
+                response = requests.put(
+                    url,
+                    headers=self.service.headers,
+                    data=json.dumps(data, ensure_ascii=True),
+                    params=params_register,
+                )
+            else:
+                url = url_base
+                response = requests.post(
+                    url,
+                    headers=self.service.headers,
+                    data=json.dumps(data, ensure_ascii=True),
+                    params=params_register,
+                )
             response.raise_for_status()
 
         except nexus.HTTPError as e:
@@ -391,11 +397,13 @@ class BlueBrainNexus(Store):
         paths: List[str],
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
+        content_type: str
     ) -> None:
         async def _bulk():
             loop = asyncio.get_event_loop()
             semaphore = Semaphore(self.service.max_connection)
-            async with ClientSession(headers=self.service.headers_download) as session:
+            headers = update_dict(self.service.headers_download, {"Accept":content_type})
+            async with ClientSession(headers=headers) as session:
                 tasks = (
                     _create_task(x, y, z, loop, semaphore, session)
                     for x, y, z in zip(urls, paths, store_metadata)
@@ -433,15 +441,18 @@ class BlueBrainNexus(Store):
         path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
+        content_type: str
     ) -> None:
         url_base, org, project = self._prepare_download_one(
             url, path, store_metadata, cross_bucket
         )
         try:
             params_download = copy.deepcopy(self.service.params.get("download", {}))
+            headers = update_dict(self.service.headers_download, {"Accept": content_type})
+
             response = requests.get(
                 url=url_base,
-                headers=self.service.headers_download,
+                headers=headers,
                 params=params_download
             )
             response.raise_for_status()
@@ -459,7 +470,7 @@ class BlueBrainNexus(Store):
         url: str,
         path: str,
         store_metadata: Optional[DictWrapper],
-        cross_bucket: bool,
+        cross_bucket: bool
     ) -> Tuple[str, str, str]:
         # this is a hack since _self and _id have the same uuid
         file_id = url.split("/")[-1]
@@ -1030,7 +1041,7 @@ def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, 
                     statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
                 elif f.operator == "__ne__":
                     statements.append(f"{property_path} ?v{index}")
-                    filters.append(f"FILTER(?v{index} != {f.value})")
+                    filters.append(f"FILTER(?v{index} != {_box_value_as_full_iri(f.value)})")
                 else:
                     raise NotImplementedError(
                         f"supported operators are '==' and '!=' when filtering by type or id."

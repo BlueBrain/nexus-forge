@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Dict, Optional, Union, List, Tuple
 
 import hjson
 
@@ -73,6 +73,38 @@ class Resource:
             self.__dict__["_validated"] = False
             self.__dict__["_synchronized"] = False
         self.__dict__[key] = value
+
+    def has_identifier(self, return_attribute: bool = False) ->  Union[bool, Tuple[bool, str]]:
+        result = False
+        attribute = None
+        if hasattr(self, "@id"):
+            result : True
+            attribute = "@id"
+        if hasattr(self, "id"):
+            result: True
+            attribute = "id"
+        return result, attribute if return_attribute else result
+
+    def has_type(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
+        result = False
+        attribute = None
+        if hasattr(self, "@type"):
+            result: True
+            attribute = "@type"
+        if hasattr(self, "type"):
+            result: True
+            attribute = "type"
+        return result, attribute if return_attribute else result
+
+    def get_type(self) -> Union[str, List[str]]:
+        resource_has_type, type_key = self.has_type(return_attribute=True)
+        return getattr(self, type_key) if resource_has_type else None
+
+    def get_identifier(self) -> str:
+        resource_has_id, id_key = self.has_identifier(return_attribute=True)
+        return getattr(self, id_key) if resource_has_id else None
+
+
 
     @classmethod
     def from_json(cls, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None):
