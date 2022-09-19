@@ -73,19 +73,26 @@ class Resource:
         if key not in self._RESERVED:
             self.__dict__["_validated"] = False
             self.__dict__["_synchronized"] = False
-            self.__dict__["_inner_sync"] = False
         elif key == "_synchronized":
-            self.__dict__["_inner_sync"] = value
+            self._set_synchronized(value)
         self.__dict__[key] = value
 
     def _get_synchronized(self) -> bool:
         inner = [v._synchronized for v in self.__dict__.values() if isinstance(v, Resource)]
         if inner:
-            self._set_synchronized(all(inner))
-        return self._inner_sync
+            self._inner_sync = (all(inner))
+        if self._inner_sync is False:    
+            return False
+        else:
+            return self.__dict__["_synchronized"]
     
     def _set_synchronized(self, sync: bool) -> None:
-        self._inner_sync = sync
+        inner = [v for v in self.__dict__.values() if isinstance(v, Resource)]
+        if inner:
+            for iresource in inner:
+                iresource._synchronized = sync
+        self.__dict__["_synchronized"] = sync
+        self.__dict__["_inner_sync"] = sync
     
     _synchronized = property(_get_synchronized, _set_synchronized)
 
