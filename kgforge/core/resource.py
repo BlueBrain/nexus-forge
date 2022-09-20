@@ -91,7 +91,6 @@ class Resource:
         if inner:
             for iresource in inner:
                 iresource._synchronized = sync
-        self.__dict__["_synchronized"] = sync
         self.__dict__["_inner_sync"] = sync
     
     _synchronized = property(_get_synchronized, _set_synchronized)

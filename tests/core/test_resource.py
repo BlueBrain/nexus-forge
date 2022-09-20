@@ -70,3 +70,15 @@ def access_property(resource, resource_from_json, resource_from_json_na_one, res
 def access_nested_property(nresource):
     assert nresource.type == "Entity"
     assert nresource.contribution.type == "Contribution"
+
+
+@then("I changed a property so the resource should give _synchronized equals False.")
+def change_property(resource):
+    resource.type = "test"
+    assert resource._synchronized == False
+
+
+@then("I changed a nested property so the resource should give _synchronized equals False.")
+def change_nested_property(nresource):
+    nresource.contribution.type = "test"
+    assert nresource._synchronized == False
