@@ -15,7 +15,7 @@ Feature: Resource
 
   Scenario: Create and update a resource.
     Given I create a resource with a property.
-    Then I changed a property so the resource should give _synchronized equals False.
+    Then I assigned _synchronized to True so the resource should give _inner_sync equals True.
 
   Scenario: Create and update a nested resource.
     Given I create a resource with an other resource as property.

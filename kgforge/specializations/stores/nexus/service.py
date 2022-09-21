@@ -20,7 +20,7 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union, Tuple
 from urllib.error import URLError
 from urllib.parse import quote_plus, urlparse
 
@@ -281,7 +281,7 @@ class Service:
         callback: Callable,
         error_type: Callable,
         **kwargs,
-    ) -> (BatchResults, BatchResults):
+    ) -> Tuple[BatchResults, BatchResults]:
         def create_tasks(
             semaphore, session, loop, data, batch_action, f_callback, error
         ):
