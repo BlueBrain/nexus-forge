@@ -71,7 +71,7 @@ class DirectoryService(RdfService):
                 UNION {
                     SELECT (?shape as ?type) ?shape WHERE {
                         ?shape a sh:NodeShape .
-                        ?type a rdfs:Class
+                        ?shape a rdfs:Class
                     }
                 }
             } ORDER BY ?type"""
