@@ -330,7 +330,11 @@ class BlueBrainNexus(Store):
         url_base = (
             self.service.url_resolver if cross_bucket else self.service.url_resources
         )
-        url_resource = "/".join((url_base, "_", quote_plus(id_without_query)))
+        if url_base in id_without_query:
+            # The given ID is actually the value of resource._self
+            url_resource = id
+        else:
+            url_resource = "/".join((url_base, "_", quote_plus(id_without_query)))
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source and not cross_bucket:
