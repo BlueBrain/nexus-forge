@@ -31,7 +31,7 @@ class Resource:
     # POLICY Specializations should pass tests/core/resources/resource.feature tests.
 
     # FIXME remove "_forge" from _RESERVED and implement a "cast" of derived classes to Resource
-    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_forge"}
+    _RESERVED = {"_last_action", "_validated", "_synchronized", "_store_metadata", "_forge", "_inner_sync"}
 
     def __init__(self, **properties) -> None:
         check_collisions(self._RESERVED, properties.keys())
@@ -46,6 +46,7 @@ class Resource:
         # False if the resource has not been registered yet or a modification has been done since
         # the synchronization.
         self._synchronized: bool = False
+        self._inner_sync: bool = False
         # None until synchronized.
         # Otherwise, holds the metadata the store returns at synchronization.
         self._store_metadata: Optional[DictWrapper] = None
@@ -72,7 +73,27 @@ class Resource:
         if key not in self._RESERVED:
             self.__dict__["_validated"] = False
             self.__dict__["_synchronized"] = False
+        elif key == "_synchronized":
+            self._set_synchronized(value)
         self.__dict__[key] = value
+
+    def _get_synchronized(self) -> bool:
+        inner = [v._synchronized for v in self.__dict__.values() if isinstance(v, Resource)]
+        if inner:
+            self._inner_sync = (all(inner))
+        if self._inner_sync is False:    
+            return False
+        else:
+            return self.__dict__["_synchronized"]
+    
+    def _set_synchronized(self, sync: bool) -> None:
+        inner = [v for v in self.__dict__.values() if isinstance(v, Resource)]
+        if inner:
+            for iresource in inner:
+                iresource._synchronized = sync
+        self.__dict__["_inner_sync"] = sync
+    
+    _synchronized = property(_get_synchronized, _set_synchronized)
 
     @classmethod
     def from_json(cls, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None):
