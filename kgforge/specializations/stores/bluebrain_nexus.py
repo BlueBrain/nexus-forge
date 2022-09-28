@@ -343,19 +343,6 @@ class BlueBrainNexus(Store):
                 url, params=query_params, headers=self.service.headers
             )
             response.raise_for_status()
-            if retrieve_source and not cross_bucket:
-
-                response_metadata = requests.get(
-                    url_resource, params=query_params, headers=self.service.headers
-                )
-                response_metadata.raise_for_status()
-            elif retrieve_source and cross_bucket:
-                response_metadata = requests.get(
-                    "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
-                )
-                response_metadata.raise_for_status()
-            else:
-                response_metadata = True # when retrieve_source is False
         except HTTPError as er:
             nexus_path = f"{self.service.endpoint}/resources/"
             if not cross_bucket:
@@ -369,22 +356,24 @@ class BlueBrainNexus(Store):
                         url, params=query_params, headers=self.service.headers
                     )
                     response.raise_for_status()
-                    if retrieve_source and not cross_bucket:
-                        response_metadata = requests.get(
-                            url_resource, params=query_params, headers=self.service.headers
-                        )
-                        response_metadata.raise_for_status()
-                    elif retrieve_source and cross_bucket:
-                        response_metadata = requests.get(
-                            "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
-                        )
-                        response_metadata.raise_for_status()
-                    else:
-                        response_metadata = True
                 except HTTPError as e:
                     raise RetrievalError(_error_message(e))
             else:
                 raise RetrievalError(_error_message(er))
+        finally:
+            if retrieve_source and not cross_bucket:
+
+                response_metadata = requests.get(
+                    url_resource, params=query_params, headers=self.service.headers
+                )
+                response_metadata.raise_for_status()
+            elif retrieve_source and cross_bucket:
+                response_metadata = requests.get(
+                    "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
+                )
+                response_metadata.raise_for_status()
+            else:
+                response_metadata = True # when retrieve_source is False
         if response_metadata:
             try:
                 data = response.json()
