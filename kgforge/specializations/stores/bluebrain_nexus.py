@@ -330,11 +330,7 @@ class BlueBrainNexus(Store):
         url_base = (
             self.service.url_resolver if cross_bucket else self.service.url_resources
         )
-        if url_base in id_without_query:
-            # The given id is actually the value of resource._self
-            url_resource = id_without_query
-        else:
-            url_resource = "/".join((url_base, "_", quote_plus(id_without_query)))
+        url_resource = "/".join((url_base, "_", quote_plus(id_without_query)))
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source and not cross_bucket:
@@ -353,15 +349,43 @@ class BlueBrainNexus(Store):
                     url_resource, params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-            if retrieve_source and cross_bucket:
+            elif retrieve_source and cross_bucket:
                 response_metadata = requests.get(
                     "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-
-        except HTTPError as e:
-            raise RetrievalError(_error_message(e))
-        else:
+            else:
+                response_metadata = True # when retrieve_source is False
+        except HTTPError as er:
+            nexus_path = f"{self.service.endpoint}/resources/"
+            if not cross_bucket:
+                nexus_path += f"{self.service.organisation}/{self.service.project}"
+            # Try to use the id as it was given
+            if url_base in id_without_query or nexus_path in id:
+                # Use the given id in the request
+                url = id_without_query
+                try:
+                    response = requests.get(
+                        url, params=query_params, headers=self.service.headers
+                    )
+                    response.raise_for_status()
+                    if retrieve_source and not cross_bucket:
+                        response_metadata = requests.get(
+                            url_resource, params=query_params, headers=self.service.headers
+                        )
+                        response_metadata.raise_for_status()
+                    elif retrieve_source and cross_bucket:
+                        response_metadata = requests.get(
+                            "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
+                        )
+                        response_metadata.raise_for_status()
+                    else:
+                        response_metadata = True
+                except HTTPError as e:
+                    raise RetrievalError(_error_message(e))
+            else:
+                raise RetrievalError(_error_message(er))
+        if response_metadata:
             try:
                 data = response.json()
                 resource = self.service.to_resource(data)
