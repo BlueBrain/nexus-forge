@@ -1,0 +1,38 @@
+{
+    type: 'Class',
+    id: forge.format("identifier_neuroelectro", "e", x.id)
+    label: x.name if 'name' in x else ''
+    prefLabel: x.name if 'name' in x else ''
+    definition: x.definition, if 'definition' in x and x.definition else ''
+    notation: x.short_name if 'short_name' in x and x.short_name else ''
+    subClassOf: 'NeuronElectrophysiologicalFeature'
+    isDefinedBy: 'https://neuroelectro.org',
+    maxValue: x.max_range if 'max_range' in x and x.max_range else '',
+    minValue: x.min_range, if 'min_range' in x and x.min_range else '',
+    "unitCode": {
+        "id":,
+        "type": "http://qudt.org/schema/qudt/Unit",
+        "sameAs":
+    },
+    "plot_transform": x.plot_transform if 'plot_transform' in x and x.plot_transform else '',
+    "norm_criteria": x.norm_criteria, if 'norm_criteria' in x and x.norm_criteria else '',
+    sameAs,: forge.format("identifier_neurolex",x.nlex_id) if 'nlex_id' in x and x.nlex_id else ''
+}
+
+
+{
+    "definition": "Input resistance measured at steady-state voltage response to current injection",
+    "id": 2,
+    "max_range": 20000.0,
+    "min_range": 5.0,
+    "name": "input resistance",
+    "nlex_id": null,
+    "norm_criteria": "Values corrected for differences in units, but are otherwise unchanged. Refer to individual articles for specific definitions and calculation methodologies.",
+    "plot_transform": "log10",
+    "short_name": "rin",
+    "units": {
+        "id": 2,
+        "name": "Ω",
+        "prefix": "M"
+    }
+}

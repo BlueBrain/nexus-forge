@@ -12,13 +12,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from typing import List, Union
+from typing import List, Union, Optional
 from warnings import warn
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.execution import catch, not_supported
-from kgforge.core.forge import KnowledgeGraphForge
+# Do not 'from kgforge.core import KnowledgeGraphForge' to avoid cyclic dependency
 
 
 # POLICY _set() should be only called as the last statement to ensure atomicity in case of errors.
@@ -33,9 +33,9 @@ class Dataset(Resource):
 
     # No catching of exceptions so that no incomplete instance is created if an error occurs.
     # This is a best practice in Python for __init__().
-    def __init__(self, forge: KnowledgeGraphForge, type: str = "Dataset", **properties) -> None:
+    def __init__(self, forge: Optional["KnowledgeGraphForge"], type: str = "Dataset", **properties) -> None:
         super().__init__(**properties)
-        self._forge: KnowledgeGraphForge = forge
+        self._forge: Optional["KnowledgeGraphForge"] = forge
         self.type: str = type
 
     @catch
@@ -156,7 +156,7 @@ class Dataset(Resource):
         self._forge.download(self, follow, path, overwrite, cross_bucket, content_type)
 
     @classmethod
-    def from_resource(cls, forge: KnowledgeGraphForge, data: Union[Resource, List[Resource]],
+    def from_resource(cls, forge: Optional["KnowledgeGraphForge"], data: Union[Resource, List[Resource]],
                       store_metadata: bool = False):
         def _(d):
             resource_json = forge.as_json(d)

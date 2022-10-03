@@ -47,6 +47,7 @@ from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.resources import DatabaseSource
 
 
 class KnowledgeGraphForge:
@@ -515,6 +516,19 @@ class KnowledgeGraphForge:
         return self._model.sources(pretty)
 
     @catch
+    def db_sources(self, pretty: bool = False) -> Optional[List[str]]:
+        """
+        Print(pretty=True) or return (pretty=False) configured data sources.
+        :param pretty: a boolean
+        :return: Optional[List[str]]
+        """
+        sources = self._db_sources
+        if pretty:
+            print(*["Database sources with managed mappings:", *sources], sep="\n")
+        else:
+            return sources
+
+    @catch
     def mappings(
         self, source: str, pretty: bool = True
     ) -> Optional[Dict[str, List[str]]]:
@@ -964,3 +978,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)
+
+def create_db_sources(config: Optional[Dict[str, Dict[str, str]]]) -> Union[DatabaseSource, List[DatabaseSource]]:
+    names = config.keys()
+    return [DatabaseSource(name=name, **config[name]) for name in names]

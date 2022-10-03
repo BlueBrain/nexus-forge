@@ -1,0 +1,8 @@
+{
+  "description": "The MouseLight project generates datasets of whole mouse brains imaged at submicron resolution that allows reconstructions of complete axonal arbors of individual neurons across the entire mouse brain. ",
+  "url": "https://www.janelia.org/project-team/mouselight/neuronbrowser",
+  "license" : {
+    "id": "https://creativecommons.org/licenses/by-nc/4.0",
+    "label": "CC BY-NC 4.0"
+  }
+}
