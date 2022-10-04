@@ -248,6 +248,19 @@ class KnowledgeGraphForge:
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
 
+<<<<<<< HEAD
+=======
+        # Database sources.
+        db_sources_config: Optional[Dict[str, Dict[str, str]]] = config.pop("DatabaseSources", None)
+        self._db_sources: Union[DatabaseSource, List[DatabaseSource]] = (
+            self.create_db_sources(db_sources_config)
+            if db_sources_config
+            else None
+        )
+
+    # Modeling User Interface.
+
+>>>>>>> a48cc2b (Improved DatabaseSource class. Made possible to load mappings from local directory.)
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
         """
@@ -525,8 +538,13 @@ class KnowledgeGraphForge:
         sources = self._db_sources
         if pretty:
             print(*["Database sources with managed mappings:", *sources], sep="\n")
-        else:
-            return sources
+        return sources
+    
+    def add_db_source(self, db_source: DatabaseSource) -> None:
+        """
+        Add a DatabaseSource to the KG.
+        """
+        self._db_sources[db_source.name] = db_source
 
     @catch
     def mappings(
@@ -950,6 +968,11 @@ class KnowledgeGraphForge:
         """Expose the context used in the model."""
         return self._model.context()
     
+    def create_db_sources(self, config: Optional[Dict[str, Dict[str, str]]]) -> Union[DatabaseSource, List[DatabaseSource]]:
+        names = config.keys()
+        return {name: DatabaseSource(self, name=name, from_forge=True, **config[name]) for name in names}
+
+
 def prepare_resolvers(
     config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:
@@ -978,7 +1001,3 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")
     return resolver.__name__, resolver(**config)
-
-def create_db_sources(config: Optional[Dict[str, Dict[str, str]]]) -> Union[DatabaseSource, List[DatabaseSource]]:
-    names = config.keys()
-    return [DatabaseSource(name=name, **config[name]) for name in names]
