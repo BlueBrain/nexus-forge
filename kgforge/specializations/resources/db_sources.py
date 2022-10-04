@@ -86,10 +86,19 @@ class DatabaseSource(Resource):
             raise ValueError("unrecognized source")
         return mappings
 
+    def mappings(self, pretty: bool) -> Optional[Dict[str, List[str]]]:
+        mappings = {k: sorted(v) for k, v in
+                    sorted(self._mappings().items(), key=lambda kv: kv[0])}
+        if pretty:
+            print("Managed mappings for the data source per entity type and mapping type:")
+            for k, v in mappings.items():
+                print(*[f"   - {k}:", *v], sep="\n        * ")
+        else:
+            return mappings
+
     def mapping(self, entity: str, type: Callable) -> Mapping:
         filename = f"{entity}.hjson"
         filepath = Path(self._dirpath, "mappings", type.__name__, filename)
-        print(filepath)
         if filepath.is_file():
             return type.load(filepath)
         else:

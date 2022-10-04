@@ -558,7 +558,10 @@ class KnowledgeGraphForge:
         :param pretty: a boolean
         :return: Optional[Dict[str, List[str]]]
         """
-        return self._model.mappings(source, pretty)
+        if source in self._db_sources:
+            return self._db_sources[source].mappings(pretty)
+        else:
+            return self._model.mappings(source, pretty)
 
     @catch
     def mapping(
@@ -572,7 +575,10 @@ class KnowledgeGraphForge:
         :param type: a Mapping class
         :return: Mapping
         """
-        return self._model.mapping(entity, source, type)
+        if source in self._db_sources:
+            return self._db_sources[source].mapping(entity, type)
+        else:
+            return self._model.mapping(entity, source, type)
 
     @catch
     def map(
