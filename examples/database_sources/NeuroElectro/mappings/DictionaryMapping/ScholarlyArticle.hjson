@@ -1,0 +1,21 @@
+{
+    type: [
+        Entity
+        ScholarlyArticle
+    ]
+    id: forge.format("identifier", "scholarlyarticles", x.id)
+    abstract: x.abstract
+    author: x.authors_shaped
+    title: x.title
+    name: f"article_{x.id}"
+    isPartOf: {
+        type: Periodical
+        name: x.journal
+        publisher: x.publisher
+        issn: x.issn
+    }
+    identifier: x.identifiers
+    datePublished: x.date_issued
+    sameAs: x.full_text_link
+    url: x.full_text_link
+}

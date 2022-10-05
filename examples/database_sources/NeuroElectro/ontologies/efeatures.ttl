@@ -1,0 +1,527 @@
+@prefix : <https://bbp.epfl.ch/ontologies/core/efeatures/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <https://bbp.epfl.ch/ontologies/core/efeatures> .
+
+<https://bbp.epfl.ch/ontologies/core/efeatures> rdf:type owl:Ontology ;
+                                                 rdfs:label "Electrophysiological Features Ontology"@en .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://www.w3.org/2004/02/skos/core#altLabel
+<http://www.w3.org/2004/02/skos/core#altLabel> rdf:type owl:AnnotationProperty .
+
+
+###  http://www.w3.org/2004/02/skos/core#definition
+<http://www.w3.org/2004/02/skos/core#definition> rdf:type owl:AnnotationProperty .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/efel_id
+:efel_id rdf:type owl:AnnotationProperty ;
+         rdfs:label "efel_id"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/efel_namespace
+:efel_namespace rdf:type owl:AnnotationProperty ;
+                rdfs:label "efel_namespace"@en .
+
+
+###  https://neuroshapes.org/units
+<https://neuroshapes.org/units> rdf:type owl:AnnotationProperty ;
+                                rdfs:label "units"@en .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature
+<https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> rdf:type owl:Class ;
+                                                                            rdfs:label "Neuron Electrophysiological Feature"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/ADPAmplitude
+:ADPAmplitude rdf:type owl:Class ;
+              rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                              :NeuroElectroNeuronElectrophysiologicalFeature ;
+              rdfs:label "ADP Amplitude"@en ;
+              <http://www.w3.org/2004/02/skos/core#definition> "Amplitude from first AP onset to maximum voltage, typically more depolarized than the resting membrane potential"@en ;
+              <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/ADPDuration
+:ADPDuration rdf:type owl:Class ;
+             rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                             :NeuroElectroNeuronElectrophysiologicalFeature ;
+             rdfs:label "ADP Duration"@en ;
+             <http://www.w3.org/2004/02/skos/core#definition> "Duration from first AP onset to maximum ADP"@en ;
+             <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AHPAmplitude
+:AHPAmplitude rdf:type owl:Class ;
+              rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                              :NeuroElectroNeuronElectrophysiologicalFeature ;
+              rdfs:label "AHP Amplitude"@en ;
+              <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the voltage difference between AP threshold and AP trough. Commonly defined using first AP in train at rheobase current."@en ;
+              <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AHPAmplitudeFromResting
+:AHPAmplitudeFromResting rdf:type owl:Class ;
+                         rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                         :NeuroElectroNeuronElectrophysiologicalFeature ;
+                         rdfs:label "AHP Amplitude From Resting"@en ;
+                         <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the voltage difference between resting or baseline voltages and AP trough. Commonly defined using first AP in train at rheobase current."@en ;
+                         <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AHPDuration
+:AHPDuration rdf:type owl:Class ;
+             rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                             :NeuroElectroNeuronElectrophysiologicalFeature ;
+             rdfs:label "AHP Duration"@en ;
+             <http://www.w3.org/2004/02/skos/core#definition> "Duration of AP after-hyperpolarization, not explicitly referred to by author as either fast or slow"@en ;
+             <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AHPVoltage
+:AHPVoltage rdf:type owl:Class ;
+            rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                            :NeuroElectroNeuronElectrophysiologicalFeature ;
+            rdfs:label "AHP Voltage"@en ;
+            <http://www.w3.org/2004/02/skos/core#definition> "Calculated as minimum voltage value during an AHP. Commonly defined using first AP in train at rheobase current."@en ;
+            <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AccessResistance
+:AccessResistance rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Access Resistance"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Sum of the electrode resistance and the resistance at the electrode-cell junction"@en ;
+                  <https://neuroshapes.org/units> "M\\ohm" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationPercent1
+:AdaptationPercent1 rdf:type owl:Class ;
+                    rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                    :NeuroElectroNeuronElectrophysiologicalFeature ;
+                    rdfs:label "Adaptation Percent1"@en ;
+                    <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation percent (first/last ISI)"@en ;
+                    <http://www.w3.org/2004/02/skos/core#definition> "Percentage of durations between early and late AP inter-spike intervals in an AP train"@en ;
+                    <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationPercent2
+:AdaptationPercent2 rdf:type owl:Class ;
+                    rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                    :NeuroElectroNeuronElectrophysiologicalFeature ;
+                    rdfs:label "Adaptation Percent2"@en ;
+                    <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation percent (last/first ISI)"@en ;
+                    <http://www.w3.org/2004/02/skos/core#definition> "Percentage of durations between late and early AP inter-spike intervals in an AP train"@en ;
+                    <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationPercent3
+:AdaptationPercent3 rdf:type owl:Class ;
+                    rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                    :NeuroElectroNeuronElectrophysiologicalFeature ;
+                    rdfs:label "Adaptation Percent3"@en ;
+                    <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation percent (1 – first/last ISI)"@en ;
+                    <http://www.w3.org/2004/02/skos/core#definition> "1 minus ratio of durations between early and late AP inter-spike intervals in an AP train, normalized to a percent"@en ;
+                    <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationRatio
+:AdaptationRatio rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Adaptation Ratio"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Ratio of durations between early and late AP inter-spike intervals in an AP train"@en ;
+                 <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationRatio1
+:AdaptationRatio1 rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Adaptation Ratio1"@en ;
+                  <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation ratio (last/first ISI)"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Ratio of durations between late and early AP inter-spike intervals in an AP train"@en ;
+                  <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationRatio2
+:AdaptationRatio2 rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Adaptation Ratio2"@en ;
+                  <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation ratio (1 – first/last ISI)"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "1 minus ratio of durations between early and late AP inter-spike intervals in an AP train"@en ;
+                  <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/AdaptationRatio3
+:AdaptationRatio3 rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Adaptation Ratio3"@en ;
+                  <http://www.w3.org/2004/02/skos/core#altLabel> "adaptation ratio (other)"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Adaptation ratio, percent, index but not otherwise characterizable to an existing sub-definition"@en ;
+                  <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/CellCapacitance
+:CellCapacitance rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Cell Capacitance"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Neuron capacitance, typically measured by dividing membrane time constant by membrane resistance"@en ;
+                 <https://neuroshapes.org/units> "pF" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/CellDiameter
+:CellDiameter rdf:type owl:Class ;
+              rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                              :NeuroElectroNeuronElectrophysiologicalFeature ;
+              rdfs:label "Cell Diameter"@en ;
+              <http://www.w3.org/2004/02/skos/core#definition> "Diameter of the cell soma"@en ;
+              <https://neuroshapes.org/units> "um" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/CellSurfaceArea
+:CellSurfaceArea rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Cell Surface Area"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Cross-sectional area of the cell"@en ;
+                 <https://neuroshapes.org/units> "m" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FISlope
+:FISlope rdf:type owl:Class ;
+         rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                         :NeuroElectroNeuronElectrophysiologicalFeature ;
+         rdfs:label "FI Slope"@en ;
+         <http://www.w3.org/2004/02/skos/core#definition> "Slope of the frequency-current relationship"@en ;
+         <https://neuroshapes.org/units> "Hz/nA" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FastAHPAmplitude
+:FastAHPAmplitude rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Fast AHP Amplitude"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between AP threshold and AP trough, explictly refered to by author as fast."@en ;
+                  <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FastAHPAmplitudeFromResting
+:FastAHPAmplitudeFromResting rdf:type owl:Class ;
+                             rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                             :NeuroElectroNeuronElectrophysiologicalFeature ;
+                             rdfs:label "Fast AHP Amplitude From Resting"@en ;
+                             <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between resting or baseline voltages and AP trough, explictly refered to by author as fast."@en ;
+                             <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FastAHPDuration
+:FastAHPDuration rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Fast AHP Duration"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Duration of AP after-hyperpolarization, explictly refered to by author as fast"@en ;
+                 <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FastAHPVoltage
+:FastAHPVoltage rdf:type owl:Class ;
+                rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                :NeuroElectroNeuronElectrophysiologicalFeature ;
+                rdfs:label "Fast AHP Voltage"@en ;
+                <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the AHP absolute voltage, explictly refered to by author as fast."@en ;
+                <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FiringFrequency
+:FiringFrequency rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Firing Frequency"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "AP discharge rate, AP frequency, spike rate, firing rate, spike frequency, mean firing rate, steady state firing rate, average firing rate, steady firing rate"@en ;
+                 <https://neuroshapes.org/units> "Hz" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/FirstSpikeLatency
+:FirstSpikeLatency rdf:type owl:Class ;
+                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                   :NeuroElectroNeuronElectrophysiologicalFeature ;
+                   rdfs:label "First Spike Latency"@en ;
+                   <http://www.w3.org/2004/02/skos/core#definition> "Duration to first AP following a depolarizing current step of fixed amplitude"@en ;
+                   <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/InputResistance
+:InputResistance rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Input Resistance"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Input resistance measured at steady-state voltage response to current injection"@en ;
+                 <https://neuroshapes.org/units> "M\\ohm" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MaximumFiringRate
+:MaximumFiringRate rdf:type owl:Class ;
+                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                   :NeuroElectroNeuronElectrophysiologicalFeature ;
+                   rdfs:label "Maximum Firing Rate"@en ;
+                   <http://www.w3.org/2004/02/skos/core#definition> "Maximum observed AP discharge rate"@en ;
+                   <https://neuroshapes.org/units> "Hz" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MediumAHPAmplitude
+:MediumAHPAmplitude rdf:type owl:Class ;
+                    rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                    :NeuroElectroNeuronElectrophysiologicalFeature ;
+                    rdfs:label "Medium AHP Amplitude"@en ;
+                    <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between AP threshold and AP trough, explictly refered to by author as medium"@en ;
+                    <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MediumAHPAmplitudeFromResting
+:MediumAHPAmplitudeFromResting rdf:type owl:Class ;
+                               rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                               :NeuroElectroNeuronElectrophysiologicalFeature ;
+                               rdfs:label "Medium AHP Amplitude From Resting"@en ;
+                               <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between resting or baseline voltages and AP trough, explictly refered to by author as medium"@en ;
+                               <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MediumAHPDuration
+:MediumAHPDuration rdf:type owl:Class ;
+                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                   :NeuroElectroNeuronElectrophysiologicalFeature ;
+                   rdfs:label "Medium AHP Duration"@en ;
+                   <http://www.w3.org/2004/02/skos/core#definition> "Duration of AP after-hyperpolarization, explictly refered to by author as medium"@en ;
+                   <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MediumAHPVoltage
+:MediumAHPVoltage rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Medium AHP Voltage"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the AHP absolute voltage, explictly refered to by author as medium."@en ;
+                  <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/MembraneTimeConstant
+:MembraneTimeConstant rdf:type owl:Class ;
+                      rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                      :NeuroElectroNeuronElectrophysiologicalFeature ;
+                      rdfs:label "Membrane Time Constant"@en ;
+                      <http://www.w3.org/2004/02/skos/core#definition> "Time constant for the membrane to repolarize after a small current injection of fixed amplitude and duration"@en ;
+                      <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/NeuroElectroNeuronElectrophysiologicalFeature
+:NeuroElectroNeuronElectrophysiologicalFeature rdf:type owl:Class ;
+                                               rdfs:label "NeuroElectro Neuron Electrophysiological Feature"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/Other
+:Other rdf:type owl:Class ;
+       rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                       :NeuroElectroNeuronElectrophysiologicalFeature ;
+       rdfs:label "Other"@en ;
+       <http://www.w3.org/2004/02/skos/core#definition> "A catch-all property to reflect any properties which are not already explicitly defined"@en ;
+       <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/RestingMembranePotential
+:RestingMembranePotential rdf:type owl:Class ;
+                          rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                          :NeuroElectroNeuronElectrophysiologicalFeature ;
+                          rdfs:label "Resting Membrane Potential"@en ;
+                          <http://www.w3.org/2004/02/skos/core#definition> "Membrane potential at the onset of whole-cell recording"@en ;
+                          <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/Rheobase
+:Rheobase rdf:type owl:Class ;
+          rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                          :NeuroElectroNeuronElectrophysiologicalFeature ;
+          rdfs:label "Rheobase"@en ;
+          <http://www.w3.org/2004/02/skos/core#definition> "Minimum current injected somatically required to fire AP"@en ;
+          <https://neuroshapes.org/units> "pA" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SagAmplitude2
+:SagAmplitude2 rdf:type owl:Class ;
+               rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                               :NeuroElectroNeuronElectrophysiologicalFeature ;
+               rdfs:label "Sag Amplitude2"@en ;
+               <http://www.w3.org/2004/02/skos/core#definition> "Absolute difference between the steady state decrease in the voltage and the largest decrease in voltage following a hyperpolarizing current step."^^xsd:string ;
+               <https://neuroshapes.org/units> "mV"^^xsd:string .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SagRatio
+:SagRatio rdf:type owl:Class ;
+          rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                          :NeuroElectroNeuronElectrophysiologicalFeature ;
+          rdfs:label "Sag Ratio"@en ;
+          <http://www.w3.org/2004/02/skos/core#definition> "Ratio between the steady state decrease in the voltage and the largest decrease in voltage following a hyperpolarizing current step."@en ;
+          <https://neuroshapes.org/units> "Unitless" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SlowAHPAmplitude
+:SlowAHPAmplitude rdf:type owl:Class ;
+                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                  :NeuroElectroNeuronElectrophysiologicalFeature ;
+                  rdfs:label "Slow AHP Amplitude"@en ;
+                  <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between AP threshold and AP trough, explictly refered to by author as slow"@en ;
+                  <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SlowAHPAmplitudeFromResting
+:SlowAHPAmplitudeFromResting rdf:type owl:Class ;
+                             rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                             :NeuroElectroNeuronElectrophysiologicalFeature ;
+                             rdfs:label "Slow AHP Amplitude From Resting"@en ;
+                             <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the difference between resting or baseline voltages and AP trough, explictly refered to by author as slow"@en ;
+                             <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SlowAHPDuration
+:SlowAHPDuration rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Slow AHP Duration"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Duration of AP after-hyperpolarization, explictly refered to by author as slow"@en ;
+                 <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SlowAHPVoltage
+:SlowAHPVoltage rdf:type owl:Class ;
+                rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                :NeuroElectroNeuronElectrophysiologicalFeature ;
+                rdfs:label "Slow AHP Voltage"@en ;
+                <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the AHP absolute voltage, explictly refered to by author as slow."@en ;
+                <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeAmplitude
+:SpikeAmplitude rdf:type owl:Class ;
+                rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                :NeuroElectroNeuronElectrophysiologicalFeature ;
+                rdfs:label "Spike Amplitude"@en ;
+                <http://www.w3.org/2004/02/skos/core#definition> "Voltage indicating height of action potential. Usually calculated as the difference between AP peak and AP threshold voltages. Commonly measured using first AP in train at rheobase current."@en ;
+                <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeAmplitudeFromResting
+:SpikeAmplitudeFromResting rdf:type owl:Class ;
+                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                           :NeuroElectroNeuronElectrophysiologicalFeature ;
+                           rdfs:label "Spike Amplitude From Resting"@en ;
+                           <http://www.w3.org/2004/02/skos/core#definition> "Voltage indicating height of action potential, calculated as the difference between AP peak and resting or baseline voltages. Commonly measured using first AP in train at rheobase current."@en ;
+                           <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeAmplitudeFromTrough
+:SpikeAmplitudeFromTrough rdf:type owl:Class ;
+                          rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                          :NeuroElectroNeuronElectrophysiologicalFeature ;
+                          rdfs:label "Spike Amplitude From Trough"@en ;
+                          <http://www.w3.org/2004/02/skos/core#definition> "Voltage indicating height of action potential, calculated as the difference between AP peak and AHP trough voltages. Commonly measured using first AP in train at rheobase current."@en ;
+                          <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeDecayTime
+:SpikeDecayTime rdf:type owl:Class ;
+                rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                :NeuroElectroNeuronElectrophysiologicalFeature ;
+                rdfs:label "Spike Decay Time"@en ;
+                <http://www.w3.org/2004/02/skos/core#definition> "Time for spike to fall from peak to threshold, usually calculated as 10-90% decay time"@en ;
+                <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeHalf-Width
+:SpikeHalf-Width rdf:type owl:Class ;
+                 rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                 :NeuroElectroNeuronElectrophysiologicalFeature ;
+                 rdfs:label "Spike Half-Width"@en ;
+                 <http://www.w3.org/2004/02/skos/core#definition> "Calculated as the AP duration at the membrane voltage halfway between AP threshold and AP peak. Most commonly calculated using first AP in train at rheobase. current."@en ;
+                 <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeMaxDecaySlope
+:SpikeMaxDecaySlope rdf:type owl:Class ;
+                    rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                    :NeuroElectroNeuronElectrophysiologicalFeature ;
+                    rdfs:label "Spike Max Decay Slope"@en ;
+                    <http://www.w3.org/2004/02/skos/core#definition> "Maximum rate of rise of membrane voltage during spike falling phase"@en ;
+                    <https://neuroshapes.org/units> "mV/ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeMaxRiseSlope
+:SpikeMaxRiseSlope rdf:type owl:Class ;
+                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                   :NeuroElectroNeuronElectrophysiologicalFeature ;
+                   rdfs:label "Spike Max Rise Slope"@en ;
+                   <http://www.w3.org/2004/02/skos/core#definition> "Maximum rate of rise of membrane voltage during spike rising phase"@en ;
+                   <https://neuroshapes.org/units> "mV/ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikePeak
+:SpikePeak rdf:type owl:Class ;
+           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                           :NeuroElectroNeuronElectrophysiologicalFeature ;
+           rdfs:label "Spike Peak"@en ;
+           <http://www.w3.org/2004/02/skos/core#definition> "Maximum voltage reached during AP"@en ;
+           <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeRiseTime
+:SpikeRiseTime rdf:type owl:Class ;
+               rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                               :NeuroElectroNeuronElectrophysiologicalFeature ;
+               rdfs:label "Spike Rise Time"@en ;
+               <http://www.w3.org/2004/02/skos/core#definition> "Time for spike to rise from threshold to peak, usually calculated as 10-90% rise time"@en ;
+               <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeThreshold
+:SpikeThreshold rdf:type owl:Class ;
+                rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                :NeuroElectroNeuronElectrophysiologicalFeature ;
+                rdfs:label "Spike Threshold"@en ;
+                <http://www.w3.org/2004/02/skos/core#definition> "Voltage at which AP is initiated (as assessed by measuring rising slope of membrane voltage)"@en ;
+                <https://neuroshapes.org/units> "mV" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpikeWidth
+:SpikeWidth rdf:type owl:Class ;
+            rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                            :NeuroElectroNeuronElectrophysiologicalFeature ;
+            rdfs:label "Spike Width"@en ;
+            <http://www.w3.org/2004/02/skos/core#definition> "Duration of AP, not explictly refered to as half-width"@en ;
+            <https://neuroshapes.org/units> "ms" .
+
+
+###  https://bbp.epfl.ch/ontologies/core/efeatures/SpontaneousFiringRate
+:SpontaneousFiringRate rdf:type owl:Class ;
+                       rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/bmo/NeuronElectrophysiologicalFeature> ,
+                                       :NeuroElectroNeuronElectrophysiologicalFeature ;
+                       rdfs:label "Spontaneous Firing Rate"@en ;
+                       <http://www.w3.org/2004/02/skos/core#definition> "AP discharge rate in the absence of current injection or a stimulus"@en ;
+                       <https://neuroshapes.org/units> "Hz" .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi

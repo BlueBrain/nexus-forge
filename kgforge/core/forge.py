@@ -228,6 +228,7 @@ class KnowledgeGraphForge:
         model_name = model_config.pop("name")
         model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
+        model_config.update(name=model_name)
 
         # Store.
         store_config.update(model_context=self._model.context())
@@ -252,8 +253,9 @@ class KnowledgeGraphForge:
 =======
         # Database sources.
         db_sources_config: Optional[Dict[str, Dict[str, str]]] = config.pop("DatabaseSources", None)
+
         self._db_sources: Union[DatabaseSource, List[DatabaseSource]] = (
-            self.create_db_sources(db_sources_config)
+            self.create_db_sources(db_sources_config, store_config, model_config)
             if db_sources_config
             else None
         )
@@ -529,16 +531,32 @@ class KnowledgeGraphForge:
         return self._model.sources(pretty)
 
     @catch
-    def db_sources(self, pretty: bool = False) -> Optional[List[str]]:
+    def db_sources(self, with_datatype: Optional[List[str]] = None,
+                   pretty: bool = False) -> Optional[List[str]]:
         """
         Print(pretty=True) or return (pretty=False) configured data sources.
         :param pretty: a boolean
         :return: Optional[List[str]]
         """
-        sources = self._db_sources
+        if with_datatype is not None:
+            sources = {}
+            if isinstance(with_datatype, list):
+                for type in with_datatype:
+                    for db in self._db_sources:
+                        if type in self._db_sources[db].datatypes():
+                            sources[db] = self._db_sources[db]
+            else:
+                for db in self._db_sources:
+                    if with_datatype in self._db_sources[db].datatypes():
+                        sources[db] = self._db_sources[db]
+            if not sources:
+                print("No Database sources were found for the given datatype(s)")
+        else:
+            sources = self._db_sources
         if pretty:
-            print(*["Database sources with managed mappings:", *sources], sep="\n")
-        return sources
+            print(*["Available Database sources:", *sources], sep="\n")
+        else:
+            return sources
     
     def add_db_source(self, db_source: DatabaseSource) -> None:
         """
@@ -974,9 +992,23 @@ class KnowledgeGraphForge:
         """Expose the context used in the model."""
         return self._model.context()
     
-    def create_db_sources(self, config: Optional[Dict[str, Dict[str, str]]]) -> Union[DatabaseSource, List[DatabaseSource]]:
-        names = config.keys()
-        return {name: DatabaseSource(self, name=name, from_forge=True, **config[name]) for name in names}
+    def create_db_sources(self, all_config: Optional[Dict[str, Dict[str, str]]], 
+                          store_config : Optional[Dict[str, Dict[str, str]]],
+                          model_config : Optional[Dict[str, Dict[str, str]]]
+                          ) -> Union[DatabaseSource, List[DatabaseSource]]:
+        names = all_config.keys()
+        dbs = {}
+        for name in names:
+            config = all_config[name]
+             # Provide store and model configuration to the database sources
+            if "model" not in config:
+                config.update(model=model_config)
+        
+            # Complete configuration of the db store in case is the same 
+            if config['store']['name'] == store_config['name']:
+                config['store'] = store_config
+            dbs[name] = DatabaseSource(self, name=name, from_forge=True, **config)
+        return dbs
 
 
 def prepare_resolvers(

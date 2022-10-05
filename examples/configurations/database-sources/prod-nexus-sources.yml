@@ -57,16 +57,13 @@ Formatters:
 
 DatabaseSources:
   UniProt:
-    origin: store
-    source: SPARQLStore
-    endpoint: https://sparql.uniprot.org/sparql
-    definition:
+    store: 
+      name: DemoStore
+    model:
+      name: DemoModel
       origin: directory
-      source: /Users/mfsy/dev/apps/forked/nexus-forge/examples/notebooks/use-cases/datasources
-      iri: UniProt
+      source: "../../../tests/data/demo-model/"
   NeuroElectro:
-    origin: store
-    source: BlueBrainNexus
-    bucket: bbp/neuroelectro
-    definition:
-      iri: nexus_resource_id
+    store:
+      name: BlueBrainNexus
+      bucket: bbp/neuroelectro
