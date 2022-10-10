@@ -684,7 +684,11 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, *filters, **params)
+        db_source = params.pop('db_source', None)
+        if db_source:
+            return self._db_sources[db_source]._store.search(resolvers, *filters, **params)
+        else:
+            return self._store.search(resolvers, *filters, **params)
 
     @catch
     def sparql(
@@ -705,7 +709,11 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters. Supported params are: rewrite (whether to rewrite the sparql query or run it as is)
         :return: List[Resource]
         """
-        return self._store.sparql(query, debug, limit, offset, **params)
+        db_source = params.pop('db_source', None)
+        if db_source:
+            return self._db_sources[db_source]._store.sparql(query, debug, limit, offset, **params)
+        else:
+            return self._store.sparql(query, debug, limit, offset, **params)
 
     @catch
     def elastic(
@@ -714,6 +722,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        db_source: Optional[str] = None,
     ) -> List[Resource]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
@@ -724,7 +733,10 @@ class KnowledgeGraphForge:
         :param offset: how many results to skip from the first one
         :return: List[Resource]
         """
-        return self._store.elastic(query, debug, limit, offset)
+        if db_source:
+            return self._db_sources[db_source]._store.elastic(query, debug, limit, offset)
+        else:
+            return self._store.elastic(query, debug, limit, offset)
 
     @catch
     def download(
@@ -1002,11 +1014,14 @@ class KnowledgeGraphForge:
             config = all_config[name]
              # Provide store and model configuration to the database sources
             if "model" not in config:
-                config.update(model=model_config)
+                config.update(model=deepcopy(model_config))
         
             # Complete configuration of the db store in case is the same 
             if config['store']['name'] == store_config['name']:
-                config['store'] = store_config
+                store_copy = deepcopy(store_config)
+                with_defaults(config['store'], store_copy,
+                              "name", "name",
+                               store_copy.keys())
             dbs[name] = DatabaseSource(self, name=name, from_forge=True, **config)
         return dbs
 

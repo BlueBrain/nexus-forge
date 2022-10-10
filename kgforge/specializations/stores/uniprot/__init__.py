@@ -12,6 +12,4 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from .bluebrain_nexus import BlueBrainNexus
-from .demo_store import DemoStore
-from .uniprot_store import UniProtStore
+from .service import Service

@@ -57,12 +57,12 @@ Formatters:
 
 DatabaseSources:
   UniProt:
-    store: 
-      name: DemoStore
-    model:
-      name: DemoModel
-      origin: directory
-      source: "../../../tests/data/demo-model/"
+    store:
+      name: UniProtStore
+      endpoint: "https://www.uniprot.org/"
+      searchendpoints:
+        sparql:
+          endpoint: "https://sparql.uniprot.org/sparql"
   NeuroElectro:
     store:
       name: BlueBrainNexus
