@@ -14,4 +14,5 @@
 
 from .bluebrain_nexus import BlueBrainNexus
 from .demo_store import DemoStore
+from .sparql import SPARQLStore
 from .uniprot_store import UniProtStore

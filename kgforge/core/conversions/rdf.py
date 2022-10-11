@@ -405,7 +405,7 @@ def _unpack_from_list(data):
 
 
 def _add_ld_keys(
-    rsc: [Resource, Dict],
+    rsc: Union[Resource, Dict],
     context: Optional[Union[Dict, List, str]],
     base: Optional[str],
 ) -> Union[Dict, List[str]]:
