@@ -1,0 +1,20 @@
+{
+  "id": "https://bbp.epfl.ch/neurosciencegraph/data/proteins/4f5b79f8-1abe-48e0-95d1-e017d621b058"
+  "type": [
+    "Entity"
+    "Protein"
+    ]
+  "encodedBy": {  #genes
+    "id": "https://bbp.epfl.ch/neurosciencegraph/data/genes/98d04429-b003-4fc4-9e66-817546fd2f5f"
+    "type": "Gene"
+  }
+  "identifier": x.identifier #primaryAccession
+  "name": x.name #proteinDescription/recommendedName/fullName
+  "label": x.label  #proteinDescription/recommendedName/fullName/value
+  "altLabel": x.altlabel #proteinDescription/alternativeNames/0/fullName/value
+  "structureAvailable": x.hasstructure ???
+  "subject": x.subject #resolve organism/scientificName or taxonID
+  #optional
+  "sequence": x.sequence #sequence/value
+  "references": ...
+}
