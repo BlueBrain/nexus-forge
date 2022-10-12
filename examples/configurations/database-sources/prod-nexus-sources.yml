@@ -67,3 +67,14 @@ DatabaseSources:
     store:
       name: BlueBrainNexus
       bucket: bbp/neuroelectro
+  MouseLight:
+    store:
+      name: BlueBrainNexus
+      bucket: dke/kgforge
+    protocol: 'https://www.janelia.org/project-team/mouselight/resources'
+    license:
+      id: 'https://creativecommons.org/licenses/by-nc/4.0' 
+      label: 'CC BY-NC 4.0'
+    definition: 
+      origin: directory
+      source: '/Users/cgonzale/Documents/code/nexus-forge/examples/database_sources/MouseLight/'

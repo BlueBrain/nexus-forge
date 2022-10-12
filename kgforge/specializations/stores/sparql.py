@@ -16,7 +16,7 @@ import json
 from pyld import jsonld
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Tuple, Optional, Union, Any
 from uuid import uuid4
 import requests
 from rdflib import Graph
@@ -30,9 +30,15 @@ from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.specializations.stores.uniprot.service import Service
+from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.core.commons.exceptions import DownloadingError, QueryingError
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.parser import _parse_type
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
+from kgforge.specializations.stores.bluebrain_nexus import (
+    CategoryDataType, _create_select_query,
+    _box_value_as_full_iri, sparql_operator_map,
+    type_map, format_type)
 
 
 class SPARQLStore(Store):
@@ -113,7 +119,7 @@ class SPARQLStore(Store):
     # Querying.
 
     def search(
-        self, resolvers: Optional[List["Resolver"]], *filters, **params
+        self, resolvers: Optional[List["Resolver"]]=None, *filters, **params
     ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
         # A dictionary can be provided for filters:
@@ -129,102 +135,60 @@ class SPARQLStore(Store):
         # POLICY Should use sparql() and contain 'search_endpoint'.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
-        pass
+        # pass
         # if self.model_context is None:
-        #     raise ValueError("context model missing")
+            # raise ValueError("context model missing")
 
-        # debug = params.get("debug", False)
-        # limit = params.get("limit", 100)
-        # offset = params.get("offset", None)
-        # deprecated = params.get("deprecated", False)
-        # distinct = params.get("distinct", False)
-        # includes = params.get("includes", None)
-        # excludes = params.get("excludes", None)
-        # retrieve_source = params.get("retrieve_source")
-        # search_endpoint = params.get(
-        #     "search_endpoint", self.service.sparql_endpoint["type"]
-        # )
-        # if search_endpoint not in [
-        #     self.service.sparql_endpoint["type"],
-        # ]:
-        #     raise ValueError(
-        #         f"The provided search_endpoint value '{search_endpoint}' is not supported, only 'sparql'"
-        #     )
-        # if "filters" in params:
-        #     raise ValueError("A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+        debug = params.get("debug", False)
+        limit = params.get("limit", 100)
+        offset = params.get("offset", None)
+        deprecated = params.get("deprecated", False)
+        distinct = params.get("distinct", False)
+        includes = params.get("includes", None)
+        excludes = params.get("excludes", None)
+        search_endpoint = params.get(
+            "search_endpoint", self.service.sparql_endpoint["type"]
+        )
+        if search_endpoint not in [
+            self.service.sparql_endpoint["type"],
+        ]:
+            raise ValueError(
+                f"The provided search_endpoint value '{search_endpoint}' is not supported, only 'sparql'"
+            )
+        if "filters" in params:
+            raise ValueError("A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
 
 
-        # if filters and isinstance(filters[0], dict):
-        #     filters = create_filters_from_dict(filters[0])
-        # filters = list(filters) if not isinstance(filters, list) else filters
+        if filters and isinstance(filters[0], dict):
+            filters = create_filters_from_dict(filters[0])
+        filters = list(filters) if not isinstance(filters, list) else filters
 
-        # if includes or excludes:
-        #     raise ValueError(
-        #         "Field inclusion and exclusion are not supported when using SPARQL"
-        #     )
+        if includes or excludes:
+            raise ValueError(
+                "Field inclusion and exclusion are not supported when using SPARQL"
+            )
 
-        # query_statements, query_filters = build_sparql_query_statements(
-        #     self.model_context, filters
-        # )
-        # store_metadata_statements = []
-        # if retrieve_source:
-        #     _vars = ["?id"]
-        #     for i, k in enumerate(self.service.store_metadata_keys):
-        #         _vars.append(f"?{k}")
-        #         store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
-        #     deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
-        #     query_filters.append(deprecated_filter)
-        # else:
-        #     _vars = ["?id", "?_project", "?_rev"]
-        #     store_metadata_statements.append(f"<{self.service.revision_property}> ?_rev")
-        #     store_metadata_statements.append(f"<{self.service.project_property}> ?_project")
-        #     query_statements.append(
-        #         f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}",
-        #     )
-        # query_statements.extend(store_metadata_statements)
-        # statements = ";\n ".join(query_statements)
-        # _filters = "\n".join(".\n ".join(query_filters))
-        # query = _create_select_query(
-        #     _vars, f"?id {statements} . \n {_filters}", distinct
-        # )
-        # # support @id and @type
-        # resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
-        # params_retrieve = deepcopy(self.service.params.get("retrieve", {}))
-        # params_retrieve['retrieve_source'] = retrieve_source
-        # results = self.service.batch_request(
-        #     resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
-        # )
-        # resources = list()
-        # for result in results:
-        #     resource = result.resource
-        #     if retrieve_source:
-        #         store_metadata_response = as_json(result.resource, expanded=False, store_metadata=False,
-        #                                           model_context=None,
-        #                                           metadata_context=None,
-        #                                           context_resolver=None)  # store_metadata is obtained from SPARQL (resource) and not from server (response) because of retrieve_source==True
-        #     else:
-        #         store_metadata_response = result.response  # dict
-        #     try:
-        #         resource = self.service.to_resource(result.response)
-        #     except Exception as e:
-        #         self.service.synchronize_resource(
-        #             resource, store_metadata_response, self.search.__name__, False, False
-        #         )
-        #         raise ValueError(e)
-        #     finally:
-        #         self.service.synchronize_resource(
-        #             resource, store_metadata_response, self.search.__name__, True, False
-        #         )
-        #     resources.append(resource)
-        # return resources
+        query_statements, query_filters = build_sparql_query_statements(
+            self.context, filters
+        )
+        statements = ";\n ".join(query_statements)
+        _filters = ".\n".join(query_filters) + '\n'
+        _vars = ["?id"]
+        query = _create_select_query(
+            _vars, f"?id {statements} . \n {_filters}", distinct, False
+        )
+        # support @id and @type
+        resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
+        return resources
 
     def sparql(
         self, query: str, debug: bool, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
+        print('query in sparql', query)
         qr = (
-            rewrite_sparql(query, self.model_context, self.service.metadata_context)
-            if self.model_context is not None and rewrite
+            rewrite_sparql(query, self.context, self.service.metadata_context)
+            if self.context is not None and rewrite
             else query
         )
         qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
@@ -346,3 +310,54 @@ class SPARQLStore(Store):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
+
+
+def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
+    statements = list()
+    filters = list()
+    for index, f in enumerate(*conditions):
+        last_path = f.path[-1]
+        try:
+            last_term = context.terms[last_path]
+        except KeyError:
+            last_term = None
+        if last_path in ["id", "@id"]:
+            property_path = "/".join(f.path[:-1])
+        elif last_path == "@type":
+            minus_last_path = f.path[:-1]
+            minus_last_path.append("type")
+            property_path = "/".join(minus_last_path)
+        else:
+            property_path = "/".join(f.path)
+        try:
+            if (
+                last_path in ["type", "@type"]
+                or last_path in ["id", "@id"]
+                or (last_term is not None and last_term.type == "@id")
+            ):
+                if f.operator == "__eq__":
+                    statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
+                elif f.operator == "__ne__":
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(f"FILTER(?v{index} != {f.value})")
+                else:
+                    raise NotImplementedError(
+                        f"supported operators are '==' and '!=' when filtering by type or id."
+                    )
+            else:
+                parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
+                value_type = type_map[parsed_type]
+                value = format_type[value_type](parsed_value if parsed_value else f.value)
+                if value_type is CategoryDataType.LITERAL:
+                    if f.operator not in ["__eq__", "__ne__"]:
+                        raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
+                else:
+                    statements.append(f"{property_path} ?v{index}")
+                    filters.append(
+                        f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
+                    )
+        except NotImplementedError as nie:
+            raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
+    return statements, filters

@@ -9,16 +9,21 @@
         "xsd":   "http://www.w3.org/2001/XMLSchema#",
         "skos":  "http://www.w3.org/2004/02/skos/core#",
         "rdfs":  "http://www.w3.org/2000/01/rdf-schema#",
-        "core":  "http://purl.uniprot.org/core/",
         "dc11":  "http://purl.org/dc/terms/",
         "rdf":   "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "foaf":  "http://xmlns.com/foaf/0.1/",
+        "id": {
+            "@id": "http://www.geneontology.org/formats/oboInOwl#id"
+        },
         "Protein": {
             "@id": "up:Protein"
         },
         "Gene": {
             "@id": "up:Gene"
-        }
+        },
+        "type": {
+            "@id": "rdf:type"
         },
     "@id": "https://bbp.epfl.ch/jsonldcontext/db/uniprot"
+    }
 }

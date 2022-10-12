@@ -82,6 +82,7 @@ class DatabaseSource(Resource):
         self._model: Model = model(**model_config)
 
         # Store.
+        store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)

@@ -64,6 +64,7 @@ class UniProtStore(SPARQLStore):
 
     @staticmethod
     def resources_from_results(results):
+        print(f'amount of results = {len(results)}')
         resources = []
         for result in results:
             resource = {}
@@ -89,4 +90,4 @@ class UniProtStore(SPARQLStore):
                 else:
                     resource[k] = v['value']
             resources.append(Resource(**resource))
-            return resources
+        return resources

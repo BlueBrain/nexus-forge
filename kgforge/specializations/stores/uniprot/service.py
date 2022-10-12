@@ -96,7 +96,10 @@ class Service:
             uniprot_context = json.load(jfile)
         self.context = Context(uniprot_context)
 
-        self.metadata_context = Context(uniprot_context)
+        self.metadata_context = Context(
+            recursive_resolve(model_context, self.resolve_context, already_loaded=[]),
+            uniprot_context
+            )
 
         self.sparql_endpoint = dict()
         self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
