@@ -25,12 +25,12 @@ from rdflib import Graph
 from urllib.parse import quote_plus, urlparse
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model, Resolver, Store
 from kgforge.core.commons.context import Context
+from kgforge.core.archetypes import Mapping, Model, Resolver, Store, Database
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
-from kgforge.core.commons.execution import catch
+from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.commons.formatter import Formatter
@@ -47,7 +47,7 @@ from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.resources import DatabaseSource
+from kgforge.specializations.databases import StoreDatabase
 
 
 class KnowledgeGraphForge:
@@ -249,20 +249,6 @@ class KnowledgeGraphForge:
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
 
-<<<<<<< HEAD
-=======
-        # Database sources.
-        db_sources_config: Optional[Dict[str, Dict[str, str]]] = config.pop("DatabaseSources", None)
-
-        self._db_sources: Union[DatabaseSource, List[DatabaseSource]] = (
-            self.create_db_sources(db_sources_config, store_config, model_config)
-            if db_sources_config
-            else None
-        )
-
-    # Modeling User Interface.
-
->>>>>>> a48cc2b (Improved DatabaseSource class. Made possible to load mappings from local directory.)
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
         """
@@ -531,23 +517,23 @@ class KnowledgeGraphForge:
         return self._model.sources(pretty)
 
     @catch
-    def db_sources(self, with_datatype: Optional[List[str]] = None,
+    def db_sources(self, mappings: Optional[List[str]] = None,
                    pretty: bool = False) -> Optional[List[str]]:
         """
         Print(pretty=True) or return (pretty=False) configured data sources.
         :param pretty: a boolean
         :return: Optional[List[str]]
         """
-        if with_datatype is not None:
+        if mappings is not None:
             sources = {}
-            if isinstance(with_datatype, list):
-                for type in with_datatype:
+            if isinstance(mappings, list):
+                for type in mappings:
                     for db in self._db_sources:
                         if type in self._db_sources[db].datatypes():
                             sources[db] = self._db_sources[db]
             else:
                 for db in self._db_sources:
-                    if with_datatype in self._db_sources[db].datatypes():
+                    if mappings in self._db_sources[db].datatypes():
                         sources[db] = self._db_sources[db]
             if not sources:
                 print("No Database sources were found for the given datatype(s)")
@@ -558,7 +544,7 @@ class KnowledgeGraphForge:
         else:
             return sources
     
-    def add_db_source(self, db_source: DatabaseSource) -> None:
+    def add_db_source(self, db_source: Database) -> None:
         """
         Add a DatabaseSource to the KG.
         """
@@ -577,7 +563,7 @@ class KnowledgeGraphForge:
         :return: Optional[Dict[str, List[str]]]
         """
         if source in self._db_sources:
-            return self._db_sources[source].mappings(pretty)
+            return self._db_sources[source].mappings()
         else:
             return self._model.mappings(source, pretty)
 
@@ -686,7 +672,7 @@ class KnowledgeGraphForge:
         )
         db_source = params.pop('db_source', None)
         if db_source:
-            return self._db_sources[db_source]._store.search(resolvers, *filters, **params)
+            return self._db_sources[db_source].search(resolvers, *filters, **params)
         else:
             return self._store.search(resolvers, *filters, **params)
 
@@ -711,7 +697,7 @@ class KnowledgeGraphForge:
         """
         db_source = params.pop('db_source', None)
         if db_source:
-            return self._db_sources[db_source]._store.sparql(query, debug, limit, offset, **params)
+            return self._db_sources[db_source].sparql(query, debug, limit, offset, **params)
         else:
             return self._store.sparql(query, debug, limit, offset, **params)
 
@@ -734,7 +720,7 @@ class KnowledgeGraphForge:
         :return: List[Resource]
         """
         if db_source:
-            return self._db_sources[db_source]._store.elastic(query, debug, limit, offset)
+            return self._db_sources[db_source].elastic(query, debug, limit, offset)
         else:
             return self._store.elastic(query, debug, limit, offset)
 
@@ -1007,22 +993,29 @@ class KnowledgeGraphForge:
     def create_db_sources(self, all_config: Optional[Dict[str, Dict[str, str]]], 
                           store_config : Optional[Dict[str, Dict[str, str]]],
                           model_config : Optional[Dict[str, Dict[str, str]]]
-                          ) -> Union[DatabaseSource, List[DatabaseSource]]:
+                          ) -> Union[Database, List[Database]]:
         names = all_config.keys()
         dbs = {}
         for name in names:
             config = all_config[name]
-             # Provide store and model configuration to the database sources
-            if "model" not in config:
-                config.update(model=deepcopy(model_config))
-        
-            # Complete configuration of the db store in case is the same 
-            if config['store']['name'] == store_config['name']:
-                store_copy = deepcopy(store_config)
-                with_defaults(config['store'], store_copy,
-                              "name", "name",
-                               store_copy.keys())
-            dbs[name] = DatabaseSource(self, name=name, from_forge=True, **config)
+            origin = config.get('origin')
+            if origin == 'store':
+                source = config.get('source')
+                # Provide store and model configuration to the database sources
+                if "model" not in config:
+                    config.update(model=deepcopy(model_config))
+                # Complete configuration of the db store in case is the same 
+                if source == store_config['name']:
+                    store_copy = deepcopy(store_config)
+                    with_defaults(config, store_copy,
+                                  "source", "name",
+                                   store_copy.keys())
+                config.update(origin=origin)
+                print('Configuration', config)
+                config['name'] = name
+                dbs[name] = StoreDatabase(self, **config)
+            else:
+                raise NotImplementedError(f'Database from {origin} is not yet implemented.')
         return dbs
 
 

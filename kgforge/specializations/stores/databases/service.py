@@ -48,13 +48,9 @@ from kgforge.core.conversions.rdf import (
     recursive_resolve,
 )
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.specializations.resources.db_sources import DBS_PATH
 
 
 class Service:
-
-    UNIPROT_CONTEXT_PATH = Path(DBS_PATH, 'UniProt', 'jsonld_context.json')
-    UNIPROT_NAMESPACE = 'http://purl.uniprot.org/core/'
 
     def __init__(
         self,
@@ -72,7 +68,6 @@ class Service:
         self.context_cache: Dict = dict()
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
-        self.namespace = self.UNIPROT_NAMESPACE
 
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
@@ -90,16 +85,6 @@ class Service:
             if sparql_config and "Accept" in sparql_config
             else "application/sparql-results+json",
         }
-
-        # load context from file
-        with open(self.UNIPROT_CONTEXT_PATH) as jfile:
-            uniprot_context = json.load(jfile)
-        self.context = Context(uniprot_context)
-
-        self.metadata_context = Context(
-            recursive_resolve(model_context, self.resolve_context, already_loaded=[]),
-            uniprot_context
-            )
 
         self.sparql_endpoint = dict()
         self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
@@ -124,107 +109,6 @@ class Service:
             document = context.document["@context"]
         self.context_cache.update({context_to_resolve: document})
         return document
-
-    async def request(method, session, url, resource, payload, params, exception):
-        async with session.request(
-            method,
-            url,
-            headers=self.headers,
-            data=json.dumps(payload),
-            params=params,
-        ) as response:
-            content = await response.json()
-            if response.status < 400:
-                return (resource, content)
-            else:
-                msg = " ".join(re.findall("[A-Z][^A-Z]*", content["@type"])).lower()
-                error = exception(msg)
-                return (resource, error)
-
-    def sync_metadata(self, resource: Resource, result: Dict) -> None:
-        metadata = (
-            {"id": resource.id}
-            if hasattr(resource, "id")
-            else (
-                {"id": resource.__getattribute__("@id")}
-                if hasattr(resource, "@id")
-                else dict()
-            )
-        )
-        keys = sorted(self.metadata_context.terms.keys())
-        keys.extend(["_index", "_score", "id", "@id"])
-        only_meta = {k: v for k, v in result.items() if k in keys}
-        metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
-        if not hasattr(resource, "id") and not hasattr(resource, "@id"):
-            resource.id= result.get("id", result.get("@id",None))
-        resource._store_metadata = wrap_dict(metadata)
-
-    def synchronize_resource(
-        self,
-        resource: Resource,
-        response: Union[Exception, Dict],
-        action_name: str,
-        succeeded: bool,
-        synchronized: bool,
-    ) -> None:
-        if succeeded:
-            action = Action(action_name, succeeded, None)
-            self.sync_metadata(resource, response)
-        else:
-            action = Action(action_name, succeeded, response)
-        resource._last_action = action
-        resource._synchronized = synchronized
-
-    def default_callback(self, fun_name: str) -> Callable:
-        def callback(task: Task):
-            result = task.result()
-            if isinstance(result.response, Exception):
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, False, False
-                )
-            else:
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, True, True
-                )
-
-        return callback
-
-    def verify(
-        self,
-        resources: List[Resource],
-        function_name,
-        exception: Callable,
-        id_required: bool,
-        required_synchronized: bool,
-        execute_actions: bool,
-    ) -> List[Resource]:
-        valid = list()
-        for resource in resources:
-            if id_required and not hasattr(resource, "id"):
-                error = exception("resource should have an id")
-                self.synchronize_resource(resource, error, function_name, False, False)
-                continue
-            if required_synchronized is not None:
-                synchronized = resource._synchronized
-                if synchronized is not required_synchronized:
-                    be_or_not_be = "be" if required_synchronized is True else "not be"
-                    error = exception(f"resource should {be_or_not_be} synchronized")
-                    self.synchronize_resource(
-                        resource, error, function_name, False, False
-                    )
-                    continue
-            if execute_actions:
-                lazy_actions = collect_lazy_actions(resource)
-                if lazy_actions is not None:
-                    try:
-                        execute_lazy_actions(resource, lazy_actions)
-                    except Exception as e:
-                        self.synchronize_resource(
-                            resource, exception(e), function_name, False, False
-                        )
-                        continue
-            valid.append(resource)
-        return valid
 
     def to_resource(
         self, payload: Dict, sync_metadata: bool = True, **kwargs

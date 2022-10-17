@@ -13,28 +13,24 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import json
-from pyld import jsonld
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Union, Any
 from uuid import uuid4
-import requests
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
-from requests import HTTPError
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver, Store
-from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql
+from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql, build_construct_query
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.dict import DictWrapper
-from kgforge.specializations.stores.uniprot.service import Service
-from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
-from kgforge.core.commons.exceptions import DownloadingError, QueryingError
+from kgforge.specializations.stores.databases import Service
+from kgforge.core.wrappings.paths import create_filters_from_dict
+from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.parser import _parse_type
-from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.specializations.stores.bluebrain_nexus import (
     CategoryDataType, _create_select_query,
     _box_value_as_full_iri, sparql_operator_map,
@@ -49,6 +45,7 @@ class SPARQLStore(Store):
                  file_resource_mapping: Optional[str] = None,
                  model_context: Optional[Context] = None,
                  searchendpoints: Optional[Dict] = None,) -> None:
+        print('inside SPARQL Store')
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
                          model_context, searchendpoints)
 
@@ -211,41 +208,8 @@ class SPARQLStore(Store):
             #  https://github.com/BlueBrain/nexus/issues/1155
             _, q_comp = Query.parseString(query)
             if q_comp.name == "ConstructQuery":
-                subject_triples = {}
-                for r in data["results"]["bindings"]:
-                    subject = r["subject"]["value"]
-                    s = f"<{r['subject']['value']}>"
-                    p = f"<{r['predicate']['value']}>"
-                    if r["object"]["type"] == "uri":
-                        o = f"<{r['object']['value']}>"
-                    else:
-                        if "datatype" in r["object"]:
-                            o = f"\"{r['object']['value']}\"^^{r['object']['datatype']}"
-                        else:
-                            o = f"\"{r['object']['value']}\""
-                    if subject in subject_triples:
-                        subject_triples[subject] += f"\n{s} {p} {o} . "
-                    else:
-                        subject_triples[subject] = f"{s} {p} {o} . "
-
-                def triples_to_resource(iri, triples):
-                    graph = Graph().parse(data=triples, format="nt")
-                    data_expanded = json.loads(graph.serialize(format="json-ld"))
-                    data_expanded = json.loads(graph.serialize(format="json-ld"))
-                    frame = {"@id": iri}
-                    data_framed = jsonld.frame(data_expanded, frame)
-                    context = self.model_context or self.context
-                    compacted = jsonld.compact(data_framed, context.document)
-                    resource = from_jsonld(compacted)
-                    resource.context = (
-                        context.iri
-                        if context.is_http_iri()
-                        else context.document["@context"]
-                    )
-                    return resource
-
-                return [triples_to_resource(s, t) for s, t in subject_triples.items()]
-
+                context = self.model_context or self.context
+                return build_construct_query(data, context) 
             else:
                 # SELECT QUERY
                 results = data["results"]["bindings"]
@@ -287,13 +251,13 @@ class SPARQLStore(Store):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> Any:
+        print('initializing service')
         try:
             max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
                 raise ValueError(
                     f"max_connection value should be great than 0 but {max_connection} is provided"
                 )
-            store_context_config = store_config.pop("vocabulary", {})
             content_type = store_config.pop("Content-Type", "application/ld+json")
             accept = store_config.pop("Accept", "application/ld+json")
             params = store_config.pop("params", {})

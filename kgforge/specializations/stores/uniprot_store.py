@@ -35,8 +35,6 @@ from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql
 # )
 from kgforge.specializations.stores import SPARQLStore
 from kgforge.core.commons.context import Context
-from kgforge.core.wrappings.dict import DictWrapper
-from kgforge.specializations.stores.uniprot.service import Service
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
@@ -64,7 +62,6 @@ class UniProtStore(SPARQLStore):
 
     @staticmethod
     def resources_from_results(results):
-        print(f'amount of results = {len(results)}')
         resources = []
         for result in results:
             resource = {}
