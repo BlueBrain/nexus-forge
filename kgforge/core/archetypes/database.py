@@ -111,6 +111,7 @@ class Database(ABC):
         datatypes = self.types
         mappings = self.mappings()
         mapped_resources = []
+        resources = (resources if isinstance(resources, list) else [resources])
         for resource in resources:
             if resource_type is None:
                 try:

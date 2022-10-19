@@ -1,20 +1,18 @@
 {
-  "id": "https://bbp.epfl.ch/neurosciencegraph/data/proteins/4f5b79f8-1abe-48e0-95d1-e017d621b058"
+  "id": forge.format('identifier', "proteins", x.id.split('/')[-1])
   "type": [
     "Entity"
     "Protein"
     ]
-  "encodedBy": {  #genes
-    "id": "https://bbp.epfl.ch/neurosciencegraph/data/genes/98d04429-b003-4fc4-9e66-817546fd2f5f"
-    "type": "Gene"
+  "encodedBy": {
+    "id": x.gene
+    "label": x.gene_label
   }
-  "identifier": x.identifier #primaryAccession
-  "name": x.name #proteinDescription/recommendedName/fullName
-  "label": x.label  #proteinDescription/recommendedName/fullName/value
-  "altLabel": x.altlabel #proteinDescription/alternativeNames/0/fullName/value
-  "structureAvailable": x.hasstructure ???
-  "subject": x.subject #resolve organism/scientificName or taxonID
-  #optional
-  "sequence": x.sequence #sequence/value
-  "references": ...
+  "identifier": {
+      "propertyID": "UniProtKB"
+      "value": x.id.split('/')[-1]
+  }
+  "name": f"Protein {x.id.split('/')[-1]} from UniProtKB"
+  "label": x.label
+  "subject": forge.resolve(x.subject, scope='ontology') if forge.resolve(x.subject, scope='ontology') is not None else {"label": x.subject}
 }
