@@ -34,17 +34,9 @@ from numpy import nan
 from requests import HTTPError
 
 from kgforge.core import Resource
-from kgforge.core.commons.actions import (
-    Action,
-    collect_lazy_actions,
-    execute_lazy_actions,
-    LazyAction,
-)
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
-    _remove_ld_keys,
-    as_jsonld,
     recursive_resolve,
 )
 from kgforge.core.wrappings.dict import wrap_dict
@@ -56,6 +48,7 @@ class Service:
         self,
         endpoint: str,
         model_context: Context,
+        store_context: Context,
         max_connection: int,
         searchendpoints: Dict,
         content_type: str,
@@ -66,6 +59,7 @@ class Service:
         self.endpoint = endpoint
         self.model_context = model_context
         self.context_cache: Dict = dict()
+        self.context = store_context
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
 
@@ -90,13 +84,6 @@ class Service:
         self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
         self.sparql_endpoint["type"] = "sparql"
 
-        # The following code is for async to work on jupyter notebooks
-        try:
-            asyncio.get_event_loop()
-            nest_asyncio.apply()
-        except RuntimeError:
-            pass
-
     def resolve_context(self, iri: str) -> Dict:
         if iri in self.context_cache:
             return self.context_cache[iri]
@@ -109,50 +96,3 @@ class Service:
             document = context.document["@context"]
         self.context_cache.update({context_to_resolve: document})
         return document
-
-    def to_resource(
-        self, payload: Dict, sync_metadata: bool = True, **kwargs
-    ) -> Resource:
-        # Use JSONLD context defined in Model if no context is retrieved from payload
-        # Todo: BlueBrainNexus store is not indexing in ES the JSONLD context, user provided context can be changed to Model defined one
-        data_context = deepcopy(payload.get("@context", self.model_context.iri if self.model_context else None))
-        if not isinstance(data_context, list):
-            data_context = [data_context]
-        if self.store_context in data_context:
-            data_context.remove(self.store_context)
-        data_context = data_context[0] if len(data_context) == 1 else data_context
-        metadata = dict()
-        data = dict()
-        for k, v in payload.items():
-            if k in self.metadata_context.terms.keys():
-                metadata[k] = v
-            else:
-                data[k] = v
-
-        if (
-            self.model_context
-            and data_context is not None
-            and data_context == self.model_context.iri
-        ):
-            resolved_ctx = self.model_context.document["@context"]
-        elif data_context is not None:
-            resolved_ctx = recursive_resolve(
-                data_context,
-                self.resolve_context,
-                already_loaded=[self.store_local_context, self.store_context],
-            )
-        else:
-            resolved_ctx = None
-        if resolved_ctx:
-            data["@context"] = resolved_ctx
-            resource = _from_jsonld_one(data)
-            resource.context = data_context
-        else:
-            resource = Resource.from_json(data)
-
-        if len(metadata) > 0 and sync_metadata:
-            metadata.update(kwargs)
-            self.sync_metadata(resource, metadata)
-        if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
-            resource.id = kwargs.get("id")
-        return resource

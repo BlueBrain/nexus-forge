@@ -64,7 +64,7 @@ from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
-from kgforge.core.archetypes.store import build_construct_query
+from kgforge.core.archetypes.store import resources_from_construct_query
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 
 class CategoryDataType(Enum):
@@ -876,7 +876,7 @@ class BlueBrainNexus(Store):
             _, q_comp = Query.parseString(query)
             if q_comp.name == "ConstructQuery":
                 context = self.model_context or context
-                return build_construct_query(data, context)
+                return resources_from_construct_query(data, context)
             else:
                 # SELECT QUERY
                 results = data["results"]["bindings"]

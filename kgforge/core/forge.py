@@ -524,21 +524,23 @@ class KnowledgeGraphForge:
         :param pretty: a boolean
         :return: Optional[List[str]]
         """
-        if mappings is not None:
+        if mappings is None:
+            sources = self._db_sources
+        else:
             sources = {}
             if isinstance(mappings, list):
                 for type in mappings:
                     for db in self._db_sources:
-                        if type in self._db_sources[db].datatypes():
+                        types = self._db_sources[db].datatypes()
+                        if type in types:
                             sources[db] = self._db_sources[db]
             else:
                 for db in self._db_sources:
-                    if mappings in self._db_sources[db].datatypes():
+                    types = self._db_sources[db].datatypes()
+                    if mappings in types:
                         sources[db] = self._db_sources[db]
             if not sources:
-                print("No Database sources were found for the given datatype(s)")
-        else:
-            sources = self._db_sources
+                print("No Database sources were found for the given type(s)")
         if pretty:
             print(*["Available Database sources:", *sources], sep="\n")
         else:
@@ -672,7 +674,10 @@ class KnowledgeGraphForge:
         )
         db_source = params.pop('db_source', None)
         if db_source:
-            return self._db_sources[db_source].search(resolvers, *filters, **params)
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].search(resolvers, *filters, **params)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
         else:
             return self._store.search(resolvers, *filters, **params)
 
@@ -697,7 +702,10 @@ class KnowledgeGraphForge:
         """
         db_source = params.pop('db_source', None)
         if db_source:
-            return self._db_sources[db_source].sparql(query, debug, limit, offset, **params)
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].sparql(query, debug, limit, offset, **params)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
         else:
             return self._store.sparql(query, debug, limit, offset, **params)
 
@@ -720,7 +728,10 @@ class KnowledgeGraphForge:
         :return: List[Resource]
         """
         if db_source:
-            return self._db_sources[db_source].elastic(query, debug, limit, offset)
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].elastic(query, debug, limit, offset)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
         else:
             return self._store.elastic(query, debug, limit, offset)
 
@@ -992,7 +1003,7 @@ class KnowledgeGraphForge:
     
     def create_db_sources(self, all_config: Optional[Dict[str, Dict[str, str]]], 
                           store_config : Optional[Dict[str, Dict[str, str]]],
-                          model_config : Optional[Dict[str, Dict[str, str]]]
+                          model_context: Context
                           ) -> Union[Database, List[Database]]:
         names = all_config.keys()
         dbs = {}
@@ -1001,17 +1012,15 @@ class KnowledgeGraphForge:
             origin = config.get('origin')
             if origin == 'store':
                 source = config.get('source')
-                # Provide store and model configuration to the database sources
-                if "model" not in config:
-                    config.update(model=deepcopy(model_config))
-                # Complete configuration of the db store in case is the same 
-                if source == store_config['name']:
+                # Reuse complete configuration of the store when Nexus is called
+                if source == store_config['name'] == 'BlueBrainNexus':
                     store_copy = deepcopy(store_config)
                     with_defaults(config, store_copy,
                                   "source", "name",
                                    store_copy.keys())
+                    config['model_context'] = model_context
                 config.update(origin=origin)
-                print('Configuration', config)
+                config.update(origin=origin)
                 config['name'] = name
                 dbs[name] = StoreDatabase(self, **config)
             else:

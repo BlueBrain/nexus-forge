@@ -18,11 +18,12 @@ from re import I
 import copy
 from typing import Callable, Optional, Union, Dict, List, Any
 
-from kgforge.core.archetypes import Mapping, Store, Database
-from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core import Resource
+from kgforge.core.archetypes import Store, Database
 from kgforge.core.commons.execution import not_supported
-from kgforge.core.commons.dictionaries import with_defaults
-from kgforge.core.commons.imports import import_class
+from kgforge.core.wrappings.paths import FilterOperator
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
 
 class StoreDatabase(Database):
@@ -31,13 +32,13 @@ class StoreDatabase(Database):
 
     _REQUIRED = ("name", "origin", "source", "model")
 
-    def __init__(self, forge: Optional["KnowledgeGraphForge"], type: str = "Database",
+    def __init__(self, forge: Optional["KnowledgeGraphForge"],
                  **config) -> None:
         """
         The properties defining the StoreDatabase are:
 
+        :param forge: To use forge utilities 
            name: <the name of the database> - REQUIRED
-           type: Database - REQUIRED
            origin: <'store'> - REQUIRED
            source: <a directory path, an URL, or the class name of a Store> - REQUIRED
            bucket: <when 'origin' is 'store', a Store bucket>
@@ -52,10 +53,8 @@ class StoreDatabase(Database):
         """
         self._check_properties(**config)
         self.name = config.pop('name')
-        self.type: str = type
-        self._forge: Optional["KnowledgeGraphForge"] = forge
         source = config.pop('source')
-        super().__init__(source, **config)
+        super().__init__(forge, source, **config)
 
     def _check_properties(self, **info):
         properties = info.keys()
@@ -63,16 +62,43 @@ class StoreDatabase(Database):
             if r not in properties:
                 raise ValueError(f'Missing {r} from the properties to define the DatabasSource')
 
-    def datatypes(self):
+    @property
+    def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
         return self.mappings().keys()
+
+    def search(self, resolvers, *filters, **params):
+        """Search within the database.
+
+        :param keep_original: bool 
+        """
+        keep_original = params.pop('keep_original', True)
+        unmapped_resources = self.service.search(resolvers, *filters, **params)
+        if isinstance(self.service, BlueBrainNexus) or keep_original:
+            return unmapped_resources
+        else:
+            # Try to find the type of the resources within the filters
+            resource_type = type_from_filters(filters)
+            return self.map_resources(unmapped_resources, resource_type=resource_type)
+
+        return resource_type
     
-    def search(self, *filters, **params) -> Any:
-        self.service.search(*filters, **params)
+    def sparql(self, query: str, debug: bool = False, limit: Optional[int] = None, 
+               offset: Optional[int] = None,**params):
+        """Use SPARQL within the database.
 
-    def sparql(self, query: str, debug: bool, limit: int = None, offset: int = None, **params) -> Any:
-        self.service.sparql(query, debug, limit, offset, **params)
-
+        :param keep_original: bool 
+        """
+        keep_original = params.pop('keep_original', True)
+        unmapped_resources = self.service.sparql(query, debug, limit, offset, **params)
+        if keep_original:
+            return unmapped_resources
+        else:
+            return self.map_resources(unmapped_resources)
+    
+    def elastic(**params):
+        not_supported()
+    
     @staticmethod
     def _service_from_directory(dirpath: Path, **source_config) -> Any:
         not_supported()
@@ -83,9 +109,19 @@ class StoreDatabase(Database):
 
     @staticmethod
     def _service_from_store(store: Callable, **store_config) -> Store:
-        # Store.
-        print('store config', store_config)
         return store(**store_config)
     
     def health(self) -> Callable:
         not_supported()
+
+def type_from_filters(filters):
+    resource_type = None
+    if isinstance(filters[0], dict):
+        if 'type' in filters[0]:
+            resource_type = filters[0]['type']
+    else:
+        for filter in filters:
+            if 'type' in filter.path and filter.operator is FilterOperator.EQUAL:
+                resource_type = filter.value
+                break
+    return resource_type

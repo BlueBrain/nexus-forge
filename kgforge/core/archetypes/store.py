@@ -600,7 +600,7 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
     return f"{pfx}\n{qr}"
 
 
-def build_construct_query(data, context):
+def resources_from_construct_query(data, context):
     subject_triples = {}
     for r in data["results"]["bindings"]:
         subject = r["subject"]["value"]

@@ -23,7 +23,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver, Store
-from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql, build_construct_query
+from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql, resources_from_construct_query
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.specializations.stores.databases import Service
@@ -44,10 +44,9 @@ class SPARQLStore(Store):
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
                  model_context: Optional[Context] = None,
-                 searchendpoints: Optional[Dict] = None,) -> None:
-        print('inside SPARQL Store')
+                 searchendpoints: Optional[Dict] = None, **store_config) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context, searchendpoints)
+                         model_context, searchendpoints, **store_config)
 
 
     # [C]RUD
@@ -135,7 +134,6 @@ class SPARQLStore(Store):
         # pass
         # if self.model_context is None:
             # raise ValueError("context model missing")
-
         debug = params.get("debug", False)
         limit = params.get("limit", 100)
         offset = params.get("offset", None)
@@ -182,9 +180,8 @@ class SPARQLStore(Store):
         self, query: str, debug: bool, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
-        print('query in sparql', query)
         qr = (
-            rewrite_sparql(query, self.context, self.service.metadata_context)
+            rewrite_sparql(query, self.context, self.service.context)
             if self.context is not None and rewrite
             else query
         )
@@ -209,7 +206,7 @@ class SPARQLStore(Store):
             _, q_comp = Query.parseString(query)
             if q_comp.name == "ConstructQuery":
                 context = self.model_context or self.context
-                return build_construct_query(data, context) 
+                return resources_from_construct_query(data, context) 
             else:
                 # SELECT QUERY
                 results = data["results"]["bindings"]
@@ -251,7 +248,6 @@ class SPARQLStore(Store):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> Any:
-        print('initializing service')
         try:
             max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
@@ -261,10 +257,11 @@ class SPARQLStore(Store):
             content_type = store_config.pop("Content-Type", "application/ld+json")
             accept = store_config.pop("Accept", "application/ld+json")
             params = store_config.pop("params", {})
+            store_context = store_config.pop('store_context', None)
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
-            return Service(endpoint=endpoint, model_context=self.model_context, max_connection=max_connection,
+            return Service(endpoint=endpoint, model_context=self.model_context, store_context=store_context, max_connection=max_connection,
                            searchendpoints=searchendpoints, content_type=content_type, accept=accept, **params)
 
     @staticmethod
