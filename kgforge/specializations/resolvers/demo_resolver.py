@@ -72,7 +72,7 @@ class DemoResolver(Resolver):
                        if text and any ([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
             if results:
                 ordered = sorted(results, key=lambda x: x[0])
-                if strategy in [ResolvingStrategy.BEST_MATCH, ResolvingStrategy.EXACT_CASEINSENSITIVE_MATCH]:
+                if strategy == ResolvingStrategy.BEST_MATCH:
                     return ordered[0][1]
                 else:
                     # Case: ResolvingStrategy.ALL_MATCHES.
