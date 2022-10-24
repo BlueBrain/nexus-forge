@@ -61,6 +61,12 @@ class DemoResolver(Resolver):
                             if text and any([p in x and text == x[p] for p in resolve_with_properties]))
             except StopIteration:
                 return None
+        elif strategy == ResolvingStrategy.EXACT_CASEINSENSITIVE_MATCH:
+            try:
+                return next(x for x in data
+                            if text and any([p in x and str(text).lower() == str(x[p]).lower() for p in resolve_with_properties]))
+            except StopIteration:
+                return None
         else:
             results = [(_dist([str(x[prop]) for prop in resolve_with_properties if prop in x][0], text), x) for x in data
                        if text and any ([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
