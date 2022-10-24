@@ -517,19 +517,19 @@ class KnowledgeGraphForge:
         return self._model.sources(pretty)
 
     @catch
-    def db_sources(self, mappings: Optional[List[str]] = None,
+    def db_sources(self, type_: Optional[List[str]] = None,
                    pretty: bool = False) -> Optional[List[str]]:
         """
         Print(pretty=True) or return (pretty=False) configured data sources.
         :param pretty: a boolean
         :return: Optional[List[str]]
         """
-        if mappings is None:
+        if type_ is None:
             sources = self._db_sources
         else:
             sources = {}
-            if isinstance(mappings, list):
-                for type in mappings:
+            if isinstance(type_, list):
+                for type in type_:
                     for db in self._db_sources:
                         types = self._db_sources[db].datatypes()
                         if type in types:
@@ -537,7 +537,7 @@ class KnowledgeGraphForge:
             else:
                 for db in self._db_sources:
                     types = self._db_sources[db].datatypes()
-                    if mappings in types:
+                    if type_ in types:
                         sources[db] = self._db_sources[db]
             if not sources:
                 print("No Database sources were found for the given type(s)")
@@ -565,7 +565,8 @@ class KnowledgeGraphForge:
         :return: Optional[Dict[str, List[str]]]
         """
         if source in self._db_sources:
-            return self._db_sources[source].mappings()
+            db = self._db_sources[source] 
+            return db._model.mappings(db._model.source, pretty)
         else:
             return self._model.mappings(source, pretty)
 
@@ -582,7 +583,8 @@ class KnowledgeGraphForge:
         :return: Mapping
         """
         if source in self._db_sources:
-            return self._db_sources[source].mapping(entity, type)
+            db = self._db_sources[source]  
+            return db._model.mapping(entity, db._model.source, type)
         else:
             return self._model.mapping(entity, source, type)
 
@@ -1020,7 +1022,7 @@ class KnowledgeGraphForge:
                                    store_copy.keys())
                     config['model_context'] = model_context
                 config.update(origin=origin)
-                config.update(origin=origin)
+                config.update(source=source)
                 config['name'] = name
                 dbs[name] = StoreDatabase(self, **config)
             else:

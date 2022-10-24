@@ -24,6 +24,6 @@
         "type": {
             "@id": "rdf:type"
         },
-    "@id": "https://bbp.epfl.ch/jsonldcontext/db/uniprot"
+        "@id": "https://bbp.epfl.ch/jsonldcontext/db/uniprot"
     }
 }

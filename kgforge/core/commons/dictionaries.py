@@ -21,12 +21,10 @@ def with_defaults(original: Dict, other: Dict, original_key: str, other_key: str
     """Update 'original' with 'other' 'keys' unless keys value is different in both dictionaries."""
 
     if original[original_key] == other[other_key]:
-        for x in keys:
-            if x not in original and x in other:
-                original[x] = other[x]
+        use_values(original, other, keys)
 
-
-def update_dict(original: Dict, other:Dict) -> Dict:
-    original_copy = copy.deepcopy(original)
-    original_copy.update(other)
-    return original_copy
+def use_values(original: Dict, other: Dict,
+                  keys: List[str]) -> None:
+    for x in keys:
+        if x not in original and x in other:
+            original[x] = other[x]

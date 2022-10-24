@@ -19,12 +19,12 @@ from typing import Any, Optional, Callable, Dict, List, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.archetypes import Mapping, Model
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError
-from kgforge.core.commons.dictionaries import with_defaults
+from kgforge.core.commons.dictionaries import use_values
 from kgforge.core.commons.imports import import_class
-from kgforge.core.commons.dictionaries import with_defaults
 
 
 class Database(ABC):
@@ -41,92 +41,52 @@ class Database(ABC):
         self._forge: Optional["KnowledgeGraphForge"] = forge
         # Model
         model_config = config.pop("model")
-        if model_config.get('origin') == 'directory':
-            dirpath = model_config.get('source')
-            self._dirpath = dirpath
-            bucket = model_config.get('bucket', 'jsonld_context.json')
-            iri = model_config.get('iri', None)
-            context_path = Path(dirpath, bucket)
-            try:
-                # load context from file
-                with open(context_path, 'r') as jfile:
-                    context_file = json.load(jfile)
-                    self.context = Context(context_file, iri)
-                if 'model_context' not in config:
-                    config['model_context'] = self.context
-            except Exception:
-                self.context = None
-        elif model_config["origin"] == "store":
-            with_defaults(
+        if model_config["origin"] == "store":
+            use_values(
                 model_config,
                 config,
-                "source",
-                "name",
                 ["endpoint", "token", "bucket", "vocabulary"],
             )
-            model_name = model_config.pop("name")
-            model = import_class(model_name, "models")
-            self._model: Model = model(**model_config)
-            if 'model_context' not in config:
-                config['model_context'] = self._model.context()
-        else:
-            raise NotImplementedError('DB Model not yet implemented.')
+        model_name = model_config.pop("name")
+        model = import_class(model_name, "models")
+        self._model: Model = model(**model_config)
+        self.context = self._model.context()
+        if 'model_context' not in config:
+            config['model_context'] = self._model.context()
         self.source: str = source
         self.service: Any = self._initialize_service(self.source, **config)
 
     def __repr__(self) -> str:
         return repr_class(self)
 
-    def _mappings(self) -> Dict[str, List[str]]:
-        try:
-            dirpath = Path(self._dirpath, "mappings")
-            mappings = {}
-            if dirpath.is_dir():
-                for x in dirpath.glob("*/*.hjson"):
-                    mappings.setdefault(x.stem, []).append(x.parent.name)
-            else:
-                raise ValueError("Mapping directory not found.")
-            return mappings
-        except AttributeError:
-            raise ConfigurationError('No directory path was found from the configuration.')
-
-    def mappings(self) -> Optional[Dict[str, List[str]]]:
-        mappings = {k: sorted(v) for k, v in
-                    sorted(self._mappings().items(), key=lambda kv: kv[0])}
-        return mappings
-
-    def mapping(self, entity: str, type: Callable) -> Mapping:
-        filename = f"{entity}.hjson"
-        try:
-            filepath = Path(self._dirpath, "mappings", type.__name__, filename)
-            if filepath.is_file():
-                return type.load(filepath)
-            else:
-                raise ValueError("unrecognized entity type or source file")
-        except AttributeError:
-            raise ConfigurationError('No directory path was found from the configuration.')
-
-    def map_resources(self, resources : Union[List[Resource], Resource],
-                      resource_type : Optional[str] = None) -> Optional[Union[Resource, List[Resource]]]:
-        datatypes = self.types
-        mappings = self.mappings()
+    def map(self, resources : Union[List[Union[Resource, str]], Union[Resource, str]],
+            type_ : Optional[Union[str, "DictionaryMapping"]] = None) -> Optional[Union[Resource, List[Resource]]]:
+        mappings = self._model.mappings(self._model.source, False)
         mapped_resources = []
         resources = (resources if isinstance(resources, list) else [resources])
         for resource in resources:
-            if resource_type is None:
+            if isinstance(resource, Resource):
+               resource_dict = self._forge.as_json(resource) 
+            else:
+                resource_dict = resource
+                resource = self._forge.from_json(resource_dict)
+            if type_ is None:
                 try:
-                    resource_type = resource.type
+                    type_ = resource.type
                 except AttributeError:
                     mapped_resources.append(resource)
-            if resource_type in datatypes:
-                mapping_class : Mapping = import_class(mappings[resource_type][0], "mappings")
-                mapping = self.mapping(resource_type, mapping_class)
-                mapped_resources.append(self._forge.map(self._forge.as_json(resource), mapping))
+            elif isinstance(type_, Mapping):
+                mapped_resources.append(self._forge.map(resource_dict, type_))
+            elif type_ in mappings:
+                # type_ is the entity here
+                mapping_class : Mapping = import_class(mappings[type_][0], "mappings")
+                mapping = self._model.mapping(type_, self._model.source, mapping_class)
+                mapped_resources.append(self._forge.map(resource_dict, mapping))
             else:
                 mapped_resources.append(resource)
         return mapped_resources
 
-    def datatypes(self):
+    def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
         return list(self.mappings().keys())
 
@@ -170,9 +130,8 @@ class Database(ABC):
             raise ConfigurationError(f"unrecognized DataBase origin '{origin}'")
 
     @staticmethod
-    @abstractmethod
     def _service_from_directory(dirpath: Path, **source_config) -> Any:
-        pass
+        not_supported()
 
     @staticmethod
     @abstractmethod

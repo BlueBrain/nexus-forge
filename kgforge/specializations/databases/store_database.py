@@ -11,7 +11,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import os
 import json
 from pathlib import Path, PurePath
 from re import I
@@ -62,10 +61,6 @@ class StoreDatabase(Database):
             if r not in properties:
                 raise ValueError(f'Missing {r} from the properties to define the DatabasSource')
 
-    @property
-    def types(self):
-        # TODO: add other datatypes used, for instance, inside the mappings
-        return self.mappings().keys()
 
     def search(self, resolvers, *filters, **params):
         """Search within the database.
@@ -99,10 +94,6 @@ class StoreDatabase(Database):
     def elastic(**params):
         not_supported()
     
-    @staticmethod
-    def _service_from_directory(dirpath: Path, **source_config) -> Any:
-        not_supported()
-
     @staticmethod
     def _service_from_web_service(endpoint: str, **source_config) -> Any:
         not_supported()
