@@ -54,6 +54,12 @@ class OntologyResolver(Resolver):
             prefLabel_filter = f" FILTER (?prefLabel = \"{text}\")"
             altLabel_filter = f" FILTER (?altLabel = \"{text}\")"
             limit = 1
+        elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
+            label_filter = f" FILTER regex(?label, \"^{text}$\", \"i\")"
+            notation_filter = f" FILTER regex(?notation, \"^{text}$\", \"i\")"
+            prefLabel_filter = f" FILTER regex(?prefLabel, \"^{text}$\", \"i\")"
+            altLabel_filter = f" FILTER regex(?altLabel, \"^{text}$\", \"i\")"
+            limit = 1
         else:
             label_filter = f" FILTER regex(?label, \"{text}\", \"i\")"
             notation_filter = f" FILTER regex(?notation, \"{text}\", \"i\")"

@@ -51,6 +51,11 @@ class AgentResolver(Resolver):
             given_name_filter = f" FILTER (?givenName = \"{text}\")"
             family_name_filter = f" FILTER (?familyName = \"{text}\")"
             limit = 1
+        elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
+            name_filter = f" FILTER regex(?name, \"^{text}$\", \"i\")"
+            given_name_filter = f" FILTER regex(?givenName, \"^{text}$\", \"i\")"
+            family_name_filter = f" FILTER regex(?familyName, \"^{text}$\", \"i\")"
+            limit = 1
         else:
             name_filter = f" FILTER regex(?name, \"{text}\", \"i\")"
             given_name_filter = f" FILTER regex(?givenName, \"{text}\", \"i\")"
