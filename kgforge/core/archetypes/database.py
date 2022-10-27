@@ -142,3 +142,4 @@ class Database(ABC):
     @abstractmethod
     def _service_from_store(store: Callable, **store_config) -> Any:
         pass
+

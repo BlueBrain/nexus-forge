@@ -65,34 +65,19 @@ class Service:
 
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
-        sparql_config = (
-            searchendpoints["sparql"]
-            if searchendpoints and "sparql" in searchendpoints
-            else None
-        )
-
-        self.headers_sparql = {
-            "Content-Type": sparql_config["Content-Type"]
-            if sparql_config and "Content-Type" in sparql_config
-            else "text/plain",
-            "Accept": sparql_config["Accept"]
-            if sparql_config and "Accept" in sparql_config
-            else "application/sparql-results+json",
-        }
-
-        self.sparql_endpoint = dict()
-        self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
-        self.sparql_endpoint["type"] = "sparql"
-
-    def resolve_context(self, iri: str) -> Dict:
-        if iri in self.context_cache:
-            return self.context_cache[iri]
-        context_to_resolve = iri
         try:
-            context = Context(context_to_resolve)
-        except URLError:
-            raise ValueError(f"{context_to_resolve} is not resolvable")
-        else:
-            document = context.document["@context"]
-        self.context_cache.update({context_to_resolve: document})
-        return document
+            sparql_config = searchendpoints["sparql"]
+            self.headers_sparql = {
+                "Content-Type": sparql_config["Content-Type"]
+                if sparql_config and "Content-Type" in sparql_config
+                else "text/plain",
+                "Accept": sparql_config["Accept"]
+                if sparql_config and "Accept" in sparql_config
+                else "application/sparql-results+json",
+            }
+
+            self.sparql_endpoint = dict()
+            self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
+            self.sparql_endpoint["type"] = "sparql"
+        except Exception:
+            raise ValueError(f"Store configuration error: sparql searchendpoint missing")

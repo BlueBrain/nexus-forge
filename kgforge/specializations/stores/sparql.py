@@ -34,6 +34,7 @@ from kgforge.core.commons.parser import _parse_type
 from kgforge.specializations.stores.bluebrain_nexus import (
     CategoryDataType, _create_select_query,
     _box_value_as_full_iri, sparql_operator_map,
+    build_sparql_query_statements,
     type_map, format_type)
 
 
@@ -137,7 +138,6 @@ class SPARQLStore(Store):
         debug = params.get("debug", False)
         limit = params.get("limit", 100)
         offset = params.get("offset", None)
-        deprecated = params.get("deprecated", False)
         distinct = params.get("distinct", False)
         includes = params.get("includes", None)
         excludes = params.get("excludes", None)
@@ -177,7 +177,7 @@ class SPARQLStore(Store):
         return resources
 
     def sparql(
-        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+        self, query: str, debug: bool = False, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
@@ -185,8 +185,9 @@ class SPARQLStore(Store):
             if self.context is not None and rewrite
             else query
         )
-        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
-        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
+        if rewrite:
+            qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
+            qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
         if debug:
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
@@ -245,7 +246,7 @@ class SPARQLStore(Store):
         endpoint: Optional[str],
         bucket: Optional[str],
         token: Optional[str],
-        searchendpoints: Optional[Dict] = None,
+        searchendpoints: Optional[Dict],
         **store_config,
     ) -> Any:
         try:
@@ -258,6 +259,7 @@ class SPARQLStore(Store):
             accept = store_config.pop("Accept", "application/ld+json")
             params = store_config.pop("params", {})
             store_context = store_config.pop('store_context', None)
+
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
@@ -271,54 +273,3 @@ class SPARQLStore(Store):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
-
-
-def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
-    statements = list()
-    filters = list()
-    for index, f in enumerate(*conditions):
-        last_path = f.path[-1]
-        try:
-            last_term = context.terms[last_path]
-        except KeyError:
-            last_term = None
-        if last_path in ["id", "@id"]:
-            property_path = "/".join(f.path[:-1])
-        elif last_path == "@type":
-            minus_last_path = f.path[:-1]
-            minus_last_path.append("type")
-            property_path = "/".join(minus_last_path)
-        else:
-            property_path = "/".join(f.path)
-        try:
-            if (
-                last_path in ["type", "@type"]
-                or last_path in ["id", "@id"]
-                or (last_term is not None and last_term.type == "@id")
-            ):
-                if f.operator == "__eq__":
-                    statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
-                elif f.operator == "__ne__":
-                    statements.append(f"{property_path} ?v{index}")
-                    filters.append(f"FILTER(?v{index} != {f.value})")
-                else:
-                    raise NotImplementedError(
-                        f"supported operators are '==' and '!=' when filtering by type or id."
-                    )
-            else:
-                parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
-                value_type = type_map[parsed_type]
-                value = format_type[value_type](parsed_value if parsed_value else f.value)
-                if value_type is CategoryDataType.LITERAL:
-                    if f.operator not in ["__eq__", "__ne__"]:
-                        raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
-                    statements.append(f"{property_path} ?v{index}")
-                    filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
-                else:
-                    statements.append(f"{property_path} ?v{index}")
-                    filters.append(
-                        f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
-                    )
-        except NotImplementedError as nie:
-            raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
-    return statements, filters

@@ -11,17 +11,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import json
-from pathlib import Path, PurePath
-from re import I
-import copy
-from typing import Callable, Optional, Union, Dict, List, Any
+from typing import Callable, Optional, Any
 
-from kgforge.core import Resource
 from kgforge.core.archetypes import Store, Database
 from kgforge.core.commons.execution import not_supported
-from kgforge.core.wrappings.paths import FilterOperator
-from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
 
@@ -61,7 +54,6 @@ class StoreDatabase(Database):
             if r not in properties:
                 raise ValueError(f'Missing {r} from the properties to define the DatabasSource')
 
-
     def search(self, resolvers, *filters, **params):
         """Search within the database.
 
@@ -73,10 +65,8 @@ class StoreDatabase(Database):
             return unmapped_resources
         else:
             # Try to find the type of the resources within the filters
-            resource_type = type_from_filters(filters)
+            resource_type = type_from_filters(*filters)
             return self.map_resources(unmapped_resources, resource_type=resource_type)
-
-        return resource_type
     
     def sparql(self, query: str, debug: bool = False, limit: Optional[int] = None, 
                offset: Optional[int] = None,**params):
@@ -105,14 +95,21 @@ class StoreDatabase(Database):
     def health(self) -> Callable:
         not_supported()
 
-def type_from_filters(filters):
+def type_from_filters(*filters) -> Optional[str]:
+    """Returns the first `type` found in filters."""
     resource_type = None
-    if isinstance(filters[0], dict):
-        if 'type' in filters[0]:
-            resource_type = filters[0]['type']
+    filters = filters[0]
+    if isinstance(filters, dict):
+        if 'type' in filters:
+            resource_type = filters['type']
     else:
+        # check filters grouping
+        if isinstance(filters, (list, tuple)):
+            filters = [filter for filter in filters]
+        else:
+            filters = [filters]
         for filter in filters:
-            if 'type' in filter.path and filter.operator is FilterOperator.EQUAL:
+            if 'type' in filter.path and filter.operator is "__eq__":
                 resource_type = filter.value
                 break
     return resource_type
