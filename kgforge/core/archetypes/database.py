@@ -120,6 +120,7 @@ class Database(ABC):
             dirpath = Path(source)
             return self._service_from_directory(dirpath, **source_config)
         elif origin == "web_service":
+            source_config['service_context'] = self.context
             return self._service_from_web_service(source, **source_config)
         elif origin == "store":
             store = import_class(source, "stores")

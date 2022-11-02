@@ -18,7 +18,8 @@ import pytest
 from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.paths import Filter
-from kgforge.specializations.databases.store_database import StoreDatabase, type_from_filters
+from kgforge.specializations.databases.store_database import StoreDatabase
+from kgforge.specializations.databases.utils import type_from_filters
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 import json

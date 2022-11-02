@@ -16,6 +16,7 @@ from typing import Callable, Optional, Any
 from kgforge.core.archetypes import Store, Database
 from kgforge.core.commons.execution import not_supported
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
+from kgforge.specializations.databases.utils import type_from_filters
 
 
 class StoreDatabase(Database):
@@ -94,22 +95,3 @@ class StoreDatabase(Database):
     
     def health(self) -> Callable:
         not_supported()
-
-def type_from_filters(*filters) -> Optional[str]:
-    """Returns the first `type` found in filters."""
-    resource_type = None
-    filters = filters[0]
-    if isinstance(filters, dict):
-        if 'type' in filters:
-            resource_type = filters['type']
-    else:
-        # check filters grouping
-        if isinstance(filters, (list, tuple)):
-            filters = [filter for filter in filters]
-        else:
-            filters = [filters]
-        for filter in filters:
-            if 'type' in filter.path and filter.operator is "__eq__":
-                resource_type = filter.value
-                break
-    return resource_type

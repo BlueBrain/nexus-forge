@@ -47,7 +47,7 @@ from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.databases import StoreDatabase
+from kgforge.specializations.databases import StoreDatabase, WebServiceDatabase
 
 
 class KnowledgeGraphForge:
@@ -1011,9 +1011,9 @@ class KnowledgeGraphForge:
         dbs = {}
         for name in names:
             config = all_config[name]
-            origin = config.get('origin')
+            origin = config['origin']
+            source = config['source']
             if origin == 'store':
-                source = config.get('source')
                 # Reuse complete configuration of the store when Nexus is called
                 if source == store_config['name'] == 'BlueBrainNexus':
                     store_copy = deepcopy(store_config)
@@ -1021,10 +1021,11 @@ class KnowledgeGraphForge:
                                   "source", "name",
                                    store_copy.keys())
                     config['model_context'] = model_context
-                config.update(origin=origin)
-                config.update(source=source)
                 config['name'] = name
                 dbs[name] = StoreDatabase(self, **config)
+            elif origin == 'web_service':
+                config['name'] = name
+                dbs[name] = WebServiceDatabase(self, **config)
             else:
                 raise NotImplementedError(f'Database from {origin} is not yet implemented.')
         return dbs

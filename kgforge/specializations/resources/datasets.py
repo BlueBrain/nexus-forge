@@ -167,9 +167,9 @@ class Dataset(Resource):
         return [_(d) for d in data] if isinstance(data, List) else _(data)
 
 
-def _set(dataset: Dataset, attr: str, data: Union[Resource, List[Resource], LazyAction]) -> None:
-    if hasattr(dataset, attr):
-        value = getattr(dataset, attr)
+def _set(resource: Resource, attr: str, data: Union[Resource, List[Resource], LazyAction]) -> None:
+    if hasattr(resource, attr):
+        value = getattr(resource, attr)
         if isinstance(value, List):
             if isinstance(data, List):
                 value.extend(data)
@@ -180,6 +180,6 @@ def _set(dataset: Dataset, attr: str, data: Union[Resource, List[Resource], Lazy
                 new = [value, *data]
             else:
                 new = [value, data]
-            setattr(dataset, attr, new)
+            setattr(resource, attr, new)
     else:
-        setattr(dataset, attr, data)
+        setattr(resource, attr, data)

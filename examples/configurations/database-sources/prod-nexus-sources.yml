@@ -78,3 +78,19 @@ Databases:
       source: /Users/cgonzale/Documents/code/nexus-forge/examples/database-sources/NeuroElectro
       context:
         iri: /Users/cgonzale/Documents/code/nexus-forge/examples/models/neuroshapes_context.json 
+  NeuroMorpho:
+    origin: web_service
+    source: http://neuromorpho.org/api/neuron
+    health: http://neuromorpho.org/api/health
+    files_download:
+      endpoint: https://neuromorpho.org/dableFiles
+      Accept: "*/*"
+    max_connection: 50
+    content_type: application/json;charset=UTF-8
+    accept: "*/*"
+    model:
+      name: RdfModel
+      origin: directory
+      source: /Users/cgonzale/Documents/code/nexus-forge/examples/database-sources/Neuromorpho
+      context:
+        iri: /Users/cgonzale/Documents/code/nexus-forge/examples/database-sources/Neuromorpho/jsonld_context.json
