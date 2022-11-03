@@ -11,6 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
@@ -52,9 +53,11 @@ class AgentResolver(Resolver):
             family_name_filter = f" FILTER (?familyName = \"{text}\")"
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            name_filter = f" FILTER regex(?name, \"^{text}$\", \"i\")"
-            given_name_filter = f" FILTER regex(?givenName, \"^{text}$\", \"i\")"
-            family_name_filter = f" FILTER regex(?familyName, \"^{text}$\", \"i\")"
+            tmp_text = re.sub('\W+', "\\\\S", text)
+            final = tmp_text.replace("\S", "\\\\p{Punct}")
+            name_filter = f" FILTER regex(?name, \"^{final}$\", \"i\")"
+            given_name_filter = f" FILTER regex(?givenName, \"^{final}$\", \"i\")"
+            family_name_filter = f" FILTER regex(?familyName, \"^{final}$\", \"i\")"
             limit = 1
         else:
             name_filter = f" FILTER regex(?name, \"{text}\", \"i\")"
