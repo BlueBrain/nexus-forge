@@ -53,7 +53,7 @@ class AgentResolver(Resolver):
             family_name_filter = f" FILTER (?familyName = \"{text}\")"
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            tmp_text = re.sub('\W+', "\\\\S", text)
+            tmp_text = re.sub(r'[-()\"#/@;:<>{}`+=~|.!?,]', "\\\\S", text)
             final = tmp_text.replace("\S", "\\\\p{Punct}")
             name_filter = f" FILTER regex(?name, \"^{final}$\", \"i\")"
             given_name_filter = f" FILTER regex(?givenName, \"^{final}$\", \"i\")"

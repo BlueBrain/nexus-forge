@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import re
+import re, string
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
@@ -56,7 +56,7 @@ class OntologyResolver(Resolver):
             altLabel_filter = f" FILTER (?altLabel = \"{text}\")"
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            tmp_text = re.sub('\W+', "\\\\S", text)
+            tmp_text = re.sub(r'[-()\"#/@;:<>{}`+=~|.!?,]', "\\\\S", text)
             final = tmp_text.replace("\S", "\\\\p{Punct}")
             label_filter = f" FILTER regex(?label, \"^{final}$\", \"i\")"
             notation_filter = f" FILTER regex(?notation, \"^{final}$\", \"i\")"
