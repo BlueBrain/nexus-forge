@@ -531,14 +531,22 @@ class KnowledgeGraphForge:
             if isinstance(type_, list):
                 for type in type_:
                     for db in self._db_sources:
-                        types = self._db_sources[db].datatypes()
-                        if type in types:
-                            sources[db] = self._db_sources[db]
+                        try:
+                            types = self._db_sources[db].types()
+                            if type in types:
+                                sources[db] = self._db_sources[db]
+                        except ValueError:
+                            # skiping db without mappings
+                            continue
             else:
                 for db in self._db_sources:
-                    types = self._db_sources[db].datatypes()
-                    if type_ in types:
-                        sources[db] = self._db_sources[db]
+                    try:
+                        types = self._db_sources[db].types()
+                        if type_ in types:
+                            sources[db] = self._db_sources[db]
+                    except ValueError:
+                            # skiping db without mappings
+                        continue
             if not sources:
                 print("No Database sources were found for the given type(s)")
         if pretty:
