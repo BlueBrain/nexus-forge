@@ -3,18 +3,24 @@
         Dataset
         NeuronMorphology
     ]
-    id: forge.format('identifier', 'neuronmorphologies/neuromorpho', f'{x.neuron_id:09}')
-    brainLocation: forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_MATCH') if forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_MATCH') else x.brain_region[0]  
+    id: forge.format('identifier', 'neuronmorphologies/neuromorpho', f'{x.bbpID}')
+    brainLocation: {
+        type: BrainLocation
+        brainRegion: forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_CASEINSENSITIVE_MATCH') if forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_CASEINSENSITIVE_MATCH') else {'label': x.brain_region[0]}  
+    }
     contribution:
     {
         type: Contribution
         agent:
         {
             type: Organization
-            label: "George Mason University"
+            label: George Mason University
         }
     }
-    identifier: x.neuron_id
+    identifier: {
+      propertyID: NeuroMorhoID
+      value: x.neuron_id
+    }
     archive: x.archive
     name: x.neuron_name
     generation:
@@ -23,16 +29,13 @@
         activity:
         {
             type: "nsg:NeuronMorphologyReconstruction"
-            hadProtocol:{
-
-            }
         }
     }
     subject:
     {
         type: Subject
         species: forge.resolve(x.species, scope='ontology', strategy='EXACT_MATCH') if forge.resolve(x.species, scope='ontology', strategy='EXACT_MATCH') else {'label': x.species}    
-        strain: forge.resolve(x.scientific_name, scope='ontology', strategy='EXACT_MATCH') if forge.resolve(x.scientific_name, scope='ontology', strategy='EXACT_MATCH') else {'label': x.scientific_name}
+        strain: forge.resolve(x.scientific_name, scope='ontology', strategy='EXACT_MATCH') if forge.resolve(x.scientific_name, scope='ontology', strategy='EXACT_MATCH') else None 
     }
     license:
     {
@@ -46,8 +49,11 @@
         label: Single Cell
     }
     note: x.note
-    dateCreated: x.deposition_date
-    dateUploaded: x.upload_date
+    dateCreated: {
+        type: "xsd:dateTime"
+        value: x.deposition_date
+    }
     description: f"Morphology of {x.neuron_name} obtained from NeuroMorpho API."
     stain: x.stain
+    version: "8.4.7"
 }

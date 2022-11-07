@@ -88,7 +88,7 @@ class Database(ABC):
 
     def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
-        return list(self.mappings().keys())
+        return list(self._model.mappings(self._model.source, False).keys())
 
     @abstractmethod
     def search(self, resolvers, *filters, **params) -> Resource:

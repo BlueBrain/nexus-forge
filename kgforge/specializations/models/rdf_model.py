@@ -98,7 +98,7 @@ class RdfModel(Model):
             for x in dirpath.glob("*/*.hjson"):
                 mappings.setdefault(x.stem, []).append(x.parent.name)
         else:
-            raise ValueError("unrecognized source")
+            raise ValueError(f"unrecognized source {dirpath}")
         return mappings
 
     def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
@@ -107,7 +107,7 @@ class RdfModel(Model):
         if filepath.is_file():
             return type.load(filepath)
         else:
-            raise ValueError("unrecognized entity type or source file")
+            raise ValueError(f"unrecognized entity type or source file: {filepath}")
 
     # Templates.
 
