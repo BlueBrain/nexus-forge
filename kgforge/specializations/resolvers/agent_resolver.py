@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
@@ -47,22 +48,18 @@ class AgentResolver(Resolver):
         if type:
             first_filters = f"{first_filters} ; a {type}"
 
+        properties = ['name', 'givenName', 'familyName']
         if strategy == strategy.EXACT_MATCH:
-            name_filter = f" FILTER (?name = \"{text}\")"
-            given_name_filter = f" FILTER (?givenName = \"{text}\")"
-            family_name_filter = f" FILTER (?familyName = \"{text}\")"
+            name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties)
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            tmp_text = re.sub(r'[-()\"#/@;:<>{}`+=~|.!?,]', "\\\\S", text)
-            final = tmp_text.replace("\S", "\\\\p{Punct}")
-            name_filter = f" FILTER regex(?name, \"^{final}$\", \"i\")"
-            given_name_filter = f" FILTER regex(?givenName, \"^{final}$\", \"i\")"
-            family_name_filter = f" FILTER regex(?familyName, \"^{final}$\", \"i\")"
+            new_text = f"^{escape_punctuation(text)}$"
+            name_filter, given_name_filter, family_name_filter = write_sparql_filters(new_text, properties,
+                                                                                      regex=True, case_insensitive=True)
             limit = 1
         else:
-            name_filter = f" FILTER regex(?name, \"{text}\", \"i\")"
-            given_name_filter = f" FILTER regex(?givenName, \"{text}\", \"i\")"
-            family_name_filter = f" FILTER regex(?familyName, \"{text}\", \"i\")"
+            name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties, regex=True,
+                                                                                      case_insensitive=True)
             if strategy == strategy.BEST_MATCH:
                 limit = 1
 

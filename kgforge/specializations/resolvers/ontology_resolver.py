@@ -17,6 +17,7 @@ from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
@@ -49,25 +50,21 @@ class OntologyResolver(Resolver):
         if type:
             first_filters = f"{first_filters} ; a {type}"
 
+        properties = ['label', 'notation', 'prefLabel', 'altLabel']
         if strategy == strategy.EXACT_MATCH:
-            label_filter = f" FILTER (?label = \"{text}\")"
-            notation_filter = f" FILTER (?notation = \"{text}\")"
-            prefLabel_filter = f" FILTER (?prefLabel = \"{text}\")"
-            altLabel_filter = f" FILTER (?altLabel = \"{text}\")"
+            label_filter, notation_filter, \
+              prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties)
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            tmp_text = re.sub(r'[-()\"#/@;:<>{}`+=~|.!?,]', "\\\\S", text)
-            final = tmp_text.replace("\S", "\\\\p{Punct}")
-            label_filter = f" FILTER regex(?label, \"^{final}$\", \"i\")"
-            notation_filter = f" FILTER regex(?notation, \"^{final}$\", \"i\")"
-            prefLabel_filter = f" FILTER regex(?prefLabel, \"^{final}$\", \"i\")"
-            altLabel_filter = f" FILTER regex(?altLabel, \"^{final}$\", \"i\")"
+            new_text = f"^{escape_punctuation(text)}$"
+            label_filter, notation_filter, \
+              prefLabel_filter, altLabel_filter = write_sparql_filters(new_text, properties,
+                                                                       regex=True, case_insensitive=True)
             limit = 1
         else:
-            label_filter = f" FILTER regex(?label, \"{text}\", \"i\")"
-            notation_filter = f" FILTER regex(?notation, \"{text}\", \"i\")"
-            prefLabel_filter = f" FILTER regex(?prefLabel, \"{text}\", \"i\")"
-            altLabel_filter = f" FILTER regex(?altLabel, \"{text}\", \"i\")"
+            label_filter, notation_filter, \
+            prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties,
+                                                                     regex=True, case_insensitive=True)
             if strategy == strategy.BEST_MATCH:
                 limit = 1
 
