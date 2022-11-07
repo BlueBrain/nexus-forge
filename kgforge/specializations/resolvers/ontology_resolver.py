@@ -52,21 +52,21 @@ class OntologyResolver(Resolver):
 
         properties = ['label', 'notation', 'prefLabel', 'altLabel']
         if strategy == strategy.EXACT_MATCH:
-            label_filter, notation_filter, \
-              prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties)
-            limit = 1
+            regex = False
+            case_insensitive = False
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            new_text = f"^{escape_punctuation(text)}$"
-            label_filter, notation_filter, \
-              prefLabel_filter, altLabel_filter = write_sparql_filters(new_text, properties,
-                                                                       regex=True, case_insensitive=True)
+            regex = True
+            case_insensitive = True
+            text = f"^{escape_punctuation(text)}$"
             limit = 1
         else:
-            label_filter, notation_filter, \
-            prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties,
-                                                                     regex=True, case_insensitive=True)
+            regex = True
+            case_insensitive = True
             if strategy == strategy.BEST_MATCH:
                 limit = 1
+        label_filter, notation_filter, \
+            prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties,
+                                                                     regex, case_insensitive)
 
         query = """
             CONSTRUCT {{

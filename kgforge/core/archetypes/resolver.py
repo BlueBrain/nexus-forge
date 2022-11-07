@@ -138,6 +138,7 @@ class Resolver(ABC):
     def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> Any:
         not_supported()
 
+
 def escape_punctuation(text):
     if not isinstance(text, str):
         raise TypeError('Only accepting strings.')
@@ -146,7 +147,6 @@ def escape_punctuation(text):
         if p in text:
             text = text.replace(p, f"\\\\{p}")
     return text
-
 
 def write_sparql_filters(text, properties: List, regex=False,
                          case_insensitive=False) -> List[str]:

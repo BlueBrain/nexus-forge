@@ -50,18 +50,21 @@ class AgentResolver(Resolver):
 
         properties = ['name', 'givenName', 'familyName']
         if strategy == strategy.EXACT_MATCH:
-            name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties)
+            regex = False
+            case_insensitive = False
             limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            new_text = f"^{escape_punctuation(text)}$"
-            name_filter, given_name_filter, family_name_filter = write_sparql_filters(new_text, properties,
-                                                                                      regex=True, case_insensitive=True)
+            text = f"^{escape_punctuation(text)}$"
+            regex = True
+            case_insensitive = True
             limit = 1
         else:
-            name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties, regex=True,
-                                                                                      case_insensitive=True)
+            regex = True
+            case_insensitive = True
             if strategy == strategy.BEST_MATCH:
                 limit = 1
+        name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties,
+                                                                                  regex, case_insensitive)
 
         query = """
             CONSTRUCT {{
