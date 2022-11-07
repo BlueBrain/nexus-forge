@@ -53,3 +53,4 @@ Resolvers:
 
 Formatters:
   identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}/{}
+  identifier_with_org_project: https://bbp.epfl.ch/data/{}/{}/{}
