@@ -52,7 +52,7 @@ def resources_from_results(results):
         for x in results
     ]
 
-def request(url, headers, **params):
+def resources_from_request(url, headers, **params):
     """Perform a HTTP request"""
     response_location = params.pop('response_loc', None)
     try:

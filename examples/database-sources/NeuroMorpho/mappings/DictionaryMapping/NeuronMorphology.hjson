@@ -51,7 +51,7 @@
     note: x.note
     dateCreated: {
         type: "xsd:dateTime"
-        value: x.deposition_date
+        @value: x.date_created
     }
     description: f"Morphology of {x.neuron_name} obtained from NeuroMorpho API."
     stain: x.stain

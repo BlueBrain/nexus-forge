@@ -36,7 +36,7 @@ from kgforge.core.conversions.rdf import (
     recursive_resolve,
 )
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
-from kgforge.specializations.databases.utils import request
+from kgforge.specializations.databases.utils import resources_from_request
 from kgforge.specializations.stores.bluebrain_nexus import _error_message
 
 
@@ -78,4 +78,4 @@ class WebService:
         if not isinstance(filter_params, dict):
             raise NotImplementedError('Currently only the use of a dictionary is implemented')
         query_params = {**filter_params, **params}
-        return request(self.endpoint, self.headers, **query_params)
+        return resources_from_request(self.endpoint, self.headers, **query_params)
