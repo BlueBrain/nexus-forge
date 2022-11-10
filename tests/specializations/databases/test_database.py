@@ -13,11 +13,13 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 # Placeholder for the test suite for actions.
+import copy
 import pytest
 
 from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.paths import Filter
+from kgforge.specializations.databases import WebServiceDatabase
 from kgforge.specializations.databases.store_database import StoreDatabase
 from kgforge.specializations.databases.utils import type_from_filters
 from kgforge.core.commons.exceptions import ConfigurationError
@@ -79,36 +81,6 @@ def context(dict_context):
     return Context(dict_context)
 
 
-@pytest.fixture
-def model_config():
-    return {
-        "name": "DemoModel",
-        "origin": "directory",
-        "source": "tests/data/demo-model/"
-    }
-
-@pytest.fixture
-def db_config():
-    return {
-            "origin": "store",
-            "source": "SPARQLStore",
-            "searchendpoints":{
-                "sparql":{
-                    "endpoint": "http://dbpedia.org/sparql"
-                },
-       
-            },
-            "model": {
-                    "name": "DemoModel",
-                    "origin": "directory",
-                    "source": "tests/data/demo-model/",
-                    "context":{
-                        "iri": "test/data/dbpedia"
-                    }
-            }
-    }
-
-@pytest.fixture
 def forge(db_config, model_config):
     config = {
         "Model": model_config,
@@ -121,30 +93,123 @@ def forge(db_config, model_config):
     }
     return KnowledgeGraphForge(config)
 
+@pytest.fixture
+def model_config():
+    return {
+        "name": "DemoModel",
+        "origin": "directory",
+        "source": "tests/data/demo-model/"
+    }
 
-def test_database_config(forge, db_config, model_config):
-    with pytest.raises(ValueError):
-        StoreDatabase(db_config) # Missing forge
-    with pytest.raises(ValueError):
-        StoreDatabase(forge, **db_config) # Missing name
-    with pytest.raises(ValueError):
-        # Missing model
-        StoreDatabase(forge, **{'name': 'mydb', 'origin': 'store',
-                       'source':'tests/data/demo-store/'})
-    with pytest.raises(ConfigurationError):
-        StoreDatabase(forge, **{'name': 'mydb', 'origin': 'store',
-                       'source':'tests/data/demo-store/',
-                       'model': model_config})
+@pytest.fixture
+def storedb_config():
+    return {
+            "origin": "store",
+            "source": "SPARQLStore",
+            "searchendpoints":{
+                "sparql":{
+                    "endpoint": "http://dbpedia.org/sparql"
+                },
 
-def test_database_directory(forge, model_config):
-    with pytest.raises(Exception):
-        StoreDatabase(forge, **{'name': 'mydb', 'origin': 'directory',
-                       'source':'tests/data/demo-store/',
-                       'model': model_config})
+            },
+            "model": {
+                    "name": "DemoModel",
+                    "origin": "directory",
+                    "source": "tests/data/demo-model/",
+                    "context":{
+                        "iri": "test/data/dbpedia"
+                    }
+            }
+    }
+class TestStoreDB:
 
-def test_database_web_serice(forge, model_config):
-    with pytest.raises(Exception):
-        StoreDatabase(forge, **{'name': 'mydb', 'origin': 'web_service',
-                       'source':'tests/data/demo-store/',
-                       'model': model_config})
+    @pytest.fixture
+    def forge_with_store(storedb_config, model_config):
+        return forge(storedb_config, model_config)
 
+    def test_database_config(forge_with_store, storedb_config, model_config):
+        with pytest.raises(ValueError):
+            StoreDatabase(storedb_config) # Missing forge
+        with pytest.raises(ValueError):
+            StoreDatabase(forge_with_store, **storedb_config) # Missing name
+        with pytest.raises(ValueError):
+            # Missing model
+            StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'store',
+                           'source':'tests/data/demo-store/'})
+        with pytest.raises(ConfigurationError):
+            StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'store',
+                           'source':'tests/data/demo-store/',
+                           'model': model_config})
+
+    def test_database_directory(forge_with_store, model_config):
+        with pytest.raises(Exception):
+            StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'directory',
+                           'source':'tests/data/demo-store/',
+                           'model': model_config})
+
+    def test_database_wrong_web_service(forge_with_store, model_config):
+        with pytest.raises(Exception):
+            StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'web_service',
+                           'source':'tests/data/demo-store/',
+                           'model': model_config})
+
+
+@pytest.fixture
+def ws_db_config():
+    return {
+            "name": "uniprot",
+            "origin": "web_service",
+            "source": "https://rest.uniprot.org/uniprotkb/",
+            "model": {
+                    "name": "DemoModel",
+                    "origin": "directory",
+                    "source": "tests/data/demo-model/",
+                    "context":{
+                        "iri": "examples/database-sources/UniProt"
+                    }
+            },
+            "max_connection": 10,
+            "content_type": "application/json;charset=UTF-8",
+            "accept": "*/*"
+    }
+
+class TestWebServiceDB:
+    @pytest.fixture
+    def forge_with_wsdb(ws_db_config, model_config):
+        return forge(ws_db_config, model_config)
+
+    def test_database_config(forge_with_wsdb, ws_db_config, model_config):
+        with pytest.raises(ValueError):
+            WebServiceDatabase(ws_db_config) # Missing forge
+        with pytest.raises(ValueError):
+            # Missing model
+            WebServiceDatabase(forge_with_wsdb, **{'name': 'mydb', 'origin': 'web_service',
+                           'source':'tests/data/demo-store/', 'max_connection': 5,
+                           'content_type': 'application/json', 'accept': '*/*'})
+        with pytest.raises(ValueError):
+            # Missing max_connection
+            WebServiceDatabase(forge_with_wsdb, **{'name': 'mydb', 'origin': 'web_service',
+                           'source':'tests/data/demo-store/',
+                           'content_type': 'application/json', 'accept': '*/*'})
+        with pytest.raises(ValueError):
+            # Missing content_type
+            WebServiceDatabase(forge_with_wsdb, **{'name': 'mydb', 'origin': 'web_service',
+                           'source':'tests/data/demo-store/', 'max_connection': 5,
+                           'content_type': 'application/json'})
+        
+    def test_database_directory(forge_with_wsdb, model_config):
+        with pytest.raises(Exception):
+            WebServiceDatabase(forge_with_wsdb, **{'name':'mydb', 'origin': 'directory',
+                           'source':'tests/data/demo-store/',
+                           'model': model_config})
+    def test_database_wrong_store(forge_with_wsdb, model_config):
+        with pytest.raises(Exception):
+            WebServiceDatabase(forge_with_wsdb, **{'name': 'mydb', 'origin': 'store',
+                           'source':'tests/data/demo-store/',
+                           'model': model_config})
+
+    def test_searchendpoint_config(forge_with_wsdb, ws_db_config):
+        tmp_config = copy.deepcopy(ws_db_config)
+        tmp_config['searchendpoints'] = {'some_endpoint': {'wrong': 'True'}}
+        with pytest.raises(ConfigurationError):
+            WebServiceDatabase(forge_with_wsdb, **tmp_config)

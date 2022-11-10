@@ -16,7 +16,7 @@ import requests
 import asyncio
 from aiohttp import ClientSession
 from requests.exceptions import SSLError
-from typing import Callable, List, Optional, Any
+from typing import Callable, List, Optional, Any, Union
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Database, Store
@@ -109,10 +109,19 @@ class WebServiceDatabase(Database):
             _set(resource, "distribution", action)
 
     @catch
-    def download(self, urls: str, paths: str, overwrite: bool = False) -> None:
+    def download(self, urls: Union[str, List[str]], 
+                paths: Union[str, List[str]], overwrite: bool = False) -> None:
         # path: DirPath.
         """Download files """
-        pass
+        if isinstance(urls, list):
+            # Check consistancy between urls and paths
+            if not isinstance(paths, list):
+                raise TypeError("Given multiple urls, paths should also be a list.")
+            if len(paths) != len(urls):
+                raise ValueError("Missmatch between urls and paths, they should be the same ammount.")
+            self._download_many(urls, paths)
+        else:
+            self._download_one(urls, paths)
 
     def _download_many(self, urls: List[str],
                        paths: List[str]) -> None:

@@ -11,31 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
-
-from logging import exception
 import copy
-import json
-from pathlib import Path
-from collections import namedtuple
-from copy import deepcopy
-from enum import Enum
 from typing import Callable, Dict, List, Optional, Union, Tuple
-from urllib.error import URLError
-from urllib.parse import quote_plus, urlparse
 
-import requests
 from numpy import nan
-from requests import HTTPError
 
-from kgforge.core import Resource
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import DownloadingError
-from kgforge.core.conversions.rdf import (
-    _from_jsonld_one,
-    recursive_resolve,
-)
-from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
+from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.specializations.databases.utils import resources_from_request
 from kgforge.specializations.stores.bluebrain_nexus import _error_message
 
@@ -59,6 +41,11 @@ class WebService:
         self.context = service_context
         self.max_connection = max_connection
         self.files_download = params.pop('files_download', None)
+        self.search_endpoints = params.pop('searchendpoints', None)
+        if self.search_endpoints:
+            for endpoint in self.search_endpoints:
+                if not 'endpoint' in self.search_endpoints[endpoint]:
+                    raise ConfigurationError(f"Missing endpoint searchenpoints")
         self.params = copy.deepcopy(params)
 
         self.headers = {"Content-Type": content_type, "Accept": accept}
@@ -77,5 +64,7 @@ class WebService:
         filter_params = filters[0]
         if not isinstance(filter_params, dict):
             raise NotImplementedError('Currently only the use of a dictionary is implemented')
+        searchendpoint = params.pop('searchendpoint', None)
+        endpoint = self.search_endpoints[searchendpoint]['endpoint'] if searchendpoint else self.endpoint
         query_params = {**filter_params, **params}
-        return resources_from_request(self.endpoint, self.headers, **query_params)
+        return resources_from_request(endpoint, self.headers, **query_params)
