@@ -54,6 +54,7 @@ class OntologyResolver(Resolver):
         if strategy == strategy.EXACT_MATCH:
             regex = False
             case_insensitive = False
+            limit = 1
         elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
             regex = True
             case_insensitive = True

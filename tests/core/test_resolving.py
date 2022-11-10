@@ -58,9 +58,6 @@ def check_text():
 agent_properties = ["name", "givenName", "familyName"]
 ontology_properties = ['label', 'notation', 'prefLabel', 'altLabel']
 
-# f" FILTER (?prefLabel = \"{text}\")"
-#  FILTER regex(?label, \"^{text}$\", \"i\")"
-
 def test_write_filters_params(text):
     with pytest.raises(ValueError):
         write_sparql_filters(text, ['name'], case_insensitive=True)
