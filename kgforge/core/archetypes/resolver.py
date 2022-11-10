@@ -150,13 +150,15 @@ def escape_punctuation(text):
 
 def write_sparql_filters(text, properties: List, regex=False,
                          case_insensitive=False) -> List[str]:
-    start_str = "FILTER regex(" if regex else " FILTER ("
+    if case_insensitive and not regex:
+        raise ValueError('Case-insensitive option only valid when regex is True.')
+    start_str = " FILTER regex(" if regex else " FILTER ("
     end_str = ", \"i\")" if case_insensitive else ")"
     filters = []
     for property in properties:
         if regex:
             full_str = start_str + f"?{property}, \"{text}\"" + end_str
         else:
-            full_str = start_str + f"?{property}=\"{text}\"" + end_str
+            full_str = start_str + f"?{property} = \"{text}\"" + end_str
         filters.append(full_str)
     return filters
