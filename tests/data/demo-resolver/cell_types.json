@@ -1,0 +1,27 @@
+[
+  {
+    "id": "https://neuroshapes.org/PyramidalNeuron",
+    "type": "Class",
+    "label": "Pyramidal Neuron"
+  },
+  {
+    "id": "https://bbp.epfl.ch/ontologies/core/celltypes/Lamp_plus",
+    "type": "Class",
+    "label": "Lamp+"
+  },
+  {
+    "id": "https://bbp.epfl.ch/ontologies/core/ttypes/21_Sncg`",
+    "type": "Class",
+    "label": "21_Sncg"
+  },
+  {
+    "id": "https://bbp.epfl.ch/ontologies/core/ttypes/270_L5_6_NP_CT_CTX",
+    "type": "Class",
+    "label": "270_L5/6 NP CT CTX"
+  },
+  {
+    "id": "http://bbp.epfl.ch/neurosciencegraph/ontologies/etypes/cACint",
+    "type": "Class",
+    "label": "cACint"
+  }
+]
