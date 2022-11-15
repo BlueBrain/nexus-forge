@@ -41,6 +41,7 @@ def type_from_filters(*filters) -> Optional[str]:
     return resource_type
 
 def resources_from_results(results):
+    """Returns Resources from standard response bindings."""
     return [
         Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] =='literal' and
                                                               ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#boolean')
@@ -53,7 +54,15 @@ def resources_from_results(results):
     ]
 
 def resources_from_request(url, headers, **params):
-    """Perform a HTTP request"""
+    """Perform a HTTP request
+    params:
+    -------
+        response_loc : list[str]
+            The nested location of the relevat metadata in the
+            response.
+            Example: NeuroMorpho uses response["_embedded"]["neuronResources"]
+            which should be given as: response_loc = ["_embedded", "neuronResources"]
+    """
     response_location = params.pop('response_loc', None)
     try:
         response = requests.get(
@@ -65,6 +74,7 @@ def resources_from_request(url, headers, **params):
     else:
         data = response.json()
         if response_location:
+            # Get the resources directly from a location in the response
             if isinstance(response_location, str):
                 results = data[response_location]
             elif isinstance(response_location, (list, tuple)):
@@ -73,5 +83,6 @@ def resources_from_request(url, headers, **params):
                 results = data
             return [Resource(**result) for result in results]
         else:
+            # Standard response format
             results = data["results"]["bindings"]
             return resources_from_results(results)

@@ -12,9 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import copy
-from typing import Callable, Dict, List, Optional, Union, Tuple
-
-from numpy import nan
+from typing import Dict, List, Optional, Union, Tuple
 
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
@@ -65,6 +63,17 @@ class WebService:
         if not isinstance(filter_params, dict):
             raise NotImplementedError('Currently only the use of a dictionary is implemented')
         searchendpoint = params.pop('searchendpoint', None)
-        endpoint = self.search_endpoints[searchendpoint]['endpoint'] if searchendpoint else self.endpoint
+        if searchendpoint:
+            if self.search_endpoints is None:
+                raise ConfigurationError(f"No searchendpoints were given " \
+                                           "in the initial configuration.")
+            try:
+                endpoint = self.search_endpoints[searchendpoint]['endpoint']
+            except KeyError:
+                raise ConfigurationError(f"The {searchendpoint} searchpoint was not given "\
+                                           "in the initial configuration.")
+
+        else:
+            endpoint = self.endpoint
         query_params = {**filter_params, **params}
         return resources_from_request(endpoint, self.headers, **query_params)

@@ -22,7 +22,7 @@ from kgforge.core.wrappings.paths import Filter
 from kgforge.specializations.databases import WebServiceDatabase
 from kgforge.specializations.databases.store_database import StoreDatabase
 from kgforge.specializations.databases.utils import type_from_filters
-from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.exceptions import ConfigurationError, QueryingError
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 import json
 
@@ -213,3 +213,12 @@ class TestWebServiceDB:
         tmp_config['searchendpoints'] = {'some_endpoint': {'wrong': 'True'}}
         with pytest.raises(ConfigurationError):
             WebServiceDatabase(forge_with_wsdb, **tmp_config)
+
+    def test_search(forge_with_wsdb, ws_db_config):
+        tmp_config = copy.deepcopy(ws_db_config)
+        tmp_config['searchendpoints'] = {'some_endpoint': {'endpoint': "https://my_endpoint.com/API/"}}
+        db = WebServiceDatabase(forge_with_wsdb, **tmp_config)
+        with pytest.raises(ConfigurationError):
+            db.search([], {'type': 'Protein'}, searchendpoint='uniprot')
+        with pytest.raises(QueryingError):
+            db.search([], {'type': 'Protein'})
