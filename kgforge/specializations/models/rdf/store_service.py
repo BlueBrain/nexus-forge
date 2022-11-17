@@ -57,15 +57,11 @@ class StoreService(RdfService):
             attrs["properties"] = props
         return NodeProperties(**attrs)
 
-    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
+    def _validate(self, iri: str, data_graph: Graph, debug: bool) -> Tuple[bool, Graph, str]:
         # _type_shape will make sure all the shapes for this type are in the graph
         self._type_shape(iri)
-        # validator = Validator(data_graph, shacl_graph=self._graph)
-        result = validate(data_graph, shacl_graph=self._graph, debug=True)
-        conforms, results_graph, results_text = result
-        print(results_text)
+        result = validate(data_graph, shacl_graph=self._graph, debug=debug)
         return result
-        # return validator.run()
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:

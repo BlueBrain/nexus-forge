@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from pyshacl import Validator
+from pyshacl import validate
 from rdflib import Graph, URIRef
 from rdflib.util import guess_format
 
@@ -43,9 +43,9 @@ class DirectoryService(RdfService):
             attrs["properties"] = props
         return NodeProperties(**attrs)
 
-    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
-        validator = Validator(data_graph, shacl_graph=self._graph)
-        return validator.run()
+    def _validate(self, iri: str, data_graph: Graph, debug: bool) -> Tuple[bool, Graph, str]:
+        result = validate(data_graph, shacl_graph=self._graph, debug=debug)
+        return result
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:

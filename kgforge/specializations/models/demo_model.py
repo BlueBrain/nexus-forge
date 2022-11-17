@@ -81,7 +81,7 @@ class DemoModel(Model):
 
     # Validation.
 
-    def _validate_one(self, resource: Resource, type_: str) -> None:
+    def _validate_one(self, resource: Resource, type_: str, debug: bool) -> None:
         """
         Validates the model against a given type provided by type_ parameter.
         If type_ is None then it looks for type attribute in resource.

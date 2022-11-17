@@ -283,8 +283,9 @@ class KnowledgeGraphForge:
     def validate(
         self,
         data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
-        type_: str=None
+        execute_actions_before: bool = False,
+        type_: str=None,
+        debug: bool = False
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -297,7 +298,7 @@ class KnowledgeGraphForge:
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_)
+        self._model.validate(data, execute_actions_before, type_, debug)
 
     # Resolving User Interface.
 

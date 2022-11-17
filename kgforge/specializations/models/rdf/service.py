@@ -155,7 +155,7 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, type_: str):
+    def validate(self, resource: Resource, type_: str, debug: bool):
         try:
             if isinstance(resource.type, list) and type_ is None:
                 raise ValueError("Resource has list of types as attribute and type_ parameter is not specified. "
@@ -168,10 +168,10 @@ class RdfService:
             raise TypeError("resource requires a type attribute")
         else:
             data_graph = as_graph(resource, False, self.context, None, None)
-            return self._validate(shape_iri, data_graph)
+            return self._validate(shape_iri, data_graph, debug)
 
     @abstractmethod
-    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
+    def _validate(self, iri: str, data_graph: Graph, debug: bool) -> Tuple[bool, Graph, str]:
         raise NotImplementedError()
 
     @abstractmethod
