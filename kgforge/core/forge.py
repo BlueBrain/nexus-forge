@@ -284,8 +284,7 @@ class KnowledgeGraphForge:
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool = False,
-        type_: str=None,
-        debug: bool = False
+        type_: str=None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -298,6 +297,7 @@ class KnowledgeGraphForge:
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
         :return: None
         """
+        debug = self._debug
         self._model.validate(data, execute_actions_before, type_, debug)
 
     # Resolving User Interface.
@@ -642,7 +642,7 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
-        self._store.register(data, schema_id)
+        self._store.register(data, schema_id, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def update(
@@ -654,7 +654,7 @@ class KnowledgeGraphForge:
         :param data: the resources to update
         :param schema_id: an identifier of the schema the updated resources should conform to
         """
-        self._store.update(data, schema_id)
+        self._store.update(data, schema_id, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
@@ -663,7 +663,7 @@ class KnowledgeGraphForge:
 
         :param: the resources to deprecate
         """
-        self._store.deprecate(data)
+        self._store.deprecate(data, debug=self._debug)
 
     # Versioning User Interface.
 
@@ -675,7 +675,7 @@ class KnowledgeGraphForge:
         :param data: the resources to tag
         :param value: the tag value
         """
-        self._store.tag(data, value)
+        self._store.tag(data, value, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
@@ -685,7 +685,7 @@ class KnowledgeGraphForge:
 
         :param data: the resources to freeze
         """
-        self._store.freeze(data)
+        self._store.freeze(data, debug=self._debug)
 
     # Files Handling User Interface.
 
@@ -728,7 +728,6 @@ class KnowledgeGraphForge:
             self._model.resolve_context,
         )
 
-    @catch
     @catch
     def as_jsonld(
         self,

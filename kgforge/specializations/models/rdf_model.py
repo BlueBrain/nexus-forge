@@ -109,8 +109,10 @@ class RdfModel(Model):
 
     def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str,
                  debug: bool) -> None:
+        catch_exceptions = False if debug else True
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated", type_=type_, debug=debug)
+            exception=ValidationError, monitored_status="_validated", catch_exceptions=catch_exceptions,
+            type_=type_, debug=debug)
 
     def _validate_many(self, resources: List[Resource], type_: str, debug: bool) -> None:
         for resource in resources:

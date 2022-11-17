@@ -37,7 +37,7 @@ from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
 from datetime import datetime
-from requests import HTTPError
+from requests import HTTPError, Response
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -136,8 +136,9 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
 
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None
+        self, data: Union[Resource, List[Resource]], schema_id: str = None, debug: bool = False
     ) -> None:
+        catch_exceptions = False if debug else True
         run(
             self._register_one,
             self._register_many,
@@ -145,6 +146,7 @@ class BlueBrainNexus(Store):
             required_synchronized=False,
             execute_actions=True,
             exception=RegistrationError,
+            catch_exceptions=catch_exceptions,
             monitored_status="_synchronized",
             schema_id=schema_id,
         )
@@ -551,13 +553,15 @@ class BlueBrainNexus(Store):
         else:
             self.service.sync_metadata(resource, response.json())
 
-    def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
+    def tag(self, data: Union[Resource, List[Resource]], value: str, debug: bool = False) -> None:
+        catch_exceptions = False if debug else True
         run(
             self._tag_one,
             self._tag_many,
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=catch_exceptions,
             exception=TaggingError,
             value=value,
         )
@@ -601,13 +605,15 @@ class BlueBrainNexus(Store):
 
     # CRU[D].
 
-    def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
+    def deprecate(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
+        catch_exceptions = False if debug else True
         run(
             self._deprecate_one,
             self._deprecate_many,
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=catch_exceptions,
             exception=DeprecationError,
             monitored_status="_synchronized",
         )
@@ -980,21 +986,13 @@ class BlueBrainNexus(Store):
             )
 
 
-def _error_message(error: HTTPError) -> str:
-    def format_message(msg):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+def format_message(msg):
+    return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
 
+def _error_message(error: HTTPError) -> str:
     try:
-        error_json = error.response.json()
-        messages = []
-        reason = error_json.get("reason", None)
-        details = error_json.get("details", None)
-        if reason:
-            messages.append(format_message(reason))
-        if details:
-            messages.append(format_message(details))
-        messages = messages if reason or details else [str(error)]
-        return ". ".join(messages)
+        error_response = error.response
+        return _error_from_response(error_response)
     except Exception as e:
         pass
     try:
@@ -1002,6 +1000,19 @@ def _error_message(error: HTTPError) -> str:
     except Exception:
         return format_message(str(error))
 
+def _error_from_response(response: Response) -> str:
+    messages = []
+    error_json = response.json()
+    reason = error_json.get("reason", None)
+    details = error_json.get("details", None)
+    if reason:
+        messages.append(reason)
+    if details:
+        if isinstance(details, dict):
+            messages.append(json.dumps(details))
+        else:
+            messages.append(str(details))
+    return ". ".join(messages)
 
 def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
     statements = list()
