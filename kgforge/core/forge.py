@@ -28,6 +28,8 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
+from kgforge.core.commons.actions import (collect_lazy_actions,
+                                          execute_lazy_actions)
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
@@ -608,6 +610,19 @@ class KnowledgeGraphForge:
         :return: List[Resource]
         """
         return self._store.elastic(query, debug, limit, offset)
+    
+    @catch
+    @staticmethod
+    def execute_lazy_actions(resources: Union[List[Resource], Resource]):
+        """ 
+        Execute any lazy action present in a given resource or a list of resources
+
+        :param resources: The resources or list of resources from which actions will be executed
+        """
+        resources = [resources] if not isinstance(resources, List) else resources
+        for resource in resources:
+            lazy_actions = collect_lazy_actions(resource)
+            execute_lazy_actions(resource, lazy_actions)
 
     @catch
     def download(

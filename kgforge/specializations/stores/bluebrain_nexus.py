@@ -136,9 +136,9 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
 
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None, debug: bool = False
+        self, data: Union[Resource, List[Resource]], schema_id: str = None,
+        debug: bool = False
     ) -> None:
-        catch_exceptions = False if debug else True
         run(
             self._register_one,
             self._register_many,
@@ -146,7 +146,7 @@ class BlueBrainNexus(Store):
             required_synchronized=False,
             execute_actions=True,
             exception=RegistrationError,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             monitored_status="_synchronized",
             schema_id=schema_id,
         )
@@ -554,14 +554,13 @@ class BlueBrainNexus(Store):
             self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str, debug: bool = False) -> None:
-        catch_exceptions = False if debug else True
         run(
             self._tag_one,
             self._tag_many,
             data,
             id_required=True,
             required_synchronized=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=TaggingError,
             value=value,
         )
@@ -606,14 +605,13 @@ class BlueBrainNexus(Store):
     # CRU[D].
 
     def deprecate(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
-        catch_exceptions = False if debug else True
         run(
             self._deprecate_one,
             self._deprecate_many,
             data,
             id_required=True,
             required_synchronized=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=DeprecationError,
             monitored_status="_synchronized",
         )
@@ -1008,10 +1006,21 @@ def _error_from_response(response: Response) -> str:
     if reason:
         messages.append(reason)
     if details:
-        if isinstance(details, dict):
-            messages.append(json.dumps(details))
-        else:
-            messages.append(str(details))
+        result = details.get('result', None)
+        if result:
+            the_details = result.get("detail", None)
+            if the_details:
+                if isinstance(the_details, list):
+                    for detail in the_details:
+                        messages.append(f"Reason: {detail['resultMessage']} "\
+                                        f"for the shape: {detail['sourceShape']}")
+                elif isinstance(the_details, dict):
+                    messages.append(f"Reason: {detail['resultMessage']} "\
+                                     f"for the shape: {detail['sourceShape']}")
+                else:
+                    messages.append(str(the_details))
+            else:
+                messages.append(str(result))
     return ". ".join(messages)
 
 def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:

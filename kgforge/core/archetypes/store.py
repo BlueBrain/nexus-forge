@@ -147,17 +147,17 @@ class Store(ABC):
     # [C]RUD.
 
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None, debug: bool = False
+        self, data: Union[Resource, List[Resource]], schema_id: str = None,
+        debug: bool = False
     ) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
-        catch_exceptions = False if debug else True
         run(
             self._register_one,
             None,
             data,
             required_synchronized=False,
             execute_actions=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=RegistrationError,
             monitored_status="_synchronized",
             schema_id=schema_id,
