@@ -11,10 +11,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
@@ -46,17 +48,23 @@ class AgentResolver(Resolver):
         if type:
             first_filters = f"{first_filters} ; a {type}"
 
+        properties = ['name', 'givenName', 'familyName']
         if strategy == strategy.EXACT_MATCH:
-            name_filter = f" FILTER (?name = \"{text}\")"
-            given_name_filter = f" FILTER (?givenName = \"{text}\")"
-            family_name_filter = f" FILTER (?familyName = \"{text}\")"
+            regex = False
+            case_insensitive = False
+            limit = 1
+        elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
+            text = f"^{escape_punctuation(text)}$"
+            regex = True
+            case_insensitive = True
             limit = 1
         else:
-            name_filter = f" FILTER regex(?name, \"{text}\", \"i\")"
-            given_name_filter = f" FILTER regex(?givenName, \"{text}\", \"i\")"
-            family_name_filter = f" FILTER regex(?familyName, \"{text}\", \"i\")"
+            regex = True
+            case_insensitive = True
             if strategy == strategy.BEST_MATCH:
                 limit = 1
+        name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties,
+                                                                                  regex, case_insensitive)
 
         query = """
             CONSTRUCT {{
