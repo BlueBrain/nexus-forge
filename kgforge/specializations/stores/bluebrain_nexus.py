@@ -999,6 +999,12 @@ def _error_message(error: HTTPError) -> str:
         return format_message(str(error))
 
 def _error_from_response(response: Response) -> str:
+    def details_string(details: dict) -> str:
+        string = f"\nReason: {detail.pop('resultMessage')} "\
+                            f"for the shape: {detail.pop('sourceShape')}.\nError details:\n"
+        for key, value in details.items():
+            string += f"{key}:\t{value}\n"
+        return string
     messages = []
     error_json = response.json()
     reason = error_json.get("reason", None)
@@ -1012,11 +1018,9 @@ def _error_from_response(response: Response) -> str:
             if the_details:
                 if isinstance(the_details, list):
                     for detail in the_details:
-                        messages.append(f"Reason: {detail['resultMessage']} "\
-                                        f"for the shape: {detail['sourceShape']}")
+                        messages.append(details_string(detail))
                 elif isinstance(the_details, dict):
-                    messages.append(f"Reason: {detail['resultMessage']} "\
-                                     f"for the shape: {detail['sourceShape']}")
+                    messages.append(details_string(detail))
                 else:
                     messages.append(str(the_details))
             else:
