@@ -411,7 +411,7 @@ class BlueBrainNexus(Store):
             async with semaphore:
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
                 url_base, org, project = self._prepare_download_one(
-                    url, path, store_metadata, cross_bucket
+                    url, store_metadata, cross_bucket
                 )
                 async with session.get(url_base, params=params_download) as response:
                     try:
@@ -435,7 +435,7 @@ class BlueBrainNexus(Store):
         cross_bucket: bool,
     ) -> None:
         url_base, org, project = self._prepare_download_one(
-            url, path, store_metadata, cross_bucket
+            url, store_metadata, cross_bucket
         )
         try:
             params_download = copy.deepcopy(self.service.params.get("download", {}))
@@ -457,17 +457,9 @@ class BlueBrainNexus(Store):
     def _prepare_download_one(
         self,
         url: str,
-        path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
     ) -> Tuple[str, str, str]:
-        # this is a hack since _self and _id have the same uuid
-        file_id = url.split("/")[-1]
-        file_id = unquote(file_id)
-        if file_id.startswith("http"):
-            file_id = file_id.split("/")[-1]
-        if len(file_id) < 1:
-            raise DownloadingError("Invalid file name")
         if cross_bucket:
             if store_metadata is not None:
                 project = store_metadata._project.split("/")[-1]
@@ -479,15 +471,22 @@ class BlueBrainNexus(Store):
         else:
             org = self.service.organisation
             project = self.service.project
-
-        url_base = "/".join(
-            (
-                self.service.url_base_files,
-                quote_plus(org),
-                quote_plus(project),
-                quote_plus(file_id),
+        file_id = url.split("/")[-1]
+        file_id = unquote(file_id)
+        if file_id.startswith("http"):
+            url_base = url
+        else:
+            # this is a hack since _self and _id have the same uuid
+            url_base = "/".join(
+                (
+                    self.service.url_base_files,
+                    quote_plus(org),
+                    quote_plus(project),
+                    quote_plus(file_id),
+                )
             )
-        )
+        if len(file_id) < 1:
+            raise DownloadingError("Invalid file name")
         return url_base, org, project
 
     # CR[U]D.
