@@ -375,7 +375,7 @@ class Store(ABC):
             qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
         if debug:
             self._debug_query(qr)
-        return self._sparql(qr, limit, offset, **params)
+        return self._sparql(qr)
 
     def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
@@ -392,7 +392,7 @@ class Store(ABC):
         query_dict["from"] = offset if offset else query_dict.get("from", 0)
         if debug:
             self._debug_query(query_dict)
-        return self._elastic(json.dumps(query_dict), limit, offset)
+        return self._elastic(json.dumps(query_dict))
 
     def _elastic(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
