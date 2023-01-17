@@ -369,29 +369,32 @@ class Store(ABC):
             if self.model_context is not None and rewrite
             else query
         )
-        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
-        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
+        use_defaults = params.get("use_defaults", True)
+        if rewrite and use_defaults:
+            qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
+            qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
         if debug:
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
 
-    def _sparql(self, query: str, limit: int, offset: int, **params) -> List[Resource]:
+    def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
         not_supported()
 
     def elastic(
-        self, query: str, debug: bool, limit: int, offset: int
+        self, query: str, debug: bool, limit: int = None, offset: int = None
     ) -> List[Resource]:
         query_dict = json.loads(query)
-        query_dict["size"] = limit if limit else query_dict.get("size", 100)
+        if limit:
+            query_dict["size"] = limit
         query_dict["from"] = offset if offset else query_dict.get("from", 0)
         if debug:
             self._debug_query(query_dict)
         return self._elastic(json.dumps(query_dict), limit, offset)
 
-    def _elastic(self, query: str, limit: int, offset: int) -> List[Resource]:
+    def _elastic(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
