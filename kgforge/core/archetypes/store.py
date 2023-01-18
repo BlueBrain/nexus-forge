@@ -57,7 +57,30 @@ SPARQL_CLAUSES = [
     "graph",
     "distinct",
     "in",
-    "as"
+    "as",
+    "base",
+    "prefix",
+    "reduced",
+    "describe",
+    "ask",
+    "named",
+    "asc",
+    "desc",
+    "from",
+    "optional",
+    "graph",
+    "regex",
+    "union",
+    "str",
+    "lang",
+    "langmatches",
+    "datatype",
+    "bound",
+    "sameTerm",
+    "isIRI",
+    "isURI",
+    "isBLANK",
+    "isLITERAL"
 ]
 
 
