@@ -56,7 +56,8 @@ SPARQL_CLAUSES = [
     "prefix",
     "graph",
     "distinct",
-    "in"
+    "in",
+    "as"
 ]
 
 
