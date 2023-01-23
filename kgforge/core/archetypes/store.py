@@ -387,14 +387,14 @@ class Store(ABC):
     def sparql(
         self, query: str, debug: bool, limit: int = None, offset: int = None, **params
     ) -> List[Resource]:
+        add_context = params.get("add_context", True)
         rewrite = params.get("rewrite", True)
         qr = (
             rewrite_sparql(query, self.model_context, self.service.metadata_context)
-            if self.model_context is not None and rewrite
+            if self.model_context is not None and add_context
             else query
         )
-        use_defaults = params.get("use_defaults", True)
-        if rewrite and use_defaults:
+        if rewrite:
             qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
             qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
         if debug:
@@ -411,8 +411,7 @@ class Store(ABC):
         self, query: str, debug: bool, limit: int = None, offset: int = None
     ) -> List[Resource]:
         query_dict = json.loads(query)
-        if limit:
-            query_dict["size"] = limit
+        query_dict["size"] = limit if limit else query_dict.get("size", 0)
         query_dict["from"] = offset if offset else query_dict.get("from", 0)
         if debug:
             self._debug_query(query_dict)
