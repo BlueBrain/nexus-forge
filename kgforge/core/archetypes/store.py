@@ -41,6 +41,8 @@ from kgforge.core.reshaping import collect_values
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 from kgforge.core.wrappings.dict import DictWrapper
 
+DEFAULT_LIMIT = 100
+DEFAULT_OFFSET = 0
 SPARQL_CLAUSES = [
     "where",
     "filter",
@@ -386,7 +388,7 @@ class Store(ABC):
         not_supported()
 
     def sparql(
-        self, query: str, debug: bool, limit: int = 100, offset: int = 0, **params
+        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
@@ -395,9 +397,9 @@ class Store(ABC):
             else query
         )
         if limit:
-            qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
+            qr = _replace_in_sparql(qr, "LIMIT", limit, DEFAULT_LIMIT, r" LIMIT \d+")
         if offset:
-            qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
+            qr = _replace_in_sparql(qr, "OFFSET", offset, DEFAULT_OFFSET, r" OFFSET \d+")
         if debug:
             self._debug_query(qr)
         return self._sparql(qr)
@@ -409,7 +411,7 @@ class Store(ABC):
         not_supported()
 
     def elastic(
-        self, query: str, debug: bool, limit: int = 100, offset: int = 0
+        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
     ) -> List[Resource]:
         query_dict = json.loads(query)
         if limit:
