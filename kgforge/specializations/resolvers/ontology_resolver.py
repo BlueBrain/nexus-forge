@@ -18,7 +18,7 @@ from typing import List, Dict, Any, Optional, Callable, Union
 from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
 from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
-from kgforge.core.commons.exceptions import ResolvingError
+from kgforge.core.commons.exceptions import ResolvingError, ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
@@ -50,7 +50,7 @@ class OntologyResolver(Resolver):
         if type:
             first_filters = f"{first_filters} ; a {type}"
 
-        properties = ['label', 'notation', 'prefLabel', 'altLabel']
+        filter_properties = ['label', 'notation', 'prefLabel', 'altLabel']
         if strategy == strategy.EXACT_MATCH:
             regex = False
             case_insensitive = False
@@ -65,55 +65,15 @@ class OntologyResolver(Resolver):
             case_insensitive = True
             if strategy == strategy.BEST_MATCH:
                 limit = 1
-        label_filter, notation_filter, \
-            prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties,
-                                                                     regex, case_insensitive)
-
-        query = """
-            CONSTRUCT {{
-               ?id a ?type ;
-                  label ?label ;
-                  prefLabel ?prefLabel ;
-                  altLabel ?altLabel ;
-                  definition ?definition;
-                  subClassOf ?subClassOf ;
-                  isDefinedBy ?isDefinedBy ;
-                  notation ?notation
-            }} WHERE {{
-              ?id a ?type ;
-                  label ?label ; 
-              OPTIONAL {{
-                ?id subClassOf ?subClassOf ;
-              }}
-              OPTIONAL {{
-                ?id definition ?definition ;
-              }}
-              OPTIONAL {{
-                ?id prefLabel ?prefLabel .
-              }}
-              OPTIONAL {{
-                ?id altLabel ?altLabel .
-              }}
-              OPTIONAL {{
-                ?id isDefinedBy ?isDefinedBy .
-              }}     
-              OPTIONAL {{
-                ?id notation ?notation .
-              }}    
-              {{
-                SELECT * WHERE {{
-                  {{ {0} ; label ?label {1} }} UNION
-                  {{ {0} ; notation ?notation {2} }} UNION
-                  {{ {0} ; prefLabel ?prefLabel {3} }} UNION
-                  {{ {0} ; altLabel ?altLabel {4} }}
-                }} LIMIT {5}
-              }}
-            }}
-            """.format(first_filters, label_filter, notation_filter, prefLabel_filter, altLabel_filter, limit)
-
-        expected_fields = ["type", "label", "prefLabel", "subClassOf", "isDefinedBy", "notation"]
-
-        return self.service.perform_query(query, target, expected_fields, limit)
+        property_filters = write_sparql_filters(text, filter_properties,
+                                                regex, case_insensitive)
+        expected_fields = ["type", "label"]
+        optional_fields = ["prefLabel", "subClassOf", "isDefinedBy", "notation"]
+        query = _write_resolving_query(first_filters, filter_properties, property_filters,
+                                       expected_fields, optional_fields, self.contexts,
+                                       resolving_context, limit)
+        all_fields = expected_fields + optional_fields
+        return self.service.perform_query(query, target, all_fields, limit)
 
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
@@ -122,3 +82,57 @@ class OntologyResolver(Resolver):
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
+
+
+def _write_resolving_query(first_filters: List[str], filter_properties: List[str], property_filters: List[str],
+                           expected_fields: List[str], optional_fields: List[str], contexts,
+                           resolving_context: Any, limit: Optional[int]):
+    """Build the SPARQL query used for resolving.
+    
+    :param strategy:
+    """
+    construct_query_str = "\nCONSTRUCT {\n"
+    where_query_str = "WHERE {\n"
+
+    for field in expected_fields:
+        if field == 'type':
+            construct_query_str += "  ?id a ?type .\n"
+            where_query_str += "  ?id a ?type .\n"
+        else:
+            construct_query_str += """  ?id {0} ?{0} . \n""".format(field)
+            where_query_str += """  ?id {0} ?{0} . \n""".format(field)
+    for field in optional_fields:
+        construct_query_str += """  ?id {0} ?{0} . \n""".format(field)
+        where_query_str += "  OPTIONAL { ?id " + "{0} ?{0} .".format(field) + " } \n"
+
+    # if given a context
+    if resolving_context:
+        context_info = None
+        if contexts is None:
+            raise ConfigurationError("Contexts to resolve were not found in the configuration.") 
+        for context in contexts:
+            if context['name'] == resolving_context:
+                context_info = context
+        if context_info is None:
+            raise ConfigurationError("Provided `resolving_context` was not defined in the configuration.") 
+        # add context constrain to query
+        if context_info['position'] == 'subject':
+            where_query_str += """  <{0}> {1} ?id . \n""".format(context_info['value'], context_info['property'])
+        elif context_info['position'] == 'object':
+            where_query_str += """  ?id {1} <{0}> . \n""".format(context_info['value'], context_info['property'])
+        else:
+            raise ValueError('Only `subject` or `object` are valid values for the context position.')
+    # End query 
+    construct_query_str += "} "
+    where_query_str += "  {\n"
+    select_query_str = "    SELECT * WHERE {\n"
+    nprop = len(filter_properties)
+    for iprop, pfilter in enumerate(property_filters):
+        if iprop+1 == nprop:
+            select_query_str += """      {{ {0} ; {2} ?{2} {1} }} \n""".format(first_filters, pfilter, filter_properties[iprop])
+        else:
+            select_query_str += """      {{ {0} ; {2} ?{2} {1} }} UNION\n""".format(first_filters, pfilter, filter_properties[iprop])
+    select_query_str += """    }} LIMIT {0} \n  }}\n}}\n""".format(limit)
+    # Add all strings together
+    query = construct_query_str + where_query_str + select_query_str
+    return query

@@ -32,6 +32,15 @@ Resolvers:
     - resolver: OntologyResolver
       origin: store
       source: BlueBrainNexus
+      contexts: 
+        - name: celltypes
+          property: nsg:defines
+          position: subject
+          value: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/celltypes
+        - name: brainregions
+          property: nsg:defines
+          position: subject
+          value: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion
       targets:
         - identifier: terms
           bucket: neurosciencegraph/datamodels

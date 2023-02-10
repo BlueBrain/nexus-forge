@@ -41,6 +41,7 @@ class Resolver(ABC):
         self.source: str = source
         self.targets: Dict[str, str] = {x["identifier"]: x["bucket"] for x in targets}
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
+        self.contexts = source_config.pop("contexts", None)
         self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
 
     def __repr__(self) -> str:
