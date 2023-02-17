@@ -616,9 +616,10 @@ class KnowledgeGraphForge:
         path: str,
         overwrite: bool = False,
         cross_bucket: bool = False,
-    ) -> None:
+    ) -> list[str]:
         """
         Download files attached to a resource or a list of resources.
+        Return the paths of the downloaded files
 
         :param data: the resources whose attached files to download
         :param follow: the property path holding a URL to download the files
@@ -627,7 +628,7 @@ class KnowledgeGraphForge:
         :param cross_bucket: instructs the configured store to whether download files beyond the configured bucket (True) or not (False)
         """
         # path: DirPath.
-        self._store.download(data, follow, path, overwrite, cross_bucket)
+        return self._store.download(data, follow, path, overwrite, cross_bucket)
 
     # Storing User Interface.
 

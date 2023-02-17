@@ -226,7 +226,7 @@ class Store(ABC):
         path: str,
         overwrite: bool,
         cross_bucket: bool,
-    ) -> None:
+    ) -> list[str]:
         # path: DirPath.
         urls = []
         store_metadata = []
@@ -257,6 +257,8 @@ class Store(ABC):
             self._download_many(urls, filepaths, store_metadata, cross_bucket)
         else:
             self._download_one(urls[0], filepaths[0], store_metadata[0], cross_bucket)
+
+        return filepaths
 
     def _download_many(
         self,
