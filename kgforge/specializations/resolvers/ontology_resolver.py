@@ -68,7 +68,7 @@ class OntologyResolver(Resolver):
         property_filters = write_sparql_filters(text, filter_properties,
                                                 regex, case_insensitive)
         expected_fields = ["type", "label"]
-        optional_fields = ["prefLabel", "subClassOf", "isDefinedBy", "notation"]
+        optional_fields = ["prefLabel", "altLabel", "definition", "subClassOf", "isDefinedBy", "notation"]
         query = _write_resolving_query(first_filters, filter_properties, property_filters,
                                        expected_fields, optional_fields, self.contexts,
                                        resolving_context, limit)
@@ -89,7 +89,7 @@ def _write_resolving_query(first_filters: List[str], filter_properties: List[str
                            resolving_context: Any, limit: Optional[int]):
     """Build the SPARQL query used for resolving.
     
-    :param strategy:
+    :param first_filters :
     """
     construct_query_str = "\nCONSTRUCT {\n"
     where_query_str = "WHERE {\n"
