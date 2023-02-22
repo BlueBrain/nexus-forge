@@ -821,7 +821,7 @@ class BlueBrainNexus(Store):
                 json.dumps(query), debug=debug, limit=limit, offset=offset
             )
 
-    def _sparql(self, query: str, limit: int, offset: int = None, **params) -> List[Resource]:
+    def _sparql(self, query: str) -> List[Resource]:
         try:
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"],
@@ -886,7 +886,7 @@ class BlueBrainNexus(Store):
                     for x in results
                 ]
 
-    def _elastic(self, query: str, limit: int, offset: int = None) -> List[Resource]:
+    def _elastic(self, query: str) -> List[Resource]:
         try:
             response = requests.post(
                 self.service.elastic_endpoint["endpoint"],
