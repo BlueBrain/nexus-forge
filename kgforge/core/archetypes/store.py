@@ -84,7 +84,8 @@ SPARQL_CLAUSES = [
     "isBLANK",
     "isLITERAL",
     "group",
-    "by"
+    "by",
+    "order"
 ]
 
 
