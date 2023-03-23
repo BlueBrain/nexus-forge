@@ -211,7 +211,9 @@ class BlueBrainNexus(Store):
             schema = quote_plus(schema_id) if schema_id else "_"
             url_base = f"{self.service.url_resources}/{schema}"
             params_register = copy.deepcopy(self.service.params.get("register", None))
-            if resource.has_identifier()[0]:
+            identifier = resource.get_identifier()
+            if identifier:
+                url = f"{url_base}/{quote_plus(identifier)}"
                 url = f"{url_base}/{quote_plus(resource.get_identifier())}"
                 response = requests.put(
                     url,
