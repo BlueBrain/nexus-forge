@@ -1,4 +1,3 @@
-#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -35,7 +34,7 @@ setup(
     keywords="framework knowledge graph data science",
     url="https://github.com/BlueBrain/nexus-forge",
     packages=find_packages(),
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     setup_requires=[
         "setuptools_scm",
     ],
