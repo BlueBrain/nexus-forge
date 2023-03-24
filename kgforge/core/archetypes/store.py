@@ -82,7 +82,11 @@ SPARQL_CLAUSES = [
     "isIRI",
     "isURI",
     "isBLANK",
-    "isLITERAL"
+    "isLITERAL",
+    "group",
+    "by",
+    "order",
+    "minus"
 ]
 
 
