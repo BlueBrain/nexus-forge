@@ -86,7 +86,8 @@ SPARQL_CLAUSES = [
     "group",
     "by",
     "order",
-    "minus"
+    "minus",
+    "not"
 ]
 
 
