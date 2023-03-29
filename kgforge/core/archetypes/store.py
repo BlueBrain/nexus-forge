@@ -41,6 +41,8 @@ from kgforge.core.reshaping import collect_values
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 from kgforge.core.wrappings.dict import DictWrapper
 
+DEFAULT_LIMIT = 100
+DEFAULT_OFFSET = 0
 SPARQL_CLAUSES = [
     "where",
     "filter",
@@ -58,10 +60,35 @@ SPARQL_CLAUSES = [
     "distinct",
     "in",
     "as",
-    "not",
-    "exists",
+    "base",
+    "prefix",
+    "reduced",
+    "describe",
+    "ask",
+    "named",
+    "asc",
+    "desc",
+    "from",
+    "optional",
+    "graph",
+    "regex",
+    "union",
+    "str",
+    "lang",
+    "langmatches",
+    "datatype",
+    "bound",
+    "sameTerm",
+    "isIRI",
+    "isURI",
+    "isBLANK",
+    "isLITERAL",
     "group",
-    "by"
+    "by",
+    "order",
+    "minus",
+    "not"
+    "exists"
 ]
 
 
@@ -362,6 +389,7 @@ class Store(ABC):
         #   - lookup: str, with values in ('current', 'children').
         # POLICY Should use sparql() when 'sparql' is chosen as value  for the param 'search_endpoint'.
         # POLICY Should use elastic() when 'elastic' is chosen as value  for the param 'search_endpoint'.
+        # POLICY Given parameters for limit and offset override the input query.
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
@@ -369,7 +397,7 @@ class Store(ABC):
         not_supported()
 
     def sparql(
-        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET, **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
@@ -377,29 +405,33 @@ class Store(ABC):
             if self.model_context is not None and rewrite
             else query
         )
-        qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
-        qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
+        if limit:
+            qr = _replace_in_sparql(qr, "LIMIT", limit, DEFAULT_LIMIT, r" LIMIT \d+")
+        if offset:
+            qr = _replace_in_sparql(qr, "OFFSET", offset, DEFAULT_OFFSET, r" OFFSET \d+")
         if debug:
             self._debug_query(qr)
-        return self._sparql(qr, limit, offset, **params)
+        return self._sparql(qr)
 
-    def _sparql(self, query: str, limit: int, offset: int, **params) -> List[Resource]:
+    def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
         not_supported()
 
     def elastic(
-        self, query: str, debug: bool, limit: int, offset: int
+        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
     ) -> List[Resource]:
         query_dict = json.loads(query)
-        query_dict["size"] = limit if limit else query_dict.get("size", 100)
-        query_dict["from"] = offset if offset else query_dict.get("from", 0)
+        if limit:
+            query_dict["size"] = limit
+        if offset:
+            query_dict["from"] = offset 
         if debug:
             self._debug_query(query_dict)
-        return self._elastic(json.dumps(query_dict), limit, offset)
+        return self._elastic(json.dumps(query_dict))
 
-    def _elastic(self, query: str, limit: int, offset: int) -> List[Resource]:
+    def _elastic(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
