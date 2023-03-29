@@ -88,6 +88,7 @@ SPARQL_CLAUSES = [
     "order",
     "minus",
     "not"
+    "exists"
 ]
 
 
@@ -231,6 +232,7 @@ class Store(ABC):
         path: str,
         overwrite: bool,
         cross_bucket: bool,
+        content_type: str = None
     ) -> None:
         # path: DirPath.
         urls = []
@@ -259,9 +261,9 @@ class Store(ABC):
             else:
                 filepaths.append(str(filepath))
         if count > 1:
-            self._download_many(urls, filepaths, store_metadata, cross_bucket)
+            self._download_many(urls, filepaths, store_metadata, cross_bucket, content_type)
         else:
-            self._download_one(urls[0], filepaths[0], store_metadata[0], cross_bucket)
+            self._download_one(urls[0], filepaths[0], store_metadata[0], cross_bucket, content_type)
 
     def _download_many(
         self,
@@ -269,12 +271,13 @@ class Store(ABC):
         paths: List[str],
         store_metadata: Optional[List[DictWrapper]],
         cross_bucket: bool,
+        content_type: str
     ) -> None:
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
-        for url, path in zip(urls, paths):
-            self._download_one(url, path)
+        for url, path, store_m in zip(urls, paths, store_metadata):
+            self._download_one(url, path, store_m, cross_bucket, content_type)
 
     def _download_one(
         self,
@@ -282,6 +285,7 @@ class Store(ABC):
         path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
+        content_type: str
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
