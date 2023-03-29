@@ -214,7 +214,6 @@ class BlueBrainNexus(Store):
             identifier = resource.get_identifier()
             if identifier:
                 url = f"{url_base}/{quote_plus(identifier)}"
-                url = f"{url_base}/{quote_plus(resource.get_identifier())}"
                 response = requests.put(
                     url,
                     headers=self.service.headers,
@@ -404,7 +403,7 @@ class BlueBrainNexus(Store):
         async def _bulk():
             loop = asyncio.get_event_loop()
             semaphore = Semaphore(self.service.max_connection)
-            headers = update_dict(self.service.headers_download, {"Accept":content_type})
+            headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept":content_type})
             async with ClientSession(headers=headers) as session:
                 tasks = (
                     _create_task(x, y, z, loop, semaphore, session)
@@ -450,7 +449,7 @@ class BlueBrainNexus(Store):
         )
         try:
             params_download = copy.deepcopy(self.service.params.get("download", {}))
-            headers = update_dict(self.service.headers_download, {"Accept": content_type})
+            headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept": content_type})
 
             response = requests.get(
                 url=url_base,

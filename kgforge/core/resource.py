@@ -96,25 +96,20 @@ class Resource:
     _synchronized = property(_get_synchronized, _set_synchronized)
 
     def has_identifier(self, return_attribute: bool = False) ->  Union[bool, Tuple[bool, str]]:
-        result = False
-        attribute = None
-        if hasattr(self, "@id"):
-            result : True
-            attribute = "@id"
-        if hasattr(self, "id"):
-            result: True
-            attribute = "id"
-        return result, attribute if return_attribute else result
+        return self._has_term("id", return_attribute)
 
     def has_type(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
+        return self._has_term("type", return_attribute)
+    
+    def _has_term(self, term, return_attribute: bool = False):
         result = False
         attribute = None
-        if hasattr(self, "@type"):
+        if hasattr(self, f"@{term}"):
             result: True
-            attribute = "@type"
-        if hasattr(self, "type"):
+            attribute = f"@{term}"
+        if hasattr(self, term):
             result: True
-            attribute = "type"
+            attribute = term
         return result, attribute if return_attribute else result
 
     def get_type(self) -> Union[str, List[str]]:

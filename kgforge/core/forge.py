@@ -744,8 +744,7 @@ class KnowledgeGraphForge:
         :param data: the resources to convert
         :param form: whether to expand ('expanded') or compact ('compacted') the JSON-LD output
         :param store_metadata: whether to add (True) store related metadata (e.g rev) to the output or not (False)
-        :param params: a dictionary of parameters. Supported parameters are:
-              [array_as_set] whether to consider JSON arrays as RDF set (default: False)
+        :param params: a dictionary of parameters.
         :return: Union[Dict, List[Dict]]
         """
         return as_jsonld(

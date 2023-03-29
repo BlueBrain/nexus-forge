@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from typing import List, Union
+from warnings import warn
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import LazyAction
@@ -114,18 +115,41 @@ class Dataset(Resource):
         action = self._forge.attach(path, content_type)
         distribution = Resource(distribution=action)
         _set(self, "hasPart", distribution)
-
+ 
     @catch
-    def download(self, path: str, source: str = "distributions", overwrite: bool = False, cross_bucket: bool = False,
+    def download(self, path: str = ".", source: str = "distributions", follow: str = None, overwrite: bool = False, cross_bucket: bool = False,
                  content_type: str = None) -> None:
-        # path: DirPath.
-        """Download the distributions of the dataset or the files part of the dataset."""
+        """
+        Download the distributions of the dataset or the files part of the dataset.
+        :param path: where to output the downloaded files
+        :param source: [Deprecated] aliases to instruct forge the json path to use to collect downloadable file urls. Supported values are:
+              [distributions] corresponding to the json path "distribution.contentUrl" (default)
+              [parts] corresponding to the json path "hasPart.distribution.contentUrl"
+        :param follow: the json property path holding a URL to download the files. This argument is exclusive to the 'source' argument
+        :param overwrite: whether to replace (True) and existing file with the same name or not (False)
+        :param cross_bucket: instructs the configured store to whether download files beyond the configured bucket (True) or not (False)
+        :param content_type: the content_type of the files to download
+        """
+        if source:
+            warn(
+                DeprecationWarning(
+                    "the source argument is deprecated and will be removed in nexusforge 1.0.0. Use the 'follow' argument instead"
+                )
+            )
+        if source and follow:
+            raise ValueError(
+                "'source and 'follow' argument can't be provided together."
+            )
         if source == "distributions":
             follow = "distribution.contentUrl"
         elif source == "parts":
             follow = "hasPart.distribution.contentUrl"
-        else:
-            raise ValueError("unrecognized source")
+        elif source:
+            raise ValueError("unrecognized source. Use 'distributions' if the downloadable url is the value of 'distribution.contentUrl' or 'parts' if the downloadable url is the value of 'hasPart.distribution.contentUrl'")
+        elif follow is None:
+            raise ValueError(
+                "'source' or 'follow' argument should be provided."
+            )
         self._forge.download(self, follow, path, overwrite, cross_bucket, content_type)
 
     @classmethod
