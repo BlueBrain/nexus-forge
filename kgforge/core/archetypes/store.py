@@ -87,7 +87,7 @@ SPARQL_CLAUSES = [
     "by",
     "order",
     "minus",
-    "not"
+    "not",
     "exists"
 ]
 
