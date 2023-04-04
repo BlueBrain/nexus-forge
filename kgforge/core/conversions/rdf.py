@@ -465,6 +465,9 @@ def _remove_ld_keys(
                 local_attrs["context"] = v
         else:
             if k == "@id":
+                if not isinstance(v, str):
+                    raise ValueError(f"Invalid value found in data: value of type {type(v)} "
+                                     f"found associated to a \"@id\" key. Only strings are valid")
                 local_attrs["id"] = context.resolve(v)
             elif k.startswith("@") and k in LD_KEYS.values():
                 local_attrs[k[1:]] = v
