@@ -628,10 +628,11 @@ class KnowledgeGraphForge:
     def download(
         self,
         data: Union[Resource, List[Resource]],
-        follow: str,
-        path: str,
+        follow: str = "distribution.contentUrl",
+        path: str = ".",
         overwrite: bool = False,
         cross_bucket: bool = False,
+        content_type: str = None
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -641,9 +642,10 @@ class KnowledgeGraphForge:
         :param path: where to output the downloaded files
         :param overwrite: whether to replace (True) and existing file with the same name or not (False)
         :param cross_bucket: instructs the configured store to whether download files beyond the configured bucket (True) or not (False)
+        :param content_type: the content_type of the files to download
         """
         # path: DirPath.
-        self._store.download(data, follow, path, overwrite, cross_bucket)
+        self._store.download(data, follow, path, overwrite, cross_bucket, content_type)
 
     # Storing User Interface.
 
@@ -711,7 +713,7 @@ class KnowledgeGraphForge:
         The output of this method can be used to attach files to a resource: https://nexus-forge.readthedocs.io/en/latest/interaction.html#resource.
 
         :param path: path to upload files from
-        :param content_type: the content_type of the fiels to upload
+        :param content_type: the content_type of the files to upload
         :return: LazyAction
         """
         # path: Union[FilePath, DirPath].
@@ -757,8 +759,7 @@ class KnowledgeGraphForge:
         :param data: the resources to convert
         :param form: whether to expand ('expanded') or compact ('compacted') the JSON-LD output
         :param store_metadata: whether to add (True) store related metadata (e.g rev) to the output or not (False)
-        :param params: a dictionary of parameters. Supported parameters are:
-              [array_as_set] whether to consider JSON arrays as RDF set (default: False)
+        :param params: a dictionary of parameters.
         :return: Union[Dict, List[Dict]]
         """
         return as_jsonld(
