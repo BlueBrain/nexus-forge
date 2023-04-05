@@ -370,15 +370,21 @@ class BlueBrainNexus(Store):
             try:
                 data = response.json()
                 resource = self.service.to_resource(data)
+            except Exception as e:
+                raise ValueError(e)
+
+            try:
                 if retrieve_source and not cross_bucket:
                     data = response_metadata.json()
                 if retrieve_source and cross_bucket:
                     resource = self.service.to_resource(response_metadata.json())
             except Exception as e:
                 self.service.synchronize_resource(
-                    resource, data, self.retrieve.__name__, False, False
+                        resource, data, self.retrieve.__name__, False, False
                 )
                 raise ValueError(e)
+
+
             finally:
                 self.service.synchronize_resource(
                     resource, data, self.retrieve.__name__, True, True
