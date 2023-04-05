@@ -299,7 +299,6 @@ class Store(ABC):
         self, data: Union[Resource, List[Resource]], schema_id: Optional[str], debug: bool = False
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
-        catch_exceptions = False if debug else True
         run(
             self._update_one,
             None,
@@ -310,6 +309,7 @@ class Store(ABC):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            catch_exceptions=not debug
         )
 
     def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
@@ -327,14 +327,13 @@ class Store(ABC):
     def tag(self, data: Union[Resource, List[Resource]], value: str, debug: bool = True) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
         # POLICY If tagging modify the resource, run() should have status='_synchronized'.
-        catch_exceptions = False if debug else True
         run(
             self._tag_one,
             None,
             data,
             id_required=True,
             required_synchronized=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=TaggingError,
             value=value,
         )
@@ -354,14 +353,13 @@ class Store(ABC):
 
     def deprecate(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
         # Replace None by self._deprecate_many to switch to optimized bulk deprecation.
-        catch_exceptions = False if debug else True
         run(
             self._deprecate_one,
             None,
             data,
             id_required=True,
             required_synchronized=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=DeprecationError,
             monitored_status="_synchronized",
         )
@@ -448,14 +446,13 @@ class Store(ABC):
 
     def freeze(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
         # Replace None by self._freeze_many to switch to optimized bulk freezing.
-        catch_exceptions = False if debug else True
         run(
             self._freeze_one,
             None,
             data,
             id_required=True,
             required_synchronized=True,
-            catch_exceptions=catch_exceptions,
+            catch_exceptions=not debug,
             exception=FreezingError,
         )
 
