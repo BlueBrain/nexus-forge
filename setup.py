@@ -63,7 +63,7 @@ setup(
             "codecov",
         ],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
-        "linking_sklearn": ["sklearn"],
+        "linking_sklearn": ["scikit-learn"],
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
