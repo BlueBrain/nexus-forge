@@ -15,7 +15,7 @@
 import json
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Union, Any
+from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union, Any
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
@@ -28,7 +28,7 @@ from kgforge.specializations.mappings import DictionaryMapping
 class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
 
-    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
         super().__init__(source, targets, result_resource_mapping, **source_config)
 
@@ -80,16 +80,22 @@ class DemoResolver(Resolver):
             else:
                 return None
 
+    def _is_target_valid(self, target: str) -> Optional[bool]:
+        if target and target not in self.service:
+            raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.service.keys()}")
+        else:
+            return True
+    
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config)\
+    def _service_from_directory(dirpath: Path, targets: Dict[str,  Tuple[str, Dict[str, str]]], **source_config)\
             -> Dict[str, List[Dict[str, str]]]:
         resolve_with_properties: List[str] = source_config.pop("resolve_with_properties", None)
         if isinstance(resolve_with_properties, str):
             resolve_with_properties = [resolve_with_properties]
         elif resolve_with_properties is not None and not isinstance(resolve_with_properties, list):
             raise ConfigurationError(f"The 'resolve_with_properties' should be a list: {resolve_with_properties} provided.")
-        return {target: {"data": list(_load(dirpath, filename)),
-                         "resolve_with_properties": resolve_with_properties} for target, filename in targets.items()}
+        return {target: {"data": list(_load(dirpath, bucket_filter[0])),
+                         "resolve_with_properties": resolve_with_properties} for target, bucket_filter in targets.items()}
 
 
 def _dist(x: str, y: str) -> int:

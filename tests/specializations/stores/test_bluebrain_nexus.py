@@ -18,6 +18,7 @@ from unittest import mock
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 from uuid import uuid4
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 import nexussdk
 import pytest
@@ -31,7 +32,6 @@ from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.stores.bluebrain_nexus import (
     BlueBrainNexus,
-    build_sparql_query_statements,
     _create_select_query,
 )
 
@@ -299,7 +299,7 @@ class TestQuerying:
         ],
     )
     def test_filter_to_query_statements(self, context, filters, expected):
-        statements = build_sparql_query_statements(context, filters)
+        statements = SPARQLQueryBuilder.build(None, None, context, *list(filters))
         assert statements == expected
 
     @pytest.mark.parametrize(
@@ -313,7 +313,7 @@ class TestQuerying:
     )
     def test_filter_to_query_statements_exceptions(self, context, filters):
         with pytest.raises(ValueError):
-            build_sparql_query_statements(context, filters)
+            SPARQLQueryBuilder.build(None, None, context, *list(filters))
 
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"

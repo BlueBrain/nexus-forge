@@ -13,11 +13,12 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable, Union
+from typing import List, Dict, Any, Optional, Callable, Tuple, Union
 
 from kgforge.core.archetypes import Resolver
-from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
+from kgforge.core.archetypes.resolver import _build_resolving_query
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -26,7 +27,7 @@ from kgforge.specializations.resolvers.store_service import StoreService
 
 class AgentResolver(Resolver):
 
-    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
         super().__init__(source,  targets, result_resource_mapping, **source_config)
 
@@ -43,32 +44,14 @@ class AgentResolver(Resolver):
 
         if isinstance(text, list):
             not_supported(("text", list))
-
-        first_filters = f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean"
-        if type:
-            first_filters = f"{first_filters} ; a {type}"
-
-        properties = ['name', 'givenName', 'familyName']
-        if strategy == strategy.EXACT_MATCH:
-            regex = False
-            case_insensitive = False
-            limit = 1
-        elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            text = f"^{escape_punctuation(text)}$"
-            regex = True
-            case_insensitive = True
-            limit = 1
-        else:
-            regex = True
-            case_insensitive = True
-            if strategy == strategy.BEST_MATCH:
-                limit = 1
-        name_filter, given_name_filter, family_name_filter = write_sparql_filters(text, properties,
-                                                                                  regex, case_insensitive)
-
-        query = """
+        
+        if target and target not in self.service.sources:
+            raise ValueError(f"Unknown target value: {target}. Supported targets for the selected resolvers are: {self.service.sources.keys()}")
+        
+        properties_to_filter_with = ['name', 'givenName', 'familyName']
+        query_template = """
             CONSTRUCT {{
-              ?id a ?type ;
+                ?id a ?type ;
                 name ?name ;
                 givenName ?givenName ;
                 familyName ?familyName
@@ -76,7 +59,11 @@ class AgentResolver(Resolver):
               ?id a ?type . 
               OPTIONAL {{
                 ?id name ?name .
+              }}
+              OPTIONAL {{
                 ?id givenName ?givenName . 
+              }}
+              OPTIONAL {{
                 ?id familyName ?familyName .
               }}
               {{
@@ -87,16 +74,21 @@ class AgentResolver(Resolver):
                 }} LIMIT {4}
               }}
             }}
-            """.format(first_filters, name_filter, given_name_filter, family_name_filter, limit)
-
-        expected_fields = ["type", "name", "familyName", "givenName"]
-        return self.service.perform_query(query, target, expected_fields, None)
+            """
+        context = self.service.get_context(resolving_context, target)
+        query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, self.service.filters[target], strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
+        expected_fields = properties_to_filter_with+["type"]
+        return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
+    
+    def _is_target_valid(self, target) -> Optional[bool]:
+        return self.service.validate_target(target)
 
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> StoreService:
+    def _service_from_store(store: Callable, targets: Dict[str, Tuple[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
+
 

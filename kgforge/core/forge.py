@@ -98,6 +98,9 @@ class KnowledgeGraphForge:
                targets:
                  - identifier: <a name, or an IRI>
                    bucket: <a file name, an URL path, or a Store bucket>
+                   filter:
+                     - path: <a resource property path>
+                     - value: <a resource property value to filter with>
                result_resource_mapping: <an Hjson string, a file path, or an URL>
                endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
                token: <when 'origin' is 'store', a Store token, default to Store:token>
@@ -150,6 +153,12 @@ class KnowledgeGraphForge:
                              {
                                  "identifier": <str>,
                                  "bucket": <str>,
+                                 "filter":[
+                                    {
+                                        "path": <str>,
+                                        "value": <str>
+                                    }
+                                 ]
                              },
                              ...,
                          ],
@@ -310,6 +319,12 @@ class KnowledgeGraphForge:
             "firstResolver": {
                 "firstTarget": {
                     "bucket": "firstSource",
+                    "filter":[
+                        {
+                            "path": "path",
+                            "value": "value"
+                        }
+                    ]
                 },
                 "secondTarget": {
                     "bucket": "secondSource",
@@ -331,12 +346,12 @@ class KnowledgeGraphForge:
                     )
         elif output == "dict":
             resolvers_dict = dict()
-            # iterate over resolvers and fill dictionary with targets
+            # iterate over target_key, target_value and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
                 individual_dict = dict()
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
-                        individual_dict[target_key] = {"bucket": target_value}
+                        individual_dict[target_key] = {"bucket": target_value[0], "filter":target_value[1]}
                 resolvers_dict[scope] = individual_dict
             return resolvers_dict
         else:

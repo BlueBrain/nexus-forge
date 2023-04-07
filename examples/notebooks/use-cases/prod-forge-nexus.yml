@@ -32,18 +32,24 @@ Resolvers:
     - resolver: OntologyResolver
       origin: store
       source: BlueBrainNexus
-      contexts: 
-        - name: celltypes
-          property: nsg:defines
-          position: subject
-          value: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/celltypes
-        - name: brainregions
-          property: nsg:defines
-          position: subject
-          value: http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion
       targets:
         - identifier: terms
           bucket: neurosciencegraph/datamodels
+        - identifier: CellType
+          bucket: neurosciencegraph/datamodels
+          filter:
+            - path: subClassOf*.id
+              value: BrainCellType
+        - identifier: BrainRegion
+          bucket: neurosciencegraph/datamodels
+          filter:
+            - path: subClassOf*.id
+              value: https://neuroshapes.org/BrainRegion
+        - identifier: Species
+          bucket: neurosciencegraph/datamodels
+          filter:
+            - path: subClassOf*.id
+              value: Species
       searchendpoints:
         sparql:
           endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
