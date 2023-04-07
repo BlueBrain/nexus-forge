@@ -44,7 +44,7 @@ Resolvers:
           bucket: neurosciencegraph/datamodels
           filter:
             - path: subClassOf*.id
-              value: https://neuroshapes.org/BrainRegion
+              value: BrainRegion
         - identifier: Species
           bucket: neurosciencegraph/datamodels
           filter:
