@@ -189,5 +189,6 @@ from kgforge.core.commons.strategies import ResolvingStrategy
         ]
     )
 def test_write_query(bbn_deprecated_property,filters, query_template, properties_to_filter_with, text, expected_query, model_context):
-    constructed_query = _build_resolving_query(text, query_template, bbn_deprecated_property, filters, ResolvingStrategy.EXACT_MATCH, "Class", properties_to_filter_with, model_context, SPARQLQueryBuilder, 1)
+    constructed_query, limit = _build_resolving_query(text, query_template, bbn_deprecated_property, filters, ResolvingStrategy.EXACT_MATCH, "Class", properties_to_filter_with, model_context, SPARQLQueryBuilder, 10)
+    assert limit == 1
     assert expected_query == constructed_query
