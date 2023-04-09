@@ -35,7 +35,7 @@ setup(
     keywords="framework knowledge graph data science",
     url="https://github.com/BlueBrain/nexus-forge",
     packages=find_packages(),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     setup_requires=[
         "setuptools_scm",
     ],
@@ -45,8 +45,7 @@ setup(
         "pandas",
         "nexus-sdk",
         "aiohttp",
-        "nest_asyncio",
-        "rdflib>=6.0.0",
+        "rdflib==6.2.0",
         "pyLD",
         "pyshacl==v0.17.2",
         "nest-asyncio>=1.5.1",

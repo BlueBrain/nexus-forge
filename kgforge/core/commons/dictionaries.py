@@ -11,6 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import copy
 
 from typing import Dict, List
 
@@ -23,3 +24,9 @@ def with_defaults(original: Dict, other: Dict, original_key: str, other_key: str
         for x in keys:
             if x not in original and x in other:
                 original[x] = other[x]
+
+
+def update_dict(original: Dict, other:Dict) -> Dict:
+    original_copy = copy.deepcopy(original)
+    original_copy.update(other)
+    return original_copy
