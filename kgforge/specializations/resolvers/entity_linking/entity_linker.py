@@ -24,7 +24,7 @@ from kgforge.core.commons.strategies import ResolvingStrategy
 
 class EntityLinker(Resolver, metaclass=ABCMeta):
 
-    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
         super().__init__(source, targets, result_resource_mapping, **source_config)
 
