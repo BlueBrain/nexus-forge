@@ -441,7 +441,7 @@ def config(model, store, resolver):
                         {
                             "identifier": "sex",
                             "bucket": "sex.json",
-                            "filter":[
+                            "filters":[
                                 {
                                 "path": "type",
                                 "value": "class"

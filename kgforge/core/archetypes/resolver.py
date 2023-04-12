@@ -42,12 +42,13 @@ class Resolver(ABC):
         # POLICY There could be data caching but it should be aware of changes made in the source.
         self.source: str = source
         self.targets: Dict[str, Tuple[str, Dict[str, str]]] = {}
-        for x in targets:
-            filters = None
-            if 'filter' in x:
-                filters = x['filter'] if isinstance(x['filter'], list) else [x['filter']]
-                filters = {f["path"]:f["value"] if 'filter' in x else None for f in filters}
-            self.targets[x["identifier"]]= (x["bucket"], filters)
+        for target in targets:
+            if "filters" in target:
+                # reshape filters to match query filters
+                filters = {f["path"]: f["value"] for f in target["filters"]}
+            else:
+                filters = None
+            self.targets[target["identifier"]] = {"bucket": target["bucket"], "filters": filters}
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
         self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
 
@@ -124,7 +125,7 @@ class Resolver(ABC):
 
     # Utils.
 
-    def _initialize_service(self, source: str, targets: Dict[str, Tuple[str, Dict[str, str]]], **source_config) -> Any:
+    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         # Resolver data could be accessed from a directory, a web service, or a Store.
         # Initialize the access to the resolver data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
@@ -142,15 +143,15 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Tuple[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         pass
 
     @staticmethod
-    def _service_from_web_service(endpoint: str, targets: Dict[str,  Tuple[str, Dict[str, str]]]) -> Any:
+    def _service_from_web_service(endpoint: str, targets: Dict[str,  Dict[str, Dict[str, str]]]) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Tuple[str, Dict[str, str]]], **store_config) -> Any:
+    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> Any:
         not_supported()
 
 

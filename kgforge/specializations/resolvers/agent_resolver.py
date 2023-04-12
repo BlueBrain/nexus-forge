@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable, Tuple, Union
+from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.archetypes.resolver import _build_resolving_query
@@ -88,7 +88,7 @@ class AgentResolver(Resolver):
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str, Tuple[str, Dict[str, str]]], **store_config) -> StoreService:
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
 
 

@@ -37,17 +37,17 @@ Resolvers:
           bucket: neurosciencegraph/datamodels
         - identifier: CellType
           bucket: neurosciencegraph/datamodels
-          filter:
+          filters:
             - path: subClassOf*.id
               value: BrainCellType
         - identifier: BrainRegion
           bucket: neurosciencegraph/datamodels
-          filter:
+          filters:
             - path: subClassOf*.id
               value: BrainRegion
         - identifier: Species
           bucket: neurosciencegraph/datamodels
-          filter:
+          filters:
             - path: subClassOf*.id
               value: Species
       searchendpoints:

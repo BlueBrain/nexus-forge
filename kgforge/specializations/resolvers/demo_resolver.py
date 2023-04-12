@@ -15,7 +15,7 @@
 import json
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union, Any
+from typing import Callable, Dict, Iterator, List, Optional, Union, Any
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
@@ -87,15 +87,15 @@ class DemoResolver(Resolver):
             return True
     
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Tuple[str, Dict[str, str]]], **source_config)\
+    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config)\
             -> Dict[str, List[Dict[str, str]]]:
         resolve_with_properties: List[str] = source_config.pop("resolve_with_properties", None)
         if isinstance(resolve_with_properties, str):
             resolve_with_properties = [resolve_with_properties]
         elif resolve_with_properties is not None and not isinstance(resolve_with_properties, list):
             raise ConfigurationError(f"The 'resolve_with_properties' should be a list: {resolve_with_properties} provided.")
-        return {target: {"data": list(_load(dirpath, bucket_filter[0])),
-                         "resolve_with_properties": resolve_with_properties} for target, bucket_filter in targets.items()}
+        return {target: {"data": list(_load(dirpath, values['bucket'])),
+                         "resolve_with_properties": resolve_with_properties} for target, values in targets.items()}
 
 
 def _dist(x: str, y: str) -> int:

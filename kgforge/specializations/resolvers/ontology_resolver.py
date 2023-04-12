@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable, Tuple, Union
+from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.archetypes.resolver import _build_resolving_query
@@ -97,9 +97,9 @@ class OntologyResolver(Resolver):
         return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Tuple[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Tuple[str, Dict[str, str]]], **store_config) -> StoreService:
+    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)

@@ -98,7 +98,7 @@ class KnowledgeGraphForge:
                targets:
                  - identifier: <a name, or an IRI>
                    bucket: <a file name, an URL path, or a Store bucket>
-                   filter:
+                   filters:
                      - path: <a resource property path>
                      - value: <a resource property value to filter with>
                result_resource_mapping: <an Hjson string, a file path, or an URL>
@@ -319,7 +319,7 @@ class KnowledgeGraphForge:
             "firstResolver": {
                 "firstTarget": {
                     "bucket": "firstSource",
-                    "filter":[
+                    "filters":[
                         {
                             "path": "path",
                             "value": "value"
@@ -351,7 +351,7 @@ class KnowledgeGraphForge:
                 individual_dict = dict()
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
-                        individual_dict[target_key] = {"bucket": target_value[0], "filter":target_value[1]}
+                        individual_dict[target_key] = target_value
                 resolvers_dict[scope] = individual_dict
             return resolvers_dict
         else:

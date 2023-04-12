@@ -49,7 +49,7 @@ class TestResolver:
         assert resolvers_dict is None
 
     def test_resolver_returns_correct_dictionary(self, config):
-        dict_result = {'terms': {'sex': {'bucket': 'sex.json', 'filter':{'label': 'female', 'type': 'class'}}}}
+        dict_result = {'terms': {'sex': {'bucket': 'sex.json', 'filters':{'label': 'female', 'type': 'class'}}}}
         forge = KnowledgeGraphForge(config)
         resolvers_dict = forge.resolvers(output="dict")
         assert resolvers_dict == dict_result
