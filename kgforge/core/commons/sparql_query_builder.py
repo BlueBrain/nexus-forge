@@ -55,6 +55,7 @@ sparql_operator_map = {
 }
 
 class SPARQLQueryBuilder(QueryBuilder):
+
     @staticmethod
     def build(
         schema: Dict,
