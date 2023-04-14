@@ -19,4 +19,3 @@ jobs:
       - name: Run tests with pytest
         run: |
           pytest --cov=./
-          codecov
