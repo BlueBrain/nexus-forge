@@ -21,7 +21,9 @@ from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
+from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.wrappings.paths import Filter, FilterOperator
 
 class Resolver(ABC):
 
@@ -34,12 +36,19 @@ class Resolver(ABC):
     # TODO Create a generic parameterizable test suite for resolvers. DKE-135.
     # POLICY Implementations should pass tests/specializations/resolvers/test_resolvers.py.
 
-    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
         # POLICY Resolver data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
         self.source: str = source
-        self.targets: Dict[str, str] = {x["identifier"]: x["bucket"] for x in targets}
+        self.targets: Dict[str, Tuple[str, Dict[str, str]]] = {}
+        for target in targets:
+            if "filters" in target:
+                # reshape filters to match query filters
+                filters = {f["path"]: f["value"] for f in target["filters"]}
+            else:
+                filters = None
+            self.targets[target["identifier"]] = {"bucket": target["bucket"], "filters": filters}
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
         self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
 
@@ -80,6 +89,7 @@ class Resolver(ABC):
         else:
             text_to_resolve = text
         # The resolving strategy cannot be abstracted as it should be managed by the service.
+        self._is_target_valid(target)
         resolved = self._resolve(text_to_resolve, target, type, strategy, resolving_context, limit, threshold)
         if resolved is None or len(resolved) == 0:
             return None
@@ -107,9 +117,15 @@ class Resolver(ABC):
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 
+    @abstractmethod
+    def _is_target_valid(self, target: str) -> Optional[bool]:
+        # POLICY Should notify of failures with exception ValueError including a message.
+        pass
+
+
     # Utils.
 
-    def _initialize_service(self, source: str, targets: Dict[str, str], **source_config) -> Any:
+    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         # Resolver data could be accessed from a directory, a web service, or a Store.
         # Initialize the access to the resolver data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
@@ -127,15 +143,15 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         pass
 
     @staticmethod
-    def _service_from_web_service(endpoint: str, targets: Dict[str, str]) -> Any:
+    def _service_from_web_service(endpoint: str, targets: Dict[str,  Dict[str, Dict[str, str]]]) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> Any:
+    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> Any:
         not_supported()
 
 
@@ -162,3 +178,44 @@ def write_sparql_filters(text, properties: List, regex=False,
             full_str = start_str + f"?{property} = \"{text}\"" + end_str
         filters.append(full_str)
     return filters
+
+
+def _build_resolving_query(text, query_template, deprecated_property, filters, strategy, _type, properties_to_filter_with, resolving_context: Any, query_builder: QueryBuilder, limit: Optional[int]):
+    first_filters = f"?id <{deprecated_property}> \"false\"^^xsd:boolean"
+    if _type:
+        first_filters = f"{first_filters} ; a {_type}"
+
+    if strategy == strategy.EXACT_MATCH:
+        regex = False
+        case_insensitive = False
+        limit = 1
+    elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
+        regex = True
+        case_insensitive = True
+        text = f"^{escape_punctuation(text)}$"
+        limit = 1
+    else:
+        regex = True
+        case_insensitive = True
+        if strategy == strategy.BEST_MATCH:
+            limit = 1
+
+    properties_filters = write_sparql_filters(text, properties_to_filter_with,
+                                            regex, case_insensitive)
+    
+    configured_target_filters = []
+    if filters:
+        for path, value in filters.items():
+            path = path.split(".") if '.' in path else [path]
+            configured_target_filters.append(Filter(operator=FilterOperator.EQUAL, path=path, value=value))
+        target_query_statements, target_query_filters = query_builder.build(None,
+                                                            None,
+                                                            resolving_context,
+                                                            *configured_target_filters)
+        
+        target_query_statements = ";\n ".join(target_query_statements)
+        target_query_filters = "\n ".join(target_query_filters)
+        first_filters = f"{first_filters} ; \n {target_query_statements}"
+        first_filters = f"{first_filters} . \n {target_query_filters}" if len(target_query_filters) > 0 else first_filters
+    query = query_template.format(first_filters, *properties_filters, limit)
+    return query, limit

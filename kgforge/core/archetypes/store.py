@@ -556,7 +556,7 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
     g0 = rf"((?<=[\s,[(/|!^])((a|true|false)|{g4}){g5}(?=[\s,\])/|?*+]))"
     g6 = r"(('[^']+')|('''[^\n\r]+''')|(\"[^\"]+\")|(\"\"\"[^\n\r]+\"\"\"))"
     rx = rf"{g0}|{g6}|(?<=< )(.*)(?= >)"
-    qr = re.sub(rx, replace, query, flags=re.VERBOSE)
+    qr = re.sub(rx, replace, query, flags=re.VERBOSE | re.MULTILINE)
 
     if not has_prefixes or "prefix" in str(qr).lower():
         return qr

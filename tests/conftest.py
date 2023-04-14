@@ -195,6 +195,11 @@ def custom_context():
 
 
 @pytest.fixture
+def bbn_deprecated_property() -> str:
+    return "https://bluebrain.github.io/nexus/vocabulary/deprecated"
+
+
+@pytest.fixture
 def metadata_context() -> Context:
     document = {
         "deprecated": "https://store.net/vocabulary/deprecated",
@@ -436,6 +441,16 @@ def config(model, store, resolver):
                         {
                             "identifier": "sex",
                             "bucket": "sex.json",
+                            "filters":[
+                                {
+                                "path": "type",
+                                "value": "class"
+                                },
+                                {
+                                "path": "label",
+                                "value": "female"
+                                }
+                            ]
                         },
                     ],
                     "result_resource_mapping": "../../configurations/demo-resolver/term-to-resource-mapping.hjson",
