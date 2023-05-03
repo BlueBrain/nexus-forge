@@ -3,7 +3,8 @@
     "id": "https://www.grid.ac/institutes/grid.5333.6",
     "type": "Organization",
     "label": "École Polytechnique Fédérale de Lausanne",
-    "acronym": "EPFL"
+    "acronym": "EPFL",
+    "canton": "Vaud"
   },
   {
     "id": "https://www.grid.ac/institutes/grid.8591.5",

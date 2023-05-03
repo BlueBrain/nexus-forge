@@ -11,15 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import re, string
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
-from kgforge.core import Resource
 from kgforge.core.archetypes import Resolver
-from kgforge.core.archetypes.resolver import write_sparql_filters, escape_punctuation
-from kgforge.core.commons.exceptions import ResolvingError
+from kgforge.core.archetypes.resolver import _build_resolving_query
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
@@ -28,7 +26,7 @@ from kgforge.specializations.resolvers.store_service import StoreService
 
 class OntologyResolver(Resolver):
 
-    def __init__(self, source: str, targets: List[Dict[str, str]], result_resource_mapping: str,
+    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
         super().__init__(source,  targets, result_resource_mapping, **source_config)
 
@@ -46,79 +44,62 @@ class OntologyResolver(Resolver):
 
         if isinstance(text, list):
             not_supported(("text", list))
-        first_filters = f"?id <{self.service.deprecated_property}> \"false\"^^xsd:boolean"
-        if type:
-            first_filters = f"{first_filters} ; a {type}"
-
-        properties = ['label', 'notation', 'prefLabel', 'altLabel']
-        if strategy == strategy.EXACT_MATCH:
-            regex = False
-            case_insensitive = False
-            limit = 1
-        elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
-            regex = True
-            case_insensitive = True
-            text = f"^{escape_punctuation(text)}$"
-            limit = 1
-        else:
-            regex = True
-            case_insensitive = True
-            if strategy == strategy.BEST_MATCH:
-                limit = 1
-        label_filter, notation_filter, \
-            prefLabel_filter, altLabel_filter = write_sparql_filters(text, properties,
-                                                                     regex, case_insensitive)
-
-        query = """
-            CONSTRUCT {{
-               ?id a ?type ;
-                  label ?label ;
-                  prefLabel ?prefLabel ;
-                  altLabel ?altLabel ;
-                  definition ?definition;
-                  subClassOf ?subClassOf ;
-                  isDefinedBy ?isDefinedBy ;
-                  notation ?notation
-            }} WHERE {{
-              ?id a ?type ;
-                  label ?label ; 
-              OPTIONAL {{
-                ?id subClassOf ?subClassOf ;
-              }}
-              OPTIONAL {{
-                ?id definition ?definition ;
-              }}
-              OPTIONAL {{
-                ?id prefLabel ?prefLabel .
-              }}
-              OPTIONAL {{
-                ?id altLabel ?altLabel .
-              }}
-              OPTIONAL {{
-                ?id isDefinedBy ?isDefinedBy .
-              }}     
-              OPTIONAL {{
-                ?id notation ?notation .
-              }}    
-              {{
-                SELECT * WHERE {{
-                  {{ {0} ; label ?label {1} }} UNION
-                  {{ {0} ; notation ?notation {2} }} UNION
-                  {{ {0} ; prefLabel ?prefLabel {3} }} UNION
-                  {{ {0} ; altLabel ?altLabel {4} }}
-                }} LIMIT {5}
-              }}
+        
+        properties_to_filter_with = ['label', 'notation', 'prefLabel', 'altLabel']        
+        query_template = """
+        CONSTRUCT {{
+            ?id a ?type ;
+            label ?label ;
+            prefLabel ?prefLabel ;
+            altLabel ?altLabel ;
+            definition ?definition;
+            subClassOf ?subClassOf ;
+            isDefinedBy ?isDefinedBy ;
+            notation ?notation
+        }} WHERE {{
+            ?id a ?type ;
+                label ?label ; 
+            OPTIONAL {{
+            ?id subClassOf ?subClassOf ;
             }}
-            """.format(first_filters, label_filter, notation_filter, prefLabel_filter, altLabel_filter, limit)
+            OPTIONAL {{
+            ?id definition ?definition ;
+            }}
+            OPTIONAL {{
+            ?id prefLabel ?prefLabel .
+            }}
+            OPTIONAL {{
+            ?id altLabel ?altLabel .
+            }}
+            OPTIONAL {{
+            ?id isDefinedBy ?isDefinedBy .
+            }}     
+            OPTIONAL {{
+            ?id notation ?notation .
+            }}    
+            {{
+            SELECT * WHERE {{
+                {{ {0} ; label ?label {1} }} UNION
+                {{ {0} ; notation ?notation {2} }} UNION
+                {{ {0} ; prefLabel ?prefLabel {3} }} UNION
+                {{ {0} ; altLabel ?altLabel {4} }}
+            }} LIMIT {5}
+            }}
+        }}
+        """
+        filters = self.service.filters[target] if target in self.service.filters else None
+        context = self.service.get_context(resolving_context, target, filters)
+        query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, filters, strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
+        expected_fields = properties_to_filter_with+["type",  "definition", "subClassOf", "isDefinedBy"]
+        return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
 
-        expected_fields = ["type", "label", "prefLabel", "subClassOf", "isDefinedBy", "notation"]
-
-        return self.service.perform_query(query, target, expected_fields, limit)
+    def _is_target_valid(self, target) -> Optional[bool]:
+        return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, str], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str, str], **store_config) -> StoreService:
+    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)

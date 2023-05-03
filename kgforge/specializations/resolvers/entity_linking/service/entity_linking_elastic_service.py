@@ -43,9 +43,10 @@ class EntityLinkerElasticService(EntityLinkerService):
     ):
         super().__init__(is_distance=False)
         self.sources: Dict[str, Store] = dict()
-        for target, bucket in targets.items():
+        for identifier in targets:
+            bucket = targets[identifier]['bucket']
             store_config.update(bucket=bucket)
-            self.sources[target] = store(**store_config)
+            self.sources[identifier] = store(**store_config)
         self.encoder = encoder
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
 
