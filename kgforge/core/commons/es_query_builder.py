@@ -105,7 +105,7 @@ class ESQueryBuilder(QueryBuilder):
                         else "must_not"
                     )
                     k_path = keyword_path
-                    term_or_match = "term"
+                    term_or_match = "terms" if isinstance(f.value, list) else "term"
                 else:
                     filter_or_must_or_must_not = (
                         "must"
@@ -136,7 +136,7 @@ class ESQueryBuilder(QueryBuilder):
                         else "must_not"
                     )
                     k_path = keyword_path
-                    term_or_match = "term"
+                    term_or_match = term_or_match = "terms" if isinstance(f.value, list) else "term"
                 else:
                     filter_or_must_or_must_not = (
                         "must"
