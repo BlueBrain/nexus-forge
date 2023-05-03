@@ -390,12 +390,12 @@ class BlueBrainNexus(Store):
                 )
             return resource
 
-    def _retrieve_filename(self, id: str) -> str:
+    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         try:
             response = requests.get(id, headers=self.service.headers)
             response.raise_for_status()
             metadata = response.json()
-            return metadata["_filename"]
+            return metadata["_filename"], metadata["_mediaType"]
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
@@ -405,7 +405,8 @@ class BlueBrainNexus(Store):
         paths: List[str],
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        buckets: List[str]
     ) -> None:
         async def _bulk():
             loop = asyncio.get_event_loop()
@@ -413,28 +414,25 @@ class BlueBrainNexus(Store):
             headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept":content_type})
             async with ClientSession(headers=headers) as session:
                 tasks = (
-                    _create_task(x, y, z, loop, semaphore, session)
-                    for x, y, z in zip(urls, paths, store_metadata)
+                    _create_task(x, y, z, b, loop, semaphore, session)
+                    for x, y, z, b in zip(urls, paths, store_metadata, buckets)
                 )
                 return await asyncio.gather(*tasks)
 
-        def _create_task(url, path, store_metadata, loop, semaphore, session):
+        def _create_task(url, path, store_metadata, bucket, loop, semaphore, session):
             return loop.create_task(
-                _download(url, path, store_metadata, semaphore, session)
+                _download(url, path, store_metadata, bucket, semaphore, session)
             )
 
-        async def _download(url, path, store_metadata, semaphore, session):
+        async def _download(url, path, store_metadata, bucket, semaphore, session):
             async with semaphore:
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
-                url_base, org, project = self._prepare_download_one(
-                    url, path, store_metadata, cross_bucket
-                )
-                async with session.get(url_base, params=params_download) as response:
+                async with session.get(url, params=params_download) as response:
                     try:
                         response.raise_for_status()
                     except Exception as e:
                         raise DownloadingError(
-                            f"Downloading from {org}/{project}:{_error_message(e)}"
+                            f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
                         )
                     else:
                         with open(path, "wb") as f:
@@ -449,24 +447,23 @@ class BlueBrainNexus(Store):
         path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        bucket: str
     ) -> None:
-        url_base, org, project = self._prepare_download_one(
-            url, path, store_metadata, cross_bucket
-        )
+        
         try:
             params_download = copy.deepcopy(self.service.params.get("download", {}))
             headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept": content_type})
 
             response = requests.get(
-                url=url_base,
+                url=url,
                 headers=headers,
                 params=params_download
             )
             response.raise_for_status()
         except Exception as e:
             raise DownloadingError(
-                f"Downloading from {org}/{project} failed :{_error_message(e)}"
+                f"Downloading from bucket {bucket} failed: {_error_message(e)}"
             )
         else:
             with open(path, "wb") as f:
@@ -476,17 +473,9 @@ class BlueBrainNexus(Store):
     def _prepare_download_one(
         self,
         url: str,
-        path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool
     ) -> Tuple[str, str, str]:
-        # this is a hack since _self and _id have the same uuid
-        file_id = url.split("/")[-1]
-        file_id = unquote(file_id)
-        if file_id.startswith("http"):
-            file_id = file_id.split("/")[-1]
-        if len(file_id) < 1:
-            raise DownloadingError("Invalid file name")
         if cross_bucket:
             if store_metadata is not None:
                 project = store_metadata._project.split("/")[-1]
@@ -498,16 +487,23 @@ class BlueBrainNexus(Store):
         else:
             org = self.service.organisation
             project = self.service.project
-
-        url_base = "/".join(
-            (
-                self.service.url_base_files,
-                quote_plus(org),
-                quote_plus(project),
-                quote_plus(file_id),
+        file_id = url.split("/")[-1]
+        file_id = unquote(file_id)
+        if len(file_id) < 1:
+            raise DownloadingError(f"Invalid file url: {url}")
+        elif file_id.startswith("http"):
+            url_base = url
+        else: 
+            # this is a hack since _self and _id have the same uuid
+            url_base = "/".join(
+                (
+                    self.service.url_base_files,
+                    quote_plus(org),
+                    quote_plus(project),
+                    quote_plus(file_id),
+                )
             )
-        )
-        return url_base, org, project
+        return url_base, f"{org}/{project}"
 
     # CR[U]D.
 

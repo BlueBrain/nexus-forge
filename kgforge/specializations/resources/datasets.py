@@ -137,19 +137,22 @@ class Dataset(Resource):
                 )
             )
         if source and follow:
-            raise ValueError(
-                "'source and 'follow' argument can't be provided together."
+            warn(
+                Warning(
+                    f"both 'source' {source} and 'follow' {follow} arguments are provided. 'follow' argument will be used. Consider providing one of the two arguments."
+                )
             )
-        if source == "distributions":
-            follow = "distribution.contentUrl"
-        elif source == "parts":
-            follow = "hasPart.distribution.contentUrl"
-        elif source:
-            raise ValueError("unrecognized source. Use 'distributions' if the downloadable url is the value of 'distribution.contentUrl' or 'parts' if the downloadable url is the value of 'hasPart.distribution.contentUrl'")
-        elif follow is None:
-            raise ValueError(
-                "'source' or 'follow' argument should be provided."
-            )
+        if follow is None:
+            if source == "distributions":
+                follow = "distribution.contentUrl"
+            elif source == "parts":
+                follow = "hasPart.distribution.contentUrl"
+            elif source:
+                raise ValueError("unrecognized source. Use 'distributions' if the downloadable url is the value of 'distribution.contentUrl' or 'parts' if the downloadable url is the value of 'hasPart.distribution.contentUrl'")
+            else:
+                raise ValueError(
+                    "'source' or 'follow' argument should be provided."
+                )
         self._forge.download(self, follow, path, overwrite, cross_bucket, content_type)
 
     @classmethod
