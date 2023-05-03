@@ -17,7 +17,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Match, Optional, Union
+from typing import Any, Callable, Dict, List, Match, Optional, Tuple, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -221,8 +221,16 @@ class Store(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         pass
 
-    def _retrieve_filename(self, id: str) -> str:
+    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         # TODO This operation might be adapted if other file metadata are needed.
+        not_supported()
+    
+    def _prepare_download_one(self,
+        url: str,
+        store_metadata: Optional[DictWrapper],
+        cross_bucket: bool
+    ) -> Tuple[str, str]:
+        # Prepare download url and download bucket
         not_supported()
 
     def download(
@@ -244,8 +252,7 @@ class Store(ABC):
             store_metadata.extend(
                 [d._store_metadata for _ in range(len(collected_values))]
             )
-        count = len(urls)
-        if count == 0:
+        if len(urls) == 0:
             raise DownloadingError(
                 f"path to follow '{follow}' was not found in any provided resource."
             )
@@ -253,17 +260,29 @@ class Store(ABC):
         dirpath.mkdir(parents=True, exist_ok=True)
         timestamp = time.strftime("%Y%m%d%H%M%S")
         filepaths = []
-        for x in urls:
-            filename = self._retrieve_filename(x)
-            filepath = dirpath / filename
-            if not overwrite and filepath.exists():
-                filepaths.append(f"{filepath}.{timestamp}")
-            else:
-                filepaths.append(str(filepath))
-        if count > 1:
-            self._download_many(urls, filepaths, store_metadata, cross_bucket, content_type)
+        buckets = []
+        download_urls = []
+        download_store_metadata = []
+        for i, x in enumerate(urls):
+            x_download_url, x_bucket = self._prepare_download_one(x, store_metadata[i], cross_bucket)
+            filename, store_content_type = self._retrieve_filename(x_download_url)
+            if not content_type or (content_type and store_content_type == content_type):
+                filepath = dirpath / filename
+                if not overwrite and filepath.exists():
+                    filepaths.append(f"{filepath}.{timestamp}")
+                else:
+                    filepaths.append(str(filepath))
+                download_urls.append(x_download_url)
+                buckets.append(x_bucket)
+                download_store_metadata.append(store_metadata[i])
+        if len(download_urls) > 1:
+            self._download_many(download_urls, filepaths, download_store_metadata, cross_bucket, content_type, buckets)
+        elif len(download_urls) == 1 :
+            self._download_one(download_urls[0], filepaths[0], download_store_metadata[0], cross_bucket, content_type, buckets[0])
         else:
-            self._download_one(urls[0], filepaths[0], store_metadata[0], cross_bucket, content_type)
+            raise DownloadingError(
+                f"No resource with content_type {content_type} was found when following the resource path '{follow}'."
+            )
 
     def _download_many(
         self,
@@ -271,7 +290,8 @@ class Store(ABC):
         paths: List[str],
         store_metadata: Optional[List[DictWrapper]],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        buckets: List[str]
     ) -> None:
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
@@ -285,7 +305,8 @@ class Store(ABC):
         path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        bucket: str
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
@@ -556,7 +577,7 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
     g0 = rf"((?<=[\s,[(/|!^])((a|true|false)|{g4}){g5}(?=[\s,\])/|?*+]))"
     g6 = r"(('[^']+')|('''[^\n\r]+''')|(\"[^\"]+\")|(\"\"\"[^\n\r]+\"\"\"))"
     rx = rf"{g0}|{g6}|(?<=< )(.*)(?= >)"
-    qr = re.sub(rx, replace, query, flags=re.VERBOSE)
+    qr = re.sub(rx, replace, query, flags=re.VERBOSE | re.MULTILINE)
 
     if not has_prefixes or "prefix" in str(qr).lower():
         return qr
