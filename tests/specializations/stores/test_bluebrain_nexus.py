@@ -414,6 +414,25 @@ class TestQuerying:
                 ),
                 id="json_filter_id",
             ),
+            pytest.param(
+                (
+                    {
+                        "type": "Person",
+                        "affiliation/id":"https://www.grid.ac/institutes/grid.5333.6"
+                    }
+                ),
+                (
+                    [
+                        Filter(operator="__eq__", path=["type"], value="Person"),
+                        Filter(
+                            operator="__eq__",
+                            path=["affiliation", "id"],
+                            value="https://www.grid.ac/institutes/grid.5333.6",
+                        )
+                    ]
+                ),
+                id="json_key_sequence_path",
+            )
         ],
     )
     def test_dict_to_filters(self, filters, expected):
