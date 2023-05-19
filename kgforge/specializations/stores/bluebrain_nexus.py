@@ -358,12 +358,8 @@ class BlueBrainNexus(Store):
                 nexus_path += f"{self.service.organisation}/{self.service.project}"
             # Try to use the id as it was given
             if id.startswith(self.service.url_resources):
-                # Use the given id in the request
-                if retrieve_source and not cross_bucket:
-                    url = "/".join((id_without_query, "source"))
-                else:
-                    url = id_without_query
-                    url_resource = id_without_query
+                url = id_without_query
+                url_resource = id_without_query
                 try:
                     response = requests.get(
                         url, params=query_params, headers=self.service.headers
