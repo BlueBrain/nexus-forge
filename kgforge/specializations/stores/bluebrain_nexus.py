@@ -1044,8 +1044,6 @@ def _error_message(error: HTTPError) -> str:
         return format_message(str(error))
 
 
-<<<<<<< HEAD
-=======
 def build_sparql_query_statements(context: Context, *conditions) -> Tuple[List, List]:
     statements = list()
     filters = list()
@@ -1103,7 +1101,6 @@ def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
 
 
->>>>>>> a812e91 (Added changes proposed in review)
 def _create_select_query(vars_, statements, distinct, search_in_graph):
     where_clauses = (
         f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else f"{{{statements}}}"
