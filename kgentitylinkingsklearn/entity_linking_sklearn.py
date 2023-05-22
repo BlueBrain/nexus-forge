@@ -38,7 +38,7 @@ class EntityLinkerSkLearn(EntityLinker):
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, Tuple[str, Dict[str, str]]], **source_config) -> Dict[str, LazyAction]:
         # FIXME: the same model is loaded multiple times if provided for multiple targets
-        return {target: LazyAction(EntityLinkerServiceSkLearn.from_pretrained, dirpath, filename_filter[0]) for target, filename_filter in
+        return {target: LazyAction(EntityLinkerServiceSkLearn.from_pretrained, dirpath, filename_filter) for target, filename_filter in
                 targets.items()}
 
     def _is_target_valid(self, target: str) -> Optional[bool]:

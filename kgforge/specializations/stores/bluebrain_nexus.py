@@ -376,12 +376,15 @@ class BlueBrainNexus(Store):
                     url_resource, params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-            elif retrieve_source and cross_bucket and response and ('_self' in response):
+            elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
                 response_metadata = requests.get(
                     "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
             else:
+                print("retrieve_source", retrieve_source)
+                print("cross_bucket", cross_bucket)
+                print(bool(response), bool('_self' in response))
                 response_metadata = True  # when retrieve_source is False
         if response and response_metadata:
             try:
