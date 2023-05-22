@@ -353,8 +353,12 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except HTTPError as er:
+            if cross_bucket:
+                nexus_path = f"{self.service.endpoint}/resources/" 
+            else:
+                nexus_path = self.service.url_resources
             # Try to use the id as it was given
-            if id.startswith(self.service.url_resources):
+            if id.startswith(nexus_path):
                 if retrieve_source and not cross_bucket:
                     url = "/".join((id_without_query, "source"))
                 else: 
