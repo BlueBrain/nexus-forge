@@ -353,13 +353,13 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except HTTPError as er:
-            nexus_path = f"{self.service.endpoint}/resources/"
-            if not cross_bucket:
-                nexus_path += f"{self.service.organisation}/{self.service.project}"
             # Try to use the id as it was given
             if id.startswith(self.service.url_resources):
-                url = id_without_query
-                url_resource = id_without_query
+                if retrieve_source and not cross_bucket:
+                    url = "/".join((id_without_query, "source"))
+                else: 
+                    url = id_without_query
+                url_resource = url
                 try:
                     response = requests.get(
                         url, params=query_params, headers=self.service.headers
@@ -382,9 +382,6 @@ class BlueBrainNexus(Store):
                 )
                 response_metadata.raise_for_status()
             else:
-                print("retrieve_source", retrieve_source)
-                print("cross_bucket", cross_bucket)
-                print(bool(response), bool('_self' in response))
                 response_metadata = True  # when retrieve_source is False
         if response and response_metadata:
             try:
