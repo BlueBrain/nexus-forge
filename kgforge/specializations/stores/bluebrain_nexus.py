@@ -66,6 +66,7 @@ from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service
 
+
 class CategoryDataType(Enum):
     DATETIME = "datetime"
     NUMBER = "number"
@@ -351,21 +352,42 @@ class BlueBrainNexus(Store):
                 url, params=query_params, headers=self.service.headers
             )
             response.raise_for_status()
+        except HTTPError as er:
+            if cross_bucket:
+                nexus_path = f"{self.service.endpoint}/resources/" 
+            else:
+                nexus_path = self.service.url_resources
+            # Try to use the id as it was given
+            if id.startswith(nexus_path):
+                url_resource = id_without_query
+                if retrieve_source and not cross_bucket:
+                    url = "/".join((id_without_query, "source"))
+                else: 
+                    url = id_without_query
+                try:
+                    response = requests.get(
+                        url, params=query_params, headers=self.service.headers
+                    )
+                    response.raise_for_status()
+                except HTTPError as e:
+                    raise RetrievalError(_error_message(e))
+            else:
+                raise RetrievalError(_error_message(er))
+        finally:
             if retrieve_source and not cross_bucket:
 
                 response_metadata = requests.get(
                     url_resource, params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-            if retrieve_source and cross_bucket:
+            elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
                 response_metadata = requests.get(
                     "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-
-        except HTTPError as e:
-            raise RetrievalError(_error_message(e))
-        else:
+            else:
+                response_metadata = True  # when retrieve_source is False
+        if response and response_metadata:
             try:
                 data = response.json()
                 resource = self.service.to_resource(data)
@@ -692,7 +714,8 @@ class BlueBrainNexus(Store):
                 f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
             )
         if "filters" in params:
-            raise ValueError("A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+            raise ValueError(
+                "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
 
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
@@ -721,7 +744,8 @@ class BlueBrainNexus(Store):
                 _vars = ["?id"]
                 for i, k in enumerate(self.service.store_metadata_keys):
                     _vars.append(f"?{k}")
-                    store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
+                    store_metadata_statements.insert(
+                        i + 2, f"<{self.metadata_context.terms[k].id}> ?{k}")
                 deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
                 query_filters.append(deprecated_filter)
             else:
@@ -891,13 +915,15 @@ class BlueBrainNexus(Store):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return [
-                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] =='literal' and
-                                                                          ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#boolean')
-                                                                       else (int(v["value"]) if v['type'] =='literal' and
-                                                                             ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#integer')
-                                                                             else v["value"]
-                                                                             )
-                                for k, v in x.items()} )
+                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
+                                ('datatype' in v and v['datatype'] ==
+                                 'http://www.w3.org/2001/XMLSchema#boolean')
+                                else (int(v["value"]) if v['type'] == 'literal' and
+                                      ('datatype' in v and v['datatype'] ==
+                                       'http://www.w3.org/2001/XMLSchema#integer')
+                                      else v["value"]
+                                      )
+                                for k, v in x.items()})
                     for x in results
                 ]
 
