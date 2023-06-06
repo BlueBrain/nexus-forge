@@ -635,6 +635,33 @@ class TestESQueryBuilder:
                 ),
                 id="rewrite_type_id",
             ),
+            pytest.param(
+                (
+                    [
+                        Filter(
+                            operator="__eq__",
+                            path=["brainLocation", "brainRegion", "label"],
+                            value=["A label", "Another label"],
+                        )
+                    ]
+                ),
+                ({}),
+                (
+                    elasticsearch_dsl.Search()
+                    .query(
+                        elasticsearch_dsl.query.Bool(
+                            filter=[
+                                elasticsearch_dsl.query.Terms(
+                                    **{
+                                        "brainLocation.brainRegion.label.keyword": ["A label", "Another label"]
+                                    }
+                                )
+                            ]
+                        )
+                    )
+                ),
+                id="build_query_with_multiple_values",
+            )
         ],
     )
     def test_build(self, filters, params, es_query, es_mapping_dict):

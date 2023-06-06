@@ -27,4 +27,5 @@ jobs:
           fail_ci_if_error: true
           flags: unittests
           name: codecov-umbrella
+          version: "v0.1.15"
           verbose: true

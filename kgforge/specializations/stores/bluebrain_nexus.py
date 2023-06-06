@@ -66,6 +66,7 @@ from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service
 
+
 class CategoryDataType(Enum):
     DATETIME = "datetime"
     NUMBER = "number"
@@ -351,21 +352,42 @@ class BlueBrainNexus(Store):
                 url, params=query_params, headers=self.service.headers
             )
             response.raise_for_status()
+        except HTTPError as er:
+            if cross_bucket:
+                nexus_path = f"{self.service.endpoint}/resources/" 
+            else:
+                nexus_path = self.service.url_resources
+            # Try to use the id as it was given
+            if id.startswith(nexus_path):
+                url_resource = id_without_query
+                if retrieve_source and not cross_bucket:
+                    url = "/".join((id_without_query, "source"))
+                else: 
+                    url = id_without_query
+                try:
+                    response = requests.get(
+                        url, params=query_params, headers=self.service.headers
+                    )
+                    response.raise_for_status()
+                except HTTPError as e:
+                    raise RetrievalError(_error_message(e))
+            else:
+                raise RetrievalError(_error_message(er))
+        finally:
             if retrieve_source and not cross_bucket:
 
                 response_metadata = requests.get(
                     url_resource, params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-            if retrieve_source and cross_bucket:
+            elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
                 response_metadata = requests.get(
                     "/".join([response.json()["_self"], "source"]), params=query_params, headers=self.service.headers
                 )
                 response_metadata.raise_for_status()
-
-        except HTTPError as e:
-            raise RetrievalError(_error_message(e))
-        else:
+            else:
+                response_metadata = True  # when retrieve_source is False
+        if response and response_metadata:
             try:
                 data = response.json()
                 resource = self.service.to_resource(data)
@@ -390,12 +412,12 @@ class BlueBrainNexus(Store):
                 )
             return resource
 
-    def _retrieve_filename(self, id: str) -> str:
+    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         try:
             response = requests.get(id, headers=self.service.headers)
             response.raise_for_status()
             metadata = response.json()
-            return metadata["_filename"]
+            return metadata["_filename"], metadata["_mediaType"]
         except HTTPError as e:
             raise DownloadingError(_error_message(e))
 
@@ -405,7 +427,8 @@ class BlueBrainNexus(Store):
         paths: List[str],
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        buckets: List[str]
     ) -> None:
         async def _bulk():
             loop = asyncio.get_event_loop()
@@ -413,28 +436,25 @@ class BlueBrainNexus(Store):
             headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept":content_type})
             async with ClientSession(headers=headers) as session:
                 tasks = (
-                    _create_task(x, y, z, loop, semaphore, session)
-                    for x, y, z in zip(urls, paths, store_metadata)
+                    _create_task(x, y, z, b, loop, semaphore, session)
+                    for x, y, z, b in zip(urls, paths, store_metadata, buckets)
                 )
                 return await asyncio.gather(*tasks)
 
-        def _create_task(url, path, store_metadata, loop, semaphore, session):
+        def _create_task(url, path, store_metadata, bucket, loop, semaphore, session):
             return loop.create_task(
-                _download(url, path, store_metadata, semaphore, session)
+                _download(url, path, store_metadata, bucket, semaphore, session)
             )
 
-        async def _download(url, path, store_metadata, semaphore, session):
+        async def _download(url, path, store_metadata, bucket, semaphore, session):
             async with semaphore:
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
-                url_base, org, project = self._prepare_download_one(
-                    url, path, store_metadata, cross_bucket
-                )
-                async with session.get(url_base, params=params_download) as response:
+                async with session.get(url, params=params_download) as response:
                     try:
                         response.raise_for_status()
                     except Exception as e:
                         raise DownloadingError(
-                            f"Downloading from {org}/{project}:{_error_message(e)}"
+                            f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
                         )
                     else:
                         with open(path, "wb") as f:
@@ -449,24 +469,23 @@ class BlueBrainNexus(Store):
         path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool,
-        content_type: str
+        content_type: str,
+        bucket: str
     ) -> None:
-        url_base, org, project = self._prepare_download_one(
-            url, path, store_metadata, cross_bucket
-        )
+        
         try:
             params_download = copy.deepcopy(self.service.params.get("download", {}))
             headers = self.service.headers_download if not content_type else update_dict(self.service.headers_download, {"Accept": content_type})
 
             response = requests.get(
-                url=url_base,
+                url=url,
                 headers=headers,
                 params=params_download
             )
             response.raise_for_status()
         except Exception as e:
             raise DownloadingError(
-                f"Downloading from {org}/{project} failed :{_error_message(e)}"
+                f"Downloading from bucket {bucket} failed: {_error_message(e)}"
             )
         else:
             with open(path, "wb") as f:
@@ -476,17 +495,9 @@ class BlueBrainNexus(Store):
     def _prepare_download_one(
         self,
         url: str,
-        path: str,
         store_metadata: Optional[DictWrapper],
         cross_bucket: bool
     ) -> Tuple[str, str, str]:
-        # this is a hack since _self and _id have the same uuid
-        file_id = url.split("/")[-1]
-        file_id = unquote(file_id)
-        if file_id.startswith("http"):
-            file_id = file_id.split("/")[-1]
-        if len(file_id) < 1:
-            raise DownloadingError("Invalid file name")
         if cross_bucket:
             if store_metadata is not None:
                 project = store_metadata._project.split("/")[-1]
@@ -498,16 +509,23 @@ class BlueBrainNexus(Store):
         else:
             org = self.service.organisation
             project = self.service.project
-
-        url_base = "/".join(
-            (
-                self.service.url_base_files,
-                quote_plus(org),
-                quote_plus(project),
-                quote_plus(file_id),
+        file_id = url.split("/")[-1]
+        file_id = unquote(file_id)
+        if len(file_id) < 1:
+            raise DownloadingError(f"Invalid file url: {url}")
+        elif file_id.startswith("http"):
+            url_base = url
+        else: 
+            # this is a hack since _self and _id have the same uuid
+            url_base = "/".join(
+                (
+                    self.service.url_base_files,
+                    quote_plus(org),
+                    quote_plus(project),
+                    quote_plus(file_id),
+                )
             )
-        )
-        return url_base, org, project
+        return url_base, f"{org}/{project}"
 
     # CR[U]D.
 
@@ -696,7 +714,8 @@ class BlueBrainNexus(Store):
                 f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
             )
         if "filters" in params:
-            raise ValueError("A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+            raise ValueError(
+                "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
 
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
@@ -717,7 +736,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model_context, filters
+                None, resolvers, self.model_context, *filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -725,7 +744,8 @@ class BlueBrainNexus(Store):
                 _vars = ["?id"]
                 for i, k in enumerate(self.service.store_metadata_keys):
                     _vars.append(f"?{k}")
-                    store_metadata_statements.insert(i+2, f"<{self.metadata_context.terms[k].id}> ?{k}")
+                    store_metadata_statements.insert(
+                        i + 2, f"<{self.metadata_context.terms[k].id}> ?{k}")
                 deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
                 query_filters.append(deprecated_filter)
             else:
@@ -895,13 +915,15 @@ class BlueBrainNexus(Store):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return [
-                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] =='literal' and
-                                                                          ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#boolean')
-                                                                       else (int(v["value"]) if v['type'] =='literal' and
-                                                                             ('datatype' in v and v['datatype']=='http://www.w3.org/2001/XMLSchema#integer')
-                                                                             else v["value"]
-                                                                             )
-                                for k, v in x.items()} )
+                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
+                                ('datatype' in v and v['datatype'] ==
+                                 'http://www.w3.org/2001/XMLSchema#boolean')
+                                else (int(v["value"]) if v['type'] == 'literal' and
+                                      ('datatype' in v and v['datatype'] ==
+                                       'http://www.w3.org/2001/XMLSchema#integer')
+                                      else v["value"]
+                                      )
+                                for k, v in x.items()})
                     for x in results
                 ]
 
