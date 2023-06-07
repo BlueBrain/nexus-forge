@@ -56,22 +56,24 @@ class AgentResolver(Resolver):
                 givenName ?givenName ;
                 familyName ?familyName
             }} WHERE {{
-              ?id a ?type . 
-              OPTIONAL {{
-                ?id name ?name .
-              }}
-              OPTIONAL {{
-                ?id givenName ?givenName . 
-              }}
-              OPTIONAL {{
-                ?id familyName ?familyName .
-              }}
-              {{
-                SELECT * WHERE {{
-                  {{ {0} ; name ?name {1} }} UNION
-                  {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
-                  {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
-                }} LIMIT {4}
+              GRAPH ?g {{
+                ?id a ?type .
+                OPTIONAL {{
+                  ?id name ?name .
+                }}
+                OPTIONAL {{
+                  ?id givenName ?givenName .
+                }}
+                OPTIONAL {{
+                  ?id familyName ?familyName .
+                }}
+                {{
+                  SELECT * WHERE {{
+                    {{ {0} ; name ?name {1} }} UNION
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
+                  }} LIMIT {4}
+                }}
               }}
             }}
             """

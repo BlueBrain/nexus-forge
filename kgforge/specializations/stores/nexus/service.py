@@ -267,8 +267,8 @@ class Service:
                 raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             # Make sure context is not deprecated
-            if resource['_deprecated']:
-                raise ConfigurationError(f"{context_to_resolve} exists but was deprecated")
+            if '_deprecated' in resource and resource['_deprecated']:
+                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
             document = json.loads(json.dumps(resource["@context"]))
         if isinstance(document, list):
             if self.store_context in document:
