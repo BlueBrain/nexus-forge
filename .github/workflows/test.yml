@@ -29,3 +29,4 @@ jobs:
           name: codecov-umbrella
           version: "v0.1.15"
           verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
