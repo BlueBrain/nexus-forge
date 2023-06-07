@@ -29,7 +29,7 @@ class EntityLinker(Resolver, metaclass=ABCMeta):
         super().__init__(source, targets, result_resource_mapping, **source_config)
 
     def _resolve(self, text: Union[str, List[str]], target: str, type: str,
-                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[str],
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int],
                  threshold: Optional[float]) -> Optional[List[Tuple[str, List[Dict]]]]:
         if target is not None:
             if isinstance(self.service, dict):
