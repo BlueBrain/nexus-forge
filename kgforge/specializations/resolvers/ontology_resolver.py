@@ -44,7 +44,10 @@ class OntologyResolver(Resolver):
 
         if isinstance(text, list):
             not_supported(("text", list))
-        
+        # Use as default type owl:Class
+        if type is None:
+            type = "Class"
+
         properties_to_filter_with = ['label', 'notation', 'prefLabel', 'altLabel']        
         query_template = """
         CONSTRUCT {{

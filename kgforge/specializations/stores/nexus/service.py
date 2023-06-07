@@ -38,6 +38,7 @@ from kgforge.core.commons.actions import (
     execute_lazy_actions,
     LazyAction,
 )
+from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -265,6 +266,9 @@ class Service:
             else:
                 raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
+            # Make sure context is not deprecated
+            if resource['_deprecated']:
+                raise ConfigurationError(f"{context_to_resolve} exists but was deprecated")
             document = json.loads(json.dumps(resource["@context"]))
         if isinstance(document, list):
             if self.store_context in document:
