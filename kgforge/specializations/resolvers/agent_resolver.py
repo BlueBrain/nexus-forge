@@ -40,7 +40,7 @@ class AgentResolver(Resolver):
         return DictionaryMapper
 
     def _resolve(self, text: Union[str, List[str]], target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[str], threshold: Optional[float]) -> Optional[List[Dict]]:
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) -> Optional[List[Dict]]:
 
         if isinstance(text, list):
             not_supported(("text", list))
@@ -56,22 +56,24 @@ class AgentResolver(Resolver):
                 givenName ?givenName ;
                 familyName ?familyName
             }} WHERE {{
-              ?id a ?type . 
-              OPTIONAL {{
-                ?id name ?name .
-              }}
-              OPTIONAL {{
-                ?id givenName ?givenName . 
-              }}
-              OPTIONAL {{
-                ?id familyName ?familyName .
-              }}
-              {{
-                SELECT * WHERE {{
-                  {{ {0} ; name ?name {1} }} UNION
-                  {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
-                  {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
-                }} LIMIT {4}
+              GRAPH ?g {{
+                ?id a ?type .
+                OPTIONAL {{
+                  ?id name ?name .
+                }}
+                OPTIONAL {{
+                  ?id givenName ?givenName .
+                }}
+                OPTIONAL {{
+                  ?id familyName ?familyName .
+                }}
+                {{
+                  SELECT * WHERE {{
+                    {{ {0} ; name ?name {1} }} UNION
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
+                  }} LIMIT {4}
+                }}
               }}
             }}
             """

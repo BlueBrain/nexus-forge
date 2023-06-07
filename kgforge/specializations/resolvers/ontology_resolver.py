@@ -39,12 +39,15 @@ class OntologyResolver(Resolver):
         return DictionaryMapper
 
     def _resolve(self, text: Union[str, List[str]], target: Optional[str], type: Optional[str],
-                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[str], threshold=Optional[float]) \
+                 strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) \
             -> Optional[List[Dict]]:
 
         if isinstance(text, list):
             not_supported(("text", list))
-        
+        # Use as default type owl:Class
+        if type is None:
+            type = "Class"
+
         properties_to_filter_with = ['label', 'notation', 'prefLabel', 'altLabel']        
         query_template = """
         CONSTRUCT {{
@@ -57,33 +60,35 @@ class OntologyResolver(Resolver):
             isDefinedBy ?isDefinedBy ;
             notation ?notation
         }} WHERE {{
-            ?id a ?type ;
-                label ?label ; 
-            OPTIONAL {{
-            ?id subClassOf ?subClassOf ;
-            }}
-            OPTIONAL {{
-            ?id definition ?definition ;
-            }}
-            OPTIONAL {{
-            ?id prefLabel ?prefLabel .
-            }}
-            OPTIONAL {{
-            ?id altLabel ?altLabel .
-            }}
-            OPTIONAL {{
-            ?id isDefinedBy ?isDefinedBy .
-            }}     
-            OPTIONAL {{
-            ?id notation ?notation .
-            }}    
-            {{
-            SELECT * WHERE {{
-                {{ {0} ; label ?label {1} }} UNION
-                {{ {0} ; notation ?notation {2} }} UNION
-                {{ {0} ; prefLabel ?prefLabel {3} }} UNION
-                {{ {0} ; altLabel ?altLabel {4} }}
-            }} LIMIT {5}
+            GRAPH ?g {{
+                ?id a ?type ;
+                    label ?label ; 
+                OPTIONAL {{
+                ?id subClassOf ?subClassOf ;
+                }}
+                OPTIONAL {{
+                ?id definition ?definition ;
+                }}
+                OPTIONAL {{
+                ?id prefLabel ?prefLabel .
+                }}
+                OPTIONAL {{
+                ?id altLabel ?altLabel .
+                }}
+                OPTIONAL {{
+                ?id isDefinedBy ?isDefinedBy .
+                }}     
+                OPTIONAL {{
+                ?id notation ?notation .
+                }}    
+                {{
+                SELECT * WHERE {{
+                    {{ {0} ; label ?label {1} }} UNION
+                    {{ {0} ; notation ?notation {2} }} UNION
+                    {{ {0} ; prefLabel ?prefLabel {3} }} UNION
+                    {{ {0} ; altLabel ?altLabel {4} }}
+                }} LIMIT {5}
+                }}
             }}
         }}
         """
