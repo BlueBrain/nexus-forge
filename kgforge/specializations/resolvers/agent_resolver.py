@@ -77,7 +77,8 @@ class AgentResolver(Resolver):
               }}
             }}
             """
-        context = self.service.get_context(resolving_context, target)
+        filters = self.service.filters[target] if target in self.service.filters else None
+        context = self.service.get_context(resolving_context, target, filters)
         query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, self.service.filters[target], strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
         expected_fields = properties_to_filter_with+["type"]
         return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
