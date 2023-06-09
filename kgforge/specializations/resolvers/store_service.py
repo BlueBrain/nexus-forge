@@ -24,11 +24,10 @@ class StoreService:
         self.filters: Dict[str, str] = dict()
         for identifier in targets:
             bucket = targets[identifier]["bucket"]
-            filters = targets[identifier]["filters"]
+            if 'filters' in targets[identifier]:
+                self.filters[identifier] = targets[identifier]["filters"]
             store_config.update(bucket=bucket)
             self.sources[identifier] = store(**store_config)
-            if filters:
-                self.filters[identifier] = filters
         self.deprecated_property = "https://bluebrain.github.io/nexus/vocabulary/deprecated"
 
     def perform_query(self, query: str, target: str, expected_fields: List[str],
