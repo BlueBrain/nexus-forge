@@ -510,6 +510,14 @@ class Store(ABC):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
+    
+    def expand_url(self, url: str, context: Context, is_file: bool, encoding: str) -> str:
+        """Expand a given url using the store or model context
+        
+        :param url: the idenfitier to be transformed
+        :param context: a Context object with vocabulary to be used in the construction of the URI
+        """
+        pass
 
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):

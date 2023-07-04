@@ -16,14 +16,17 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import re
 import numpy as np
 import yaml
 from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
+from urllib.parse import quote_plus, urlparse
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -215,7 +218,6 @@ class KnowledgeGraphForge:
         self._model: Model = model(**model_config)
 
         # Store.
-
         store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
         store = import_class(store_name, "stores")
@@ -233,8 +235,6 @@ class KnowledgeGraphForge:
 
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
-
-    # Modeling User Interface.
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
@@ -745,7 +745,6 @@ class KnowledgeGraphForge:
         )
 
     @catch
-    @catch
     def as_jsonld(
         self,
         data: Union[Resource, List[Resource]],
@@ -880,7 +879,26 @@ class KnowledgeGraphForge:
         :return: Union[Resource, List[Resource]]
         """
         return from_dataframe(data, na, nesting)
-
+    
+    def get_context(self, origin : str ="model"):
+        """Expose the context used in the model or in the store."""
+        if origin == "model":
+            return self._model.context()
+        elif origin == "store":
+            return self._store.context
+    
+    def expand_url(self, url: str, context: Context = None, 
+                   is_file: bool = True, encoding: str = None):
+        """
+        Construct an URI a given an id using the vocabulary given in the Context object.
+        
+        :param url: the url to transform
+        :param context: a Context object that should be used to create the URI
+        :param encode: parameter to use to encode or not the uri, default is `utf-8`
+        """
+        if context is None:
+            context = self.get_context("store")
+        return self._store.expand_url(url, context, is_file, encoding)
 
 def prepare_resolvers(
     config: Dict, store_config: Dict

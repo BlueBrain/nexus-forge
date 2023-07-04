@@ -18,11 +18,11 @@ from unittest import mock
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 from uuid import uuid4
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 import nexussdk
 import pytest
 from typing import Callable, Union, List
+from collections import OrderedDict
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -30,6 +30,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.specializations.stores.bluebrain_nexus import (
     BlueBrainNexus,
     _create_select_query,
@@ -40,10 +41,10 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 from kgforge.specializations.stores.nexus import Service
 
 BUCKET = "test/kgforge"
-NEXUS = "https://nexus-instance.org/"
+NEXUS = "https://nexus-instance.org"
 TOKEN = "token"
-NEXUS_PROJECT_CONTEXT = {"base": "http://data.net/", "vocab": "http://vocab.net/"}
-
+NEXUS_PROJECT_CONTEXT = {"base": "http://data.net", "vocab": "http://vocab.net",
+                         "apiMappings": [{'namespace': 'https://neuroshapes.org/dash/', 'prefix': 'datashapes'}]}
 VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
 FILE_RESOURCE_MAPPING = os.sep.join(
     (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson")
@@ -130,6 +131,11 @@ def nexus_store_unauthorized():
     return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token="invalid token")
 
 
+@pytest.fixture
+def nexus_context():
+    return Context(NEXUS_PROJECT_CONTEXT)
+
+
 def test_config_error():
     with pytest.raises(ValueError):
         BlueBrainNexus(endpoint="test", bucket="invalid", token="")
@@ -163,6 +169,30 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     assert str(result) == str(registered_building)
     assert getattr(result, "context") == registered_building.context
     assert str(result._store_metadata) == str(registered_building._store_metadata)
+
+
+@pytest.mark.parametrize("url,expected",
+                         [
+                            pytest.param(
+                                ("myverycoolid123456789"),
+                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
+                            id="simple-id",
+                            ),
+                            pytest.param(
+                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
+                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
+                            id="same-id",
+                            ),
+                            # pytest.param(
+                                # ("https://nexus-instance.org/files/test/kgforge/datashapes:example/myverycoolid123456789"),
+                                # ("https://nexus-instance.org/files/test/kgforge/https%3A%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fdatashapes/example/myverycoolid123456789"),
+                            # id="schema-id",
+                            # ),
+                         ])
+def test_expand_url(nexus_store, nexus_context, url, expected):
+    uri = nexus_store.expand_url(url, context=nexus_context, is_file=True, encoding=None)
+    print(uri)
+    assert expected == uri
 
 
 class TestQuerying:

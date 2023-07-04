@@ -1019,6 +1019,33 @@ class BlueBrainNexus(Store):
                 files_download_config=files_download_config,
                 **params,
             )
+            
+    def expand_url(self, url: str, context: Context, is_file, encoding):
+        # try decoding the url first
+        raw_url = unquote(url)
+        if is_file: # for files
+            url_base = '/'.join([self.endpoint, 'files', self.bucket])
+        else: # for resources
+            url_base = '/'.join([self.endpoint, 'resources', self.bucket])
+        matches = re.match(r"[\w\.:%/-]+/(\w+):(\w+)/[\w\.-/:%]+", raw_url)
+        if matches:
+            groups = matches.groups()
+            old_schema = f"{groups[0]}:{groups[1]}"
+            resolved = context.resolve(groups[0])
+            if raw_url.startswith(url_base):
+                print('I am here', resolved)
+                extended_schema = '/'.join([quote_plus(resolved), groups[1]])
+                url = raw_url.replace(old_schema, extended_schema)
+                return url 
+            else:
+                extended_schema = '/'.join([resolved, groups[1]])
+                url = raw_url.replace(old_schema, extended_schema)
+        else:
+            url = raw_url
+        if url.startswith(url_base):
+            return url
+        uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
+        return uri
 
 
 def _error_message(error: HTTPError) -> str:

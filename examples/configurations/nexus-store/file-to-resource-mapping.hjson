@@ -12,7 +12,7 @@
     }
     encodingFormat: x._mediaType
     name: x._filename
-    contentUrl: x._self
+    contentUrl: forge.expand_url(x.id)
     atLocation:
     {
         type: Location

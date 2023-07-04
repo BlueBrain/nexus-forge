@@ -238,6 +238,9 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
+    
+    def expand_url(self, url: str, context: Context, is_file: bool, encoding: str) -> str:
+        return url
 
     class RecordExists(Exception):
         pass
