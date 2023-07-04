@@ -1020,9 +1020,9 @@ class BlueBrainNexus(Store):
                 **params,
             )
             
-    def expand_url(self, url: str, context: Context, is_file, encoding):
+    def expand_uri(self, uri: str, context: Context, is_file, encoding):
         # try decoding the url first
-        raw_url = unquote(url)
+        raw_url = unquote(uri)
         if is_file: # for files
             url_base = '/'.join([self.endpoint, 'files', self.bucket])
         else: # for resources
@@ -1031,9 +1031,9 @@ class BlueBrainNexus(Store):
         if matches:
             groups = matches.groups()
             old_schema = f"{groups[0]}:{groups[1]}"
-            resolved = context.resolve(groups[0])
+            resolved = context.expand(groups[0])
+            print(groups[0], resolved)
             if raw_url.startswith(url_base):
-                print('I am here', resolved)
                 extended_schema = '/'.join([quote_plus(resolved), groups[1]])
                 url = raw_url.replace(old_schema, extended_schema)
                 return url 

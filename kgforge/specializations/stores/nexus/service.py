@@ -240,7 +240,6 @@ class Service:
 
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
-        print('api mappings', project_data['apiMappings'])
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"],
                    "api_mappings": project_data["apiMappings"]}
         return context

@@ -190,8 +190,7 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
                             # ),
                          ])
 def test_expand_url(nexus_store, nexus_context, url, expected):
-    uri = nexus_store.expand_url(url, context=nexus_context, is_file=True, encoding=None)
-    print(uri)
+    uri = nexus_store.expand_uri(url, context=nexus_context, is_file=True, encoding=None)
     assert expected == uri
 
 

@@ -880,25 +880,26 @@ class KnowledgeGraphForge:
         """
         return from_dataframe(data, na, nesting)
     
-    def get_context(self, origin : str ="model"):
-        """Expose the context used in the model or in the store."""
-        if origin == "model":
-            return self._model.context()
-        elif origin == "store":
-            return self._store.context
+    def get_store_context(self):
+        """Expose the context used in the store."""
+        return self._store.context
+
+    def get_model_context(self):
+        """Expose the context used in the model."""
+        return self._model.context()
     
-    def expand_url(self, url: str, context: Context = None, 
+    def expand_uri(self, uri: str, context: Context = None, 
                    is_file: bool = True, encoding: str = None):
         """
         Construct an URI a given an id using the vocabulary given in the Context object.
         
-        :param url: the url to transform
+        :param uri: the uri to transform
         :param context: a Context object that should be used to create the URI
         :param encode: parameter to use to encode or not the uri, default is `utf-8`
         """
         if context is None:
-            context = self.get_context("store")
-        return self._store.expand_url(url, context, is_file, encoding)
+            context = self.get_store_context()
+        return self._store.expand_uri(uri, context, is_file, encoding)
 
 def prepare_resolvers(
     config: Dict, store_config: Dict
