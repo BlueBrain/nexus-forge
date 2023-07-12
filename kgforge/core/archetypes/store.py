@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Match, Optional, Tuple, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -147,9 +148,13 @@ class Store(ABC):
         return None
 
     @property
-    def mapper(self, forge: Optional["KnowledgeGraphForge"]) -> Optional[Callable]:
+    def mapper(self) -> Optional[Callable]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
+    
+    @mapper.setter
+    def mapper(self, mapper: Optional[DictionaryMapper]) -> Optional[DictionaryMapper]:
+        self._mapper = mapper
 
     # [C]RUD.
 

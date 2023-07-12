@@ -223,7 +223,7 @@ class KnowledgeGraphForge:
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
         store_config.update(name=store_name)
-        self._store.mapper = self
+        self._store.mapper = DictionaryMapper(self)
 
         # Resolvers.
         resolvers_config = config.pop("Resolvers", None)
