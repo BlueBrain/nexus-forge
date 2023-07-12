@@ -135,9 +135,13 @@ class BlueBrainNexus(Store):
         return DictionaryMapping
 
     @property
-    def mapper(self) -> Optional[Callable]:
-        return DictionaryMapper
-
+    def mapper(self) -> Optional[DictionaryMapper]:
+        return self._mapper
+    
+    @mapper.setter
+    def mapper(self, forge: Optional['KnowledgeGraphForge']) -> Optional[DictionaryMapper]:
+        self._mapper = DictionaryMapper(forge)
+    
     def register(
         self, data: Union[Resource, List[Resource]], schema_id: str = None
     ) -> None:

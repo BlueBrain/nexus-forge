@@ -136,6 +136,7 @@ class Store(ABC):
             if hasattr(self.service, "metadata_context")
             else None
         )
+        self._mapper = None
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -146,7 +147,7 @@ class Store(ABC):
         return None
 
     @property
-    def mapper(self) -> Optional[Callable]:
+    def mapper(self, forge: Optional["KnowledgeGraphForge"]) -> Optional[Callable]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
 
@@ -185,7 +186,7 @@ class Store(ABC):
         if self.file_mapping is not None:
             p = Path(path)
             uploaded = self._upload(p, content_type)
-            return self.mapper().map(uploaded, self.file_mapping, None)
+            return self.mapper.map(uploaded, self.file_mapping, None)
         else:
             raise UploadingError("no file_resource_mapping has been configured")
 
