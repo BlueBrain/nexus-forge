@@ -223,7 +223,6 @@ class KnowledgeGraphForge:
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
         store_config.update(name=store_name)
-        self._store.mapper = DictionaryMapper(self)
 
         # Resolvers.
         resolvers_config = config.pop("Resolvers", None)
@@ -717,7 +716,7 @@ class KnowledgeGraphForge:
         :return: LazyAction
         """
         # path: Union[FilePath, DirPath].
-        return LazyAction(self._store.upload, path, content_type)
+        return LazyAction(self._store.upload, path, content_type, self)
 
     # Converting User Interface.
 
