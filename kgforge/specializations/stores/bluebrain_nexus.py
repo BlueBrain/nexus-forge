@@ -1036,11 +1036,10 @@ class BlueBrainNexus(Store):
             groups = matches.groups()
             old_schema = f"{groups[0]}:{groups[1]}"
             resolved = context.expand(groups[0])
-            print(groups[0], resolved)
             if raw_url.startswith(url_base):
-                extended_schema = '/'.join([quote_plus(resolved), groups[1]])
+                extended_schema = resolved + groups[1]
                 url = raw_url.replace(old_schema, extended_schema)
-                return url 
+                return url_base + '/' + quote_plus(url.split(url_base+'/')[-1])
             else:
                 extended_schema = '/'.join([resolved, groups[1]])
                 url = raw_url.replace(old_schema, extended_schema)

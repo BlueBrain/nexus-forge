@@ -133,7 +133,10 @@ def nexus_store_unauthorized():
 
 @pytest.fixture
 def nexus_context():
-    return Context(NEXUS_PROJECT_CONTEXT)
+    context = NEXUS_PROJECT_CONTEXT
+    for mapping in context['apiMappings']:
+        context[mapping['prefix']] = mapping['namespace']
+    return Context(context)
 
 
 def test_config_error():
@@ -183,11 +186,11 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
                                 ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
                             id="same-id",
                             ),
-                            # pytest.param(
-                                # ("https://nexus-instance.org/files/test/kgforge/datashapes:example/myverycoolid123456789"),
-                                # ("https://nexus-instance.org/files/test/kgforge/https%3A%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fdatashapes/example/myverycoolid123456789"),
-                            # id="schema-id",
-                            # ),
+                            pytest.param(
+                                ("https://nexus-instance.org/files/test/kgforge/datashapes:example/myverycoolid123456789"),
+                                ("https://nexus-instance.org/files/test/kgforge/https%3A%2F%2Fneuroshapes.org%2Fdash%2Fexample%2Fmyverycoolid123456789"),
+                            id="schema-id",
+                            ),
                          ])
 def test_expand_url(nexus_store, nexus_context, url, expected):
     uri = nexus_store.expand_uri(url, context=nexus_context, is_file=True, encoding=None)
