@@ -133,10 +133,12 @@ def nexus_store_unauthorized():
 
 @pytest.fixture
 def nexus_context():
-    context = NEXUS_PROJECT_CONTEXT
-    for mapping in context['apiMappings']:
-        context[mapping['prefix']] = mapping['namespace']
-    return Context(context)
+    context_document = dict()
+    context_document["@base"] = NEXUS_PROJECT_CONTEXT["base"]
+    context_document["@vocab"] = NEXUS_PROJECT_CONTEXT["vocab"]
+    for mapping in NEXUS_PROJECT_CONTEXT['apiMappings']:
+        context_document[mapping['prefix']] = mapping['namespace']
+    return Context(context_document)
 
 
 def test_config_error():
@@ -174,26 +176,56 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     assert str(result._store_metadata) == str(registered_building._store_metadata)
 
 
-@pytest.mark.parametrize("url,expected",
+@pytest.mark.parametrize("url,is_file, expected",
                          [
-                            pytest.param(
+                            pytest.param(       
                                 ("myverycoolid123456789"),
+                                (True),
                                 ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
-                            id="simple-id",
+                                id="simple-file-id",
+                            ),
+                            pytest.param(       
+                                ("http://data.net/myverycoolid123456789"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
+                                id="simple-resource-id",
+                            ),
+                            pytest.param(
+                                ("http://data.net/07ed2dab-587a-4144-90c7-4cdd252cfa3f"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F07ed2dab-587a-4144-90c7-4cdd252cfa3f"),
+                                id="file-id",
                             ),
                             pytest.param(
                                 ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
-                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
-                            id="same-id",
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
+                                id="file-self",
+                            )
+                            ,
+                            pytest.param(
+                                ("https://nexus-instance.org/resources/test/kgforge/datashapes:example/43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/https%3A%2F%2Fneuroshapes.org%2Fdash%2Fexample/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-schema-self",
                             ),
                             pytest.param(
-                                ("https://nexus-instance.org/files/test/kgforge/datashapes:example/myverycoolid123456789"),
-                                ("https://nexus-instance.org/files/test/kgforge/https%3A%2F%2Fneuroshapes.org%2Fdash%2Fexample%2Fmyverycoolid123456789"),
-                            id="schema-id",
+                                ("https://nexus-instance.org/resources/test/kgforge/_/43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-empty-schema-self",
                             ),
+                            pytest.param(
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-empty-schema-url-encoded-self",
+                            )
+                            
+                            
                          ])
-def test_expand_url(nexus_store, nexus_context, url, expected):
-    uri = nexus_store.expand_uri(url, context=nexus_context, is_file=True, encoding=None)
+def test_rewrite_uri(nexus_store, nexus_context, url, is_file, expected):
+    uri = nexus_store.rewrite_uri(url, context=nexus_context, is_file=is_file, encoding=None)
     assert expected == uri
 
 

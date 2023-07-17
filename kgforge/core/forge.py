@@ -33,6 +33,7 @@ from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.commons.formatter import Formatter
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.conversions.rdf import (
@@ -104,6 +105,9 @@ class KnowledgeGraphForge:
                    filters:
                      - path: <a resource property path>
                      - value: <a resource property value to filter with>
+               searchendpoints:
+                 sparql:
+                   endpoint: <A SPARQL endpoint to send resolving query to. Only used for resolvers based on SPARQL>
                result_resource_mapping: <an Hjson string, a file path, or an URL>
                endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
                token: <when 'origin' is 'store', a Store token, default to Store:token>
@@ -165,6 +169,11 @@ class KnowledgeGraphForge:
                              },
                              ...,
                          ],
+                         "searchendpoints":{
+                            "sparql":{
+                                "endpoint": <str>
+                            }
+                         },
                          "result_resource_mapping": <str>,
                          "endpoint": <str>,
                          "token": <str>,
@@ -447,14 +456,50 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str, *args) -> str:
+    def format(self, what: str = None, *args, formatter:str = Formatter.STR, uri: str = None, **kwargs) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
-        :param what: a configured formatter
+        :param what: a configured str format name. Required formatter:str = Formatter.STR
         :param args: a list of string to use for formatting
+        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)  
+        :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
-        return self._formatters[what].format(*args)
+        if what and uri:
+            raise AttributeError(
+                    f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
+            )
+        if formatter == Formatter.STR:
+            if what is None:
+                raise AttributeError(
+                        f"A non None 'what' value is required when formatter == Formatter.STR"
+                )
+            return self._formatters[what].format(*args, **kwargs)
+        elif formatter == Formatter.URI_REWRITER:
+            if uri is None:
+                raise AttributeError(
+                            f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
+                    )
+            return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
+        else:
+            raise AttributeError(
+                    f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+            )
+
+    def expand_uri(self, uri: str, context: Context = None, 
+                   is_file: bool = True, encoding: str = None):
+        """
+        Construct an URI a given an id using the vocabulary given in the Context object.
+        
+        :param uri: the uri to transform
+        :param context: a Context object that should be used to create the URI
+        :param encode: parameter to use to encode or not the uri, default is `utf-8`
+        """
+        print("in eexpada URI")
+        if context is None:
+            context = self.get_store_context()
+        return self._store.expand_uri(uri, context, is_file, encoding)
+
 
     # Mapping User Interface.
 
@@ -658,6 +703,7 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
+        #self._store.mapper = self._store.mapper(self)
         self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
@@ -888,19 +934,6 @@ class KnowledgeGraphForge:
         """Expose the context used in the model."""
         return self._model.context()
     
-    def expand_uri(self, uri: str, context: Context = None, 
-                   is_file: bool = True, encoding: str = None):
-        """
-        Construct an URI a given an id using the vocabulary given in the Context object.
-        
-        :param uri: the uri to transform
-        :param context: a Context object that should be used to create the URI
-        :param encode: parameter to use to encode or not the uri, default is `utf-8`
-        """
-        if context is None:
-            context = self.get_store_context()
-        return self._store.expand_uri(uri, context, is_file, encoding)
-
 def prepare_resolvers(
     config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:

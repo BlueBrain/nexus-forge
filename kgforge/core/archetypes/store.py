@@ -147,7 +147,7 @@ class Store(ABC):
         return None
 
     @property
-    def mapper(self, forge: Optional['KnowledgeGraphForge'] = None) -> Optional[Callable]:
+    def mapper(self) -> Optional[Callable]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
     
@@ -512,11 +512,11 @@ class Store(ABC):
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
     
-    def expand_uri(self, uri: str, context: Context, is_file: bool, encoding: str) -> str:
-        """Expand a given url using the store or model context
-        
-        :param uri: the idenfitier to be transformed
-        :param context: a Context object with vocabulary to be used in the construction of the URI
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        """Rewrite a given uri using the store Context
+        :param uri: a URI to rewrite.
+        :param context: a Store Context object
+        :return: str
         """
         pass
 

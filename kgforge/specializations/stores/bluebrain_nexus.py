@@ -135,11 +135,8 @@ class BlueBrainNexus(Store):
         return DictionaryMapping
 
     @property
-    def mapper(self, forge: 'KnowledgeGraphForge'= None) -> Optional[Callable]:
-        if forge:
-            return DictionaryMapper(forge)
-        else:
-            return DictionaryMapper
+    def mapper(self) -> Optional[DictionaryMapper]:
+        return  DictionaryMapper
     
     def register(
         self, data: Union[Resource, List[Resource]], schema_id: str = None
@@ -1023,7 +1020,10 @@ class BlueBrainNexus(Store):
                 **params,
             )
             
-    def expand_uri(self, uri: str, context: Context, is_file, encoding):
+    def rewrite_uri(self, uri: str, context: Context, **kwargs):
+        is_file = kwargs.get("is_file", True)
+        encoding = kwargs.get("encoding", None)
+
         # try decoding the url first
         raw_url = unquote(uri)
         if is_file: # for files
@@ -1037,15 +1037,30 @@ class BlueBrainNexus(Store):
             resolved = context.expand(groups[0])
             if raw_url.startswith(url_base):
                 extended_schema = resolved + groups[1]
-                url = raw_url.replace(old_schema, extended_schema)
-                return url_base + '/' + quote_plus(url.split(url_base+'/')[-1])
+                url = raw_url.replace(old_schema, quote_plus(extended_schema))
+                schema_and_id = url.split(url_base+"/")[1]
+                id = schema_and_id.split(quote_plus(extended_schema)+"/")[-1]
+                if not is_valid_url(id):        
+                    resolved_id = context.resolve_iri(id)
+                else:
+                    resolved_id = id
+                return url.replace(id, quote_plus(resolved_id))
             else:
-                extended_schema = '/'.join([resolved, groups[1]])
+                extended_schema = ''.join([resolved, groups[1]])
                 url = raw_url.replace(old_schema, extended_schema)
         else:
             url = raw_url
         if url.startswith(url_base):
-            return url
+            schema_and_id = url.split(url_base)[1]
+            if "/_/" in schema_and_id: # has _ schema
+                 id = schema_and_id.split("/_/")[-1]
+            else:
+                id = schema_and_id.split("/")[-1]
+            if not is_valid_url(id):
+                resolved_id = context.resolve_iri(id)
+            else:
+                resolved_id = id
+            return url.replace(id, quote_plus(resolved_id))
         uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
 
