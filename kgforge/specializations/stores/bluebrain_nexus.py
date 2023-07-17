@@ -1060,7 +1060,10 @@ class BlueBrainNexus(Store):
                 resolved_id = context.resolve_iri(id)
             else:
                 resolved_id = id
-            return url.replace(id, quote_plus(resolved_id))
+            if resolved_id in schema_and_id:
+                return uri # expanded already given
+            else:
+                return url.replace(id, quote_plus(resolved_id))
         if not is_file and "/_/" not in url: # adding _ for empty schema
             uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
         else:
