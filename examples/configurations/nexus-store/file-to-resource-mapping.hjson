@@ -12,7 +12,7 @@
     }
     encodingFormat: x._mediaType
     name: x._filename
-    contentUrl: forge.format(uri=x['@id'], formatter=Formatter.URI_REWRITER, is_file=True)
+    contentUrl: forge.format(uri=x['@id'], formatter='URI_REWRITER', is_file=True)
     atLocation:
     {
         type: Location

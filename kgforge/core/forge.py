@@ -456,7 +456,7 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str = None, *args, formatter:str = Formatter.STR, uri: str = None, **kwargs) -> str:
+    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
@@ -465,10 +465,23 @@ class KnowledgeGraphForge:
         :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
+        
         if what and uri:
             raise AttributeError(
                     f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
             )
+
+        try:
+            formatter = (
+                formatter
+                if isinstance(formatter, Formatter)
+                else Formatter[formatter]
+            )
+        except Exception as e:
+            raise AttributeError(
+                f"Invalid Formatter value '{formatter}'. Allowed names are {[name for name, member in Formatter.__members__.items()]} and allowed members are {[member for name, member in Formatter.__members__.items()]}"
+            )
+        
         if formatter == Formatter.STR:
             if what is None:
                 raise AttributeError(
