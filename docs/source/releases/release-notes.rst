@@ -88,7 +88,7 @@ Resource
 
 |Binder_Resource| to try the enhancements.
 
-* Added methods to get a Resource identifier (`Resource.has_identifier()` will look for `id` and `@id`) or type (`Resource.has_type()` will lok for `type` or `@type`) `#265 <https://github.com/BlueBrain/nexus-forge/pull/265>`__.
+* Added methods to get a Resource identifier (`Resource.has_identifier()` will look for `id` and `@id`) or type (`Resource.has_type()` will lok for `type` or `@type`) `#265 <https://github.com/BlueBrain/nexus-forge/pull/265>`__ , `#318 <https://github.com/BlueBrain/nexus-forge/pull/318>`__.
 
 
 Querying
@@ -176,13 +176,6 @@ Storing
 -------
 
 * Store.upload() was failing when a configured file-to-resource-mapping.hjson file was definining a transformation rule based on a forge method because of an incorrect instanciation of a Mapper object (a None Forge object was provided) was provided `#315 <https://github.com/BlueBrain/nexus-forge/pull/315>`__ .
-
-Resource
---------
-
-|Binder_Resource| to try.
-
-* Fixed Resource.get_identifer(), Resource.get_type(), Resource.has_type(), Resource.identifer() `#318 <https://github.com/BlueBrain/nexus-forge/pull/318>`__ .
 
 Changelog
 =========
