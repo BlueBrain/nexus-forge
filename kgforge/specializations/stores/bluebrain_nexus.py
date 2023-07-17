@@ -1020,7 +1020,7 @@ class BlueBrainNexus(Store):
                 **params,
             )
             
-    def rewrite_uri(self, uri: str, context: Context, **kwargs):
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         is_file = kwargs.get("is_file", True)
         encoding = kwargs.get("encoding", None)
 
