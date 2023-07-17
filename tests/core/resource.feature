@@ -20,3 +20,7 @@ Feature: Resource
   Scenario: Create and update a nested resource.
     Given I create a resource with an other resource as property.
     Then I changed a nested property so the resource should give _synchronized equals False.
+  
+  Scenario: Create a resource with id and type.
+    Given I create a resource with an id and type.
+    Then I should be able to get its type and identifier.

@@ -41,6 +41,12 @@ The full `KnowledgeGraphForge` YAML configuration has the following structure:
          targets:
            - identifier: <a name, or an IRI>
              bucket: <a file name, an URL path, or a Store bucket>
+             filters:
+               - path: <a resource property path>
+               - value: <a resource property value to filter with>
+         searchendpoints:
+           sparql:
+             endpoint: <A SPARQL endpoint to send resolving query to. Only used for resolvers based on SPARQL>
          resolve_with_properties: <a list of str currently only supported by DemoResolver>
          result_resource_mapping: <an Hjson string, a file path, or an URL>
          endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
@@ -97,9 +103,20 @@ The corresponding python configuration file would be like:
                        {
                            "identifier": <str>,
                            "bucket": <str>,
+                           "filter":[
+                                {
+                                    "path": <str>,
+                                    "value": <str>
+                                }
+                            ]
                        },
                        ...,
                    ],
+                   "searchendpoints":{
+                        "sparql":{
+                            "endpoint": <str>
+                        }
+                    },
                    "resolve_with_properties":[str],
                    "result_resource_mapping": <str>,
                    "endpoint": <str>,

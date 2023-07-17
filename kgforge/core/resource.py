@@ -116,21 +116,25 @@ class Resource:
     _synchronized = property(_get_synchronized, _set_synchronized)
 
     def has_identifier(self, return_attribute: bool = False) ->  Union[bool, Tuple[bool, str]]:
-        return self._has_term("id", return_attribute)
+        res = self._has_term("id", return_attribute)
+        return res
 
     def has_type(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
         return self._has_term("type", return_attribute)
     
-    def _has_term(self, term, return_attribute: bool = False):
+    def _has_term(self, term, return_attribute):
         result = False
         attribute = None
         if hasattr(self, f"@{term}"):
-            result: True
+            result= True
             attribute = f"@{term}"
         if hasattr(self, term):
-            result: True
+            result= True
             attribute = term
-        return result, attribute if return_attribute else result
+        if return_attribute:
+            return (result, attribute)
+        else:
+            return result
 
     def get_type(self) -> Union[str, List[str]]:
         resource_has_type, type_key = self.has_type(return_attribute=True)
