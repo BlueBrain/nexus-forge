@@ -65,7 +65,7 @@ A minimal YAML formatted configuration for each of the Demo and BlueBrainNexus s
     """
    forge = KnowledgeGraphForge(configuration=config)
 
-See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/latest/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/ <https://github.com/BlueBrain/nexus-forge/tree/master/examples/notebooks/use-cases>`__ folder
+See the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/v0.8.1/configuration.html>`__ for a full list of forge configuration and see the `examples/notebooks/use-cases/ <https://github.com/BlueBrain/nexus-forge/tree/master/examples/notebooks/use-cases>`__ folder
 for more real world YAML examples.
 
 |Binder_Init| for more details about how to create forge configurations files.
@@ -321,11 +321,23 @@ Formatting
 
 |Binder_Formatting| to explore more about forge formatting capabilities.
 
-A preconfigured set of string formats can be provided to ensure the consistency of data.
+.. code-block:: python
+   
+   forge.format(what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str
+
+Two type of formatters are supported:
+* Formatter.STR: Default formatter. A preconfigured set of string formatters implemented as str.format(*args, **kwargs). See the Formatter section of the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/v0.8.1/configuration.html>`__.
 
 .. code-block:: python
+   
+   forge.format(what="formatter_configured_name", "str1", "str2") -> str
 
-   forge.format(what: str, *args) -> str
+* Formatter.URI_REWRITER: URI rewriter delegated to the configured Store. For example, the BlueBrainNexus store can fully expand a provided URI using its json-ld context.
+
+.. code-block:: python
+   
+   forge.format(uri="http://uri", formatter = Formatter.URI_REWRITER, **kwargs) -> str
+
 
 Next is an example of formatting a resource identifier with a namespace. This make all resources identifiers
 fall under the same namespace.
