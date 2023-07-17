@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Match, Optional, Tuple, Union
 
 from kgforge.core import Resource
 from kgforge.core.commons.attributes import repr_class
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -149,7 +150,7 @@ class Store(ABC):
     def mapper(self) -> Optional[Callable]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
-
+    
     # [C]RUD.
 
     def register(
@@ -180,12 +181,12 @@ class Store(ABC):
         pass
 
     # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
-    def upload(self, path: str, content_type: str) -> Union[Resource, List[Resource]]:
+    def upload(self, path: str, content_type: str, forge: Optional['KnowledgeGraphForge']) -> Union[Resource, List[Resource]]:
         # path: Union[FilePath, DirPath].
         if self.file_mapping is not None:
             p = Path(path)
             uploaded = self._upload(p, content_type)
-            return self.mapper().map(uploaded, self.file_mapping, None)
+            return self.mapper(forge).map(uploaded, self.file_mapping, None)
         else:
             raise UploadingError("no file_resource_mapping has been configured")
 
@@ -510,6 +511,14 @@ class Store(ABC):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
+    
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        """Rewrite a given uri using the store Context
+        :param uri: a URI to rewrite.
+        :param context: a Store Context object
+        :return: str
+        """
+        pass
 
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):

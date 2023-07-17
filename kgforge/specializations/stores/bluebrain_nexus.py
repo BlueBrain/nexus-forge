@@ -135,9 +135,9 @@ class BlueBrainNexus(Store):
         return DictionaryMapping
 
     @property
-    def mapper(self) -> Optional[Callable]:
+    def mapper(self) -> Optional[DictionaryMapper]:
         return DictionaryMapper
-
+    
     def register(
         self, data: Union[Resource, List[Resource]], schema_id: str = None
     ) -> None:
@@ -1019,6 +1019,56 @@ class BlueBrainNexus(Store):
                 files_download_config=files_download_config,
                 **params,
             )
+            
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        is_file = kwargs.get("is_file", True)
+        encoding = kwargs.get("encoding", None)
+
+        # try decoding the url first
+        raw_url = unquote(uri)
+        if is_file: # for files
+            url_base = '/'.join([self.endpoint, 'files', self.bucket])
+        else: # for resources
+            url_base = '/'.join([self.endpoint, 'resources', self.bucket])
+        matches = re.match(r"[\w\.:%/-]+/(\w+):(\w+)/[\w\.-/:%]+", raw_url)
+        if matches:
+            groups = matches.groups()
+            old_schema = f"{groups[0]}:{groups[1]}"
+            resolved = context.expand(groups[0])
+            if raw_url.startswith(url_base):
+                extended_schema = resolved + groups[1]
+                url = raw_url.replace(old_schema, quote_plus(extended_schema))
+                schema_and_id = url.split(url_base+"/")[1]
+                id = schema_and_id.split(quote_plus(extended_schema)+"/")[-1]
+                if not is_valid_url(id):        
+                    resolved_id = context.resolve_iri(id)
+                else:
+                    resolved_id = id
+                return url.replace(id, quote_plus(resolved_id))
+            else:
+                extended_schema = ''.join([resolved, groups[1]])
+                url = raw_url.replace(old_schema, extended_schema)
+        else:
+            url = raw_url
+        if url.startswith(url_base):
+            schema_and_id = url.split(url_base)[1]
+            if "/_/" in schema_and_id: # has _ schema
+                 id = schema_and_id.split("/_/")[-1]
+            else:
+                id = schema_and_id.split("/")[-1]
+            if not is_valid_url(id):
+                resolved_id = context.resolve_iri(id)
+            else:
+                resolved_id = id
+            if resolved_id in schema_and_id:
+                return uri # expanded already given
+            else:
+                return url.replace(id, quote_plus(resolved_id))
+        if not is_file and "/_/" not in url: # adding _ for empty schema
+            uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
+        else:
+            uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
+        return uri
 
 
 def _error_message(error: HTTPError) -> str:

@@ -95,7 +95,6 @@ class Service:
         files_download_config: Dict,
         **params,
     ):
-
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
         self.organisation = org
@@ -242,6 +241,8 @@ class Service:
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
+        for mapping in project_data['apiMappings']:
+            context[mapping['prefix']] = mapping['namespace']
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:

@@ -16,20 +16,24 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import re
 import numpy as np
 import yaml
 from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
+from urllib.parse import quote_plus, urlparse
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.commons.formatter import Formatter
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.conversions.rdf import (
@@ -101,6 +105,9 @@ class KnowledgeGraphForge:
                    filters:
                      - path: <a resource property path>
                      - value: <a resource property value to filter with>
+               searchendpoints:
+                 sparql:
+                   endpoint: <A SPARQL endpoint to send resolving query to. Only used for resolvers based on SPARQL>
                result_resource_mapping: <an Hjson string, a file path, or an URL>
                endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
                token: <when 'origin' is 'store', a Store token, default to Store:token>
@@ -162,6 +169,11 @@ class KnowledgeGraphForge:
                              },
                              ...,
                          ],
+                         "searchendpoints":{
+                            "sparql":{
+                                "endpoint": <str>
+                            }
+                         },
                          "result_resource_mapping": <str>,
                          "endpoint": <str>,
                          "token": <str>,
@@ -215,7 +227,6 @@ class KnowledgeGraphForge:
         self._model: Model = model(**model_config)
 
         # Store.
-
         store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
         store = import_class(store_name, "stores")
@@ -233,8 +244,6 @@ class KnowledgeGraphForge:
 
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
-
-    # Modeling User Interface.
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
@@ -447,14 +456,49 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str, *args) -> str:
+    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
-        :param what: a configured formatter
+        :param what: a configured str format name. Required formatter:str = Formatter.STR
         :param args: a list of string to use for formatting
+        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)  
+        :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
-        return self._formatters[what].format(*args)
+        
+        if what and uri:
+            raise AttributeError(
+                    f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
+            )
+
+        try:
+            formatter = (
+                formatter
+                if isinstance(formatter, Formatter)
+                else Formatter[formatter]
+            )
+        except Exception as e:
+            raise AttributeError(
+                f"Invalid Formatter value '{formatter}'. Allowed names are {[name for name, member in Formatter.__members__.items()]} and allowed members are {[member for name, member in Formatter.__members__.items()]}"
+            )
+        
+        if formatter == Formatter.STR:
+            if what is None:
+                raise AttributeError(
+                        f"A non None 'what' value is required when formatter == Formatter.STR"
+                )
+            return self._formatters[what].format(*args, **kwargs)
+        elif formatter == Formatter.URI_REWRITER:
+            if uri is None:
+                raise AttributeError(
+                            f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
+                    )
+            return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
+        else:
+            raise AttributeError(
+                    f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+            )
+
 
     # Mapping User Interface.
 
@@ -658,6 +702,7 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
+        #self._store.mapper = self._store.mapper(self)
         self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
@@ -716,7 +761,7 @@ class KnowledgeGraphForge:
         :return: LazyAction
         """
         # path: Union[FilePath, DirPath].
-        return LazyAction(self._store.upload, path, content_type)
+        return LazyAction(self._store.upload, path, content_type, self)
 
     # Converting User Interface.
 
@@ -744,7 +789,6 @@ class KnowledgeGraphForge:
             self._model.resolve_context,
         )
 
-    @catch
     @catch
     def as_jsonld(
         self,
@@ -880,8 +924,15 @@ class KnowledgeGraphForge:
         :return: Union[Resource, List[Resource]]
         """
         return from_dataframe(data, na, nesting)
+    
+    def get_store_context(self):
+        """Expose the context used in the store."""
+        return self._store.context
 
-
+    def get_model_context(self):
+        """Expose the context used in the model."""
+        return self._model.context()
+    
 def prepare_resolvers(
     config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:

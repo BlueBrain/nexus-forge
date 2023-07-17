@@ -18,11 +18,11 @@ from unittest import mock
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 from uuid import uuid4
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 import nexussdk
 import pytest
 from typing import Callable, Union, List
+from collections import OrderedDict
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -30,6 +30,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.specializations.stores.bluebrain_nexus import (
     BlueBrainNexus,
     _create_select_query,
@@ -40,10 +41,10 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 from kgforge.specializations.stores.nexus import Service
 
 BUCKET = "test/kgforge"
-NEXUS = "https://nexus-instance.org/"
+NEXUS = "https://nexus-instance.org"
 TOKEN = "token"
-NEXUS_PROJECT_CONTEXT = {"base": "http://data.net/", "vocab": "http://vocab.net/"}
-
+NEXUS_PROJECT_CONTEXT = {"base": "http://data.net", "vocab": "http://vocab.net",
+                         "apiMappings": [{'namespace': 'https://neuroshapes.org/dash/', 'prefix': 'datashapes'}]}
 VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
 FILE_RESOURCE_MAPPING = os.sep.join(
     (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson")
@@ -130,6 +131,16 @@ def nexus_store_unauthorized():
     return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token="invalid token")
 
 
+@pytest.fixture
+def nexus_context():
+    context_document = dict()
+    context_document["@base"] = NEXUS_PROJECT_CONTEXT["base"]
+    context_document["@vocab"] = NEXUS_PROJECT_CONTEXT["vocab"]
+    for mapping in NEXUS_PROJECT_CONTEXT['apiMappings']:
+        context_document[mapping['prefix']] = mapping['namespace']
+    return Context(context_document)
+
+
 def test_config_error():
     with pytest.raises(ValueError):
         BlueBrainNexus(endpoint="test", bucket="invalid", token="")
@@ -163,6 +174,65 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     assert str(result) == str(registered_building)
     assert getattr(result, "context") == registered_building.context
     assert str(result._store_metadata) == str(registered_building._store_metadata)
+
+
+@pytest.mark.parametrize("url,is_file, expected",
+                         [
+                            pytest.param(       
+                                ("myverycoolid123456789"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
+                                id="simple-file-id",
+                            ),
+                            pytest.param(       
+                                ("http://data.net/myverycoolid123456789"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
+                                id="simple-resource-id",
+                            ),
+                            pytest.param(
+                                ("http://data.net/07ed2dab-587a-4144-90c7-4cdd252cfa3f"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F07ed2dab-587a-4144-90c7-4cdd252cfa3f"),
+                                id="file-id",
+                            ),
+                            pytest.param(
+                                ("https://nexus-instance.org/files/test/kgforge/myverycoolid123456789"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
+                                id="file-self",
+                            )
+                            ,
+                            pytest.param(
+                                ("https://nexus-instance.org/resources/test/kgforge/datashapes:example/43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/https%3A%2F%2Fneuroshapes.org%2Fdash%2Fexample/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-schema-self",
+                            ),
+                            pytest.param(
+                                ("https://nexus-instance.org/resources/test/kgforge/_/43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-empty-schema-self",
+                            ),
+                            pytest.param(
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F632a7644-b07e-4fcd-a537-9162e3444106"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F632a7644-b07e-4fcd-a537-9162e3444106"),
+                                id="file-given-expanded-url-encoded-self",
+                            ),
+                            pytest.param(
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                (False),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
+                                id="resource-empty-schema-url-encoded-self",
+                            )
+                            
+                            
+                         ])
+def test_rewrite_uri(nexus_store, nexus_context, url, is_file, expected):
+    uri = nexus_store.rewrite_uri(url, context=nexus_context, is_file=is_file, encoding=None)
+    assert expected == uri
 
 
 class TestQuerying:
