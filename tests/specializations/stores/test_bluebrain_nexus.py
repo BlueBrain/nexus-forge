@@ -216,6 +216,12 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
                                 id="resource-empty-schema-self",
                             ),
                             pytest.param(
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F632a7644-b07e-4fcd-a537-9162e3444106"),
+                                (True),
+                                ("https://nexus-instance.org/files/test/kgforge/http%3A%2F%2Fdata.net%2F632a7644-b07e-4fcd-a537-9162e3444106"),
+                                id="file-given-expanded-url-encoded-self",
+                            ),
+                            pytest.param(
                                 ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
                                 (False),
                                 ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2F43edd8bf-5dfe-45cd-b6d8-1a604dd6beca"),
