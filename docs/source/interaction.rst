@@ -326,7 +326,8 @@ Formatting
    forge.format(what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str
 
 Two type of formatters are supported:
-* Formatter.STR: Default formatter. A preconfigured set of string formatters implemented as str.format(*args, **kwargs). See the Formatter section of the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/v0.8.1/configuration.html>`__.
+
+* Formatter.STR: Default formatter. A preconfigured set of string formatters implemented as `str.format(*args, **kwargs)`. See the Formatter section of the `configuration documentation page section <https://nexus-forge.readthedocs.io/en/v0.8.1/configuration.html>`__ .
 
 .. code-block:: python
    
