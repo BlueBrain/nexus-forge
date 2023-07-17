@@ -49,6 +49,10 @@ def nresource():
     return Resource(type="Entity", contribution=Resource(type="Contribution"),
                     used=[Resource(type="Entity"), Resource(type="Dataset")])
 
+@given("I create a resource with an id and type.")
+def resource_id_type():
+    return Resource(id="https://id", type="Person", name="name")
+
 
 @when("I create a resource with a reserved attribute. Creation should fail.")
 def reserved_attribute_error():
@@ -99,3 +103,24 @@ def change_nested_property(nresource):
         u.value = 10
     assert nresource._synchronized == False
     assert nresource._inner_sync == False
+
+@then("I should be able to get its type and identifier.")
+def change_nested_property(resource_id_type):
+    assert resource_id_type.has_identifier(return_attribute=True) == (True, "id")
+    assert resource_id_type.has_identifier() is True
+    assert resource_id_type.has_type(return_attribute=True) == (True, "type")
+    assert resource_id_type.has_type() is True
+    
+    assert resource_id_type.get_identifier() == "https://id"
+    assert resource_id_type.get_type() == "Person"
+
+    resource_no_id_no_type = Resource(name="name")
+    assert resource_no_id_no_type.has_identifier(return_attribute=True) == (False, None)
+    assert resource_no_id_no_type.has_identifier() is False
+    assert resource_no_id_no_type.has_type(return_attribute=True) == (False, None)
+    assert resource_no_id_no_type.has_type() is False
+    
+    assert resource_no_id_no_type.get_identifier() is None
+    assert resource_no_id_no_type.get_type() is None
+
+    

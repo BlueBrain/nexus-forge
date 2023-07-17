@@ -2,7 +2,7 @@
 Release Notes
 =============
 
-This release introduces new features and enhancements to Nexus Forge while fixing couple of bugs.
+This release introduces new features and enhancements to Nexus Forge while fixing a couple of bugs.
 
 New Features
 ============
@@ -176,6 +176,13 @@ Storing
 -------
 
 * Store.upload() was failing when a configured file-to-resource-mapping.hjson file was definining a transformation rule based on a forge method because of an incorrect instanciation of a Mapper object (a None Forge object was provided) was provided `#315 <https://github.com/BlueBrain/nexus-forge/pull/315>`__ .
+
+Resource
+--------
+
+|Binder_Resource| to try.
+
+* Fixed Resource.get_identifer(), Resource.get_type(), Resource.has_type(), Resource.identifer() `#318 <https://github.com/BlueBrain/nexus-forge/pull/318>`__ .
 
 Changelog
 =========
