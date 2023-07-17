@@ -1061,7 +1061,10 @@ class BlueBrainNexus(Store):
             else:
                 resolved_id = id
             return url.replace(id, quote_plus(resolved_id))
-        uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
+        if not is_file and "/_/" not in url: # adding _ for empty schema
+            uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
+        else:
+            uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
 
 

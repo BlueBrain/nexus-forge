@@ -187,7 +187,7 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
                             pytest.param(       
                                 ("http://data.net/myverycoolid123456789"),
                                 (False),
-                                ("https://nexus-instance.org/resources/test/kgforge/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
+                                ("https://nexus-instance.org/resources/test/kgforge/_/http%3A%2F%2Fdata.net%2Fmyverycoolid123456789"),
                                 id="simple-resource-id",
                             ),
                             pytest.param(
