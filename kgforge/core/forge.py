@@ -108,6 +108,7 @@ class KnowledgeGraphForge:
                searchendpoints:
                  sparql:
                    endpoint: <A SPARQL endpoint to send resolving query to. Only used for resolvers based on SPARQL>
+               resolve_with_properties: <a list of str currently only supported by DemoResolver>
                result_resource_mapping: <an Hjson string, a file path, or an URL>
                endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
                token: <when 'origin' is 'store', a Store token, default to Store:token>
@@ -174,6 +175,7 @@ class KnowledgeGraphForge:
                                 "endpoint": <str>
                             }
                          },
+                         "resolve_with_properties": [str]
                          "result_resource_mapping": <str>,
                          "endpoint": <str>,
                          "token": <str>,

@@ -426,18 +426,51 @@ Full resolver config options and real world examples
                         - identifier: terms
                           bucket: tfidfvectorizer_model_schemaorg_linking
                       result_resource_mapping: ../../configurations/entitylinking-resolver/entitylinking-mapper.hjson
+                  schemaorg_CreativeWork:
+                    - resolver: OntologyResolver
+                      origin: directory
+                      source: "../../data/"
+                      targets:
+                        - identifier: CreativeWork
+                          bucket: schemaorg_ontology_file_path
+                          filters:
+                            - path: subClassOf*.id
+                              value: CreativeWork
+                      result_resource_mapping: ../../configurations/nexus-resolver/term-to-resource-mapping.hjson
 
             """
    forge = KnowledgeGraphForge(configuration= config)
    forge.resolve(text="person", scope="schemaorg", target="terms", strategy=ResolvingStrategy.BEST_MATCH)
+   forge.resolve(text="Chapter", scope="schemaorg_CreativeWork", target="CreativeWork", strategy=ResolvingStrategy.EXACT_MATCH)
 
 A `scope` is a convenient way to name (any name can be provided) a given `Resolver` along with a set of sources of data
 (the `targets`) to resolve against.
 
+Here is the complete configuration of a Resolver:
+
+.. code-block:: python
+
+   Resolvers:
+     <scope>:
+       - resolver: <a class name of a Resolver>
+         origin: <'directory', 'web_service', or 'store'>
+         source: <a directory path, a web service endpoint, or the class name of a Store>
+         targets:
+           - identifier: <a name, or an IRI>
+             bucket: <a file name, an URL path, or a Store bucket>
+             filters:
+               - path: <a resource property path>
+               - value: <a resource property value to filter with>
+         resolve_with_properties: <a list of str currently only supported by DemoResolver>
+         result_resource_mapping: <an Hjson string, a file path, or an URL>
+         endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
+         token: <when 'origin' is 'store', a Store token, default to the token provided in the configured Store>
+
 Nexus Forge comes with the support of 5 types Resolvers:
 
-* **OntologyResolver**: based on type, label and notation (ie. acronym) filtering using a SPARQL query to generate candidates.
-  An example of configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml`.
+* **OntologyResolver**: based on type (rdf:type), label (rdfs:label), prefLabel (skos:prefLabel), altLabel (skos:altLabel) and notation (skos:notation) properties to filter with using a SPARQL query to generate candidates. 
+  Extra property path based filters can be provided as part of the resolver configuration to further narrow the results.
+  An example of ontology resolving configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml <https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml>`__ .
 
 * **EntityLinkerSkLearn**: based on a pretrained model and using `scikit-learn <https://scikit-learn.org/stable/>`__.
   to generate and rank candidates. To customise the configuration of this resolver
@@ -462,8 +495,9 @@ Nexus Forge comes with the support of 5 types Resolvers:
   to generate and rank candidates but require a text embedding or encoding service to compute embeddings of items.
   An example of configuration is available at `examples/notebooks/use-cases/EntityLinkerElastic-forge-demo-config.yml`. .
 
-* **AgentResolver**: based on type, full, given or family names filtering using a SPARQL query to generate candidates.
-  An example of configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml`.
+* **AgentResolver**: based on type (rdf:type), name (schema:name), givenName (schema:givenName) or familyName (schema:familyName) properties to filter with using a SPARQL query to generate candidates.
+  Extra property path based filters can be provided as part of the resolver configuration to further narrow the results.
+  An example of configuration is available at `examples/notebooks/use-cases/prod-forge-nexus.yml <https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml>`__ .
 
 * **DemoResolver**: an example resolver based on filtering by configurable properties and looking up candidates from a json file.
   An example of configuration is available at `examples/notebooks/use-cases/EntityLinkerSkLearn-forge-demo-config.yml`.
