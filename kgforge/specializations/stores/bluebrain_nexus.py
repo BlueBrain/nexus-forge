@@ -136,7 +136,7 @@ class BlueBrainNexus(Store):
 
     @property
     def mapper(self) -> Optional[DictionaryMapper]:
-        return  DictionaryMapper
+        return DictionaryMapper
     
     def register(
         self, data: Union[Resource, List[Resource]], schema_id: str = None
