@@ -69,7 +69,7 @@ class Resolver(ABC):
 
     def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
                 strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
-                limit: int, threshold: float) \
+                limit: int, threshold: float, forge: Optional["KnowledgeGraphForge"]) \
             -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
 
         if isinstance(text, Resource):
@@ -96,14 +96,14 @@ class Resolver(ABC):
         resolved = resolved[0] if len(resolved) == 1 else resolved
         if isinstance(resolved, tuple):
             # Case Tuple[str,List[Dict]]
-            resolved_mapped = self.mapper().map(resolved[1], self.result_mapping, None) if resolved[1] is not None else None
+            resolved_mapped = self.mapper(forge).map(resolved[1], self.result_mapping, None) if resolved[1] is not None else None
         elif isinstance(text_to_resolve, list):
             # Case List[Tuple[str, List[Dict]]]
-            resolved_mapped = {r[0]: self.mapper().map(r[1], self.result_mapping, None) for r in resolved if
+            resolved_mapped = {r[0]: self.mapper(forge).map(r[1], self.result_mapping, None) for r in resolved if
                                isinstance(r, tuple)}
         else:
             # Case Dict or List[Dict]
-            resolved_mapped = self.mapper().map(resolved, self.result_mapping, None)
+            resolved_mapped = self.mapper(forge).map(resolved, self.result_mapping, None)
         if isinstance(text, Resource) and isinstance(merge_inplace_as, str):
             text.__setattr__(merge_inplace_as, resolved_mapped)
             return text

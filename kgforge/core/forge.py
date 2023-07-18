@@ -451,6 +451,7 @@ class KnowledgeGraphForge:
                 merge_inplace_as,
                 limit,
                 threshold,
+                self
             )
         else:
             raise ResolvingError("no resolvers have been configured")
