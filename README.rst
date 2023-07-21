@@ -78,7 +78,7 @@ COPYRIGHT © 2019–2022 Blue Brain Project/EPFL
     :alt: Binder
     :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started
     
-.. |Github_build_badge| image:: https://github.com/BlueBrain/nexus-forge/actions/workflows/test/badge.svg
+.. |Github_build_badge| image:: https://github.com/BlueBrain/nexus-forge/actions/workflows/test.yml/badge.svg
 
     :target: https://github.com/BlueBrain/nexus-forge 
 
