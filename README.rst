@@ -85,3 +85,7 @@ COPYRIGHT © 2019–2022 Blue Brain Project/EPFL
 .. |Version Status| image:: https://img.shields.io/pypi/v/nexusforge.svg
    :target: https://pypi.python.org/pypi/nexusforge
 
+.. |codecov| image:: https://codecov.io/gh/BlueBrain/nexus-forge/branch/master/graph/badge.svg?token=YOHG1INCBQ
+   :alt: Coverage
+   :target: https://codecov.io/gh/BlueBrain/nexus-forge
+
