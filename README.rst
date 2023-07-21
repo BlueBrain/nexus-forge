@@ -1,7 +1,7 @@
 Blue Brain Nexus Forge
 ======================
 
-|Github_build_badge| |Version Status| |Binder|
+|Github_build_badge| |codecov| |Version Status| |Binder|
 
 .. image:: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/docs/source/assets/bbnforge
 
