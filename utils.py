@@ -25,7 +25,7 @@ nxs.config.set_token(TOKEN)
 """
 This is a temporary uri rewriter to cope with the fact that some BlueBrainNexus users might have copied and stored outside BlueBrainNexus some _self urls of resources
 or files that was expecting a given base as per the project config. Now that the project config changed with a new base, those urls are no longer working.
-This method is going back in history to find the prevous base and apply it to generate a resolvable url.
+This method is going back in history to find the previous base and apply it to generate a resolvable url.
 We expect the user to replace the previous _self url with this newly generated one so that this method is not needed anymore.
 
 Call example: 
@@ -62,6 +62,8 @@ def uri_formatter_using_previous_project_config(nxs, uri, org, project):
    uri_last_path = uri_last_path.split("?") # in case ? params are in the url
    if len(uri_last_path) > 1 :
       uri_last_path = uri_last_path[-2]
+   else:
+      uri_last_path = uri_last_path[-1]
    expanded_uri_last_path = previous_base+uri_last_path
    formatted_uri_parts= uri.replace(uri_last_path, quote_plus(expanded_uri_last_path))
    formatter_uri = "".join(formatted_uri_parts)
