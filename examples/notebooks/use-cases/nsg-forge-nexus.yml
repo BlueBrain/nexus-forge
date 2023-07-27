@@ -25,7 +25,7 @@ Store:
     project_property: "https://bluebrain.github.io/nexus/vocabulary/project"
   max_connection: 5
   versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
-  file_resource_mapping: /Users/cgonzale/Documents/code/nexus-forge/examples/configurations/nexus-store/file-to-resource-mapping.hjson
+  file_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-store/file-to-resource-mapping.hjson
 
 Resolvers:
   ontology:
