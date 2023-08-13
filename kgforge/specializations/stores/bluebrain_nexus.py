@@ -64,7 +64,7 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.stores.nexus.service import BatchAction, Service
+from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
 
 
 class CategoryDataType(Enum):
@@ -1069,29 +1069,6 @@ class BlueBrainNexus(Store):
         else:
             uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
-
-
-def _error_message(error: HTTPError) -> str:
-    def format_message(msg):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
-
-    try:
-        error_json = error.response.json()
-        messages = []
-        reason = error_json.get("reason", None)
-        details = error_json.get("details", None)
-        if reason:
-            messages.append(format_message(reason))
-        if details:
-            messages.append(format_message(details))
-        messages = messages if reason or details else [str(error)]
-        return ". ".join(messages)
-    except Exception as e:
-        pass
-    try:
-        return format_message(error.response.text())
-    except Exception:
-        return format_message(str(error))
 
 
 def _create_select_query(vars_, statements, distinct, search_in_graph):

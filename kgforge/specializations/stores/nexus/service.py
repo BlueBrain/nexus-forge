@@ -279,7 +279,7 @@ class Service:
                 document.remove(self.store_local_context)
         self.context_cache.update({context_to_resolve: document})
         return document
-
+    
     def batch_request(
         self,
         resources: List[Resource],
@@ -431,8 +431,7 @@ class Service:
                 if response.status < 400:
                     return BatchResult(resource, content)
                 else:
-                    msg = " ".join(re.findall("[A-Z][^A-Z]*", content["@type"])).lower()
-                    error = exception(msg)
+                    error = exception(_error_message(content))
                     return BatchResult(resource, error)
 
         async def dispatch_action():
@@ -588,3 +587,27 @@ class Service:
         if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
             resource.id = kwargs.get("id")
         return resource
+
+
+def _error_message(error: Union[HTTPError, Dict]) -> str:
+    def format_message(msg):
+        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+
+    try:
+        error_json = error.response.json() if isinstance(error, HTTPError) else error
+        messages = []
+        reason = error_json.get("reason", None)
+        details = error_json.get("details", None)
+        if reason:
+            messages.append(format_message(reason))
+        if details:
+            messages.append(format_message(details))
+        messages = messages if reason or details else [str(error)]
+        return ". ".join(messages)
+    except Exception as e:
+        pass
+    try:
+        error_text =  error.response.text() if isinstance(error, HTTPError) else str(error)
+        return format_message(error_text)
+    except Exception:
+        return format_message(str(error))
