@@ -171,12 +171,9 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     context = _merge_jsonld(registered_building.context, Service.NEXUS_CONTEXT_FALLBACK)
     payload = building_jsonld(registered_building, "compacted", True, None)
     payload["@context"] = context
-    print()
     result = nexus_store.service.to_resource(payload)
     assert str(result) == str(registered_building)
     assert getattr(result, "context") == registered_building.context
-    print(result._store_metadata)
-    print(registered_building._store_metadata)
     assert str(result._store_metadata) == str(registered_building._store_metadata)
 
 
