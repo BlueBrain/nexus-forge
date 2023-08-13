@@ -15,14 +15,13 @@ import json
 
 import os
 from unittest import mock
-from urllib.parse import urljoin
+from urllib.parse import quote_plus, urljoin
 from urllib.request import pathname2url
 from uuid import uuid4
 
 import nexussdk
 import pytest
 from typing import Callable, Union, List
-from collections import OrderedDict
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -76,6 +75,7 @@ def metadata_data_compacted():
         "_deprecated": False,
         "_updatedBy": "http://integration.kfgorge.test",
         "_rev": 1,
+        "_constrainedBy":"http://schema.org/Building"
     }
 
 
@@ -98,6 +98,7 @@ def registered_building(building, model_context, store_metadata_value):
     else:
         building.id = f"{urljoin('file:', pathname2url(os.getcwd()))}/{str(uuid4())}"
     store_metadata_value["id"] = building.id
+    store_metadata_value["_constrainedBy"] = "http://schema.org/Building"
     building._store_metadata = wrap_dict(store_metadata_value)
     return building
 
@@ -170,10 +171,34 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     context = _merge_jsonld(registered_building.context, Service.NEXUS_CONTEXT_FALLBACK)
     payload = building_jsonld(registered_building, "compacted", True, None)
     payload["@context"] = context
+    print()
     result = nexus_store.service.to_resource(payload)
     assert str(result) == str(registered_building)
     assert getattr(result, "context") == registered_building.context
+    print(result._store_metadata)
+    print(registered_building._store_metadata)
     assert str(result._store_metadata) == str(registered_building._store_metadata)
+
+
+def test_prepare_tag(nexus_store, registered_building):
+    tagValue = "aTag"
+    url, data, params, schema_id = nexus_store.service._prepare_tag(registered_building, tagValue)
+    expected_schema_id = registered_building._store_metadata._constrainedBy
+    expected_params = {"rev":registered_building._store_metadata._rev}
+    expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
+    expected_url = "/".join((NEXUS,"resources",BUCKET, quote_plus(expected_schema_id),
+                             quote_plus(registered_building.id), "tags"))
+    assert schema_id == expected_schema_id
+    assert params == expected_params
+    assert data == expected_data
+    assert url == expected_url
+    registered_building._store_metadata._constrainedBy = nexus_store.service.UNCONSTRAINED_SCHEMA
+    url, data, params, schema_id = nexus_store.service._prepare_tag(registered_building, tagValue)
+    assert schema_id == "_"
+    assert params == expected_params
+    assert data == expected_data
+    assert url == "/".join((NEXUS,"resources",BUCKET, quote_plus(schema_id),
+                             quote_plus(registered_building.id), "tags"))
 
 
 @pytest.mark.parametrize("url,is_file, expected",

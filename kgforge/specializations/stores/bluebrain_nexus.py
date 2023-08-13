@@ -620,10 +620,10 @@ class BlueBrainNexus(Store):
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        data = {"tag": value, "rev": resource._store_metadata._rev}
-        url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}/tags?rev={resource._store_metadata._rev}"
+        url, data, rev_param, _ = self.service._prepare_tag(resource, value)
         try:
-            params_tag = copy.deepcopy(self.service.params.get("tag", None))
+            params_tag = copy.deepcopy(self.service.params.get("tag", {}))
+            params_tag.update(rev_param)
             response = requests.post(
                 url,
                 headers=self.service.headers,
