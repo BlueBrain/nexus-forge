@@ -44,8 +44,8 @@ def validate(capsys, model, data, rc, err, msg):
 
 @when("I validate the resource. An exception is raised. The printed report mentions an error: 'Exception: exception raised'.")
 def validate_exception(monkeypatch, capsys, model, data):
-    def _validate_one(_, x, type_: str): raise Exception("exception raised")
+    def _validate_one(_, x, type_: str, debug: bool): raise Exception("exception raised")
     monkeypatch.setattr("kgforge.specializations.models.demo_model.DemoModel._validate_one", _validate_one)
-    model.validate(data, execute_actions_before=False, type_="Person")
+    model.validate(data, execute_actions_before=False, type_="Person", debug=False)
     out = capsys.readouterr().out[:-1]
     assert out == f"<action> _validate_one\n<succeeded> False\n<error> Exception: exception raised"

@@ -154,7 +154,8 @@ class Store(ABC):
     # [C]RUD.
 
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None
+        self, data: Union[Resource, List[Resource]], schema_id: str = None,
+        debug: bool = False
     ) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
         run(
@@ -163,6 +164,7 @@ class Store(ABC):
             data,
             required_synchronized=False,
             execute_actions=True,
+            catch_exceptions=not debug,
             exception=RegistrationError,
             monitored_status="_synchronized",
             schema_id=schema_id,
@@ -316,7 +318,7 @@ class Store(ABC):
     # CR[U]D.
 
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str], debug: bool = False
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
         run(
@@ -329,6 +331,7 @@ class Store(ABC):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            catch_exceptions=not debug
         )
 
     def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
@@ -343,7 +346,7 @@ class Store(ABC):
         # TODO This operation might be abstracted here when other stores will be implemented.
         pass
 
-    def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
+    def tag(self, data: Union[Resource, List[Resource]], value: str, debug: bool = True) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
         # POLICY If tagging modify the resource, run() should have status='_synchronized'.
         run(
@@ -352,6 +355,7 @@ class Store(ABC):
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=not debug,
             exception=TaggingError,
             value=value,
         )
@@ -369,7 +373,7 @@ class Store(ABC):
 
     # CRU[D].
 
-    def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
+    def deprecate(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
         # Replace None by self._deprecate_many to switch to optimized bulk deprecation.
         run(
             self._deprecate_one,
@@ -377,6 +381,7 @@ class Store(ABC):
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=not debug,
             exception=DeprecationError,
             monitored_status="_synchronized",
         )
@@ -461,7 +466,7 @@ class Store(ABC):
 
     # Versioning.
 
-    def freeze(self, data: Union[Resource, List[Resource]]) -> None:
+    def freeze(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
         # Replace None by self._freeze_many to switch to optimized bulk freezing.
         run(
             self._freeze_one,
@@ -469,6 +474,7 @@ class Store(ABC):
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=not debug,
             exception=FreezingError,
         )
 

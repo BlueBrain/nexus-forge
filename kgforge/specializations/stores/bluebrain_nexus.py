@@ -39,7 +39,7 @@ from pyld import jsonld
 from rdflib import Graph
 from rdflib.plugins.sparql.parser import Query
 from datetime import datetime
-from requests import HTTPError
+from requests import HTTPError, Response
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
@@ -139,7 +139,8 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
     
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None
+        self, data: Union[Resource, List[Resource]], schema_id: str = None,
+        debug: bool = False
     ) -> None:
         run(
             self._register_one,
@@ -148,6 +149,7 @@ class BlueBrainNexus(Store):
             required_synchronized=False,
             execute_actions=True,
             exception=RegistrationError,
+            catch_exceptions=not debug,
             monitored_status="_synchronized",
             schema_id=schema_id,
         )
@@ -588,13 +590,14 @@ class BlueBrainNexus(Store):
         else:
             self.service.sync_metadata(resource, response.json())
 
-    def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
+    def tag(self, data: Union[Resource, List[Resource]], value: str, debug: bool = False) -> None:
         run(
             self._tag_one,
             self._tag_many,
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=not debug,
             exception=TaggingError,
             value=value,
         )
@@ -638,13 +641,14 @@ class BlueBrainNexus(Store):
 
     # CRU[D].
 
-    def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
+    def deprecate(self, data: Union[Resource, List[Resource]], debug: bool = False) -> None:
         run(
             self._deprecate_one,
             self._deprecate_many,
             data,
             id_required=True,
             required_synchronized=True,
+            catch_exceptions=not debug,
             exception=DeprecationError,
             monitored_status="_synchronized",
         )
@@ -1071,21 +1075,13 @@ class BlueBrainNexus(Store):
         return uri
 
 
-def _error_message(error: HTTPError) -> str:
-    def format_message(msg):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+def format_message(msg):
+    return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
 
+def _error_message(error: HTTPError) -> str:
     try:
-        error_json = error.response.json()
-        messages = []
-        reason = error_json.get("reason", None)
-        details = error_json.get("details", None)
-        if reason:
-            messages.append(format_message(reason))
-        if details:
-            messages.append(format_message(details))
-        messages = messages if reason or details else [str(error)]
-        return ". ".join(messages)
+        error_response = error.response
+        return _error_from_response(error_response)
     except Exception as e:
         pass
     try:
@@ -1093,6 +1089,34 @@ def _error_message(error: HTTPError) -> str:
     except Exception:
         return format_message(str(error))
 
+def _error_from_response(response: Response) -> str:
+    def details_string(details: dict) -> str:
+        string = f"\nReason: {detail.pop('resultMessage')} "\
+                            f"for the shape: {detail.pop('sourceShape')}.\nError details:\n"
+        for key, value in details.items():
+            string += f"{key}:\t{value}\n"
+        return string
+    messages = []
+    error_json = response.json()
+    reason = error_json.get("reason", None)
+    details = error_json.get("details", None)
+    if reason:
+        messages.append(reason)
+    if details:
+        result = details.get('result', None)
+        if result:
+            the_details = result.get("detail", None)
+            if the_details:
+                if isinstance(the_details, list):
+                    for detail in the_details:
+                        messages.append(details_string(detail))
+                elif isinstance(the_details, dict):
+                    messages.append(details_string(detail))
+                else:
+                    messages.append(str(the_details))
+            else:
+                messages.append(str(result))
+    return ". ".join(messages)
 
 def _create_select_query(vars_, statements, distinct, search_in_graph):
     where_clauses = (

@@ -31,6 +31,8 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import catch
+from kgforge.core.commons.actions import (collect_lazy_actions,
+                                          execute_lazy_actions)
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.commons.formatter import Formatter
@@ -303,7 +305,7 @@ class KnowledgeGraphForge:
     def validate(
         self,
         data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
+        execute_actions_before: bool = False,
         type_: str=None
     ) -> None:
         """
@@ -317,7 +319,8 @@ class KnowledgeGraphForge:
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_)
+        debug = self._debug
+        self._model.validate(data, execute_actions_before, type_, debug)
 
     # Resolving User Interface.
 
@@ -669,6 +672,19 @@ class KnowledgeGraphForge:
         :return: List[Resource]
         """
         return self._store.elastic(query, debug, limit, offset)
+    
+    @catch
+    @staticmethod
+    def execute_lazy_actions(resources: Union[List[Resource], Resource]):
+        """ 
+        Execute any lazy action present in a given resource or a list of resources
+
+        :param resources: The resources or list of resources from which actions will be executed
+        """
+        resources = [resources] if not isinstance(resources, List) else resources
+        for resource in resources:
+            lazy_actions = collect_lazy_actions(resource)
+            execute_lazy_actions(resource, lazy_actions)
 
     @catch
     def download(
@@ -705,8 +721,8 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
-        #self._store.mapper = self._store.mapper(self)
-        self._store.register(data, schema_id)
+
+        self._store.register(data, schema_id, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def update(
@@ -718,7 +734,7 @@ class KnowledgeGraphForge:
         :param data: the resources to update
         :param schema_id: an identifier of the schema the updated resources should conform to
         """
-        self._store.update(data, schema_id)
+        self._store.update(data, schema_id, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
@@ -727,7 +743,7 @@ class KnowledgeGraphForge:
 
         :param: the resources to deprecate
         """
-        self._store.deprecate(data)
+        self._store.deprecate(data, debug=self._debug)
 
     # Versioning User Interface.
 
@@ -739,7 +755,7 @@ class KnowledgeGraphForge:
         :param data: the resources to tag
         :param value: the tag value
         """
-        self._store.tag(data, value)
+        self._store.tag(data, value, debug=self._debug)
 
     # No @catch because the error handling is done by execution.run().
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
@@ -749,7 +765,7 @@ class KnowledgeGraphForge:
 
         :param data: the resources to freeze
         """
-        self._store.freeze(data)
+        self._store.freeze(data, debug=self._debug)
 
     # Files Handling User Interface.
 
