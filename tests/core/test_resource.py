@@ -46,7 +46,12 @@ def resource_from_json_na_many(json_one):
 
 @given("I create a resource with an other resource as property.")
 def nresource():
-    return Resource(type="Entity", contribution=Resource(type="Contribution"))
+    return Resource(type="Entity", contribution=Resource(type="Contribution"),
+                    used=[Resource(type="Entity"), Resource(type="Dataset")])
+
+@given("I create a resource with an id and type.")
+def resource_id_type():
+    return Resource(id="https://id", type="Person", name="name")
 
 
 @when("I create a resource with a reserved attribute. Creation should fail.")
@@ -70,6 +75,8 @@ def access_property(resource, resource_from_json, resource_from_json_na_one, res
 def access_nested_property(nresource):
     assert nresource.type == "Entity"
     assert nresource.contribution.type == "Contribution"
+    assert nresource.used[0].type == "Entity"
+    assert nresource.used[1].type == "Dataset"
 
 
 @then("I assigned _synchronized to True so the resource should give _inner_sync equals True.")
@@ -84,6 +91,36 @@ def change_property(resource):
 def change_nested_property(nresource):
     nresource._synchronized = True 
     assert nresource._inner_sync == True
+    # Change some property
     nresource.contribution.type = "test"
     assert nresource._synchronized == False
     assert nresource._inner_sync == False
+    # Synchronize again
+    nresource._synchronized = True 
+    assert nresource._inner_sync == True
+    # Change a list
+    for u in nresource.used:
+        u.value = 10
+    assert nresource._synchronized == False
+    assert nresource._inner_sync == False
+
+@then("I should be able to get its type and identifier.")
+def change_nested_property(resource_id_type):
+    assert resource_id_type.has_identifier(return_attribute=True) == (True, "id")
+    assert resource_id_type.has_identifier() is True
+    assert resource_id_type.has_type(return_attribute=True) == (True, "type")
+    assert resource_id_type.has_type() is True
+    
+    assert resource_id_type.get_identifier() == "https://id"
+    assert resource_id_type.get_type() == "Person"
+
+    resource_no_id_no_type = Resource(name="name")
+    assert resource_no_id_no_type.has_identifier(return_attribute=True) == (False, None)
+    assert resource_no_id_no_type.has_identifier() is False
+    assert resource_no_id_no_type.has_type(return_attribute=True) == (False, None)
+    assert resource_no_id_no_type.has_type() is False
+    
+    assert resource_no_id_no_type.get_identifier() is None
+    assert resource_no_id_no_type.get_type() is None
+
+    

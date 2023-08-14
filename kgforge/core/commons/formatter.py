@@ -12,4 +12,12 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-# Placeholder for the generic parameterizable test suite for resolvers.
+from enum import Enum, auto
+
+
+class Formatter(Enum):
+    # format using str.format(*args, **kwargs).
+    STR = auto()
+    # URI rewriter.
+    URI_REWRITER = auto()
+

@@ -110,11 +110,12 @@ def create_filters_from_dict(filter_dict: Dict, path_prefix=None) -> List[Filter
     if path_prefix is None:
         path_prefix = []
     for k, v in filter_dict.items():
-        path_prefix.append(k)
-        path = list(path_prefix)
+        if '/' in k:
+            path = path_prefix + k.split('/')
+        else:
+            path = path_prefix + [k]
         if isinstance(v, dict):
             filters.extend(create_filters_from_dict(v, path))
         else:
             filters.append(Filter(path, FilterOperator.EQUAL.value, v))
-        path_prefix.remove(k)
     return filters

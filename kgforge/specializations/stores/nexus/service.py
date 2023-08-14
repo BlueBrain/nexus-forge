@@ -38,6 +38,7 @@ from kgforge.core.commons.actions import (
     execute_lazy_actions,
     LazyAction,
 )
+from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -94,7 +95,6 @@ class Service:
         files_download_config: Dict,
         **params,
     ):
-
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
         self.organisation = org
@@ -241,6 +241,8 @@ class Service:
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
+        for mapping in project_data['apiMappings']:
+            context[mapping['prefix']] = mapping['namespace']
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
@@ -265,6 +267,9 @@ class Service:
             else:
                 raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
+            # Make sure context is not deprecated
+            if '_deprecated' in resource and resource['_deprecated']:
+                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
             document = json.loads(json.dumps(resource["@context"]))
         if isinstance(document, list):
             if self.store_context in document:

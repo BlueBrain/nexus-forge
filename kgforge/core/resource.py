@@ -77,8 +77,22 @@ class Resource:
             self._set_synchronized(value)
         self.__dict__[key] = value
 
+    @staticmethod
+    def _sync_resource(item, vlist, sync_value=True):
+        if isinstance(item, Resource):
+            if sync_value:
+                vlist.append(item._synchronized)
+            else:
+                vlist.append(item)
+
     def _get_synchronized(self) -> bool:
-        inner = [v._synchronized for v in self.__dict__.values() if isinstance(v, Resource)]
+        inner = []
+        for v in self.__dict__.values():
+            if isinstance(v, List):
+                for iv in v:
+                    self._sync_resource(iv, inner)
+            else:
+                self._sync_resource(v, inner)
         if inner:
             self._inner_sync = (all(inner))
         if self._inner_sync is False:    
@@ -87,7 +101,13 @@ class Resource:
             return self.__dict__["_synchronized"]
     
     def _set_synchronized(self, sync: bool) -> None:
-        inner = [v for v in self.__dict__.values() if isinstance(v, Resource)]
+        inner = []
+        for v in self.__dict__.values():
+            if isinstance(v, List):
+                for iv in v:
+                    self._sync_resource(iv, inner, sync_value=False)
+            else:
+                self._sync_resource(v, inner, sync_value=False)
         if inner:
             for iresource in inner:
                 iresource._synchronized = sync
@@ -96,21 +116,25 @@ class Resource:
     _synchronized = property(_get_synchronized, _set_synchronized)
 
     def has_identifier(self, return_attribute: bool = False) ->  Union[bool, Tuple[bool, str]]:
-        return self._has_term("id", return_attribute)
+        res = self._has_term("id", return_attribute)
+        return res
 
     def has_type(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
         return self._has_term("type", return_attribute)
     
-    def _has_term(self, term, return_attribute: bool = False):
+    def _has_term(self, term, return_attribute):
         result = False
         attribute = None
         if hasattr(self, f"@{term}"):
-            result: True
+            result= True
             attribute = f"@{term}"
         if hasattr(self, term):
-            result: True
+            result= True
             attribute = term
-        return result, attribute if return_attribute else result
+        if return_attribute:
+            return (result, attribute)
+        else:
+            return result
 
     def get_type(self) -> Union[str, List[str]]:
         resource_has_type, type_key = self.has_type(return_attribute=True)
