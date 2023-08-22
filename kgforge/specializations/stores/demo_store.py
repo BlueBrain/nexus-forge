@@ -239,7 +239,7 @@ class StoreLibrary:
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
     
-    def rewrite_ur(self, uri: str, context: Context, **kwargs) -> str:
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         raise not_supported()
 
     class RecordExists(Exception):
