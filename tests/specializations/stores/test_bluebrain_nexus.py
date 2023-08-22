@@ -11,7 +11,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import json
 
 import os
 from unittest import mock
@@ -177,25 +176,31 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     assert str(result._store_metadata) == str(registered_building._store_metadata)
 
 
-def test_prepare_tag(nexus_store, registered_building):
+@pytest.mark.parametrize("schema, expected_params, expected_url_template",
+                         [
+                            pytest.param(       
+                                ("http://schema.org/Building"),
+                                ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/Building"),"{}", "tags"))),
+                                id="tag-connstrained",
+                            ),
+                            pytest.param(       
+                                (Service.UNCONSTRAINED_SCHEMA),
+                                ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}", "tags"))),
+                                id="tag-unconstrained",
+                            )
+                         ])
+def test_prepare_tag(nexus_store, registered_building, schema, expected_params, expected_url_template):
     tagValue = "aTag"
-    url, data, params, schema_id = nexus_store.service._prepare_tag(registered_building, tagValue)
-    expected_schema_id = registered_building._store_metadata._constrainedBy
-    expected_params = {"rev":registered_building._store_metadata._rev}
+    registered_building._store_metadata._constrainedBy = schema
+    url, data, params = nexus_store.service._prepare_tag(registered_building, tagValue)
     expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
-    expected_url = "/".join((NEXUS,"resources",BUCKET, quote_plus(expected_schema_id),
-                             quote_plus(registered_building.id), "tags"))
-    assert schema_id == expected_schema_id
+    expected_url = expected_url_template.format(quote_plus(registered_building.id))
+
     assert params == expected_params
     assert data == expected_data
     assert url == expected_url
-    registered_building._store_metadata._constrainedBy = nexus_store.service.UNCONSTRAINED_SCHEMA
-    url, data, params, schema_id = nexus_store.service._prepare_tag(registered_building, tagValue)
-    assert schema_id == "_"
-    assert params == expected_params
-    assert data == expected_data
-    assert url == "/".join((NEXUS,"resources",BUCKET, quote_plus(schema_id),
-                             quote_plus(registered_building.id), "tags"))
 
 
 @pytest.mark.parametrize("url,is_file, expected",
