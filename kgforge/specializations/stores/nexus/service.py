@@ -74,6 +74,7 @@ class Service:
     DEFAULT_ES_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultElasticSearchIndex"
     DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
+    UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
 
     def __init__(
         self,
@@ -278,7 +279,7 @@ class Service:
                 document.remove(self.store_local_context)
         self.context_cache.update({context_to_resolve: document})
         return document
-
+    
     def batch_request(
         self,
         resources: List[Resource],
@@ -347,12 +348,8 @@ class Service:
                     )
 
                 if batch_action == batch_action.TAG:
-                    url = "/".join(
-                        (self.url_resources, "_", quote_plus(resource.id), "tags")
-                    )
-                    rev = resource._store_metadata._rev
-                    params["rev"] = rev
-                    payload = {"tag": kwargs.get("tag"), "rev": rev}
+                    url, payload, rev_param = self._prepare_tag(resource, kwargs.get("tag"))
+                    params.update(rev_param)
                     prepared_request = loop.create_task(
                         queue(
                             hdrs.METH_POST,
@@ -434,8 +431,7 @@ class Service:
                 if response.status < 400:
                     return BatchResult(resource, content)
                 else:
-                    msg = " ".join(re.findall("[A-Z][^A-Z]*", content["@type"])).lower()
-                    error = exception(msg)
+                    error = exception(_error_message(content))
                     return BatchResult(resource, error)
 
         async def dispatch_action():
@@ -448,6 +444,15 @@ class Service:
                 return await asyncio.gather(*tasks)
 
         return asyncio.run(dispatch_action())
+
+    def _prepare_tag(self, resource, tag) -> Tuple[str, str, str]:
+        schema_id = resource._store_metadata._constrainedBy
+        schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
+        url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id), "tags"))
+        rev = resource._store_metadata._rev
+        params = {"rev":rev}
+        data = {"tag": tag, "rev": rev}
+        return url, data, params
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
         metadata = (
@@ -582,3 +587,27 @@ class Service:
         if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
             resource.id = kwargs.get("id")
         return resource
+
+
+def _error_message(error: Union[HTTPError, Dict]) -> str:
+    def format_message(msg):
+        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+
+    try:
+        error_json = error.response.json() if isinstance(error, HTTPError) else error
+        messages = []
+        reason = error_json.get("reason", None)
+        details = error_json.get("details", None)
+        if reason:
+            messages.append(format_message(reason))
+        if details:
+            messages.append(format_message(details))
+        messages = messages if reason or details else [str(error)]
+        return ". ".join(messages)
+    except Exception as e:
+        pass
+    try:
+        error_text =  error.response.text() if isinstance(error, HTTPError) else str(error)
+        return format_message(error_text)
+    except Exception:
+        return format_message(str(error))
