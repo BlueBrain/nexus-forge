@@ -1,7 +1,7 @@
 Contributing
 ============
 
-Please add `@pafonta` as a reviewer if your Pull Request modifies `core`.
+Please add `@MFSY` or `@crisely09` as a reviewer if your Pull Request modifies `core`.
 
 Setup
 
