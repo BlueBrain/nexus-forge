@@ -1,7 +1,7 @@
 Blue Brain Nexus Forge
 ======================
 
-|Travis_badge| |Version Status| |Binder|
+|Github_build_badge| |codecov| |Version Status| |Binder|
 
 .. image:: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/docs/source/assets/bbnforge
 
@@ -78,9 +78,14 @@ COPYRIGHT © 2019–2022 Blue Brain Project/EPFL
     :alt: Binder
     :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/master?filepath=examples%2Fnotebooks%2Fgetting-started
     
-.. |Travis_badge| image:: https://travis-ci.com/BlueBrain/nexus-forge.svg?branch=master
-    :target: https://travis-ci.com/BlueBrain/nexus-forge 
+.. |Github_build_badge| image:: https://github.com/BlueBrain/nexus-forge/actions/workflows/test.yml/badge.svg
+    :alt: Build
+    :target: https://github.com/BlueBrain/nexus-forge/actions/workflows/test.yml 
 
 .. |Version Status| image:: https://img.shields.io/pypi/v/nexusforge.svg
    :target: https://pypi.python.org/pypi/nexusforge
+
+.. |codecov| image:: https://codecov.io/gh/BlueBrain/nexus-forge/branch/master/graph/badge.svg?token=YOHG1INCBQ
+   :alt: Coverage
+   :target: https://codecov.io/gh/BlueBrain/nexus-forge
 
