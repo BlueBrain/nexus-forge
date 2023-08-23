@@ -65,3 +65,10 @@ Generating locally the documentation
 
    # Generate the docs
    sphinx-build -T -W --keep-going -b html -d _build/doctrees -c ./source -D language=en ./source _build/html
+
+Signing the CLA
+---------------
+
+If you are not part of the Blue Brain project, a Contributor License Agreement (CLA) must be signed for any code changes
+to be accepted. Please contact the `Forge Nexus team <mailto:bbp-ou-dke@groupes.epfl.ch>`__ to get the latest CLA version and
+instructions.
