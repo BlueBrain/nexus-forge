@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
+from kgforge.core.commons.files import is_valid_url
 
 from rdflib.plugins.shared.jsonld.keys import CONTEXT, TYPE, GRAPH
 from typing import Union, Dict, List, Tuple, Optional, Callable, Any
@@ -468,7 +469,11 @@ def _remove_ld_keys(
                 if not isinstance(v, str):
                     raise ValueError(f"Invalid value found in data: value of type {type(v)} "
                                      f"found associated to a \"@id\" key. Only strings are valid")
-                local_attrs["id"] = context.resolve(v)
+                resolved_id = context.resolve(v)
+                if resolved_id != "":
+                    local_attrs["id"] = resolved_id
+                else:
+                    raise ValueError(f"A space character was found in the identifier (key @id) of the provided dictionary: {v}: please remove all spaces")
             elif k.startswith("@") and k in LD_KEYS.values():
                 local_attrs[k[1:]] = v
             else:

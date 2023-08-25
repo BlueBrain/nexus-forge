@@ -112,7 +112,10 @@ class TestJsonLd:
 
     def test_from_jsonld(self, building, model_context, building_jsonld):
         building.context = model_context.document["@context"]
+        a_valid_id = "https://an_id" 
+        building.id = a_valid_id
         payload = building_jsonld(building, "compacted", False, None)
+        payload["@id"] = a_valid_id
         resource = from_jsonld(payload)
         assert resource == building
 
@@ -125,6 +128,10 @@ class TestJsonLd:
         assert "value" not in LD_KEYS.keys()
         assert hasattr(resource_with_atvalue, "status")
         assert resource_with_atvalue.status == Resource.from_json({"type":"xsd:string", "@value":"opened"})
+
+        payload["@id"] = " https://an_id_with_space_id"
+        with pytest.raises(ValueError):
+            from_jsonld(payload) 
 
     def test_as_jsonld(self, building, model_context, building_jsonld, forge):
         building.context = model_context.document["@context"]
