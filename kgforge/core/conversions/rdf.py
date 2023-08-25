@@ -14,13 +14,13 @@
 
 from copy import deepcopy
 
-from rdflib.plugins.shared.jsonld.keys import CONTEXT, TYPE, GRAPH
+from rdflib.plugins.shared.jsonld.keys import CONTEXT, GRAPH
 from typing import Union, Dict, List, Tuple, Optional, Callable, Any
 from urllib.error import URLError, HTTPError
 
 from enum import Enum
 from pyld import jsonld
-from rdflib import Graph, Literal
+from rdflib import Graph
 import json
 from collections import OrderedDict
 from rdflib.namespace import RDF
@@ -422,7 +422,7 @@ def _add_ld_keys(
             else:
                 key = LD_KEYS.get(k, k)
                 if key == "@id" and local_context is not None:
-                    local_attrs[key] = local_context.resolve(v)
+                    local_attrs[key] = _resolve_iri(v, local_context)
                 else:
 
                     if isinstance(v, Resource) or isinstance(v, Dict):
@@ -454,6 +454,12 @@ def _add_ld_keys(
                         )
     return local_attrs, json_arrays
 
+def _resolve_iri(value: str, context) -> str:
+    resolved_id = context.resolve(value)
+    if resolved_id != "":
+        return resolved_id
+    else:
+        raise ValueError(f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces")
 
 def _remove_ld_keys(
     dictionary: dict, context: Context, to_resource: Optional[bool] = True
@@ -468,7 +474,7 @@ def _remove_ld_keys(
                 if not isinstance(v, str):
                     raise ValueError(f"Invalid value found in data: value of type {type(v)} "
                                      f"found associated to a \"@id\" key. Only strings are valid")
-                local_attrs["id"] = context.resolve(v)
+                local_attrs["id"] = _resolve_iri(v, context)
             elif k.startswith("@") and k in LD_KEYS.values():
                 local_attrs[k[1:]] = v
             else:
