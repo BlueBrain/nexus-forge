@@ -26,7 +26,7 @@ from rdflib.namespace import RDF, Namespace
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
-from kgforge.core.conversions.rdf import _merge_jsonld, from_jsonld, as_jsonld, Form, as_graph, from_graph, LD_KEYS
+from kgforge.core.conversions.rdf import _merge_jsonld, _resolve_iri, from_jsonld, as_jsonld, Form, as_graph, from_graph, LD_KEYS
 
 form_store_metadata_combinations = [
     pytest.param(Form.COMPACTED.value, True, id="compacted-with-metadata"),
@@ -48,6 +48,9 @@ def building_with_context(building, model_context):
 
 
 class TestJsonLd:
+
+    A_VALID_ID = "https://an_id" 
+    AN_ID_WITH_SPACE = " https://an_id"
 
     @pytest.mark.parametrize("store_metadata", store_metadata_params)
     def test_nested_resources(self, organization, organization_jsonld_compacted,
@@ -110,12 +113,18 @@ class TestJsonLd:
                            context_resolver=None)
         assert expected == result
 
+    def test_resolve_iri(self, model_context):
+        result = _resolve_iri(self.A_VALID_ID, model_context)
+        assert result == self.A_VALID_ID
+        with pytest.raises(ValueError):
+            _resolve_iri(self.AN_ID_WITH_SPACE, model_context)
+
+
     def test_from_jsonld(self, building, model_context, building_jsonld):
         building.context = model_context.document["@context"]
-        a_valid_id = "https://an_id" 
-        building.id = a_valid_id
+        building.id = self.A_VALID_ID
         payload = building_jsonld(building, "compacted", False, None)
-        payload["@id"] = a_valid_id
+        payload["@id"] = self.A_VALID_ID
         resource = from_jsonld(payload)
         assert resource == building
 
@@ -128,9 +137,8 @@ class TestJsonLd:
         assert "value" not in LD_KEYS.keys()
         assert hasattr(resource_with_atvalue, "status")
         assert resource_with_atvalue.status == Resource.from_json({"type":"xsd:string", "@value":"opened"})
-
-        payload["@id"] = " https://an_id_with_space_id"
         with pytest.raises(ValueError):
+            payload["@id"] = self.AN_ID_WITH_SPACE
             from_jsonld(payload) 
 
     def test_as_jsonld(self, building, model_context, building_jsonld, forge):
