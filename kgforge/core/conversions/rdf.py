@@ -13,15 +13,14 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from kgforge.core.commons.files import is_valid_url
 
-from rdflib.plugins.shared.jsonld.keys import CONTEXT, TYPE, GRAPH
+from rdflib.plugins.shared.jsonld.keys import CONTEXT, GRAPH
 from typing import Union, Dict, List, Tuple, Optional, Callable, Any
 from urllib.error import URLError, HTTPError
 
 from enum import Enum
 from pyld import jsonld
-from rdflib import Graph, Literal
+from rdflib import Graph
 import json
 from collections import OrderedDict
 from rdflib.namespace import RDF
