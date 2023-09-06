@@ -207,6 +207,9 @@ class KnowledgeGraphForge:
         else:
             config = deepcopy(configuration)
 
+        # Store initial configuration
+        self._config = {"config": deepcopy(config), "kwargs": kwargs}
+        
         # Debugging.
         self._debug = kwargs.pop("debug", False)
 

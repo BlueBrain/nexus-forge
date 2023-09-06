@@ -28,6 +28,8 @@ class TestForgeInitialization:
 
     def test_initialization(self, config):
         forge = KnowledgeGraphForge(config)
+        assert forge._config['config'] == config
+        assert forge._config['kwargs'] == {}
         assert type(forge._model).__name__ == MODEL
         assert type(forge._store).__name__ == STORE
         assert type(forge._resolvers[SCOPE][RESOLVER]).__name__ == RESOLVER
