@@ -1,0 +1,12 @@
+{
+    type: Contribution
+    agent:
+    {
+        id: forge.format("identifier", "persons", x.id)
+        type: Person
+        additionalName: x.middle_name
+        gender: forge.resolve(x.gender, scope="terms")
+        name: x.name
+    }
+    distribution: forge.attach(f"../../data/scientists-database/{'_'.join(x.name.lower().split())}.txt")
+}
