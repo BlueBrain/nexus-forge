@@ -58,7 +58,15 @@ class OntologyResolver(Resolver):
             definition ?definition;
             subClassOf ?subClassOf ;
             isDefinedBy ?isDefinedBy ;
-            notation ?notation
+            notation ?notation ;
+            definition ?definition ;
+            atlasRelease ?atlasRelease ;
+            identifier ?identifier ;
+            delineatedBy ?delineatedBy ;
+            hasLayerLocationPhenotype ?hasLayerLocationPhenotype ;
+            representedInAnnotation ?representedInAnnotation ;
+            isPartOf ?isPartOf ;
+            isLayerPartOf ?isLayerPartOf .
         }} WHERE {{
             GRAPH ?g {{
                 ?id a ?type ;
@@ -80,6 +88,33 @@ class OntologyResolver(Resolver):
                 }}     
                 OPTIONAL {{
                 ?id notation ?notation .
+                }}    
+                OPTIONAL {{
+                ?id definition ?definition .
+                }}    
+                OPTIONAL {{
+                ?id atlasRelease ?atlasRelease .
+                }}    
+                OPTIONAL {{
+                ?id hasLayerLocationPhenotype ?hasLayerLocationPhenotype .
+                }}    
+                OPTIONAL {{
+                ?id identifier ?identifier .
+                }}    
+                OPTIONAL {{
+                ?id delineatedBy ?delineatedBy .
+                }}    
+                OPTIONAL {{
+                ?id representedInAnnotation ?representedInAnnotation .
+                }}    
+                OPTIONAL {{
+                ?id isPartOf ?isPartOf .
+                }}    
+                OPTIONAL {{
+                ?id isLayerPartOf ?isLayerPartOf .
+                }}    
+                OPTIONAL {{
+                ?id units ?units .
                 }}    
                 {{
                 SELECT * WHERE {{
