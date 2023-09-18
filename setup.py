@@ -45,7 +45,7 @@ setup(
         "pandas",
         "nexus-sdk",
         "aiohttp",
-        "rdflib==6.3.3",
+        "rdflib==6.3.2",
         "pyLD",
         "pyshacl==v0.23.0",
         "nest-asyncio>=1.5.1",
