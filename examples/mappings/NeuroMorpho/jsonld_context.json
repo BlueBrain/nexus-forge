@@ -1,0 +1,164 @@
+{
+    "@context": {
+      "@vocab": "http://example.org/vocab/",
+      "owl": "http://www.w3.org/2002/07/owl#",
+      "owl2xml": "http://www.w3.org/2006/12/owl2-xml#",
+      "swrlb": "http://www.w3.org/2003/11/swrlb#",
+      "protege": "http://protege.stanford.edu/plugins/owl/protege#",
+      "swrl":  "http://www.w3.org/2003/11/swrl#",
+      "schema": "http://schema.org/",
+      "xsd":   "http://www.w3.org/2001/XMLSchema#",
+      "skos":  "http://www.w3.org/2004/02/skos/core#",
+      "rdfs":  "http://www.w3.org/2000/01/rdf-schema#",
+      "rdf":   "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+      "foaf":  "http://xmlns.com/foaf/0.1/",
+      "nsg": "https://neuroshapes.org/",
+      "id": {
+          "@id": "http://www.geneontology.org/formats/oboInOwl#id"
+      },
+      "Activity": {
+        "@id": "prov:Activity"
+      },
+      "Agent": {
+        "@id": "prov:Agent"
+      },
+      "Class": {
+        "@id": "owl:Class"
+      },
+      "Entity": {
+        "@id": "prov:Entity"
+      },
+      "Association": {
+        "@id": "schema:Association"
+      },
+      "BrainRegion": {
+        "@id": "nsg:BrainRegion"
+      },
+      "Building": {
+        "@id": "http://schema.org/Building"
+      },
+      "Employee": {
+        "@id": "http://www.example.com/Employee"
+      },
+      "Organization": {
+        "@id": "schema:Organization"
+      },
+      "Person": {
+        "@id": "schema:Person"
+      },
+      "PostalAddress": {
+        "@id": "schema:PostalAddress"
+      },
+      "address": {
+        "@id": "schema:address"
+      },
+      "agent": {
+        "@id": "schema:agent"
+      },
+      "birthDate": {
+        "@id": "schema:birthDate",
+        "@type": "xsd:date"
+      },
+      "citation": {
+        "@id": "schema:citation"
+      },
+      "contractor": {
+        "@id": "schema:contractor"
+      },
+      "deathDate": {
+        "@id": "schema:deathDate",
+        "@type": "xsd:date"
+      },
+      "department": {
+        "@id": "schema:department"
+      },
+      "description": {
+        "@id": "schema:description"
+      },
+      "endedAtTime": {
+        "@id": "prov:endedAtTime"
+      },
+      "familyName": {
+        "@id": "schema:familyName"
+      },
+      "founder": {
+        "@id": "schema:founder"
+      },
+      "gender": {
+        "@id": "schema:gender"
+      },
+      "generated": {
+        "@id": "prov:generated"
+      },
+      "geo": {
+        "@id": "schema:geo"
+      },
+      "givenName": {
+        "@id": "schema:givenName"
+      },
+      "image": {
+        "@id": "http://schema.org/image",
+        "@type": "@id"
+      },
+      "isDefinedBy": {
+        "@id": "rdfs:isDefinedBy",
+        "@type": "@id"
+      },
+      "label": "rdfs:label",
+      "latitude": {
+        "@id": "schema:latitude",
+        "@type": "xsd:float"
+      },
+      "longitude": {
+        "@id": "schema:longitude"
+      },
+      "name": {
+        "@id": "schema:name"
+      },
+      "notation": "skos:notation",
+      "postalCode": {
+        "@id": "schema:postalCode"
+      },
+      "prefLabel": "skos:prefLabel",
+      "startDate": {
+        "@id": "schema:startDate",
+        "@type": "xsd:date"
+      },
+      "startedAtTime": {
+        "@id": "prov:startedAtTime",
+        "@type": "xsd:dateTime"
+      },
+      "status": {
+        "@id": "schema:status"
+      },
+      "streetAddress": {
+        "@id": "schema:streetAddress"
+      },
+      "subClassOf": {
+        "@id": "rdfs:subClassOf",
+        "@type": "@id"
+      },
+      "supervisor": {
+        "@id": "schema:supervisor",
+        "@type": "@id"
+      },
+      "type": {
+        "@id": "rdf:type",
+        "@type": "@id"
+      },
+      "used": {
+        "@id": "prov:used"
+      },
+      "validated": {
+        "@id": "schema:validated"
+      },
+      "value": {
+        "@id": "schema:value"
+      },
+      "wasStartedBy": {
+        "@id": "prov:wasStartedBy",
+        "@type": "@id"
+      }
+    },
+    "@id": "http://context.example.org"
+  }

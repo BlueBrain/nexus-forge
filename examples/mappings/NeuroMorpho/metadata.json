@@ -1,0 +1,8 @@
+{
+  "description": "The goal of NeuroMorpho.Org is to provide dense coverage of available reconstruction data for the neuroscience community. Data sharing through NeuroMorpho.Org enables the full and continuing research potential of existing digital reconstruction data.",
+  "url": "https://neuromorpho.org",
+  "license" : {
+    "id": "https://creativecommons.org/licenses/by/4.0/",
+    "label": "CC BY 4.0"
+  }
+}

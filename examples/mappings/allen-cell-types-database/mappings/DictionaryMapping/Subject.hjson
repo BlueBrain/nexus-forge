@@ -1,0 +1,8 @@
+{
+    type: Subject
+    id: forge.format("identifier", "subjects", x.donor__id)
+    identifier: x.donor__id
+    name: x.donor__name
+    sex: forge.resolve(x.donor__sex, scope="terms", target="sex")
+    species: forge.resolve(x.donor__species, scope="terms", target="species")
+}

@@ -1,0 +1,18 @@
+{
+  "id": forge.format('identifier', "proteins", x.id.split('/')[-1])
+  "type": [
+    "Entity"
+    "Protein"
+    ]
+  "encodedBy": {
+    "id": x.gene
+    "label": x.gene_label
+  }
+  "identifier": {
+      "propertyID": "UniProtKB"
+      "value": x.id.split('/')[-1]
+  }
+  "name": f"Protein {x.id.split('/')[-1]} from UniProtKB"
+  "label": x.label
+  "subject": forge.resolve(x.subject, scope='ontology') if forge.resolve(x.subject, scope='ontology') is not None else {"label": x.subject}
+}

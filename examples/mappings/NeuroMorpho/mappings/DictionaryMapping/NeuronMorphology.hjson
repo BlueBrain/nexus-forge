@@ -1,0 +1,61 @@
+{
+    type: [
+        Dataset
+        NeuronMorphology
+        Entity
+    ]
+    id: forge.format('identifier', 'neuronmorphologies/neuromorpho', f'{x.bbpID}')
+    brainLocation: {
+        type: BrainLocation
+        brainRegion: forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_CASEINSENSITIVE_MATCH') 
+    }
+    contribution:
+    {
+        type: Contribution
+        agent:
+        {
+            id: https://ror.org/02jqj7156
+            type: Organization
+            label: George Mason University
+        }
+    }
+    dateCreated:
+    {
+        type: "xsd:dateTime"
+        @value: f"{x.date_formatted}"
+    }
+    identifier: {
+      propertyID: NeuroMorhoID
+      value: x.neuron_id
+    }
+    archive: x.archive
+    name: x.neuron_name
+    generation:
+    {
+        type: Generation
+        activity:
+        {
+            type: "nsg:NeuronMorphologyReconstruction"
+        }
+    }
+    subject:
+    {
+        type: Subject
+        species: forge.resolve(x.species, scope='ontology', strategy='EXACT_CASEINSENSITIVE_MATCH')
+        strain: forge.resolve(x.scientific_name, scope='ontology', strategy='EXACT_CASEINSENSITIVE_MATCH')
+    }
+    license:
+    {
+        type: License
+        id: https://neuromorpho.org
+    }
+    objectOfStudy:
+    {
+        type: ObjectOfStudy
+        id: http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells
+        label: Single Cell
+    }
+    description: f"Morphology of {x.neuron_name} obtained from NeuroMorpho API."
+    stain: x.stain
+    version: "8.4.7"
+}
