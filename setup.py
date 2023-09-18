@@ -47,7 +47,7 @@ setup(
         "aiohttp",
         "rdflib==6.2.0",
         "pyLD",
-        "pyshacl==v0.17.2",
+        "pyshacl==v0.23.0",
         "nest-asyncio>=1.5.1",
         "pyparsing>=2.0.2",
         "owlrl>=5.2.3",
