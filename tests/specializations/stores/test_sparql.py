@@ -14,13 +14,9 @@
 
 import pytest
 
-from kgforge.core import Resource
-from kgforge.core.wrappings.paths import Filter
 from kgforge.core.commons.context import Context
-from kgforge.specializations.stores.sparql import (
-    SPARQLStore,
-    build_sparql_query_statements,
-)
+from kgforge.specializations.stores.sparql import SPARQLStore
+
 
 SEARCH_ENDPOINT = {"sparql": {"endpoint": "http://dbpedia.org/sparql"}}
 

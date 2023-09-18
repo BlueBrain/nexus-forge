@@ -31,11 +31,11 @@ from kgforge.core.wrappings.paths import create_filters_from_dict
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.parser import _parse_type
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.specializations.stores.bluebrain_nexus import (
-    CategoryDataType, _create_select_query,
-    _box_value_as_full_iri, sparql_operator_map,
-    build_sparql_query_statements,
-    type_map, format_type)
+    CategoryDataType,
+    _create_select_query
+)
 
 
 class SPARQLStore(Store):
@@ -163,9 +163,9 @@ class SPARQLStore(Store):
                 "Field inclusion and exclusion are not supported when using SPARQL"
             )
 
-        query_statements, query_filters = build_sparql_query_statements(
-            self.context, filters
-        )
+        query_statements, query_filters = SPARQLQueryBuilder.build(
+                None, resolvers, self.model_context, *filters
+            )
         statements = ";\n ".join(query_statements)
         _filters = ".\n".join(query_filters) + '\n'
         _vars = ["?id"]
