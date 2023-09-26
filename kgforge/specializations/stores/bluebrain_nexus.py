@@ -571,10 +571,9 @@ class BlueBrainNexus(Store):
             metadata_context=None,
             context_resolver=self.service.resolve_context
         )
+        url, params = self.service._prepare_uri(resource, schema_id)
         params_update = copy.deepcopy(self.service.params.get("update", {}))
-        params_update["rev"] = resource._store_metadata._rev
-        schema = quote_plus(schema_id) if schema_id else "_"
-        url = f"{self.service.url_resources}/{schema}/{quote_plus(resource.id)}"
+        params_update.update(params)
         try:
             response = requests.put(
                 url,

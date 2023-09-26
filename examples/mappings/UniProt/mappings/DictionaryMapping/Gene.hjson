@@ -1,0 +1,90 @@
+{
+  "id": f"https://bbp.epfl.ch/neurosciencegraph/data/genes/{x.uid}"
+  "type": [
+    "Entity"
+    "Gene"
+  ]
+  "description": x.description
+  "enables": [
+    {
+      "id": "GO:0017046"
+      "type": "Class"
+      "label": "peptide hormone binding"
+    }
+    {
+      "id": "GO:0008528"
+      "type": "Class"
+      "label": "G protein-coupled peptide receptor activity"
+    }
+  ]
+  "identifier": [
+    {
+      "propertyID": "ArrayExpress"
+      "value": "ENSMUSG00000025127"
+    }
+    {
+      "propertyID": "EntrezGene"
+      "value": "14527"
+    }
+    {
+      "propertyID": "MGI"
+      "value": "MGI:99572"
+    }
+    {
+      "propertyID": "Uniprot_gn"
+      "value": "Q61606"
+    }
+    {
+      "propertyID": "WikiGene"
+      "value": "14527"
+    }
+    {
+      "propertyID": "Ensembl"
+      "value": "ENSMUSG00000025127"
+    }
+  ]
+  "involvedIn": [
+    {
+      "id": "GO:0007189"
+      "type": "Class"
+      "label": "adenylate cyclase-activating G protein-coupled receptor signaling pathway"
+    }
+    {
+      "id": "GO:0007188"
+      "type": "Class"
+      "label": "adenylate cyclase-modulating G protein-coupled receptor signaling pathway"
+    }
+    {
+      "id": "GO:0071377"
+      "type": "Class"
+      "label": "cellular response to glucagon stimulus"
+    }
+  ]
+  "label": "Gcgr"
+  "locatedIn": [
+    {
+      "id": "GO:0005887"
+      "type": "Class"
+      "label": "integral component of plasma membrane"
+    }
+    {
+      "id": "GO:0016020"
+      "type": "Class"
+      "label": "membrane"
+    }
+    {
+      "id": "GO:0016021"
+      "type": "Class"
+      "label": "integral component of membrane"
+    }
+  ]
+  "name": "Gcgr"
+  "prefLabel": "Gcgr"
+  "subject": {
+    "@type": "Subject"
+    "species": {
+      "id": "NCBITaxon:10090"
+      "label": "Mus musculus"
+    }
+  }
+}
