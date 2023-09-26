@@ -321,10 +321,8 @@ class Service:
                     )
 
                 if batch_action == batch_action.UPDATE:
-                    url = "/".join(
-                        (self.url_resources, schema_id, quote_plus(resource.id))
-                    )
-                    params["rev"] = resource._store_metadata._rev
+                    url, params_from_resource = self._prepare_uri(resource, schema_id)
+                    params.update(params_from_resource)
 
                     payload = as_jsonld(
                         resource,
@@ -445,14 +443,23 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
+
     def _prepare_tag(self, resource, tag) -> Tuple[str, str, str]:
-        schema_id = resource._store_metadata._constrainedBy
+        url, params = self._prepare_uri(resource)
+        url = "/".join((url, "tags"))
+        data = {"tag": tag}
+        data.update(params)
+        return url, data, params
+    
+   
+    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, str, str]:
+        schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
         schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
-        url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id), "tags"))
+        url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
         rev = resource._store_metadata._rev
         params = {"rev":rev}
-        data = {"tag": tag, "rev": rev}
-        return url, data, params
+        return url, params
+    
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
         metadata = (

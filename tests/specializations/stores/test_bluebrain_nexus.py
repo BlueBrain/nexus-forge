@@ -176,31 +176,66 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
     assert str(result._store_metadata) == str(registered_building._store_metadata)
 
 
-@pytest.mark.parametrize("schema, expected_params, expected_url_template",
+@pytest.mark.parametrize("_constrainedBy, schema_id, expected_params, expected_url_template, expected_url_tag_template",
                          [
                             pytest.param(       
                                 ("http://schema.org/Building"),
+                                (None),
                                 ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/Building"),"{}"))),
                                 ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/Building"),"{}", "tags"))),
-                                id="tag-connstrained",
+                                id="tag-constrained-no-schema",
+                            ),
+                            pytest.param(       
+                                (None),
+                                ("http://schema.org/Building"),
+                                ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/Building"),"{}"))),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}", "tags"))),
+                                id="tag-no-constrained-schema",
+                            ),
+                            pytest.param(       
+                                ("http://schema.org/Building"),
+                                ("http://schema.org/AnotherBuilding"),
+                                ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/AnotherBuilding"),"{}"))),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("http://schema.org/Building"),"{}", "tags"))),
+                                id="tag-constrainedby-schema",
+                            ),
+                            pytest.param(       
+                                (None),
+                                (None),
+                                ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}"))),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}", "tags"))),
+                                id="tag-no-constrainedby-no-schema",
                             ),
                             pytest.param(       
                                 (Service.UNCONSTRAINED_SCHEMA),
+                                (None),
                                 ({"rev":1}),
+                                ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}"))),
                                 ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}", "tags"))),
                                 id="tag-unconstrained",
                             )
                          ])
-def test_prepare_tag(nexus_store, registered_building, schema, expected_params, expected_url_template):
-    tagValue = "aTag"
-    registered_building._store_metadata._constrainedBy = schema
-    url, data, params = nexus_store.service._prepare_tag(registered_building, tagValue)
-    expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
+def test_prepare_tag_uri(nexus_store, registered_building, _constrainedBy, schema_id, expected_params, expected_url_template, expected_url_tag_template):
+    
+    registered_building._store_metadata._constrainedBy = _constrainedBy
+    url, params = nexus_store.service._prepare_uri(registered_building, schema_id)
     expected_url = expected_url_template.format(quote_plus(registered_building.id))
+    
+    assert params == expected_params
+    assert url == expected_url
 
+    tagValue = "aTag"
+    url, data, params = nexus_store.service._prepare_tag(registered_building, tagValue)
+    expected_url_tag = expected_url_tag_template.format(quote_plus(registered_building.id))
+    expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
+   
     assert params == expected_params
     assert data == expected_data
-    assert url == expected_url
+    assert url == expected_url_tag
 
 
 @pytest.mark.parametrize("url,is_file, expected",
