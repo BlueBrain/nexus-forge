@@ -1,0 +1,64 @@
+{
+    # There is no NeuronMorphologyShape nor NeuronMorphology type in Neuroshapes at the moment (09.08.2019).
+    # Using ReconstructedPatchedCellShape meanwhile.
+    type: NeuronMorphology
+    id: forge.format("identifier", "neuronmorphologies", x.specimen__id)
+    # This property is not part of the ReconstructedPatchedCell shape at the moment (09.08.2019).
+    apicalDendrite: x.tag__apical
+    brainLocation:
+    {
+        type: BrainLocation
+        brainRegion:
+        {
+            id: f"http://api.brain-map.org/api/v2/data/Structure/{x.structure__id}"
+            label: x.structure__acronym
+        }
+        coordinatesInBrainAtlas:
+        {
+            valueX: x.csl__x
+            valueY: x.csl__y
+            valueZ: x.csl__z
+        }
+        layer: forge.resolve(f"layer {x.structure__layer}", scope="terms", target="structure-layer")
+    }
+    contribution:
+    {
+        type: Contribution
+        agent:
+        {
+            # 'Organization' is a subclass of 'Agent'.
+            type: Organization
+            id: https://www.grid.ac/institutes/grid.417881.3
+        }
+    }
+    derivation:
+    [
+        {
+            type: Derivation
+            entity:
+            {
+                # 'Subject' is a subclass of 'Entity'.
+                type: Subject
+                id: forge.format("identifier", "subjects", x.donor__id)
+            }
+        }
+        {
+            type: Derivation
+            entity:
+            {
+                # 'PatchedCell' is a subclass of 'Entity'.
+                type: PatchedCell
+                id: forge.format("identifier", "patchedcells", x.specimen__id)
+            }
+        }
+    ]
+    distribution: forge.attach(f"./allen_cell_types_database/specimen_{x.specimen__id}/reconstruction.swc", content_type="application/swc")
+    identifier: x.specimen__id
+    name: x.specimen__name
+    # This property is not part of the ReconstructedPatchedCell shape at the moment (09.08.2019).
+    subject:
+    {
+        type: Subject
+        id: forge.format("identifier", "subjects", x.donor__id)
+    }
+}
