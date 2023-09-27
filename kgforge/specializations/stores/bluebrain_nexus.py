@@ -884,7 +884,7 @@ class BlueBrainNexus(Store):
                         o = f"<{r['object']['value']}>"
                     else:
                         if "datatype" in r["object"]:
-                            o = f"\"{r['object']['value']}\"^^{r['object']['datatype']}"
+                            o = f"\"{r['object']['value']}\"^^<{r['object']['datatype']}>"
                         else:
                             o = f"\"{r['object']['value']}\""
                     if subject in subject_triples:
