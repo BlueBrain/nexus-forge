@@ -14,13 +14,20 @@
 
 from datetime import datetime
 from enum import Enum
+import json
 from typing import Tuple, List, Dict, Optional, Any
-from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.conversions.rdf import from_jsonld
+from kgforge.core.resource import Resource
+import rdflib
+from rdflib.plugins.sparql.parser import Query
 
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
 from kgforge.core.commons.query_builder import QueryBuilder
+
+from pyld import jsonld
 
 class CategoryDataType(Enum):
     DATETIME = "datetime"
@@ -114,5 +121,59 @@ class SPARQLQueryBuilder(QueryBuilder):
                 raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
         return statements, sparql_filters
 
+
+    @staticmethod
+    def build_resource_from_response(query: str, response: Dict, context: Context) -> List[Resource]:
+        _, q_comp = Query.parseString(query)
+        if q_comp.name == "ConstructQuery":
+            subject_triples = {}
+            for r in response["results"]["bindings"]:
+                subject = r["subject"]["value"]
+                s = f"<{r['subject']['value']}>"
+                p = f"<{r['predicate']['value']}>"
+                if r["object"]["type"] == "uri":
+                    o = f"<{r['object']['value']}>"
+                else:
+                    if "datatype" in r["object"]:
+                        o = f"\"{r['object']['value']}\"^^<{r['object']['datatype']}>"
+                    else:
+                        o = f"\"{r['object']['value']}\""
+                if subject in subject_triples:
+                    subject_triples[subject] += f"\n{s} {p} {o} . "
+                else:
+                    subject_triples[subject] = f"{s} {p} {o} . "
+
+            def triples_to_resource(iri, triples):
+                graph = rdflib.Graph().parse(data=triples, format="nt")
+                data_expanded = json.loads(graph.serialize(format="json-ld"))
+                data_expanded = json.loads(graph.serialize(format="json-ld"))
+                frame = {"@id": iri}
+                data_framed = jsonld.frame(data_expanded, frame)
+                compacted = jsonld.compact(data_framed, context.document)
+                resource = from_jsonld(compacted)
+                resource.context = (
+                    context.iri
+                    if context.is_http_iri()
+                    else context.document["@context"]
+                )
+                return resource
+
+            return [triples_to_resource(s, t) for s, t in subject_triples.items()]
+        else:
+            # SELECT QUERY
+            results = response["results"]["bindings"]
+            return [
+                Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
+                            ('datatype' in v and v['datatype'] ==
+                                'http://www.w3.org/2001/XMLSchema#boolean')
+                            else (int(v["value"]) if v['type'] == 'literal' and
+                                    ('datatype' in v and v['datatype'] ==
+                                    'http://www.w3.org/2001/XMLSchema#integer')
+                                    else v["value"]
+                                    )
+                            for k, v in x.items()})
+                for x in results
+            ]
+        
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
