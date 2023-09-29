@@ -103,7 +103,8 @@ def test_rewrite_sparql_unknownterm_missing_vocab(custom_context, metadata_conte
 
 def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
     query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
-    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
+    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n"\
+               "PREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX mba: <http://api.brain-map.org/api/v2/data/Structure/>\nPREFIX nsg: <https://neuroshapes.org/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
     context_object = Context(document=custom_context)
     result = rewrite_sparql(query, context_object, metadata_context)
     assert result == expected
