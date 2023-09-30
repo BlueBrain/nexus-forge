@@ -19,9 +19,11 @@ import elasticsearch_dsl
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
 from typing import Tuple, List, Dict, Optional, Any
+from kgforge.core.commons.execution import not_supported
 
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.query_builder import QueryBuilder
+from kgforge.core.resource import Resource
 from kgforge.core.wrappings import Filter, FilterOperator
 
 elasticsearch_operator_range_map = {
@@ -177,6 +179,10 @@ class ESQueryBuilder(QueryBuilder):
             )
         else:
             return _wrap_in_bool_query(es_filters, musts, must_nots, includes, excludes)
+
+    @staticmethod
+    def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
+        not_supported()
 
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):

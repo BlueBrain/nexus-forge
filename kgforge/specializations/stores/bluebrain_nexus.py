@@ -873,59 +873,10 @@ class BlueBrainNexus(Store):
             data = response.json()
             # FIXME workaround to parse a CONSTRUCT query, this fix depends on
             #  https://github.com/BlueBrain/nexus/issues/1155
-            _, q_comp = Query.parseString(query)
-            if q_comp.name == "ConstructQuery":
-                subject_triples = {}
-                for r in data["results"]["bindings"]:
-                    subject = r["subject"]["value"]
-                    s = f"<{r['subject']['value']}>"
-                    p = f"<{r['predicate']['value']}>"
-                    if r["object"]["type"] == "uri":
-                        o = f"<{r['object']['value']}>"
-                    else:
-                        if "datatype" in r["object"]:
-                            o = f"\"{r['object']['value']}\"^^{r['object']['datatype']}"
-                        else:
-                            o = f"\"{r['object']['value']}\""
-                    if subject in subject_triples:
-                        subject_triples[subject] += f"\n{s} {p} {o} . "
-                    else:
-                        subject_triples[subject] = f"{s} {p} {o} . "
-
-                def triples_to_resource(iri, triples):
-                    graph = Graph().parse(data=triples, format="nt")
-                    data_expanded = json.loads(graph.serialize(format="json-ld"))
-                    data_expanded = json.loads(graph.serialize(format="json-ld"))
-                    frame = {"@id": iri}
-                    data_framed = jsonld.frame(data_expanded, frame)
-                    context = self.model_context or self.context
-                    compacted = jsonld.compact(data_framed, context.document)
-                    resource = from_jsonld(compacted)
-                    resource.context = (
-                        context.iri
-                        if context.is_http_iri()
-                        else context.document["@context"]
-                    )
-                    return resource
-
-                return [triples_to_resource(s, t) for s, t in subject_triples.items()]
-
-            else:
-                # SELECT QUERY
-                results = data["results"]["bindings"]
-                return [
-                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
-                                ('datatype' in v and v['datatype'] ==
-                                 'http://www.w3.org/2001/XMLSchema#boolean')
-                                else (int(v["value"]) if v['type'] == 'literal' and
-                                      ('datatype' in v and v['datatype'] ==
-                                       'http://www.w3.org/2001/XMLSchema#integer')
-                                      else v["value"]
-                                      )
-                                for k, v in x.items()})
-                    for x in results
-                ]
-
+            context = self.model_context or self.context
+            return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
+    
+    
     def _elastic(self, query: str) -> List[Resource]:
         try:
             response = requests.post(

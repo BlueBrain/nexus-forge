@@ -11,12 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Any, Optional, List
+from typing import Any, Dict, Optional, List
 
 from abc import abstractmethod, ABC
 
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
+from kgforge.core.resource import Resource
 
 
 class QueryBuilder(ABC):
@@ -33,3 +34,9 @@ class QueryBuilder(ABC):
         **params
     ) -> Any:
         pass
+
+    @staticmethod
+    @abstractmethod
+    def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
+        pass
+
