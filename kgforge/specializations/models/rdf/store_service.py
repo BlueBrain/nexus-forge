@@ -15,7 +15,7 @@ from typing import Dict, Optional, Union, List, Tuple
 
 import json
 
-from pyshacl import Validator
+from pyshacl import validate
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import RetrievalError
@@ -60,8 +60,7 @@ class StoreService(RdfService):
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
         # _type_shape will make sure all the shapes for this type are in the graph
         self._type_shape(iri)
-        validator = Validator(data_graph, shacl_graph=self._graph)
-        return validator.run()
+        return validate(data_graph, shacl_graph=self._graph)
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
