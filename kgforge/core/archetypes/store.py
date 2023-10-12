@@ -17,11 +17,11 @@ import re
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Match, Optional, Tuple, Union
+from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type
 
 from kgforge.core import Resource
+from kgforge.core.archetypes import Mapping, Mapper
 from kgforge.core.commons.attributes import repr_class
-from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -122,7 +122,7 @@ class Store(ABC):
         self.token: Optional[str] = token
         self.versioned_id_template: Optional[str] = versioned_id_template
         loaded = (
-            self.mapping.load(file_resource_mapping) if file_resource_mapping else None
+            self.mapping.load_file(file_resource_mapping) if file_resource_mapping else None
         )
         self.file_mapping: Optional[Any] = loaded
         self.model_context: Optional[Context] = model_context
@@ -142,14 +142,16 @@ class Store(ABC):
         return repr_class(self)
 
     @property
-    def mapping(self) -> Optional[Callable]:
+    @abstractmethod
+    def mapping(self) -> Type[Mapping]:
         """Mapping class to load file_resource_mapping."""
-        return None
+        ...
 
     @property
-    def mapper(self) -> Optional[Callable]:
+    @abstractmethod
+    def mapper(self) -> Type[Mapper]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
-        return None
+        ...
     
     # [C]RUD.
 

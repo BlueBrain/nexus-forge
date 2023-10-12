@@ -13,11 +13,11 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Type
 from uuid import uuid4
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Resolver, Store
+from kgforge.core.archetypes import Resolver, Store, Mapper, Mapping
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
@@ -36,6 +36,17 @@ class DemoStore(Store):
                  model_context: Optional[Context] = None) -> None:
         super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
                          model_context)
+
+    @property
+    def mapping(self) -> Type[Mapping]:
+        """Mapping class to load file_resource_mapping."""
+        return None
+
+    @property
+    def mapper(self) -> Type[Mapper]:
+        """Mapper class to map file metadata to a Resource with file_resource_mapping."""
+        return None
+
 
     # [C]RUD.
 
