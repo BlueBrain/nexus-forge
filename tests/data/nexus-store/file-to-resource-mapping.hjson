@@ -1,0 +1,27 @@
+{
+    type: DataDownload
+    contentSize:
+    {
+        unitCode: f"bytes"
+        value: x._bytes
+    }
+    digest:
+    {
+        algorithm: x._digest._algorithm
+        value: x._digest._value
+    }
+    encodingFormat: x._mediaType
+    name: x._filename
+    contentUrl: forge.format(uri=x['@id'], formatter='URI_REWRITER', is_file=True)
+    atLocation:
+    {
+        type: Location
+        store: 
+        {
+            id: x._storage["@id"]
+            type: x._storage["@type"] if '@type' in x._storage else None
+            _rev: x._storage["_rev"] if '_rev' in x._storage else None
+        }
+        location: x._location if '_location' in x else None
+    }
+}
