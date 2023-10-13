@@ -84,7 +84,7 @@ class Mapping(ABC):
             return cls(filepath.read_text())
         else:
             if raise_ex:
-                raise Exception("Invalid file")
+                raise FileNotFoundError
             return None
 
     @classmethod
@@ -93,18 +93,15 @@ class Mapping(ABC):
             response = requests.get(url)
             response.raise_for_status()
             return cls(response.text)
-        except RequestException:
+        except RequestException as e:
             if raise_ex:
-                raise Exception(f"Could not find url {url}")
+                raise e
             return None
 
     @classmethod
+    @abstractmethod
     def load_text(cls, source: str, raise_ex=True):
-        if len(source.strip()) > 0 and source.strip()[0] != "{":
-            if raise_ex:
-                raise Exception("Invalid mapping string")
-            return None
-        return cls(source)
+        ...
 
     def save(self, path: str) -> None:
         # path: FilePath.

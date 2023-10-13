@@ -32,3 +32,11 @@ class DictionaryMapping(Mapping):
     @staticmethod
     def _normalize_rules(rules: OrderedDict) -> str:
         return hjson.dumps(rules, indent=4, item_sort_key=sort_attrs)
+
+    @classmethod
+    def load_text(cls, source: str, raise_ex=True):
+        if len(source.strip()) > 0 and source.strip()[0] != "{":
+            if raise_ex:
+                raise Exception("Invalid mapping string")
+            return None
+        return cls(source)

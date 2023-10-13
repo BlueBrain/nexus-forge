@@ -15,8 +15,8 @@
 from pytest_bdd import given, parsers, scenarios, when
 
 from kgforge.specializations.models.demo_model import DemoModel
-from tests.conftest import check_report
 from utils import full_path_relative_to_root
+from tests.conftest import check_report
 # TODO To be port to the generic parameterizable test suite for models in test_models.py. DKE-135.
 
 
