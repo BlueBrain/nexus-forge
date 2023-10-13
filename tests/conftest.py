@@ -42,6 +42,10 @@ def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
 
 # Resource(s) creation.
 
+def get_path(path):
+    # For paths relative to the root of this repository
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", path)
+
 
 @pytest.fixture
 def json_one():
@@ -173,7 +177,7 @@ def forge():
         "Model": {
             "name": "DemoModel",
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": get_path("tests/data/demo-model/")
         },
         "Store": {
             "name": "DemoStore",
@@ -312,7 +316,7 @@ def building():
 
 @pytest.fixture(scope="session")
 def context_file_path():
-    return os.sep.join((os.path.abspath("."), "tests/data/shacl-model/context.json"))
+    return get_path("tests/data/shacl-model/context.json")
 
 
 @pytest.fixture(scope="session")
@@ -465,7 +469,7 @@ def config(model, store, resolver):
         "Model": {
             "name": model,
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": get_path("tests/data/demo-model/"),
         },
         "Store": {
             "name": store,
@@ -476,7 +480,7 @@ def config(model, store, resolver):
                 {
                     "resolver": resolver,
                     "origin": "directory",
-                    "source": "tests/data/demo-resolver/",
+                    "source": get_path("tests/data/demo-resolver/"),
                     "targets": [
                         {
                             "identifier": "sex",
@@ -493,7 +497,9 @@ def config(model, store, resolver):
                             ]
                         },
                     ],
-                    "result_resource_mapping": "../../configurations/demo-resolver/term-to-resource-mapping.hjson",
+                    "result_resource_mapping": get_path(
+                        "./examples/configurations/demo-resolver/term-to-resource-mapping.hjson"
+                    )
                 },
             ],
         },
