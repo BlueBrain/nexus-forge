@@ -99,8 +99,8 @@ class Mapping(ABC):
             return None
 
     @classmethod
-    def load_text(cls, source, raise_ex=True):
-        if source.strip()[0] != "{":
+    def load_text(cls, source: str, raise_ex=True):
+        if len(source.strip()) > 0 and source.strip()[0] != "{":
             if raise_ex:
                 raise Exception("Invalid mapping string")
             return None

@@ -17,13 +17,13 @@ import pytest
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.specializations.models import RdfModel
-from tests.conftest import get_path
 from tests.specializations.models.data import *
+from utils import full_path_relative_to_root
 
 
 @pytest.fixture
 def rdf_model(context_iri_file):
-    return RdfModel(get_path("tests/data/shacl-model"),
+    return RdfModel(full_path_relative_to_root("tests/data/shacl-model"),
                     context={"iri": context_iri_file},
                     origin="directory")
 
