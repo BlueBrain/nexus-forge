@@ -65,7 +65,7 @@ class DemoStore(Store):
 
     # CR[U]D.
 
-    def _update_one(self, resource: Resource) -> None:
+    def _update_one(self, resource: Resource, schema_id: str) -> None:
         data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
                        metadata_context=None, context_resolver=None)
         try:
@@ -126,7 +126,6 @@ class DemoStore(Store):
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
                             token: Optional[str], searchendpoints:Optional[Dict]):
         return StoreLibrary()
-
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.

@@ -190,6 +190,44 @@ def custom_context():
             "foaf": "http://xmlns.com/foaf/0.1/",
             "Person": "foaf:Person",
             "name": "foaf:name",
+            "skos":"http://www.w3.org/2004/02/skos/core#",
+            "notation":"skos:notation",
+            "schema":"http://schema.org/",
+            "identifier":"schema:identifier",
+            "isPartOf": {
+                "@id": "schema:isPartOf",
+                "@type": "@id"
+            },
+            "prefLabel":"skos:prefLabel",
+            "owl": "http://www.w3.org/2002/07/owl#",
+            "Class": {
+                "@id": "owl:Class"
+            },
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+            "isDefinedBy": {
+                "@id": "rdfs:isDefinedBy",
+                "@type": "@id"
+            },
+            "label": {
+                "@id": "rdfs:label"
+            },
+            "subClassOf": {
+                "@id": "rdfs:subClassOf",
+                "@type": "@id"
+            },
+            "delineatedBy": {
+                "@id": "https://bbp.epfl.ch/ontologies/core/bmo/delineatedBy",
+                "@type": "@id"
+            },
+            "representedInAnnotation": {
+                "@id": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
+            },
+            "atlasRelease": {
+                "@id": "nsg:atlasRelease"
+            },
+            "mba": "http://api.brain-map.org/api/v2/data/Structure/", 
+            "nsg": "https://neuroshapes.org/",
+            "obo": "http://purl.obolibrary.org/obo/"
         }
     }
 
@@ -304,6 +342,8 @@ def model_prefixes():
         "owl": "http://www.w3.org/2002/07/owl#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "foaf": "http://xmlns.com/foaf/0.1/",
+        "mba": "http://api.brain-map.org/api/v2/data/Structure/", 
+        "obo": "http://purl.obolibrary.org/obo/"
     }
 
 

@@ -873,25 +873,8 @@ class BlueBrainNexus(Store):
             data = response.json()
             # FIXME workaround to parse a CONSTRUCT query, this fix depends on
             #  https://github.com/BlueBrain/nexus/issues/1155
-            _, q_comp = Query.parseString(query)
-            if q_comp.name == "ConstructQuery":
-                context = self.model_context or context
-                return resources_from_construct_query(data, context)
-            else:
-                # SELECT QUERY
-                results = data["results"]["bindings"]
-                return [
-                    Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
-                                ('datatype' in v and v['datatype'] ==
-                                 'http://www.w3.org/2001/XMLSchema#boolean')
-                                else (int(v["value"]) if v['type'] == 'literal' and
-                                      ('datatype' in v and v['datatype'] ==
-                                       'http://www.w3.org/2001/XMLSchema#integer')
-                                      else v["value"]
-                                      )
-                                for k, v in x.items()})
-                    for x in results
-                ]
+            context = self.model_context or self.context
+            return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
         try:
