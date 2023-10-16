@@ -21,7 +21,7 @@ from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.services.rdf_service import RdfService, ShapesGraphWrapper
 
 
 class DirectoryService(RdfService):

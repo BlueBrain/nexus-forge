@@ -47,6 +47,7 @@ from kgforge.core.conversions.rdf import (
     recursive_resolve,
 )
 from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.specializations.resolvers.services.resolver_store_service import ResolverStoreService
 
 
 class BatchAction(Enum):
@@ -63,13 +64,13 @@ BatchResult = namedtuple("BatchResult", ["resource", "response"])
 BatchResults = List[BatchResult]
 
 
-class Service:
+class NexusStoreService(ResolverStoreService):
 
     NEXUS_NAMESPACE_FALLBACK = "https://bluebrain.github.io/nexus/vocabulary/"
     NEXUS_CONTEXT_FALLBACK = "https://bluebrain.github.io/nexus/contexts/resource.json"
-    NEXUS_CONTEXT_SOURCE_FALLBACK = (
-        "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
-    )
+    # NEXUS_CONTEXT_SOURCE_FALLBACK = (
+    #     "https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fcontexts%2Fresource.json/source"
+    # )
     DEFAULT_SPARQL_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultSparqlIndex"
     DEFAULT_ES_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultElasticSearchIndex"
     DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
@@ -249,11 +250,13 @@ class Service:
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
         if iri in self.context_cache:
             return self.context_cache[iri]
+
+        context_to_resolve = (
+            self.store_local_context if iri == self.store_context else iri
+        )
+        url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
+
         try:
-            context_to_resolve = (
-                self.store_local_context if iri == self.store_context else iri
-            )
-            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()

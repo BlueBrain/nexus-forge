@@ -15,7 +15,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union, Any
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model
@@ -98,6 +98,15 @@ class DemoModel(Model):
     @staticmethod
     def _service_from_directory(dirpath: Path, context_iri: str, **dir_config):
         return ModelLibrary(dirpath)
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise NotImplementedError()
+
+    @staticmethod
+    def _service_from_store(store: Callable, context_config: Optional[dict],
+                            **source_config) -> Any:
+        raise NotImplementedError()
 
 
 class ModelLibrary:

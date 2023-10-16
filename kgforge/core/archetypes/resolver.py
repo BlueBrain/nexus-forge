@@ -25,6 +25,11 @@ from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.wrappings.paths import Filter, FilterOperator
 
+
+class ResolverService:
+    pass
+
+
 class Resolver(ABC):
 
     # See demo_resolver.py in kgforge/specializations/resolvers/ for a reference implementation.
@@ -143,16 +148,24 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(
+            dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config
+    ) -> ResolverService:
         pass
 
     @staticmethod
-    def _service_from_web_service(endpoint: str, targets: Dict[str,  Dict[str, Dict[str, str]]]) -> Any:
-        not_supported()
+    @abstractmethod
+    def _service_from_web_service(
+            endpoint: str, targets: Dict[str,  Dict[str, Dict[str, str]]]
+    ) -> ResolverService:
+        pass
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> Any:
-        not_supported()
+    @abstractmethod
+    def _service_from_store(
+            store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config
+    ) -> ResolverService:
+        pass
 
 
 def escape_punctuation(text):
@@ -219,3 +232,5 @@ def _build_resolving_query(text, query_template, deprecated_property, filters, s
         first_filters = f"{first_filters} . \n {target_query_filters}" if len(target_query_filters) > 0 else first_filters
     query = query_template.format(first_filters, *properties_filters, limit)
     return query, limit
+
+

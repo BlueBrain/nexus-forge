@@ -36,6 +36,7 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
+from kgforge.specializations.stores.services.nexus_store_service import NexusStoreService
 from kgforge.specializations.stores.nexus import Service
 from utils import full_path_relative_to_root
 
@@ -169,7 +170,7 @@ def test_freeze_nested(nexus_store: Store, nested_registered_resource):
 
 
 def test_to_resource(nexus_store, registered_building, building_jsonld):
-    context = _merge_jsonld(registered_building.context, Service.NEXUS_CONTEXT_FALLBACK)
+    context = _merge_jsonld(registered_building.context, NexusStoreService.NEXUS_CONTEXT_FALLBACK)
     payload = building_jsonld(registered_building, "compacted", True, None)
     payload["@context"] = context
     result = nexus_store.service.to_resource(payload)
@@ -213,7 +214,7 @@ def test_to_resource(nexus_store, registered_building, building_jsonld):
                                 id="tag-no-constrainedby-no-schema",
                             ),
                             pytest.param(       
-                                (Service.UNCONSTRAINED_SCHEMA),
+                                (NexusStoreService.UNCONSTRAINED_SCHEMA),
                                 (None),
                                 ({"rev":1}),
                                 ("/".join((NEXUS,"resources",BUCKET, quote_plus("_"),"{}"))),

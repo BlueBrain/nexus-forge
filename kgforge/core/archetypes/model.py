@@ -29,6 +29,10 @@ from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.commons.imports import import_class
 
 
+class ModelService:
+    pass
+
+
 class Model(ABC):
 
     # See demo_model.py in kgforge/specializations/models/ for a reference implementation.
@@ -62,7 +66,7 @@ class Model(ABC):
             return dict(prefixes)
 
     def _prefixes(self) -> Dict[str, str]:
-        not_supported()
+        raise not_supported()
 
     def types(self, pretty: bool) -> Optional[List[str]]:
         types = sorted(self._types())
@@ -82,11 +86,11 @@ class Model(ABC):
 
     def resolve_context(self, iri: str) -> Dict:
         # POLICY Should retrieve the resolved context as dictionary
-        not_supported()
+        raise not_supported()
 
     def _generate_context(self) -> Dict:
         # POLICY Should generate the Context from the Model data.
-        not_supported()
+        raise not_supported()
 
     # Templates.
 
@@ -119,7 +123,7 @@ class Model(ABC):
 
     def _sources(self) -> List[str]:
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        raise not_supported()
 
     def mappings(self, source: str, pretty: bool) -> Optional[Dict[str, List[str]]]:
         mappings = {k: sorted(v) for k, v in
@@ -136,18 +140,18 @@ class Model(ABC):
         # POLICY Keys should be managed resource types with mappings for the given data source.
         # POLICY Values should be available mapping types for the resource type.
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        raise not_supported()
 
     def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
         # POLICY Should raise ValueError if 'entity' or 'source' is not managed by the Model.
         # The selection strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        raise not_supported()
 
     # Validation.
 
     def schema_id(self, type: str) -> str:
         # POLICY Should retrieve the schema id of the given type.
-        not_supported()
+        raise not_supported()
 
     def validate(self, data: Union[Resource, List[Resource]],
                  execute_actions_before: bool, type_: str) -> None:
@@ -158,7 +162,7 @@ class Model(ABC):
     def _validate_many(self, resources: List[Resource], type_: str) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
-        not_supported()
+        raise not_supported()
 
     @abstractmethod
     def _validate_one(self, resource: Resource, type_: str) -> None:
@@ -167,7 +171,7 @@ class Model(ABC):
 
     # Utils.
 
-    def _initialize_service(self, source: str, **source_config) -> Any:
+    def _initialize_service(self, source: str, **source_config) -> ModelService:
         # Model data could be loaded from a directory, an URL, or a Store.
         # Initialize the access to the model data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
@@ -187,14 +191,16 @@ class Model(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
+    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> ModelService:
         pass
 
     @staticmethod
-    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
-        raise NotImplementedError()
+    @abstractmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> ModelService:
+        pass
 
     @staticmethod
+    @abstractmethod
     def _service_from_store(store: Callable, context_config: Optional[dict],
-                            **source_config) -> Any:
-        raise NotImplementedError()
+                            **source_config) -> ModelService:
+        pass

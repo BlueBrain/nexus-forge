@@ -14,12 +14,14 @@
 from typing import Callable, Dict, List, Optional
 
 from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.resolver import ResolverService
 from kgforge.core.conversions.json import as_json
 
 
-class StoreService:
+class ResolverStoreService(ResolverService):
 
-    def __init__(self, store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config):
+    def __init__(self, store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]],
+                 **store_config):
         self.sources: Dict[str, Store] = dict()
         self.filters: Dict[str, str] = dict()
         for identifier in targets:
@@ -58,20 +60,22 @@ class StoreService:
         else:
             return None
 
-
     def validate_target(self, target):
         if target and target not in self.sources:
-            raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.sources.keys()}")
+            raise ValueError(
+                f"Unknown target value: {target}. Supported targets are: {self.sources.keys()}")
         else:
             return True
-        
+
     def get_context(self, resolving_context, target, filters):
         if not resolving_context:
             context = self.sources[target].model_context if target in self.sources else None
         if not context and filters:
-            raise ValueError(f"No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
+            raise ValueError(
+                f"No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
         else:
             return context
+
 
 def format_response(resource, mandatory_fields):
     json_data = as_json(resource, expanded=False, store_metadata=False,

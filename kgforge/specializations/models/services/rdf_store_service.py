@@ -24,11 +24,11 @@ from rdflib import URIRef, Namespace, Graph
 
 from kgforge.core.archetypes import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
-from kgforge.specializations.stores.nexus import Service
+from kgforge.specializations.models.services.rdf_service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.stores.services.nexus_store_service import NexusStoreService
 
 
-class StoreService(RdfService):
+class RdfStoreService(RdfService):
 
     def __init__(self, default_store: Store, context_iri: Optional[str] = None,
                  context_store: Optional[Store] = None) -> None:
@@ -37,9 +37,9 @@ class StoreService(RdfService):
         self.context_store = context_store or default_store
         # FIXME: define a store independent strategy
         self.NXV = Namespace(self.default_store.service.namespace) if hasattr(self.default_store.service, "namespace") \
-            else Namespace(Service.NEXUS_NAMESPACE_FALLBACK)
+            else Namespace(NexusStoreService.NEXUS_NAMESPACE_FALLBACK)
         self.store_metadata_iri = self.default_store.service.store_context if hasattr(self.default_store.service, "store_context") \
-            else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
+            else Namespace(NexusStoreService.NEXUS_CONTEXT_FALLBACK)
         self._shapes_to_resources: Dict
         self._imported = list()
         self._graph = Graph()

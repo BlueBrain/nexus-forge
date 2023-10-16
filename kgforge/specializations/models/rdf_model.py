@@ -22,14 +22,14 @@ from rdflib.namespace import XSD
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Model, Store
+from kgforge.core.archetypes.model import ModelService
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
-from kgforge.specializations.models.rdf.directory_service import DirectoryService
-from kgforge.specializations.models.rdf.service import RdfService
-from kgforge.specializations.models.rdf.store_service import StoreService
+from kgforge.specializations.models.services.rdf_directory_service import DirectoryService
+from kgforge.specializations.models.services.rdf_store_service import RdfStoreService
 from kgforge.specializations.models.rdf.utils import as_term
 
 DEFAULT_VALUE = {
@@ -131,13 +131,17 @@ class RdfModel(Model):
             raise ValidationError("\n" + report)
 
     # Utils.
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> ModelService:
+        raise NotImplementedError()
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
+    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> ModelService:
         return DirectoryService(dirpath, context_iri)
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
+    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> \
+            ModelService:
         endpoint = source_config.get("endpoint")
         token = source_config.get("token")
         bucket = source_config["bucket"]
@@ -156,11 +160,11 @@ class RdfModel(Model):
                 source_config.pop("bucket", None)
                 context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
                 # FIXME: define a store independent StoreService
-                service = StoreService(default_store, context_iri, context_store)
+                service = RdfStoreService(default_store, context_iri, context_store)
             else:
-                service = StoreService(default_store, context_iri, None)
+                service = RdfStoreService(default_store, context_iri, None)
         else:
-            service = StoreService(default_store)
+            service = RdfStoreService(default_store)
 
         return service
 

@@ -16,15 +16,21 @@ from typing import List, Dict, Any, Optional, Callable, Union
 
 from kgforge.core.archetypes import Resolver
 from kgforge.core.archetypes.resolver import _build_resolving_query
+from kgforge.core.archetypes.resolver import ResolverService
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.resolvers.store_service import StoreService
+from kgforge.specializations.resolvers.services.resolver_store_service import ResolverStoreService
 
 
 class OntologyResolver(Resolver):
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> ResolverService:
+        raise not_supported()
 
     def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
@@ -137,9 +143,13 @@ class OntologyResolver(Resolver):
         return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
-        not_supported()
+    def _service_from_directory(
+            dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config
+    ) -> ResolverService:
+        raise not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> StoreService:
-        return StoreService(store, targets, **store_config)
+    def _service_from_store(
+            store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config
+    ) -> ResolverStoreService:
+        return ResolverStoreService(store, targets, **store_config)

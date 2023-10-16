@@ -182,7 +182,7 @@ class ESQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
-        not_supported()
+        raise not_supported()
 
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):

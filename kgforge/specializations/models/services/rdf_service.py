@@ -20,6 +20,7 @@ from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD
 
 from kgforge.core import Resource
+from kgforge.core.archetypes.model import ModelService
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.conversions.rdf import as_graph
@@ -126,7 +127,7 @@ class ShapesGraphWrapper(ShapesGraph):
         return shape
 
 
-class RdfService:
+class RdfService(ModelService):
 
     def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Union, Any
 
 from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import ResolverService
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
@@ -27,6 +28,16 @@ from kgforge.specializations.mappings import DictionaryMapping
 
 class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> ResolverService:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]],
+                            **store_config) -> ResolverService:
+        raise not_supported()
 
     def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
