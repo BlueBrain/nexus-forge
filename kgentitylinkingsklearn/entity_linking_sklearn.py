@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Callable, Optional, Tuple
 
 from kgentitylinkingsklearn import EntityLinkerServiceSkLearn
 from kgforge.core.commons.actions import LazyAction
-from kgforge.core.config import ResolverConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers import EntityLinker

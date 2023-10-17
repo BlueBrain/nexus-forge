@@ -24,7 +24,8 @@ from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.core.config import ResolverConfig, StoreConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.core.wrappings.paths import Filter, FilterOperator
 
 class Resolver(ABC):

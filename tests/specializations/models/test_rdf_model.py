@@ -16,7 +16,7 @@ import pytest
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.config import ModelConfig, ModelContextConfig
+from kgforge.core.configs.model_config import ModelConfig, ModelContextConfig
 from kgforge.specializations.models import RdfModel
 from tests.specializations.models.data import *
 from utils import full_path_relative_to_root

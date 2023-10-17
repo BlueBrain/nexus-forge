@@ -26,8 +26,8 @@ from kgforge.core.commons.attributes import repr_class, sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
-from kgforge.core.commons.imports import import_class
-from kgforge.core.config import ModelConfig, ModelContextConfig, StoreConfig
+from kgforge.core.configs.model_config import ModelConfig, ModelContextConfig
+from kgforge.core.configs.store_config import StoreConfig
 
 
 class Model(ABC):

@@ -58,7 +58,7 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
@@ -886,30 +886,21 @@ class BlueBrainNexus(Store):
 
     # Utils.
 
-    def _initialize_service(
-        self,
-        endpoint: Optional[str],
-        bucket: Optional[str],
-        token: Optional[str],
-        searchendpoints: Optional[Dict],
-        max_connection: Optional[int],
-        vocabulary: Optional[Dict],
-        # **store_config,
-    ) -> Any:
+    def _initialize_service(self, store_config: StoreConfig) -> Any:
+
         try:
             self.organisation, self.project = self.bucket.split("/")
 
-            if max_connection is None:
-                max_connection = 50
-            if vocabulary is None:
-                vocabulary = {}
+            max_connection = 50 if store_config.max_connection is None \
+                else store_config.max_connection
 
-            # max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
                 raise ValueError(
                     f"max_connection value should be great than 0 but {max_connection} is provided"
                 )
-            store_context_config = vocabulary  # store_config.pop("vocabulary", {})
+
+            store_context_config = {} if store_config.vocabulary is None \
+                else store_config.vocabulary
 
             nexus_metadata_context = store_context_config.get(
                 "metadata",
@@ -930,27 +921,35 @@ class BlueBrainNexus(Store):
                 "deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK
             )
 
-            store_config = {}  # TODO reexpose these
-            content_type = store_config.pop("Content-Type", "application/ld+json")
-            accept = store_config.pop("Accept", "application/ld+json")
-            files_upload_config = store_config.pop(
-                "files_upload", {"Accept": "application/ld+json"}
-            )
-            files_download_config = store_config.pop(
-                "files_download", {"Accept": "*/*"}
-            )
-            params = store_config.pop("params", {})
+            content_type = store_config.Content_Type \
+                if store_config.Content_Type is not None \
+                else "application/ld+json"
+
+            accept = store_config.Accept \
+                if store_config.Accept is not None \
+                else "application/ld+json"
+
+            files_upload_config = store_config.files_upload \
+                if store_config.files_upload is not None \
+                else {"Accept": "application/ld+json"}
+
+            files_download_config = store_config.files_download \
+                if store_config.files_download is not None \
+                else {"Accept": "*/*"}
+
+            params = store_config.params if store_config.params is not None else {}
+
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
             return Service(
-                endpoint=endpoint,
+                endpoint=store_config.endpoint,
                 org=self.organisation,
                 prj=self.project,
-                token=token,
+                token=store_config.token,
                 model_context=self.model_context,
                 max_connection=max_connection,
-                searchendpoints=searchendpoints,
+                searchendpoints=store_config.searchendpoints,
                 store_context=nexus_context_iri,
                 store_local_context=nexus_context_local_iri,
                 namespace=namespace,

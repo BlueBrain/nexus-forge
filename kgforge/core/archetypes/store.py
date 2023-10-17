@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Mapper
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -125,14 +125,7 @@ class Store(ABC):
         self.file_mapping: Optional[Any] = loaded
         self.model_context: Optional[Context] = None
 
-        self.service: Any = self._initialize_service(
-            endpoint=self.endpoint,
-            bucket=self.bucket,
-            token=self.token,
-            searchendpoints=store_config.searchendpoints,
-            max_connection=store_config.max_connection,
-            vocabulary=store_config.vocabulary
-        )
+        self.service: Any = self._initialize_service(store_config)
 
         self.context: Context = (
             self.service.context if hasattr(self.service, "context") else None
@@ -500,16 +493,7 @@ class Store(ABC):
     # Utils.
 
     @abstractmethod
-    def _initialize_service(
-        self,
-        endpoint: Optional[str],
-        bucket: Optional[str],
-        token: Optional[str],
-        searchendpoints: Optional[Dict],
-        max_connection: Optional[int],
-        vocabulary: Optional[Dict],
-        # **store_config,
-    ) -> Any:
+    def _initialize_service(self, store_config: StoreConfig) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
 

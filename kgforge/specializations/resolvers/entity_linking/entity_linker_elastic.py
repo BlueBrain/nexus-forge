@@ -16,7 +16,8 @@ from typing import Callable, Dict, List, Any, Optional, Tuple, Type
 
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.execution import not_supported
-from kgforge.core.config import StoreConfig, ResolverConfig
+from kgforge.core.configs.store_config import StoreConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker

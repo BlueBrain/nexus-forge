@@ -14,7 +14,7 @@
 from typing import Callable, Dict, List, Optional, Type
 
 from kgforge.core.archetypes import Store
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.resolver_config import StoreConfig
 from kgforge.core.conversions.json import as_json
 
 

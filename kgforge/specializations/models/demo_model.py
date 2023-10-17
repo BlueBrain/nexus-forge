@@ -21,7 +21,7 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.config import ModelConfig
+from kgforge.core.configs.model_config import ModelConfig
 
 
 class DemoModel(Model):

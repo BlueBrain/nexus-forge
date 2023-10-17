@@ -19,7 +19,7 @@ from typing import Callable, Dict, List, Optional, Union, Any, Type
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator

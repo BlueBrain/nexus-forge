@@ -20,7 +20,8 @@ from kgforge.core.archetypes.resolver import _build_resolving_query
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.core.config import StoreConfig, ResolverConfig
+from kgforge.core.configs.store_config import StoreConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.store_service import StoreService

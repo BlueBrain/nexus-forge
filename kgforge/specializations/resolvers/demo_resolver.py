@@ -21,7 +21,7 @@ from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.core.config import ResolverConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 

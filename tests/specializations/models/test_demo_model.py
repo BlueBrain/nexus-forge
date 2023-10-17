@@ -14,7 +14,7 @@
 
 from pytest_bdd import given, parsers, scenarios, when
 
-from kgforge.core.config import ModelConfig
+from kgforge.core.configs.model_config import ModelConfig
 from kgforge.specializations.models.demo_model import DemoModel
 from utils import full_path_relative_to_root
 from tests.conftest import check_report

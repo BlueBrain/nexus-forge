@@ -34,7 +34,9 @@ from kgforge.core.commons.execution import catch
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.commons.formatter import Formatter
-from kgforge.core.config import ResolverConfig, StoreConfig, ModelConfig
+from kgforge.core.configs.resolver_config import ResolverConfig
+from kgforge.core.configs.store_config import StoreConfig
+from kgforge.core.configs.model_config import ModelConfig
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.conversions.rdf import (
@@ -51,11 +53,61 @@ from kgforge.specializations.mappings import DictionaryMapping
 
 
 class KnowledgeGraphForge:
-
     # POLICY Class name should be imported in the corresponding module __init__.py.
 
     # No catching of exceptions so that no incomplete instance is created if an error occurs.
     # This is a best practice in Python for __init__().
+
+    @staticmethod
+    def load_configurations(
+            configuration: Union[str, Dict], **kwargs
+    ) -> Tuple[ModelConfig, StoreConfig, Dict[str, List[ResolverConfig]], Optional[Any]]:
+
+        if isinstance(configuration, str):
+            config_data = load_file_as_byte(configuration)
+            config_data = config_data.decode("utf-8")
+            config = yaml.safe_load(config_data)
+        else:
+            config = deepcopy(configuration)
+
+        # Store.
+        store_configuration: StoreConfig = StoreConfig.merge_config(
+            StoreConfig(kwargs), config.pop("Store")
+        )
+
+        # Model.
+        model_configuration = ModelConfig.merge_config(
+            None, config.pop("Model"),
+            store_configurations={
+                store_configuration.name: store_configuration
+            }
+        )
+
+        # Resolvers.
+        resolvers_configurations_from_file = config.pop("Resolvers", None)
+
+        if resolvers_configurations_from_file is not None:
+
+            resolver_configurations = dict(
+                (
+                    key,
+                    [ResolverConfig.merge_config(
+                        None, el,
+                        store_configurations={
+                            store_configuration.name: store_configuration
+                        }
+                    ) for el in resolvers_configurations_from_file.get(key)]
+                )
+                for key in resolvers_configurations_from_file.keys()
+            )
+        else:
+            resolver_configurations = None
+
+        # Formatters.
+        formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
+
+        return model_configuration, store_configuration, resolver_configurations, formatters
+
     def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
         """
         Configure and create a Knowledge Graph forge session.
@@ -201,72 +253,33 @@ class KnowledgeGraphForge:
         :param kwargs:  keyword arguments
         """
 
-        if isinstance(configuration, str):
-            config_data = load_file_as_byte(configuration)
-            config_data = config_data.decode("utf-8")
-            config = yaml.safe_load(config_data)
-        else:
-            config = deepcopy(configuration)
+        model_configuration, store_configuration, resolver_configurations, formatters = \
+            KnowledgeGraphForge.load_configurations(configuration, kwargs)
 
         # Debugging.
         self._debug = kwargs.pop("debug", False)
 
         # Store.
-        store_configuration: Dict = config.pop("Store")
-        store_configuration: StoreConfig = StoreConfig.load_config(
-            StoreConfig(**kwargs), store_configuration
-        )
-
         self._store: Store = store_configuration.initialize("stores")
 
         # Model.
-        model_configuration = config.pop("Model")
-
-        model_configuration = ModelConfig.load_config(
-            None, model_configuration,
-            store_configurations={
-                store_configuration.name: store_configuration
-            }
-        )
-
         self._model: Model = model_configuration.initialize("models")
 
         # Store add model context
         self._store.model_context = self._model.context()  # TODO figure out why
 
+        def _init_resolver(config: ResolverConfig) -> Tuple[str, Resolver]:
+            resolver = config.initialize("resolvers")
+            return type(resolver).__name__, resolver
+
         # Resolvers.
-        resolvers_configurations_from_file = config.pop("Resolvers", None)
-        resolver_config = None
-
-        if resolvers_configurations_from_file is not None:
-
-            resolver_configurations = dict(
-                (
-                    key,
-                    [ResolverConfig.load_config(
-                        resolver_config.get(key) if resolver_config else None,
-                        resolvers_configurations_from_file.get(key)[0],
-                        store_configurations={
-                            store_configuration.name: store_configuration
-                        }
-                    )]  # TODO handle array
-                )
-                for key in resolvers_configurations_from_file.keys()
-            )
-
-            def _init_resolver(config: ResolverConfig) -> Tuple[str, Resolver]:
-                resolver: Type[Resolver] = import_class(config.resolver, "resolvers")
-                return resolver.__name__, resolver(config)
-
-            self._resolvers = {
-                scope: dict(_init_resolver(x) for x in configs)
-                for scope, configs in resolver_configurations.items()
-            }
-        else:
-            self._resolvers = None
+        self._resolvers = {
+            scope: dict(_init_resolver(x) for x in configs)
+            for scope, configs in resolver_configurations.items()
+        } if resolver_configurations else None
 
         # Formatters.
-        self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
+        self._formatters: Optional[Dict[str, str]] = formatters
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
@@ -307,7 +320,7 @@ class KnowledgeGraphForge:
 
     @catch
     def template(
-        self, type: str, only_required: bool = False, output: str = "hjson"
+            self, type: str, only_required: bool = False, output: str = "hjson"
     ) -> Optional[Dict]:
         """
         Print the schema associated with a given resource type (must be listed in forge.types(...)) in hjson (output='hjson') or JSON (output='json') format.
@@ -322,10 +335,10 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def validate(
-        self,
-        data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
-        type_: str=None
+            self,
+            data: Union[Resource, List[Resource]],
+            execute_actions_before: bool = False,
+            type_: str = None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -391,18 +404,18 @@ class KnowledgeGraphForge:
 
     @catch
     def resolve(
-        self,
-        text: Union[str, List[str], Resource],
-        scope: Optional[str] = None,
-        resolver: Optional[str] = None,
-        target: Optional[str] = None,
-        type: Optional[str] = None,
-        strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
-        resolving_context: Optional[Any] = None,
-        property_to_resolve: Optional[str] = None,
-        merge_inplace_as: Optional[str] = None,
-        limit: Optional[int] = 10,
-        threshold: Optional[float] = 0.5,
+            self,
+            text: Union[str, List[str], Resource],
+            scope: Optional[str] = None,
+            resolver: Optional[str] = None,
+            target: Optional[str] = None,
+            type: Optional[str] = None,
+            strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
+            resolving_context: Optional[Any] = None,
+            property_to_resolve: Optional[str] = None,
+            merge_inplace_as: Optional[str] = None,
+            limit: Optional[int] = 10,
+            threshold: Optional[float] = 0.5,
     ) -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
         """
         Resolve text(s) or a resource into existing resources (from the configured Store) depending on the resolving strategy.
@@ -480,7 +493,8 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str:
+    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR,
+               uri: str = None, **kwargs) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
@@ -489,10 +503,10 @@ class KnowledgeGraphForge:
         :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
-        
+
         if what and uri:
             raise AttributeError(
-                    f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
+                f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
             )
 
         try:
@@ -505,24 +519,23 @@ class KnowledgeGraphForge:
             raise AttributeError(
                 f"Invalid Formatter value '{formatter}'. Allowed names are {[name for name, member in Formatter.__members__.items()]} and allowed members are {[member for name, member in Formatter.__members__.items()]}"
             )
-        
+
         if formatter == Formatter.STR:
             if what is None:
                 raise AttributeError(
-                        f"A non None 'what' value is required when formatter == Formatter.STR"
+                    f"A non None 'what' value is required when formatter == Formatter.STR"
                 )
             return self._formatters[what].format(*args, **kwargs)
         elif formatter == Formatter.URI_REWRITER:
             if uri is None:
                 raise AttributeError(
-                            f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
-                    )
+                    f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
+                )
             return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
         else:
             raise AttributeError(
-                    f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+                f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
             )
-
 
     # Mapping User Interface.
 
@@ -537,7 +550,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mappings(
-        self, source: str, pretty: bool = True
+            self, source: str, pretty: bool = True
     ) -> Optional[Dict[str, List[str]]]:
         """
         Print(pretty=True) or return (pretty=False) configured mappings for a given source.
@@ -551,7 +564,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mapping(
-        self, entity: str, source: str, type: Callable = DictionaryMapping
+            self, entity: str, source: str, type: Callable = DictionaryMapping
     ) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -565,11 +578,11 @@ class KnowledgeGraphForge:
 
     @catch
     def map(
-        self,
-        data: Any,
-        mapping: Union[Mapping, List[Mapping]],
-        mapper: Callable = DictionaryMapper,
-        na: Union[Any, List[Any]] = None,
+            self,
+            data: Any,
+            mapping: Union[Mapping, List[Mapping]],
+            mapper: Callable = DictionaryMapper,
+            na: Union[Any, List[Any]] = None,
     ) -> Union[Resource, List[Resource]]:
         """
         Transform data to resources using transformations rules provided as mappings. The format of the data to transform
@@ -587,10 +600,10 @@ class KnowledgeGraphForge:
 
     @catch
     def reshape(
-        self,
-        data: Union[Resource, List[Resource]],
-        keep: List[str],
-        versioned: bool = False,
+            self,
+            data: Union[Resource, List[Resource]],
+            keep: List[str],
+            versioned: bool = False,
     ) -> Union[Resource, List[Resource]]:
         """
         Keep only a provided list of properties ('keep') from a resource of list of resources.
@@ -608,11 +621,11 @@ class KnowledgeGraphForge:
 
     @catch
     def retrieve(
-        self,
-        id: str,
-        version: Optional[Union[int, str]] = None,
-        cross_bucket: bool = False,
-        **params
+            self,
+            id: str,
+            version: Optional[Union[int, str]] = None,
+            cross_bucket: bool = False,
+            **params
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -653,12 +666,12 @@ class KnowledgeGraphForge:
 
     @catch
     def sparql(
-        self,
-        query: str,
-        debug: bool = False,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        **params
+            self,
+            query: str,
+            debug: bool = False,
+            limit: Optional[int] = None,
+            offset: Optional[int] = None,
+            **params
     ) -> List[Resource]:
         """
         Search for resources using a SPARQL query. See SPARQL docs: https://www.w3.org/TR/sparql11-query.
@@ -674,11 +687,11 @@ class KnowledgeGraphForge:
 
     @catch
     def elastic(
-        self,
-        query: str,
-        debug: bool = False,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+            self,
+            query: str,
+            debug: bool = False,
+            limit: Optional[int] = None,
+            offset: Optional[int] = None,
     ) -> List[Resource]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
@@ -693,13 +706,13 @@ class KnowledgeGraphForge:
 
     @catch
     def download(
-        self,
-        data: Union[Resource, List[Resource]],
-        follow: str = "distribution.contentUrl",
-        path: str = ".",
-        overwrite: bool = False,
-        cross_bucket: bool = False,
-        content_type: str = None
+            self,
+            data: Union[Resource, List[Resource]],
+            follow: str = "distribution.contentUrl",
+            path: str = ".",
+            overwrite: bool = False,
+            cross_bucket: bool = False,
+            content_type: str = None
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -718,7 +731,7 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         """
         Store a resource or list of resources in the configured Store.
@@ -726,12 +739,12 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
-        #self._store.mapper = self._store.mapper(self)
+        # self._store.mapper = self._store.mapper(self)
         self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         """
         Update a resource or a list of resources in the configured Store.
@@ -791,10 +804,10 @@ class KnowledgeGraphForge:
 
     @catch
     def as_json(
-        self,
-        data: Union[Resource, List[Resource]],
-        expanded: bool = False,
-        store_metadata: bool = False,
+            self,
+            data: Union[Resource, List[Resource]],
+            expanded: bool = False,
+            store_metadata: bool = False,
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON.
@@ -815,11 +828,11 @@ class KnowledgeGraphForge:
 
     @catch
     def as_jsonld(
-        self,
-        data: Union[Resource, List[Resource]],
-        form: str = Form.COMPACTED.value,
-        store_metadata: bool = False,
-        **params
+            self,
+            data: Union[Resource, List[Resource]],
+            form: str = Form.COMPACTED.value,
+            store_metadata: bool = False,
+            **params
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -842,7 +855,7 @@ class KnowledgeGraphForge:
 
     @catch
     def as_graph(
-        self, data: Union[Resource, List[Resource]], store_metadata: bool = False
+            self, data: Union[Resource, List[Resource]], store_metadata: bool = False
     ) -> Graph:
         """
         Convert a resource or a list of resources to a RDFLib Graph object: https://rdflib.readthedocs.io/en/stable/intro_to_graphs.html.
@@ -861,12 +874,12 @@ class KnowledgeGraphForge:
 
     @catch
     def as_dataframe(
-        self,
-        data: Union[Resource, List[Resource]],
-        na: Union[Any, List[Any]] = [None],
-        nesting: str = ".",
-        expanded: bool = False,
-        store_metadata: bool = False,
+            self,
+            data: Union[Resource, List[Resource]],
+            na: Union[Any, List[Any]] = [None],
+            nesting: str = ".",
+            expanded: bool = False,
+            store_metadata: bool = False,
     ) -> DataFrame:
         """
         Convert a resource or a list of resources to pandas.DataFrame.
@@ -891,7 +904,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_json(
-        self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
+            self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a JSON document or a list of JSON documents to a resource or a list of resources.
@@ -904,7 +917,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_jsonld(
-        self, data: Union[Dict, List[Dict]]
+            self, data: Union[Dict, List[Dict]]
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a JSON-LD document or a list of JSON-LD documents to a resource or a list of resources.
@@ -916,11 +929,11 @@ class KnowledgeGraphForge:
 
     @catch
     def from_graph(
-        self,
-        data: Graph,
-        type: Union[str, List[str]] = None,
-        frame: Dict = None,
-        use_model_context=False,
+            self,
+            data: Graph,
+            type: Union[str, List[str]] = None,
+            frame: Dict = None,
+            use_model_context=False,
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a RDFLib.Graph object to a resource or a list of resources. What to convert from the RDFLib.Graph can be
@@ -937,7 +950,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_dataframe(
-        self, data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
+            self, data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a pandas.DataFrame to a resource or a list of resources.
@@ -948,7 +961,7 @@ class KnowledgeGraphForge:
         :return: Union[Resource, List[Resource]]
         """
         return from_dataframe(data, na, nesting)
-    
+
     def get_store_context(self):
         """Expose the context used in the store."""
         return self._store.context
@@ -956,9 +969,10 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
-    
+
+
 def prepare_resolvers(
-    config: Dict, store_config: Dict
+        config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:
     return {
         scope: dict(prepare_resolver(x, store_config) for x in configs)
@@ -987,10 +1001,8 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
     return resolver.__name__, resolver(**config)
 
 
-
 if __name__ == "__main__":
     def init_forge(token, org, project, es_view, sparql_view):
-
         bucket = f"{org}/{project}"
         endpoint = "https://bbp.epfl.ch/nexus/v1"
 
@@ -1005,6 +1017,7 @@ if __name__ == "__main__":
         )
 
         return KnowledgeGraphForge(**args)
+
 
     token = getpass.getpass()
     t = init_forge(token, "bbp", "inference-rules", None, None)

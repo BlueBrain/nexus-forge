@@ -25,7 +25,7 @@ from typing import Callable, Union, List
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.context import Context
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict

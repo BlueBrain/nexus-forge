@@ -27,8 +27,8 @@ from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run
-from kgforge.core.commons.imports import import_class
-from kgforge.core.config import StoreConfig, ModelConfig, ModelContextConfig
+from kgforge.core.configs.store_config import StoreConfig
+from kgforge.core.configs.model_config import ModelConfig, ModelContextConfig
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService

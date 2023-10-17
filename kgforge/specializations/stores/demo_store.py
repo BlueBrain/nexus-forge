@@ -22,7 +22,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
 from kgforge.core.commons.execution import not_supported
-from kgforge.core.config import StoreConfig
+from kgforge.core.configs.store_config import StoreConfig
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import create_filters_from_dict
@@ -131,14 +131,7 @@ class DemoStore(Store):
 
     # Utils.
 
-    def _initialize_service(
-            self, endpoint: Optional[str],
-            bucket: Optional[str],
-            token: Optional[str],
-            searchendpoints: Optional[Dict],
-            max_connection: Optional[int],
-            vocabulary: Optional[Dict],
-    ):
+    def _initialize_service(self, store_config: StoreConfig):
         return StoreLibrary()
 
 
