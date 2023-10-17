@@ -30,8 +30,12 @@ from kgforge.specializations.stores.nexus import Service
 
 class StoreService(RdfService):
 
-    def __init__(self, default_store: Store, context_iri: Optional[str] = None,
-                 context_store: Optional[Store] = None) -> None:
+    def __init__(
+            self,
+            default_store: Store,
+            context_iri: Optional[str] = None,
+            context_store: Optional[Store] = None
+    ) -> None:
 
         self.default_store = default_store
         self.context_store = context_store or default_store

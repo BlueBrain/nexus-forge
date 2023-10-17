@@ -34,7 +34,7 @@ from kgforge.core.commons.execution import catch
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.commons.formatter import Formatter
-from kgforge.core.config import ResolverConfig, StoreConfig, ModelConfig
+from kgforge.core.config import ModelConfig, ResolverConfig, StoreConfig, Config
 from kgforge.core.conversions.dataframe import as_dataframe, from_dataframe
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.conversions.rdf import (
@@ -50,156 +50,21 @@ from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
 
-class KnowledgeGraphForge:
+class KnowledgeGraphForgeMulti:
 
     # POLICY Class name should be imported in the corresponding module __init__.py.
 
     # No catching of exceptions so that no incomplete instance is created if an error occurs.
     # This is a best practice in Python for __init__().
-    def __init__(self, configuration: Union[str, Dict], **kwargs) -> None:
-        """
-        Configure and create a Knowledge Graph forge session.
-        See https://github.com/BlueBrain/nexus-forge/blob/master/examples/notebooks/use-cases/prod-forge-nexus.yml for an example of configuration.
-
-        Required minimal configuration: name, origin and source for Model and name for Store.
-        Keyword arguments could be used to override the configuration provided for the Store.
-
-        The configuration could be provided either as:
-
-        - inline YAML or a path to a YAML file with the following structure:
-
-         Model:
-           name: <a class name of a Model>
-           origin: <'directory', 'url', or 'store'>
-           source: <a directory path, an URL, or the class name of a Store>
-           bucket: <when 'origin' is 'store', a Store bucket>
-           endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
-           token: <when 'origin' is 'store', a Store token, default to Store:token>
-           context:
-             iri: <an IRI>
-             bucket: <when 'origin' is 'store', a Store bucket, default to Model:bucket>
-             endpoint: <when 'origin' is 'store', a Store endpoint, default to Model:endpoint>
-             token: <when 'origin' is 'store', a Store token, default to Model:token>
-
-         Store:
-           name: <a class name of a Store>
-           endpoint: <an URL>
-           bucket: <a bucket as a string>
-           token: <a token as a string>
-           searchendpoints:
-             <querytype>: <a query paradigm supported by configured store (e.g. sparql)>
-               endpoint: <an IRI of a query endpoint>
-           params:
-               <Store method>: <e.g. register, tag, ...>
-                   param: <http query param value to use for the Store method>
-           versioned_id_template: <a string template using 'x' to access resource fields>
-           file_resource_mapping: <an Hjson string, a file path, or an URL>
-
-         Resolvers:
-           <scope>:
-             - resolver: <a class name of a Resolver>
-               origin: <'directory', 'web_service', or 'store'>
-               source: <a directory path, a web service endpoint, or the class name of a Store>
-               targets:
-                 - identifier: <a name, or an IRI>
-                   bucket: <a file name, an URL path, or a Store bucket>
-                   filters:
-                     - path: <a resource property path>
-                     - value: <a resource property value to filter with>
-               searchendpoints:
-                 sparql:
-                   endpoint: <A SPARQL endpoint to send resolving query to. Only used for resolvers based on SPARQL>
-               resolve_with_properties: <a list of str currently only supported by DemoResolver>
-               result_resource_mapping: <an Hjson string, a file path, or an URL>
-               endpoint: <when 'origin' is 'store', a Store endpoint, default to Store:endpoint>
-               token: <when 'origin' is 'store', a Store token, default to Store:token>
-
-         Formatters:
-           <identifier>: <a string template with replacement fields delimited by braces, i.e. '{}'>
-
-        - A Python dictionary with the following structure:
-
-         {
-             "Model": {
-                 "name": <str>,
-                 "origin": <str>,
-                 "source": <str>,
-                 "bucket": <str>,
-                 "endpoint": <str>,
-                 "token": <str>,
-                 "context": {
-                       "iri": <str>,
-                       "bucket": <str>,
-                       "endpoint": <str>,
-                       "token": <str>,
-                 }
-             },
-             "Store": {
-                 "name": <str>,
-                 "endpoint": <str>,
-                 "bucket": <str>,
-                 "token": <str>,
-                 "searchendpoints": {
-                   "<querytype>": {
-                       "endpoint": <str>
-                   }
-                 },
-                 "params": {
-                   "<Store method>": {
-                       "param": <str>
-                   }
-                 },
-                 "versioned_id_template": <str>,
-                 "file_resource_mapping": <str>,
-             },
-             "Resolvers": {
-                 "<scope>": [
-                     {
-                         "resolver": <str>,
-                         "origin": <str>,
-                         "source": <str>,
-                         "targets": [
-                             {
-                                 "identifier": <str>,
-                                 "bucket": <str>,
-                                 "filter":[
-                                    {
-                                        "path": <str>,
-                                        "value": <str>
-                                    }
-                                 ]
-                             },
-                             ...,
-                         ],
-                         "searchendpoints":{
-                            "sparql":{
-                                "endpoint": <str>
-                            }
-                         },
-                         "resolve_with_properties": [str]
-                         "result_resource_mapping": <str>,
-                         "endpoint": <str>,
-                         "token": <str>,
-                     },
-                     ...,
-                 ],
-             },
-             "Formatters": {
-                 "<name>": <str>,
-                 ...,
-             },
-         }
-
-         In the configuration, Class name could be provided in three formats:
-               * 'SomeClass',
-               * 'SomeClass from package.module',
-               * 'SomeClass from package.module.file'.
-         When the class is from this package, the first is used. Otherwise, the two others.
-         Values using braces with something inside should be quoted with double quotes.
-
-        :param configuration: a configuration content or file path
-        :param kwargs:  keyword arguments
-        """
+    def __init__(
+            self, configuration: Union[str, Dict],
+            model_config: Optional[Dict[str, ModelConfig]] = None,
+            store_config: Optional[Dict[str, StoreConfig]] = None,
+            selected_model: Optional[str] = None,
+            selected_store: Optional[str] = None,
+            resolver_config: Dict[str, ResolverConfig] = None,
+            debug: bool = False
+    ) -> None:
 
         if isinstance(configuration, str):
             config_data = load_file_as_byte(configuration)
@@ -209,34 +74,59 @@ class KnowledgeGraphForge:
             config = deepcopy(configuration)
 
         # Debugging.
-        self._debug = kwargs.pop("debug", False)
+        self._debug = debug
 
         # Store.
-        store_configuration: Dict = config.pop("Store")
-        store_configuration: StoreConfig = StoreConfig.load_config(
-            StoreConfig(**kwargs), store_configuration
-        )
+        store_configurations_from_file: Dict[str, Dict] = config.pop("Store")
 
-        self._store: Store = store_configuration.initialize("stores")
+        store_configurations = dict(
+            (
+                key,
+                StoreConfig.load_config(
+                    store_config.get(key) if store_config else None,
+                    store_configurations_from_file.get(key)
+                )
+            )
+            for key in store_configurations_from_file.keys()
+        )
 
         # Model.
-        model_configuration = config.pop("Model")
+        model_configurations_from_file: Dict[str, Dict] = config.pop("Model")
 
-        model_configuration = ModelConfig.load_config(
-            None, model_configuration,
-            store_configurations={
-                store_configuration.name: store_configuration
-            }
+        model_configurations = dict(
+            (key, ModelConfig.load_config(
+                model_config.get(key) if model_config else None,
+                model_configurations_from_file.get(key),
+                store_configurations=store_configurations
+            ))
+            for key in model_configurations_from_file.keys()
         )
 
-        self._model: Model = model_configuration.initialize("models")
+        def get_selected(key, selected_parameter, dict_values: [Dict[str, Config]]) -> Config:
+            if selected_parameter is not None:
+                return dict_values[selected_parameter]
 
-        # Store add model context
+            if config.get(key, None) is not None:
+                return dict_values[config.get(key, None)]
+            else:
+                return next(e for (k, e) in dict_values.items() if e.default)
+
+        selected_model_config: ModelConfig = get_selected(
+            "selected_model", selected_model, model_configurations
+        )
+        self._model: Model = selected_model_config.initialize("models")
+
+        # Store.
+
+        selected_store_config: StoreConfig = get_selected(
+            "selected_store", selected_store, store_configurations
+        )
+
+        self._store: Store = selected_store_config.initialize("stores")
         self._store.model_context = self._model.context()  # TODO figure out why
 
         # Resolvers.
         resolvers_configurations_from_file = config.pop("Resolvers", None)
-        resolver_config = None
 
         if resolvers_configurations_from_file is not None:
 
@@ -246,9 +136,7 @@ class KnowledgeGraphForge:
                     [ResolverConfig.load_config(
                         resolver_config.get(key) if resolver_config else None,
                         resolvers_configurations_from_file.get(key)[0],
-                        store_configurations={
-                            store_configuration.name: store_configuration
-                        }
+                        store_configurations=store_configurations
                     )]  # TODO handle array
                 )
                 for key in resolvers_configurations_from_file.keys()
@@ -956,55 +844,19 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
-    
-def prepare_resolvers(
-    config: Dict, store_config: Dict
-) -> Dict[str, Dict[str, Resolver]]:
-    return {
-        scope: dict(prepare_resolver(x, store_config) for x in configs)
-        for scope, configs in config.items()
-    }
 
-
-def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
-    if config["origin"] == "store":
-        with_defaults(
-            config,
-            store_config,
-            "source",
-            "name",
-            [
-                "endpoint",
-                "token",
-                "bucket",
-                "model_context",
-                "searchendpoints",
-                "vocabulary",
-            ],
-        )
-    resolver_name = config.pop("resolver")
-    resolver = import_class(resolver_name, "resolvers")
-    return resolver.__name__, resolver(**config)
 
 
 
 if __name__ == "__main__":
-    def init_forge(token, org, project, es_view, sparql_view):
 
-        bucket = f"{org}/{project}"
-        endpoint = "https://bbp.epfl.ch/nexus/v1"
+    # token = getpass.getpass()
 
-        config = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
+    args = dict(
+        configuration="../test_multi.yml",
+        store_config={
+            "store_1": StoreConfig()
+        }
+    )
 
-        args = dict(
-            configuration=config,
-            endpoint=endpoint,
-            token=token,
-            bucket=bucket,
-            debug=False
-        )
-
-        return KnowledgeGraphForge(**args)
-
-    token = getpass.getpass()
-    t = init_forge(token, "bbp", "inference-rules", None, None)
+    e = KnowledgeGraphForgeMulti(**args)

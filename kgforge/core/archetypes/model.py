@@ -15,18 +15,19 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Type
 
 import hjson
 from pandas import DataFrame
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping
+from kgforge.core.archetypes import Mapping, Store
 from kgforge.core.commons.attributes import repr_class, sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.commons.imports import import_class
+from kgforge.core.config import ModelConfig, ModelContextConfig, StoreConfig
 
 
 class Model(ABC):
@@ -40,11 +41,12 @@ class Model(ABC):
     # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
     # POLICY Implementations should pass tests/specializations/models/demo_model.feature tests.
 
-    def __init__(self, source: str, **source_config) -> None:
+    def __init__(self, model_config: ModelConfig) -> None:
         # POLICY Model data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
-        self.source: str = source
-        self.service: Any = self._initialize_service(self.source, **source_config)
+        self.source: str = model_config.source if isinstance(model_config.source, str) else \
+            model_config.source.name
+        self.service = self._initialize_service(model_config)
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -167,34 +169,33 @@ class Model(ABC):
 
     # Utils.
 
-    def _initialize_service(self, source: str, **source_config) -> Any:
+    @classmethod
+    def _initialize_service(cls, model_config: ModelConfig) -> Any:
         # Model data could be loaded from a directory, an URL, or a Store.
         # Initialize the access to the model data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
-        origin = source_config.pop("origin")
-        context_config = source_config.pop("context", {})
-        context_iri = context_config.get("iri", None)
-        if origin == "directory":
-            dirpath = Path(source)
-            return self._service_from_directory(dirpath, context_iri)
-        elif origin == "url":
-            return self._service_from_url(source, context_iri)
-        elif origin == "store":
-            store = import_class(source, "stores")
-            return self._service_from_store(store, context_config, **source_config)
+        context_iri = model_config.context.iri if model_config.context is not None else None
+
+        if model_config.origin == "directory":
+            return cls._service_from_directory(Path(model_config.source), context_iri)
+        elif model_config.origin == "url":
+            return cls._service_from_url(model_config.source, context_iri)
+        elif model_config.origin == "store":
+            return cls._service_from_store(model_config)
         else:
-            raise ConfigurationError(f"unrecognized Model origin '{origin}'")
+            raise ConfigurationError(f"unrecognized Model origin '{model_config.origin}'")
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
-        pass
+    def _service_from_directory(cls, dirpath: Path, context_iri: Optional[str]) -> Any:
+        ...
 
-    @staticmethod
-    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+    @classmethod
+    def _service_from_url(cls, url: str, context_iri: Optional[str]) -> Any:
         raise NotImplementedError()
 
-    @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[dict],
-                            **source_config) -> Any:
+    @classmethod
+    def _service_from_store(
+            cls, model_config: ModelConfig
+    ) -> Any:
         raise NotImplementedError()

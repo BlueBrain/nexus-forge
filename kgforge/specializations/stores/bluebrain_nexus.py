@@ -58,6 +58,7 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
+from kgforge.core.config import StoreConfig
 from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
@@ -108,27 +109,8 @@ elasticsearch_operator_map = {
 
 
 class BlueBrainNexus(Store):
-    def __init__(
-        self,
-        endpoint: Optional[str] = None,
-        bucket: Optional[str] = None,
-        token: Optional[str] = None,
-        versioned_id_template: Optional[str] = None,
-        file_resource_mapping: Optional[str] = None,
-        model_context: Optional[Context] = None,
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
-    ) -> None:
-        super().__init__(
-            endpoint,
-            bucket,
-            token,
-            versioned_id_template,
-            file_resource_mapping,
-            model_context,
-            searchendpoints,
-            **store_config,
-        )
+    def __init__(self, store_config: StoreConfig) -> None:
+        super().__init__(store_config)
 
     @property
     def mapping(self) -> Optional[Callable]:
@@ -910,16 +892,25 @@ class BlueBrainNexus(Store):
         bucket: Optional[str],
         token: Optional[str],
         searchendpoints: Optional[Dict],
-        **store_config,
+        max_connection: Optional[int],
+        vocabulary: Optional[Dict],
+        # **store_config,
     ) -> Any:
         try:
             self.organisation, self.project = self.bucket.split("/")
-            max_connection = store_config.pop("max_connection", 50)
+
+            if max_connection is None:
+                max_connection = 50
+            if vocabulary is None:
+                vocabulary = {}
+
+            # max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
                 raise ValueError(
                     f"max_connection value should be great than 0 but {max_connection} is provided"
                 )
-            store_context_config = store_config.pop("vocabulary", {})
+            store_context_config = vocabulary  # store_config.pop("vocabulary", {})
+
             nexus_metadata_context = store_context_config.get(
                 "metadata",
                 {
@@ -938,6 +929,8 @@ class BlueBrainNexus(Store):
             deprecated_property = store_context_config.get(
                 "deprecated_property", Service.DEPRECATED_PROPERTY_FALLBACK
             )
+
+            store_config = {}  # TODO reexpose these
             content_type = store_config.pop("Content-Type", "application/ld+json")
             accept = store_config.pop("Accept", "application/ld+json")
             files_upload_config = store_config.pop(

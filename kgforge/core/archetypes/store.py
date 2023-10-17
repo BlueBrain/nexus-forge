@@ -22,6 +22,8 @@ from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Mapper
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.config import StoreConfig
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -106,29 +108,32 @@ class Store(ABC):
 
     def __init__(
         self,
-        endpoint: Optional[str] = None,
-        bucket: Optional[str] = None,
-        token: Optional[str] = None,
-        versioned_id_template: Optional[str] = None,
-        file_resource_mapping: Optional[str] = None,
-        model_context: Optional[Context] = None,
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
+        store_config: StoreConfig
     ) -> None:
+
+        file_resource_mapping = store_config.file_resource_mapping
+
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
         # POLICY There could be data caching but it should be aware of changes made in the source.
-        self.endpoint: Optional[str] = endpoint
-        self.bucket: Optional[str] = bucket
-        self.token: Optional[str] = token
-        self.versioned_id_template: Optional[str] = versioned_id_template
+        self.endpoint: Optional[str] = store_config.endpoint
+        self.bucket: Optional[str] = store_config.bucket
+        self.token: Optional[str] = store_config.token
+        self.versioned_id_template: Optional[str] = store_config.versioned_id_template
         loaded = (
             self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         )
         self.file_mapping: Optional[Any] = loaded
-        self.model_context: Optional[Context] = model_context
+        self.model_context: Optional[Context] = None
+
         self.service: Any = self._initialize_service(
-            self.endpoint, self.bucket, self.token, searchendpoints, **store_config
+            endpoint=self.endpoint,
+            bucket=self.bucket,
+            token=self.token,
+            searchendpoints=store_config.searchendpoints,
+            max_connection=store_config.max_connection,
+            vocabulary=store_config.vocabulary
         )
+
         self.context: Context = (
             self.service.context if hasattr(self.service, "context") else None
         )
@@ -500,8 +505,10 @@ class Store(ABC):
         endpoint: Optional[str],
         bucket: Optional[str],
         token: Optional[str],
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
+        searchendpoints: Optional[Dict],
+        max_connection: Optional[int],
+        vocabulary: Optional[Dict],
+        # **store_config,
     ) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass

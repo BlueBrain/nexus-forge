@@ -13,8 +13,9 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import datetime
 import re
+import copy
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Any, Union
+from typing import Dict, List, Callable, Optional, Any, Union, Type
 
 from pyshacl.consts import SH
 from rdflib import URIRef, Literal
@@ -26,6 +27,8 @@ from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run
+from kgforge.core.commons.imports import import_class
+from kgforge.core.config import StoreConfig, ModelConfig, ModelContextConfig
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -65,8 +68,8 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
+    def __init__(self, model_config: ModelConfig) -> None:
+        super().__init__(model_config)
 
     # Vocabulary.
 
@@ -132,37 +135,30 @@ class RdfModel(Model):
 
     # Utils.
 
-    @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
+    @classmethod
+    def _service_from_directory(cls, dirpath: Path, context_iri: str) -> RdfService:
         return DirectoryService(dirpath, context_iri)
 
-    @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
-        endpoint = source_config.get("endpoint")
-        token = source_config.get("token")
-        bucket = source_config["bucket"]
-        default_store: Store = store(**source_config)
+    @classmethod
+    def _service_from_store(cls, model_config: ModelConfig) -> StoreService:
 
-        if context_config:
-            context_endpoint = context_config.get("endpoint", default_store.endpoint)
-            context_token = context_config.get("token", default_store.token)
-            context_bucket = context_config.get("bucket", default_store.bucket)
-            context_iri = context_config.get("iri")
-            if (context_endpoint != default_store.endpoint
-                    or context_token != default_store.token
-                    or context_bucket != default_store.bucket):
-                source_config.pop("endpoint", None)
-                source_config.pop("token", None)
-                source_config.pop("bucket", None)
-                context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
-                # FIXME: define a store independent StoreService
-                service = StoreService(default_store, context_iri, context_store)
-            else:
-                service = StoreService(default_store, context_iri, None)
-        else:
-            service = StoreService(default_store)
+        default_store: Store = model_config.source.initialize("stores")
+        context_config: ModelContextConfig = model_config.context
 
-        return service
+        if not context_config:
+            return StoreService(default_store)
+
+        context_iri = model_config.context.iri
+        context_store: Store = model_config.context.source.initialize("stores") \
+            if model_config.context.source is not None else None
+
+        # FIXME: define a store independent StoreService
+
+        return StoreService(default_store, context_iri, context_store)
+
+    # TODO eventually drop this
+
+
 
 
 def parse_attributes(node: NodeProperties, only_required: bool,

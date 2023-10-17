@@ -14,6 +14,7 @@
 
 from pytest_bdd import given, parsers, scenarios, when
 
+from kgforge.core.config import ModelConfig
 from kgforge.specializations.models.demo_model import DemoModel
 from utils import full_path_relative_to_root
 from tests.conftest import check_report
@@ -25,7 +26,9 @@ scenarios("demo_model.feature")
 
 @given("A model instance.")
 def model():
-    return DemoModel(full_path_relative_to_root("tests/data/demo-model/"), origin="directory")
+    return DemoModel(
+        ModelConfig(source="tests/data/demo-model/", origin="directory")
+    )
 
 
 @given("A validated resource.", target_fixture="data")

@@ -22,6 +22,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.config import StoreConfig
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import create_filters_from_dict
@@ -30,12 +31,8 @@ from kgforge.core.wrappings.paths import create_filters_from_dict
 class DemoStore(Store):
     """An example to show how to implement a Store and to demonstrate how it is used."""
 
-    def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
-                 token: Optional[str] = None, versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None) -> None:
-        super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context)
+    def __init__(self, store_config: StoreConfig = StoreConfig()) -> None:
+        super().__init__(store_config)
 
     @property
     def mapping(self) -> Type[Mapping]:
@@ -134,9 +131,16 @@ class DemoStore(Store):
 
     # Utils.
 
-    def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict]):
+    def _initialize_service(
+            self, endpoint: Optional[str],
+            bucket: Optional[str],
+            token: Optional[str],
+            searchendpoints: Optional[Dict],
+            max_connection: Optional[int],
+            vocabulary: Optional[Dict],
+    ):
         return StoreLibrary()
+
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
@@ -248,7 +252,7 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
-    
+
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         raise not_supported()
 

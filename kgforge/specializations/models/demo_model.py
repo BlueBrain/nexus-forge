@@ -21,13 +21,14 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
+from kgforge.core.config import ModelConfig
 
 
 class DemoModel(Model):
     """An example to show how to implement a Model and to demonstrate how it is used."""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
+    def __init__(self, model_config: ModelConfig) -> None:
+        super().__init__(model_config)
 
     # Vocabulary.
 
@@ -95,8 +96,8 @@ class DemoModel(Model):
 
     # Utils.
 
-    @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config):
+    @classmethod
+    def _service_from_directory(cls, dirpath: Path, context_iri: Optional[str]):
         return ModelLibrary(dirpath)
 
 

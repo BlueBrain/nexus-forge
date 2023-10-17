@@ -21,6 +21,7 @@ from kgforge.core.archetypes import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
@@ -28,9 +29,8 @@ from kgforge.specializations.mappings import DictionaryMapping
 class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
+    def __init__(self, resolver_config: ResolverConfig) -> None:
+        super().__init__(resolver_config)
 
     @property
     def mapping(self) -> Callable:
@@ -87,9 +87,11 @@ class DemoResolver(Resolver):
             return True
     
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config)\
-            -> Dict[str, List[Dict[str, str]]]:
-        resolve_with_properties: List[str] = source_config.pop("resolve_with_properties", None)
+    def _service_from_directory(
+            dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]],
+            resolve_with_properties: List[str] = None
+    ) -> Dict[str, List[Dict[str, str]]]:
+
         if isinstance(resolve_with_properties, str):
             resolve_with_properties = [resolve_with_properties]
         elif resolve_with_properties is not None and not isinstance(resolve_with_properties, list):

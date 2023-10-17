@@ -25,6 +25,7 @@ from typing import Callable, Union, List
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.context import Context
+from kgforge.core.config import StoreConfig
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
@@ -121,16 +122,22 @@ def registered_person(person, store_metadata_value):
 @mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
 def nexus_store(context_project_patch, metadata_context_patch):
     return BlueBrainNexus(
-        endpoint=NEXUS,
-        bucket=BUCKET,
-        token=TOKEN,
-        file_resource_mapping=FILE_RESOURCE_MAPPING,
+        StoreConfig(
+            endpoint=NEXUS,
+            bucket=BUCKET,
+            token=TOKEN,
+            file_resource_mapping=FILE_RESOURCE_MAPPING
+        )
     )
 
 
 @pytest.fixture
 def nexus_store_unauthorized():
-    return BlueBrainNexus(endpoint=NEXUS, bucket=BUCKET, token="invalid token")
+    return BlueBrainNexus(
+        StoreConfig(
+            endpoint=NEXUS, bucket=BUCKET, token="invalid token"
+        )
+    )
 
 
 @pytest.fixture
@@ -145,7 +152,9 @@ def nexus_context():
 
 def test_config_error():
     with pytest.raises(ValueError):
-        BlueBrainNexus(endpoint="test", bucket="invalid", token="")
+        BlueBrainNexus(
+            StoreConfig(endpoint="test", bucket="invalid", token="")
+        )
 
 
 def test_config(nexus_store):

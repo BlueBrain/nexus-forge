@@ -14,15 +14,17 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple, Type
 
 from kgforge.core import Resource
+from kgforge.core.archetypes import Store
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.config import ResolverConfig, StoreConfig
 from kgforge.core.wrappings.paths import Filter, FilterOperator
 
 class Resolver(ABC):
@@ -36,21 +38,18 @@ class Resolver(ABC):
     # TODO Create a generic parameterizable test suite for resolvers. DKE-135.
     # POLICY Implementations should pass tests/specializations/resolvers/test_resolvers.py.
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
+    def __init__(
+            self,
+            resolver_config: ResolverConfig
+    ) -> None:
         # POLICY Resolver data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
-        self.source: str = source
-        self.targets: Dict[str, Tuple[str, Dict[str, str]]] = {}
-        for target in targets:
-            if "filters" in target:
-                # reshape filters to match query filters
-                filters = {f["path"]: f["value"] for f in target["filters"]}
-            else:
-                filters = None
-            self.targets[target["identifier"]] = {"bucket": target["bucket"], "filters": filters}
-        self.result_mapping: Any = self.mapping.load(result_resource_mapping)
-        self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
+        self.source: str = resolver_config.source if isinstance(resolver_config.source, str) else\
+            resolver_config.source.name
+        self.targets: Dict[str,  Dict[str, Any]] = resolver_config.targets
+
+        self.result_mapping: Any = self.mapping.load(resolver_config.result_resource_mapping)
+        self.service: Any = self._initialize_service(resolver_config)
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -68,16 +67,20 @@ class Resolver(ABC):
         pass
 
     def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
-                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
+                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str,
+                merge_inplace_as: str,
                 limit: int, threshold: float, forge: Optional["KnowledgeGraphForge"]) \
             -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
 
         if isinstance(text, Resource):
-            expected = [isinstance(text, Resource), property_to_resolve is not None and hasattr(text, property_to_resolve),
-                        isinstance(getattr(text, property_to_resolve), str) or
-                        (isinstance(getattr(text, property_to_resolve), list) and all([isinstance(f, str) for f in
-                                                                                       getattr(text, property_to_resolve)
-                                                                                       ]))]
+            expected = [
+                isinstance(text, Resource),
+                property_to_resolve is not None and hasattr(text, property_to_resolve),
+                isinstance(getattr(text, property_to_resolve), str) or (
+                    isinstance(getattr(text, property_to_resolve), list) and
+                     all([isinstance(f, str) for f in getattr(text, property_to_resolve)])
+                )
+            ]
             if all(expected):
                 text_to_resolve = getattr(text, property_to_resolve)
             else:
@@ -125,25 +128,37 @@ class Resolver(ABC):
 
     # Utils.
 
-    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    @classmethod
+    def _initialize_service(
+            cls,
+            resolver_config: ResolverConfig
+    ) -> Any:
         # Resolver data could be accessed from a directory, a web service, or a Store.
         # Initialize the access to the resolver data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
-        origin = source_config.pop("origin")
-        if origin == "directory":
-            dirpath = Path(source)
-            return self._service_from_directory(dirpath, targets, **source_config)
-        elif origin == "web_service":
-            return self._service_from_web_service(source, targets)
-        elif origin == "store":
-            store = import_class(source, "stores")
-            return self._service_from_store(store, targets, **source_config)
+
+        if resolver_config.origin == "directory":
+            dirpath = Path(resolver_config.source)
+            return cls._service_from_directory(
+                dirpath, resolver_config.targets, resolver_config.resolve_with_properties
+            )
+        elif resolver_config.origin == "web_service":
+            return cls._service_from_web_service(resolver_config.source, resolver_config.targets)
+        elif resolver_config.origin == "store":
+            store: Type[Store] = import_class(resolver_config.source.name, "stores")
+            return cls._service_from_store(
+                store=store, store_config=resolver_config.source,
+                targets=resolver_config.targets
+            )
         else:
-            raise ConfigurationError(f"unrecognized Resolver origin '{origin}'")
+            raise ConfigurationError(f"unrecognized Resolver origin '{resolver_config.origin}'")
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(
+            dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
+            resolve_with_properties: List[str] = None
+    ) -> Any:
         pass
 
     @staticmethod
@@ -151,7 +166,10 @@ class Resolver(ABC):
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> Any:
+    def _service_from_store(
+            store: Type[Store], targets: Dict[str, Dict[str, Dict[str, str]]],
+            store_config: StoreConfig
+    ) -> Any:
         not_supported()
 
 
@@ -163,6 +181,7 @@ def escape_punctuation(text):
         if p in text:
             text = text.replace(p, f"\\\\{p}")
     return text
+
 
 def write_sparql_filters(text, properties: List, regex=False,
                          case_insensitive=False) -> List[str]:

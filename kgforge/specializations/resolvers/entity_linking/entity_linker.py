@@ -20,13 +20,13 @@ from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
+from kgforge.core.config import ResolverConfig
 
 
 class EntityLinker(Resolver, metaclass=ABCMeta):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
+    def __init__(self, resolver_config: ResolverConfig) -> None:
+        super().__init__(resolver_config)
 
     def _resolve(self, text: Union[str, List[str]], target: str, type: str,
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int],

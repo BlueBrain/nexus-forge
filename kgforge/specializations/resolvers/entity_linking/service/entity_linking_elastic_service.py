@@ -15,10 +15,11 @@ import itertools
 
 import requests
 
-from typing import Callable, Dict, List, Optional, Union, Any
+from typing import Callable, Dict, List, Optional, Union, Any, Type
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
+from kgforge.core.config import StoreConfig
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
@@ -35,18 +36,18 @@ from kgforge.specializations.resources.entity_linking_candidate import (
 class EntityLinkerElasticService(EntityLinkerService):
     def __init__(
         self,
-        store: Callable,
+        store: Type[Store],
         targets: Dict[str, str],
         encoder,
         result_resource_mapping,
-        **store_config
+        store_config: StoreConfig
     ):
         super().__init__(is_distance=False)
         self.sources: Dict[str, Store] = dict()
         for identifier in targets:
-            bucket = targets[identifier]['bucket']
-            store_config.update(bucket=bucket)
-            self.sources[identifier] = store(**store_config)
+            store_config.bucket = targets[identifier]['bucket']
+            self.sources[identifier] = store(store_config)
+
         self.encoder = encoder
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
 

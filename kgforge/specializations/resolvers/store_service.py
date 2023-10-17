@@ -11,23 +11,28 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Type
 
 from kgforge.core.archetypes import Store
+from kgforge.core.config import StoreConfig
 from kgforge.core.conversions.json import as_json
 
 
 class StoreService:
 
-    def __init__(self, store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config):
+    def __init__(
+            self, store: Type[Store],
+            targets: Dict[str, Dict[str, Dict[str, str]]],
+            store_config: StoreConfig
+    ):
         self.sources: Dict[str, Store] = dict()
         self.filters: Dict[str, str] = dict()
         for identifier in targets:
             bucket = targets[identifier]["bucket"]
             if 'filters' in targets[identifier]:
                 self.filters[identifier] = targets[identifier]["filters"]
-            store_config.update(bucket=bucket)
-            self.sources[identifier] = store(**store_config)
+            store_config.bucket = bucket
+            self.sources[identifier] = store(store_config)
         self.deprecated_property = "https://bluebrain.github.io/nexus/vocabulary/deprecated"
 
     def perform_query(self, query: str, target: str, expected_fields: List[str],

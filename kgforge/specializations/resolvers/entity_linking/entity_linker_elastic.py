@@ -12,9 +12,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import Callable, Dict, List, Any, Optional, Tuple
+from typing import Callable, Dict, List, Any, Optional, Tuple, Type
 
+from kgforge.core.archetypes import Store
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.config import StoreConfig, ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
@@ -23,9 +25,9 @@ from kgforge.specializations.resolvers.entity_linking.service.entity_linking_ela
 
 class EntityLinkerElastic(EntityLinker):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
+    def __init__(self, resolver_config: ResolverConfig) -> None:
+        super().__init__(resolver_config)
+
 
     @property
     def mapping(self) -> Callable:
@@ -40,11 +42,16 @@ class EntityLinkerElastic(EntityLinker):
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:
+    def _service_from_store(
+            store: Type[Store], targets: Dict[str, Dict[str, Any]], store_config: StoreConfig
+    ) -> EntityLinkerElasticService:
+
         encoder = store_config.pop("encoder")
         encoder_url = encoder["source"]
         encoder_result_resource_mapping = encoder["result_resource_mapping"]
-        return EntityLinkerElasticService(store, targets, encoder_url, encoder_result_resource_mapping, **store_config)
+        return EntityLinkerElasticService(
+            store, targets, encoder_url, encoder_result_resource_mapping, store_config
+        )
 
     def _is_target_valid(self, target: str) -> Optional[bool]:
         if target and target not in self.service.sources:

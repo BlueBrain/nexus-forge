@@ -1,0 +1,77 @@
+Model:
+  model_1:
+    name: RdfModel
+    default: true
+    origin: store
+    source: store_1
+    context:
+      iri: "https://bbp.neuroshapes.org"
+      bucket: "neurosciencegraph/datamodels"
+
+Store:
+  store_1:
+    default: true
+    token: TODO
+    bucket: "bbp/atlas"
+    name: BlueBrainNexus
+    endpoint: https://bbp.epfl.ch/nexus/v1
+    searchendpoints:
+      sparql:
+        endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+      elastic:
+        endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
+        mapping: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
+        default_str_keyword_field: "keyword"
+    vocabulary:
+      metadata:
+        iri: "https://bluebrain.github.io/nexus/contexts/metadata.json"
+        local_iri: "https://bluebrainnexus.io/contexts/metadata.json"
+      namespace: "https://bluebrain.github.io/nexus/vocabulary/"
+      deprecated_property: "https://bluebrain.github.io/nexus/vocabulary/deprecated"
+      project_property: "https://bluebrain.github.io/nexus/vocabulary/project"
+    max_connection: 5
+    versioned_id_template: "{x.id}?rev={x._store_metadata._rev}"
+    file_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-store/file-to-resource-mapping.hjson
+
+Resolvers:
+  ontology:
+    - resolver: OntologyResolver
+      origin: store
+      source: store_1
+      targets:
+        - identifier: terms
+          bucket: neurosciencegraph/datamodels
+        - identifier: CellType
+          bucket: neurosciencegraph/datamodels
+          filters:
+            - path: subClassOf*.id
+              value: BrainCellType
+        - identifier: BrainRegion
+          bucket: neurosciencegraph/datamodels
+          filters:
+            - path: subClassOf*.id
+              value: BrainRegion
+        - identifier: Species
+          bucket: neurosciencegraph/datamodels
+          filters:
+            - path: subClassOf*.id
+              value: Species
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+      result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/term-to-resource-mapping.hjson
+  agent:
+    - resolver: AgentResolver
+      origin: store
+      source: store_1
+      targets:
+        - identifier: agents
+          bucket: bbp/agents
+      searchendpoints:
+        sparql:
+          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+      result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/agent-to-resource-mapping.hjson
+
+Formatters:
+  identifier: https://bbp.epfl.ch/neurosciencegraph/data/{}/{}
+  identifier_with_org_project: https://bbp.epfl.ch/data/{}/{}/{}

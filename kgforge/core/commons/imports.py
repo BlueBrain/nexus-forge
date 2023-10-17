@@ -14,12 +14,12 @@
 
 import re
 from importlib import import_module
-from typing import Callable
+from typing import Callable, Type
 
 from kgforge.core.commons.exceptions import ConfigurationError
 
 
-def import_class(configuration: str, forge_module_name: str) -> Callable:
+def import_class(configuration: str, forge_module_name: str) -> Type:
     # Example use:
     #   - import_class("DemoModel", "models")
     #   - import_class("CustomModel from package.models", "models")

@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Callable, Optional, Tuple
 
 from kgentitylinkingsklearn import EntityLinkerServiceSkLearn
 from kgforge.core.commons.actions import LazyAction
+from kgforge.core.config import ResolverConfig
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers import EntityLinker
@@ -23,9 +24,9 @@ from kgforge.specializations.resolvers import EntityLinker
 
 class EntityLinkerSkLearn(EntityLinker):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
+    def __init__(self, resolver_config: ResolverConfig) -> None:
+        super().__init__(resolver_config)
+
 
     @property
     def mapping(self) -> Callable:
@@ -36,7 +37,10 @@ class EntityLinkerSkLearn(EntityLinker):
         return DictionaryMapper
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Dict[str, LazyAction]:
+    def _service_from_directory(
+        dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]],
+        resolve_with_properties: List[str] = None
+    ) -> Dict[str, LazyAction]:
         # FIXME: the same model is loaded multiple times if provided for multiple targets
         return {target: LazyAction(EntityLinkerServiceSkLearn.from_pretrained, dirpath, filename_filter["bucket"]) for target, filename_filter in
                 targets.items()}
