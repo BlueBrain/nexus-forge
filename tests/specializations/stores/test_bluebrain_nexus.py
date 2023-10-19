@@ -37,6 +37,7 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
 from kgforge.specializations.stores.nexus import Service
+from utils import full_path_relative_to_root
 
 BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org"
@@ -44,8 +45,9 @@ TOKEN = "token"
 NEXUS_PROJECT_CONTEXT = {"base": "http://data.net", "vocab": "http://vocab.net",
                          "apiMappings": [{'namespace': 'https://neuroshapes.org/dash/', 'prefix': 'datashapes'}]}
 VERSIONED_TEMPLATE = "{x.id}?rev={x._store_metadata._rev}"
-FILE_RESOURCE_MAPPING = os.sep.join(
-    (os.path.curdir, "tests", "data", "nexus-store", "file-to-resource-mapping.hjson")
+
+FILE_RESOURCE_MAPPING = full_path_relative_to_root(
+    "./tests/data/nexus-store/file-to-resource-mapping.hjson"
 )
 
 

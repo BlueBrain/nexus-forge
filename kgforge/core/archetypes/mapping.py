@@ -15,11 +15,18 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+from enum import Enum
 
 import requests
 from requests import RequestException
 
 from kgforge.core.commons.attributes import repr_class
+
+
+class MappingType(Enum):
+    URL = "url"
+    FILE = "file"
+    STR = "str"
 
 
 class Mapping(ABC):
@@ -49,20 +56,56 @@ class Mapping(ABC):
         raise NotImplementedError
 
     @classmethod
-    def load(cls, source: str):
+    def load(cls, source: str, mapping_type: MappingType = None):
         # source: Union[str, FilePath, URL].
         # Mappings could be loaded from a string, a file, or an URL.
-        filepath = Path(source)
-        if filepath.is_file():
-            text = filepath.read_text()
+
+        if mapping_type is None:
+            e = cls.load_file(source, raise_ex=False)
+            e = e if e is not None else cls.load_url(source, raise_ex=False)
+            e = e if e is not None else cls.load_str(source, raise_ex=False)
+            if e is not None:
+                return e
+            raise Exception("Mapping loading failed")
+
+        if mapping_type == MappingType.FILE:
+            return cls.load_file(source)
+        elif mapping_type == MappingType.URL:
+            return cls.load_url(source)
+        elif mapping_type == MappingType.STR:
+            return cls.load_str(source)
         else:
-            try:
-                response = requests.get(source)
-                response.raise_for_status()
-                text = response.text
-            except RequestException:
-                text = source
-        return cls(text)
+            raise NotImplementedError
+
+    @classmethod
+    def load_file(cls, filepath, raise_ex=True):
+        try:
+            filepath = Path(filepath)
+
+            if filepath.is_file():
+                return cls(filepath.read_text())
+            else:
+                raise OSError
+        except OSError:
+            if raise_ex:
+                raise FileNotFoundError
+            return None
+
+    @classmethod
+    def load_url(cls, url, raise_ex=True):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return cls(response.text)
+        except RequestException as e:
+            if raise_ex:
+                raise e
+            return None
+
+    @classmethod
+    @abstractmethod
+    def load_str(cls, source: str, raise_ex=True):
+        ...
 
     def save(self, path: str) -> None:
         # path: FilePath.
