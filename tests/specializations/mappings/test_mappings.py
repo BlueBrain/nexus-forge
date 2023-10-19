@@ -18,7 +18,7 @@
 import pytest
 from contextlib import nullcontext as does_not_raise
 
-import hjson
+from hjson.scanner import HjsonDecodeError
 from requests import RequestException
 
 from kgforge.core.archetypes.mapping import MappingType
@@ -108,11 +108,11 @@ def test_mapping_load_url(source, exception):
 @pytest.mark.parametrize(
     "source, exception",
     [
-        (mapping_path_valid, pytest.raises(hjson.scanner.HjsonDecodeError)),
-        (mapping_url_valid, pytest.raises(hjson.scanner.HjsonDecodeError)),
-        (mapping_str_invalid, pytest.raises(hjson.scanner.HjsonDecodeError)),
-        (mapping_str_invalid_2, pytest.raises(hjson.scanner.HjsonDecodeError)),
-        (mapping_str_invalid_3, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_path_valid, pytest.raises(HjsonDecodeError)),
+        (mapping_url_valid, pytest.raises(HjsonDecodeError)),
+        (mapping_str_invalid, pytest.raises(HjsonDecodeError)),
+        (mapping_str_invalid_2, pytest.raises(HjsonDecodeError)),
+        (mapping_str_invalid_3, pytest.raises(HjsonDecodeError)),
         (mapping_str_valid_2, does_not_raise()),
         (mapping_str_valid, does_not_raise()),
     ],
