@@ -13,11 +13,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import json
-from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Union, Any
-from uuid import uuid4
-from rdflib import Graph
+from typing import Dict, List, Callable, Optional, Union, Any
 from rdflib.plugins.sparql.parser import Query
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -30,7 +27,8 @@ from kgforge.specializations.stores.databases import Service
 from kgforge.core.wrappings.paths import create_filters_from_dict
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
-from kgforge.core.commons.parser import _parse_type
+from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.specializations.stores.bluebrain_nexus import (
     CategoryDataType,
@@ -51,6 +49,13 @@ class SPARQLStore(Store):
 
 
     # [C]RUD
+    @property
+    def mapping(self) -> Optional[Callable]:
+        return DictionaryMapping
+
+    @property
+    def mapper(self) -> Optional[DictionaryMapper]:
+        return DictionaryMapper
 
     def register(self, data: Union[Resource, List[Resource]], schema_id: str = None
     ) -> None:
