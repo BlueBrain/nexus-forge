@@ -2,11 +2,12 @@ import dataclasses
 from typing import Dict, Optional, Union, ClassVar, List
 
 from kgforge.core.configs.config import Config
+from kgforge.core.configs.store_based_config import StoreBasedConfig
 from kgforge.core.configs.store_config import StoreConfig
 
 
 @dataclasses.dataclass(init=True)
-class ResolverConfig(Config):
+class ResolverConfig(StoreBasedConfig):
     resolver: Optional[str] = None
     origin: Optional[str] = None
     result_resource_mapping: Optional[str] = None
@@ -46,7 +47,7 @@ class ResolverConfig(Config):
             for val in ResolverConfig.ATTRIBUTES_FLAT + ["targets"]:
                 setattr(
                     configuration_parameter, val,
-                    Config.from_param_else_file(
+                    Config.from_first_else_second(
                         val, configuration_parameter, configuration_from_file
                     )
                 )
@@ -73,44 +74,13 @@ class ResolverConfig(Config):
             store_configurations: Dict[str, StoreConfig] = kwargs.get("store_configurations")
 
             # Resolver store config building
-            configuration_parameter.source = ResolverConfig.build_store_config_for_else(
+            configuration_parameter.source = ResolverConfig.merge_store_config(
                 store_configurations, configuration_parameter, configuration_from_file
             )
         else:
-            configuration_parameter.source = Config.from_param_else_file(
+            configuration_parameter.source = Config.from_first_else_second(
                 "source", configuration_parameter, configuration_from_file
             )
 
         return configuration_parameter
 
-
-    @staticmethod
-    def build_store_config_for_else(
-            store_configurations, configuration_parameter, configuration_from_file
-    ):
-        """
-        Builds a store config within a parent config (ModelConfig or ResolverConfig)
-        using fields that are StoreConfig specific at the top level of the parent config
-        """
-        configuration_source: Union[str, Dict] = Config.from_param_else_file(
-            "source", configuration_parameter, configuration_from_file
-        )
-
-        if isinstance(configuration_source, str):
-            store_id = configuration_source
-            store_update = {}
-        else:
-            store_id = configuration_source.get("id", None)
-            if store_id is None:
-                raise Exception("Missing id in source object")
-            store_update = {
-                att: configuration_source.get(att)
-                for att in StoreConfig.ATTRIBUTES_FLAT
-            }
-
-        # TODO non-flat merge of store attributes
-        source = store_configurations.get(configuration_source, None)
-        if source is None:
-            raise Exception(f"Model config referencing non-existing store id {store_id}")
-
-        return StoreConfig.merge_config(source, store_update)

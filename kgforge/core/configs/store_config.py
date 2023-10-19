@@ -39,6 +39,8 @@ class StoreConfig(Config):
         "Content_Type",
     ]
 
+    ATTRIBUTES = ATTRIBUTES_DICT + ATTRIBUTES_FLAT
+
     def __eq__(self, other):
         return all([
             getattr(self, e) == getattr(other, e)
@@ -49,21 +51,27 @@ class StoreConfig(Config):
         ])
 
     @staticmethod
-    def merge_config(configuration: Optional['StoreConfig'], store_config: Dict, **kwargs):
+    def merge_config(
+            configuration_1: Union['StoreConfig', Dict],
+            configuration_2: Union['StoreConfig', Dict],
+            first_into_second=False, **kwargs
+    ) -> 'StoreConfig':
+        """
+        Get config values from the StoreConfig object if available, else from the store_config dict
+        """
 
-        if configuration is None:
-            return StoreConfig(*{att: store_config.get(att) for att in StoreConfig.ATTRIBUTES_FLAT})
+        new_config = StoreConfig()
 
         for val in StoreConfig.ATTRIBUTES_FLAT:
             setattr(
-                configuration, val,
-                Config.from_param_else_file(val, configuration, store_config)
+                new_config, val,
+                Config.from_first_else_second(val, configuration_1, configuration_2)
             )
 
         for val in StoreConfig.ATTRIBUTES_DICT:
             setattr(
-                configuration, val,
-                Config.from_param_else_file_dict(val, configuration, store_config)
+                new_config, val,
+                Config.from_first_else_second(val, configuration_1, configuration_2, as_dict=True)
             )
 
-        return configuration
+        return new_config
