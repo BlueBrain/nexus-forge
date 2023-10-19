@@ -82,7 +82,7 @@ def test_model_config_merge_context_store_nothing_obj(model_config, store_dict):
     assert computed_model_config.context.source == expected_model_context_store_config
 
 
-def test_merge_config(store_dict):
+def test_merge_config(store_dict, model_config):
     model_config_store_before_merge = dict(
         source="store_1", origin="store", context={"iri": ""}
     )

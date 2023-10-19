@@ -254,7 +254,7 @@ class KnowledgeGraphForge:
         """
 
         model_configuration, store_configuration, resolver_configurations, formatters = \
-            KnowledgeGraphForge.load_configurations(configuration, kwargs)
+            KnowledgeGraphForge.load_configurations(configuration, **kwargs)
 
         # Debugging.
         self._debug = kwargs.pop("debug", False)

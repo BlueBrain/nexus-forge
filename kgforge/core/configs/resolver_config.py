@@ -8,6 +8,7 @@ from kgforge.core.configs.store_config import StoreConfig
 
 @dataclasses.dataclass(init=True)
 class ResolverConfig(StoreBasedConfig):
+    name: Optional[str] = None
     resolver: Optional[str] = None
     origin: Optional[str] = None
     result_resource_mapping: Optional[str] = None
@@ -16,6 +17,7 @@ class ResolverConfig(StoreBasedConfig):
     targets: Optional[Dict] = None
 
     ATTRIBUTES_FLAT: ClassVar[List] = [
+        "name",
         "resolver",
         "origin",
         "result_resource_mapping",
@@ -77,6 +79,8 @@ class ResolverConfig(StoreBasedConfig):
             new_configuration.source = Config.from_first_else_second(
                 "source", configuration_1, configuration_2
             )
+
+        new_configuration.name = new_configuration.resolver
 
         return new_configuration
 

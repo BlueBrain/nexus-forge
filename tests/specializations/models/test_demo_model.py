@@ -27,7 +27,7 @@ scenarios("demo_model.feature")
 @given("A model instance.")
 def model():
     return DemoModel(
-        ModelConfig(source="tests/data/demo-model/", origin="directory")
+        ModelConfig(source=full_path_relative_to_root("tests/data/demo-model/"), origin="directory")
     )
 
 

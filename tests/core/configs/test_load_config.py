@@ -6,11 +6,10 @@ import os
 import pytest
 
 
-
 def test_load_config_model():
 
     configuration = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "../data/forge_multi/test_multi.yml"
+        os.path.dirname(os.path.realpath(__file__)), "../../data/forge_multi/test_multi.yml"
     )
 
     new_endpoint = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
