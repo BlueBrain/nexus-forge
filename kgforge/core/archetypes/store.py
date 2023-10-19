@@ -122,7 +122,7 @@ class Store(ABC):
         self.token: Optional[str] = token
         self.versioned_id_template: Optional[str] = versioned_id_template
         loaded = (
-            self.mapping.load_file(file_resource_mapping) if file_resource_mapping else None
+            self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         )
         self.file_mapping: Optional[Any] = loaded
         self.model_context: Optional[Context] = model_context
