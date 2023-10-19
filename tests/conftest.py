@@ -12,10 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import os
 from typing import Callable, List, Union, Dict, Optional
 from uuid import uuid4
-
+from utils import full_path_relative_to_root
 import pytest
 from pytest_bdd import given, parsers, then, when
 
@@ -41,7 +40,6 @@ def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
 
 
 # Resource(s) creation.
-
 
 @pytest.fixture
 def json_one():
@@ -173,7 +171,7 @@ def forge():
         "Model": {
             "name": "DemoModel",
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": full_path_relative_to_root("tests/data/demo-model/")
         },
         "Store": {
             "name": "DemoStore",
@@ -312,7 +310,7 @@ def building():
 
 @pytest.fixture(scope="session")
 def context_file_path():
-    return os.sep.join((os.path.abspath("."), "tests/data/shacl-model/context.json"))
+    return full_path_relative_to_root("tests/data/shacl-model/context.json")
 
 
 @pytest.fixture(scope="session")
@@ -465,7 +463,7 @@ def config(model, store, resolver):
         "Model": {
             "name": model,
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": full_path_relative_to_root("tests/data/demo-model/"),
         },
         "Store": {
             "name": store,
@@ -476,7 +474,7 @@ def config(model, store, resolver):
                 {
                     "resolver": resolver,
                     "origin": "directory",
-                    "source": "tests/data/demo-resolver/",
+                    "source": full_path_relative_to_root("tests/data/demo-resolver/"),
                     "targets": [
                         {
                             "identifier": "sex",
@@ -493,7 +491,9 @@ def config(model, store, resolver):
                             ]
                         },
                     ],
-                    "result_resource_mapping": "../../configurations/demo-resolver/term-to-resource-mapping.hjson",
+                    "result_resource_mapping": full_path_relative_to_root(
+                        "./examples/configurations/demo-resolver/term-to-resource-mapping.hjson"
+                    )
                 },
             ],
         },

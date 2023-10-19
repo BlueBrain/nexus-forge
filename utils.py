@@ -14,11 +14,12 @@
 
 import nexussdk as nxs
 from urllib.parse import quote_plus
+import os
 
 TOKEN = ""
 base_prod_v1= "https://bbp.epfl.ch/nexus/v1"
 
-    
+
 nxs.config.set_environment(base_prod_v1)
 nxs.config.set_token(TOKEN)
 
@@ -39,24 +40,24 @@ This returns for example:
 https://bbp.epfl.ch/nexus/v1/files/bbp/mmb-point-neuron-framework-model/https%3A%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F79b51b75-81e2-4b2f-98fc-666130512cea
 """
 def uri_formatter_using_previous_project_config(nxs, uri, org, project):
-   # Retrieve current project description 
+   # Retrieve current project description
    current_project_description =  nxs.projects.fetch(org,project)
    current_project_description = dict(current_project_description)
    #current_base = current_project_description["base"]
    #current_vocab = current_project_description["vocab"]
    current_project_revision =  current_project_description['_rev']
-    
+
    if current_project_revision <= 1:
       raise Exception("The targeted project {org}/{project} does not have a previous revision. It's config was never changed.")
-   
-   # Retrieve previous project description 
+
+   # Retrieve previous project description
    previous_project_revision = current_project_revision - 1
    previous_project_description = nxs.projects.fetch(org,project, rev=previous_project_revision)
    previous_project_description = dict(previous_project_description)
    previous_base = previous_project_description["base"]
    #previous_vocab = previous_project_description["vocab"]
    previous_project_revision =  previous_project_description['_rev']
-   
+
    uri_parts = uri.split("/")
    uri_last_path = uri_parts[-1]
    uri_last_path = uri_last_path.split("?") # in case ? params are in the url
@@ -70,3 +71,9 @@ def uri_formatter_using_previous_project_config(nxs, uri, org, project):
    return formatter_uri
 
 
+def full_path_relative_to_root(path: str):
+   """
+   Provided a path relative to the root of the repository, it is transformed into an absolute path
+   so that it will be independent of what the working directory is
+   """
+   return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
