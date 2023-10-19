@@ -34,9 +34,12 @@ class DictionaryMapping(Mapping):
         return hjson.dumps(rules, indent=4, item_sort_key=sort_attrs)
 
     @classmethod
-    def load_text(cls, source: str, raise_ex=True):
+    def load_str(cls, source: str, raise_ex=True):
+        # hjson loading doesn't make one line strings (non dictionaries) fail
         if len(source.strip()) > 0 and source.strip()[0] != "{":
             if raise_ex:
-                raise Exception("Invalid mapping string")
+                raise hjson.scanner.HjsonDecodeError(
+                    f"Invalid hjson mapping", doc=source, pos=0
+                )
             return None
         return cls(source)

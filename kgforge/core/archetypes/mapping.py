@@ -63,7 +63,7 @@ class Mapping(ABC):
         if mapping_type is None:
             e = cls.load_file(source, raise_ex=False)
             e = e if e is not None else cls.load_url(source, raise_ex=False)
-            e = e if e is not None else cls.load_text(source, raise_ex=False)
+            e = e if e is not None else cls.load_str(source, raise_ex=False)
             if e is not None:
                 return e
             raise Exception("Mapping loading failed")
@@ -73,16 +73,23 @@ class Mapping(ABC):
         elif mapping_type == MappingType.URL:
             return cls.load_url(source)
         elif mapping_type == MappingType.STR:
-            return cls.load_text(source)
+            return cls.load_str(source)
         else:
             raise NotImplementedError
 
     @classmethod
     def load_file(cls, filepath, raise_ex=True):
-        filepath = Path(filepath)
-        if filepath.is_file():
-            return cls(filepath.read_text())
-        else:
+        try:
+            filepath = Path(filepath)
+
+            if filepath.is_file():
+                return cls(filepath.read_text())
+            else:
+                if raise_ex:
+                    raise FileNotFoundError
+                return None
+
+        except OSError:
             if raise_ex:
                 raise FileNotFoundError
             return None
@@ -100,7 +107,7 @@ class Mapping(ABC):
 
     @classmethod
     @abstractmethod
-    def load_text(cls, source: str, raise_ex=True):
+    def load_str(cls, source: str, raise_ex=True):
         ...
 
     def save(self, path: str) -> None:

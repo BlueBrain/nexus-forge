@@ -18,6 +18,7 @@
 import pytest
 from contextlib import nullcontext as does_not_raise
 
+import hjson
 from requests import RequestException
 
 from kgforge.core.archetypes.mapping import MappingType
@@ -31,9 +32,19 @@ mapping_path_valid = full_path_relative_to_root(
     "tests/data/nexus-store/file-to-resource-mapping.hjson"
 )
 
-mapping_text_valid = "{}"
+mapping_str_valid = "{}"
 
-mapping_text_invalid = "i"
+mapping_str_invalid = "i"
+
+mapping_str_invalid_2 = "{something}"
+
+mapping_str_invalid_3 = "{a:b}"
+
+mapping_str_valid_2 = """
+{
+    a:b
+}
+"""
 
 
 @pytest.mark.parametrize(
@@ -70,8 +81,8 @@ def test_mapping_load_mapping_type(source, mapping_type, exception):
     [
         (mapping_path_valid, does_not_raise()),
         (mapping_url_valid, pytest.raises(FileNotFoundError)),
-        (mapping_text_invalid, pytest.raises(FileNotFoundError)),
-        (mapping_text_valid, pytest.raises(FileNotFoundError)),
+        (mapping_str_invalid, pytest.raises(FileNotFoundError)),
+        (mapping_str_valid, pytest.raises(FileNotFoundError)),
     ],
 )
 def test_mapping_load_file(source, exception):
@@ -84,8 +95,8 @@ def test_mapping_load_file(source, exception):
     [
         (mapping_url_valid, does_not_raise()),
         (mapping_path_valid, pytest.raises(RequestException)),
-        (mapping_text_invalid, pytest.raises(RequestException)),
-        (mapping_text_valid, pytest.raises(RequestException)),
+        (mapping_str_invalid, pytest.raises(RequestException)),
+        (mapping_str_valid, pytest.raises(RequestException)),
 
     ],
 )
@@ -97,13 +108,17 @@ def test_mapping_load_url(source, exception):
 @pytest.mark.parametrize(
     "source, exception",
     [
-        (mapping_path_valid, pytest.raises(Exception)),
-        (mapping_url_valid, pytest.raises(Exception)),
-        (mapping_text_invalid, pytest.raises(Exception)),
-        (mapping_text_valid, does_not_raise()),
-
+        (mapping_path_valid, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_url_valid, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_str_invalid, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_str_invalid_2, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_str_invalid_3, pytest.raises(hjson.scanner.HjsonDecodeError)),
+        (mapping_str_valid_2, does_not_raise()),
+        (mapping_str_valid, does_not_raise()),
     ],
 )
-def test_mapping_load_text(source, exception):
+def test_mapping_load_str(source, exception):
     with exception:
-        mapping = DictionaryMapping.load_text(source)
+        mapping = DictionaryMapping.load_str(source)
+
+
