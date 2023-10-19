@@ -37,7 +37,6 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
 from kgforge.specializations.stores.services.nexus_store_service import NexusStoreService
-from kgforge.specializations.stores.nexus import Service
 from utils import full_path_relative_to_root
 
 BUCKET = "test/kgforge"
