@@ -11,7 +11,7 @@ class ResolverConfig(StoreBasedConfig):
     resolver: Optional[str] = None
     origin: Optional[str] = None
     result_resource_mapping: Optional[str] = None
-    source: Optional[Union[str, 'StoreConfig']] = None
+    source: Optional[Union[str, 'StoreConfig', Dict]] = None
     resolve_with_properties: List[str] = None
     targets: Optional[Dict] = None
 
@@ -31,56 +31,52 @@ class ResolverConfig(StoreBasedConfig):
 
     @staticmethod
     def merge_config(
-            configuration_parameter: Optional['ResolverConfig'],
-            configuration_from_file: Dict, **kwargs
+            configuration_1: Optional['ResolverConfig'],
+            configuration_2: Dict, **kwargs
     ):
         # TODO make the merging of targets BETTER
 
-        if configuration_parameter is None:
-            configuration_parameter = ResolverConfig(
-                **dict(
-                    (att, configuration_from_file.get(att))
-                    for att in ResolverConfig.ATTRIBUTES_FLAT + ["targets"] if att is not None
+        new_configuration = ResolverConfig()
+
+        for val in ResolverConfig.ATTRIBUTES_FLAT + ["targets"]:
+            setattr(
+                new_configuration, val,
+                Config.from_first_else_second(
+                    val, configuration_1, configuration_2
                 )
             )
-        else:
-            for val in ResolverConfig.ATTRIBUTES_FLAT + ["targets"]:
-                setattr(
-                    configuration_parameter, val,
-                    Config.from_first_else_second(
-                        val, configuration_parameter, configuration_from_file
-                    )
-                )
 
         # Reformat target
-        new_target_dict = {}
 
-        for target in configuration_parameter.targets:
-            if "filters" in target:
-                # reshape filters to match query filters
-                filters = {f["path"]: f["value"] for f in target["filters"]}
-            else:
-                filters = None
+        if new_configuration.targets is not None:
+            new_target_dict = {}
 
-            new_target_dict[target["identifier"]] = {
-                "bucket": target["bucket"],
-                "filters": filters
-            }
+            for target in new_configuration.targets:
+                if "filters" in target:
+                    # reshape filters to match query filters
+                    filters = {f["path"]: f["value"] for f in target["filters"]}
+                else:
+                    filters = None
 
-        configuration_parameter.targets = new_target_dict
+                new_target_dict[target["identifier"]] = {
+                    "bucket": target["bucket"],
+                    "filters": filters
+                }
+
+            new_configuration.targets = new_target_dict
 
         # Set Source
-        if configuration_parameter.origin == "store":
+        if new_configuration.origin == "store":
             store_configurations: Dict[str, StoreConfig] = kwargs.get("store_configurations")
 
             # Resolver store config building
-            configuration_parameter.source = ResolverConfig.merge_store_config(
-                store_configurations, configuration_parameter, configuration_from_file
+            new_configuration.source = ResolverConfig.merge_store_config(
+                store_configurations, configuration_1, configuration_2
             )
         else:
-            configuration_parameter.source = Config.from_first_else_second(
-                "source", configuration_parameter, configuration_from_file
+            new_configuration.source = Config.from_first_else_second(
+                "source", configuration_1, configuration_2
             )
 
-        return configuration_parameter
+        return new_configuration
 

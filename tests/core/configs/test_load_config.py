@@ -6,6 +6,7 @@ import os
 import pytest
 
 
+
 def test_load_config_model():
 
     configuration = os.path.join(
@@ -26,9 +27,7 @@ def test_load_config_model():
     }
 
     model_config = {
-        "model_1": ModelConfig(
-
-        )
+        "model_1": ModelConfig()
     }
 
     selected_model_config, selected_store_config, resolver_configs, formatters = \

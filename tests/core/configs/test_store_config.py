@@ -26,6 +26,7 @@ def test_merge_config_attribute_flat(store_config):
 def test_merge_config_attribute_dict(store_config):
     store_config_after_merge = copy.deepcopy(store_config)
     store_config_after_merge.searchendpoints["sparql"]["endpoint"] = "other"
+    # elastic should not be overwritten
 
     attempt_merge = StoreConfig.merge_config(
         configuration_1=StoreConfig(searchendpoints={"sparql": {"endpoint": "other"}}),
