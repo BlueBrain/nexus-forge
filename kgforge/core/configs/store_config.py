@@ -23,7 +23,11 @@ class StoreConfig(Config):
     params: Optional[Dict] = None
 
     ATTRIBUTES_DICT: ClassVar[List] = [
-        "searchendpoints", "vocabulary", "files_upload", "files_download", "params"
+        "searchendpoints",
+        "vocabulary",
+        "files_upload",
+        "files_download",
+        "params"
     ]
 
     ATTRIBUTES_FLAT: ClassVar[List] = [
