@@ -28,10 +28,11 @@ class FilterOperator(Enum):
 
 
 class Filter:
-    def __init__(self, path: List[str], operator: str, value: Any) -> None:
+    def __init__(self, path: List[str], operator: Union[str, FilterOperator], value: Any) -> None:
         self.path: List[str] = path
         try:
-            self.operator: str = FilterOperator(operator).value
+            self.operator: str = operator.value if isinstance(operator, FilterOperator) \
+                else FilterOperator(operator).value
         except Exception as e:
             raise ValueError(
                 f"Invalid operator value '{operator}'. Allowed operators are {[member.value for name, member in FilterOperator.__members__.items()]}"
