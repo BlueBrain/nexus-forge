@@ -96,11 +96,8 @@ class DemoModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(
-            source_path: Optional[Path], ontologies_path: Optional[Path],
-            shapes_path: Optional[Path], context_iri: Optional[str]
-    ):
-        return ModelLibrary(source_path)
+    def _service_from_directory(dir_path: Path, context_iri: Optional[str]):
+        return ModelLibrary(dir_path)
 
 
 class ModelLibrary:

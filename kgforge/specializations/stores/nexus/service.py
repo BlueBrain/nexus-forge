@@ -247,44 +247,44 @@ class Service:
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
-        if iri in self.context_cache:
-            return self.context_cache[iri]
-
         context_to_resolve = (
             self.store_local_context if iri == self.store_context else iri
         )
-        url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
 
-        try:
-            response = requests.get(url, headers=self.headers)
-            response.raise_for_status()
-            resource = response.json()
-        except Exception:
-            if not local_only:
-                try:
-                    context = Context(context_to_resolve)
-                except URLError:
+        if context_to_resolve not in self.context_cache:
+
+            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
+
+            try:
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                resource = response.json()
+            except Exception as e:
+                if not local_only:
+                    try:
+                        context = Context(context_to_resolve)
+                    except URLError:
+                        raise ValueError(f"{context_to_resolve} is not resolvable")
+
+                    document = context.document["@context"]
+                else:
                     raise ValueError(f"{context_to_resolve} is not resolvable")
-
-                document = context.document["@context"]
             else:
-                raise ValueError(f"{context_to_resolve} is not resolvable")
-        else:
-            # Make sure context is not deprecated
-            if '_deprecated' in resource and resource['_deprecated']:
-                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
-            document = json.loads(json.dumps(resource["@context"]))
+                # Make sure context is not deprecated
+                if '_deprecated' in resource and resource['_deprecated']:
+                    raise ConfigurationError(
+                        f"Context {context_to_resolve} exists but was deprecated"
+                    )
+                document = json.loads(json.dumps(resource["@context"]))
 
-        if isinstance(document, list):
-            if self.store_context in document:
-                document.remove(self.store_context)
-            if self.store_local_context in document:
-                document.remove(self.store_local_context)
+            if isinstance(document, list):
+                if self.store_context in document:
+                    document.remove(self.store_context)
+                if self.store_local_context in document:
+                    document.remove(self.store_local_context)
 
-        self.context_cache[context_to_resolve] = document
+            self.context_cache[context_to_resolve] = document
 
-        # TODO context_to_resolve may be different from iri. Why is having it in the cache
-        #  already leading to different outcome? (see first 2 lines of function)
         return self.context_cache[context_to_resolve]
 
     def batch_request(

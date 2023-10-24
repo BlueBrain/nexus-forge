@@ -132,17 +132,8 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(
-            source_path: Optional[Path],
-            ontologies_path: Optional[Path],
-            shapes_path: Optional[Path],
-            context_iri: str,
-            **dir_config
-    ) -> RdfService:
-        return DirectoryService(
-            source_path=source_path,
-            ontologies_path=ontologies_path, shapes_path=shapes_path, context_iri=context_iri
-        )
+    def _service_from_directory(dir_path: Path, context_iri: str, **dir_config) -> RdfService:
+        return DirectoryService(dir_path=dir_path, context_iri=context_iri)
 
     @staticmethod
     def _service_from_store(store: Callable, context_config: Optional[Dict],

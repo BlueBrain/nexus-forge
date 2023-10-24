@@ -1,29 +1,10 @@
-import pyshacl
 from pyshacl import Shape, ShapesGraph
 from rdflib import Graph, URIRef
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 
+from typing import List, Optional, Set, Tuple, Dict
 
 from kgforge.specializations.models.rdf.collectors import ALL_COLLECTORS
-
-from time import perf_counter
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Type, Union, Dict
-
-from rdflib import BNode, Literal, URIRef
-
-from pyshacl.consts import (
-    SH_Info,
-    SH_resultSeverity,
-    SH_Warning,
-)
-from pyshacl.errors import ConstraintLoadError, ConstraintLoadWarning, ReportableRuntimeError, \
-    ShapeLoadError
-
-from pyshacl.pytypes import GraphLike
-
-if TYPE_CHECKING:
-    from pyshacl.constraints import ConstraintComponent
-    from pyshacl.shapes_graph import ShapesGraph
 
 
 ALL_COLLECTORS_MAP = {c.constraint(): c for c in ALL_COLLECTORS}

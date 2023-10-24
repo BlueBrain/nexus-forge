@@ -27,20 +27,8 @@ from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraph
 
 class DirectoryService(RdfService):
 
-    def __init__(self, source_path: Path, ontologies_path: Optional[Path],
-                 shapes_path: Optional[Path], context_iri: str) -> None:
-
-        g = Graph()
-        if ontologies_path is None and shapes_path is None:
-            if source_path is None:
-                raise Exception("Must specify source path")
-            else:
-                g = load_rdf_files(source_path, g)
-        else:
-            g = load_rdf_files(ontologies_path, g)
-            g = load_rdf_files(shapes_path, g)
-
-        self._graph = g
+    def __init__(self, dir_path: Path, context_iri: str) -> None:
+        self._graph = load_rdf_files_into_graph(dir_path, Graph())
         self._shapes_graph = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
 
@@ -115,7 +103,7 @@ class DirectoryService(RdfService):
         return schema_to_file, class_being_shaped_id_to_shape_uri
 
 
-def load_rdf_files(path: Path, memory_graph: Graph) -> Graph:
+def load_rdf_files_into_graph(path: Path, memory_graph: Graph) -> Graph:
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
