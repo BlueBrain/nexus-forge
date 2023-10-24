@@ -58,20 +58,7 @@ class RdfModelServiceFromDirectory(RdfModelService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    # def _build_ontology_map(self) -> Dict[str, URIRef]:
-    #     query = """
-    #         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-    #         PREFIX sh: <http://www.w3.org/ns/shacl#>
-    #         SELECT ?id ?label WHERE {
-    #             ?id a owl:Class ;
-    #                 rdfs:label ?label
-    #         }
-    #     """  # TODO CHANGE
-    #     res = self._graph.query(query)
-    #     return {
-    #         row["label"]: URIRef(row["id"])
-    #         for row in res
-    #     }
+
 
     def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
         query = """

@@ -41,8 +41,6 @@ class RdfModelService:
         self._graph = graph
         self._context_cache = {}
         self.schema_to_source, self.classes_to_shapes = self._build_shapes_map()
-        # self.label_to_ontology_id: Dict[str, URIRef] = self._build_ontology_map()
-
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
@@ -186,7 +184,3 @@ class RdfModelService:
         context.update({key: terms[key] for key in sorted(terms)})
 
         return {"@context": context} if len(context) > 0 else None
-
-    # @abstractmethod
-    # def _build_ontology_map(self):
-    #     pass
