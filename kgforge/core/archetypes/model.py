@@ -180,9 +180,19 @@ class Model(ABC):
         origin = source_config.pop("origin")
         context_config = source_config.pop("context", {})
         context_iri = context_config.get("iri", None)
+
         if origin == "directory":
-            dirpath = Path(source)
-            return self._service_from_directory(dirpath, context_iri)
+
+            ontology_path = Path(source_config["ontology_path"]) \
+                if "ontology_path" in source_config else None
+            shapes_path = Path(source_config["shapes_path"]) \
+                if "shapes_path" in source_config else None
+            source_path = Path(source)
+
+            return self._service_from_directory(
+                source_path=source_path, ontologies_path=ontology_path, shapes_path=shapes_path,
+                context_iri=context_iri
+            )
         if origin == "url":
             return self._service_from_url(source, context_iri)
         if origin == "store":
@@ -194,7 +204,8 @@ class Model(ABC):
     @staticmethod
     @abstractmethod
     def _service_from_directory(
-            ontologies_path: Path, shapes_path: Path, context_iri: Optional[str]
+            source_path: Optional[Path], ontologies_path: Optional[Path],
+            shapes_path: Optional[Path], context_iri: Optional[str]
     ) -> Any:
         pass
 

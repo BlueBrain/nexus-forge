@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 from pyshacl import validate
 from rdflib import Graph, URIRef
@@ -27,10 +27,18 @@ from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraph
 
 class DirectoryService(RdfService):
 
-    def __init__(self, ontologies_path: Path, shapes_path: Path, context_iri: str) -> None:
+    def __init__(self, source_path: Path, ontologies_path: Optional[Path],
+                 shapes_path: Optional[Path], context_iri: str) -> None:
+
         g = Graph()
-        g = load_rdf_files(ontologies_path, g)
-        g = load_rdf_files(shapes_path, g)
+        if ontologies_path is None and shapes_path is None:
+            if source_path is None:
+                raise Exception("Must specify source path")
+            else:
+                g = load_rdf_files(source_path, g)
+        else:
+            g = load_rdf_files(ontologies_path, g)
+            g = load_rdf_files(shapes_path, g)
 
         self._graph = g
         self._shapes_graph = ShapesGraphWrapper(self._graph)

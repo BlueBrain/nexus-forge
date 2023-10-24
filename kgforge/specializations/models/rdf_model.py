@@ -105,7 +105,8 @@ class RdfModel(Model):
 
     # Validation.
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
+    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool,
+                 type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated", type_=type_)
 
@@ -132,14 +133,20 @@ class RdfModel(Model):
 
     @staticmethod
     def _service_from_directory(
-            ontologies_path: Path, shapes_path: Path, context_iri: str, **dir_config
+            source_path: Optional[Path],
+            ontologies_path: Optional[Path],
+            shapes_path: Optional[Path],
+            context_iri: str,
+            **dir_config
     ) -> RdfService:
         return DirectoryService(
+            source_path=source_path,
             ontologies_path=ontologies_path, shapes_path=shapes_path, context_iri=context_iri
         )
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
+    def _service_from_store(store: Callable, context_config: Optional[Dict],
+                            **source_config) -> Any:
         endpoint = source_config.get("endpoint")
         token = source_config.get("token")
         bucket = source_config["bucket"]
@@ -156,7 +163,8 @@ class RdfModel(Model):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
-                context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
+                context_store: Store = store(context_endpoint, context_bucket, context_token,
+                                             **source_config)
                 # FIXME: define a store independent StoreService
                 service = RdfModelStoreService(default_store, context_iri, context_store)
             else:
@@ -186,7 +194,8 @@ def parse_attributes(node: NodeProperties, only_required: bool,
     return attributes
 
 
-def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
+def parse_properties(items: List[NodeProperties], only_required: bool,
+                     inherited_constraint: str) -> Dict:
     props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))

@@ -279,7 +279,7 @@ class ShapesGraphWrapper(ShapesGraph):
         Returns:
             Shape: The Shacl shape of the requested node.
         """
-        shape: Shape = self._node_shape_cache[node]
+        shape: Shape = self._node_shape_cache.get(node, None)
         if shape:
             return ShapeWrapper(shape)
             # if not hasattr(shape_wrapper, "traverse"):
