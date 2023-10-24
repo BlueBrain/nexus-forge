@@ -19,6 +19,8 @@ from typing import Dict, List, Callable, Optional, Any, Union
 from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
+from rdflib.query import Result
+from rdflib.plugins.sparql.processor import SPARQLResult
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Model, Store
@@ -87,6 +89,9 @@ class RdfModel(Model):
         if document:
             return Context(document)
 
+    def _sparql(self, query) -> SPARQLResult:
+        return self.service.sparql(query)
+
     # Templates.
 
     def _template(self, type: str, only_required: bool) -> Dict:
@@ -102,8 +107,7 @@ class RdfModel(Model):
 
     def schema_id(self, type: str) -> URIRef:
         shape_iri: URIRef = self.get_shape_from_type(type)
-        e = self.service.schema_source(shape_iri)
-        return e
+        return self.service.schema_source(shape_iri)
 
     # Validation.
 

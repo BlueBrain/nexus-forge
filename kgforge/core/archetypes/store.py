@@ -34,7 +34,7 @@ from kgforge.core.commons.exceptions import (
     QueryingError,
 )
 from kgforge.core.commons.execution import not_supported, run
-from kgforge.core.commons.sparql_query_rewriter import handle_query
+from kgforge.core.commons.sparql_query_rewriter import handle_sparql_query, _debug_query
 from kgforge.core.reshaping import collect_values
 
 # NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
@@ -387,7 +387,7 @@ class Store(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = handle_query(
+        qr = handle_sparql_query(
             query=query,
             model_context=self.model_context,
             metadata_context=self.service.metadata_context,
@@ -395,11 +395,9 @@ class Store(ABC):
             limit=limit,
             offset=offset,
             default_limit=DEFAULT_LIMIT,
-            default_offset=DEFAULT_OFFSET
+            default_offset=DEFAULT_OFFSET,
+            debug=debug
         )
-
-        if debug:
-            self._debug_query(qr)
 
         return self._sparql(qr)
 
@@ -471,14 +469,6 @@ class Store(ABC):
     ) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
-
-    @staticmethod
-    def _debug_query(query):
-        if isinstance(query, Dict):
-            print("Submitted query:", query)
-        else:
-            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-        print()
 
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context

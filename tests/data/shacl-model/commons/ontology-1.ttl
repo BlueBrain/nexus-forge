@@ -1,0 +1,375 @@
+@prefix bmo: <https://bbp.epfl.ch/ontologies/core/bmo/> .
+@prefix ns1: <http://purl.org/vocab/vann/> .
+@prefix nsg: <https://neuroshapes.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix parms: <https://bbp.epfl.ch/ontologies/core/parameters/> .
+@prefix schema: <http://schema.org/> .
+
+
+<https://bbp.epfl.ch/ontologies/core/parameters> rdf:type owl:Ontology ;
+                                                 <http://purl.org/vocab/vann/preferredNamespacePrefix> "parms"^^xsd:string ;
+                                                 schema:title "Brain Modeling Parameter Ontology"^^xsd:string ;
+                                                 rdfs:label "Brain Modeling Parameter Ontology"^^xsd:string ;
+                                                 owl:versionInfo "R4"^^xsd:string .
+
+ns1:preferredNamespacePrefix a owl:AnnotationProperty .
+
+schema:Dataset a owl:Class .
+
+schema:name a owl:AnnotationProperty ;
+    rdfs:label "name"@en ;
+    skos:altLabel "name"@en .
+
+schema:sameAs a owl:ObjectProperty ;
+    rdfs:label "sameAs"@en ;
+    rdfs:subPropertyOf owl:topObjectProperty .
+
+schema:unitCode a owl:AnnotationProperty ;
+    rdfs:label "unitCode"@en ;
+    skos:altLabel "units"@en .
+
+rdfs:isDefinedBy rdfs:label "isDefinedBy"@en .
+
+rdfs:label rdfs:label "label"@en .
+
+owl:equivalentClass a owl:AnnotationProperty ;
+    rdfs:label "equivalentClass"@en .
+
+owl:topDataProperty rdfs:label "Attributes"@en .
+
+skos:altLabel a owl:AnnotationProperty ;
+    skos:altLabel "altLabel"@en .
+
+skos:definition a owl:AnnotationProperty ;
+    rdfs:label "definition"@en .
+
+skos:example a owl:AnnotationProperty .
+
+skos:notation a owl:AnnotationProperty .
+
+skos:note a owl:AnnotationProperty .
+
+skos:prefLabel a owl:AnnotationProperty ;
+    rdfs:label "prefLabel"@en .
+
+bmo:AtlasDistanceToLayer a owl:Class ;
+    rdfs:label "AtlasDistanceToLayer"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:AtlasETypeRatio a owl:Class ;
+    rdfs:label "AtlasETypeRatio"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:altLabel "Atlas e-type ratio"@en ;
+    skos:prefLabel "Atlas EType Ratio"@en .
+
+bmo:BrainVolumeParameter a owl:Class ;
+    rdfs:label "Model Brain Volume Parameter"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:ConductanceDensity a owl:Class ;
+    rdfs:label "Conductance Density"@en ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty bmo:compartment ;
+            owl:someValuesFrom bmo:NeuronPart ],
+        [ a owl:Restriction ;
+            owl:onProperty nsg:ion ;
+            owl:someValuesFrom bmo:Ion ],
+        bmo:EModelParameter,
+        bmo:NeuronPartFeature .
+
+bmo:ConnectivityModelCoefficient a owl:Class ;
+    rdfs:label "Connectivity Model Coefficient"@en ;
+    rdfs:subClassOf bmo:ModelConnectivityParameter .
+
+bmo:DendriteSynapseDensity a owl:Class ;
+    rdfs:label "DendriteSynapseDensity"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:EModelParameterConstraint a owl:Class ;
+    rdfs:label "EModel Parameter Constraint"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameterConstraint .
+
+bmo:ETypeRatio a owl:Class ;
+    rdfs:label "E-TypeRatio"@en ;
+    rdfs:seeAlso <https://bbpgitlab.epfl.ch/circuits/CircuitBuildRecipe/-/blob/circuits-SSCX-BioM/inputs/1_cell_placement/cell_composition.yaml> ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "The E-type ratio is the ratio of an e-type for a given m-type, brain region and layer. For a given m-type, all e-type ratios add up to 1."^^xsd:string ;
+    skos:prefLabel "E-Type Ratio"^^xsd:string .
+
+bmo:ElectricalStimulus a owl:Class ;
+    rdfs:label "Electrical Stimulus"@en ;
+    rdfs:isDefinedBy <https://bbp.epfl.ch/nexus/webprotege/#projects/ea484e60-5a27-4790-8f2a-e2975897f407/edit/Classes?selection=Class(%3Chttps://bbp.epfl.ch/ontologies/core/bmo/ElectricalStimulus%3E)> ;
+    rdfs:seeAlso <https://bbpteam.epfl.ch/project/spaces/pages/viewpage.action?spaceKey=CELLS&title=Input+required+by+BluePyEModel+for+e-model+building> ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:editorialNote "How is this related to 'Protocol' in BluePyEModel"^^xsd:string .
+
+bmo:METypeRatio a owl:Class ;
+    rdfs:label "ME-Type Ratio"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:prefLabel "ME-Type Ratio"^^xsd:string .
+
+bmo:ModelBiochemicalReactionParameter a owl:Class ;
+    rdfs:label "Model Biochemical Reaction Parameter"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Parameter used to represent a specific biological or theoretical value that is used in the modeling of biochemical reactions."^^xsd:string .
+
+<https://bbp.epfl.ch/ontologies/core/parameters> a owl:Ontology ;
+    rdfs:label "Brain Modeling Parameter Ontology"^^xsd:string ;
+    ns1:preferredNamespacePrefix "parms"^^xsd:string ;
+    schema:title "Brain Modeling Parameter Ontology"^^xsd:string ;
+    owl:versionInfo "R4"^^xsd:string .
+
+parms:Dep a owl:Class ;
+    rdfs:label "Dep"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Relaxation time constant for depression, as measured by fitting the TM model to electrophysiological traces."@en .
+
+parms:Fac a owl:Class ;
+    rdfs:label "Fac"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Relaxation time constant for facilitation, as measured by fitting the TM model to electrophysiological traces."@en .
+
+parms:GABAB_ratio a owl:Class ;
+    rdfs:label "GABAB_ratio"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Synaptic conductance of GABAB proportional to the value for GABAA."@en .
+
+parms:NMDA_ratio a owl:Class ;
+    rdfs:label "NMDA_ratio"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Synaptic conductance of NMDA proportional to the value for AMPA."@en .
+
+parms:Nrrp a owl:Class ;
+    rdfs:label "Nrrp"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Number of tital release sites for given contact."@en .
+
+parms:Use a owl:Class ;
+    rdfs:label "Use"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Utilization of synaptic efficiency as measured by fitting the TM model to electrophysiological traces."@en .
+
+parms:conductance a owl:Class ;
+    rdfs:label "conductance"@en ;
+    schema:unitCode "uS" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Synaptic conductance."@en .
+
+parms:TimeConstantInMsForRecoveryFromDepression a owl:Class ;
+    rdfs:label "d"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "time constant (in ms) for recovery from depression, following a Gamma distribution"@en .
+
+parms:DecayTimeConstant a owl:Class ;
+    rdfs:label "dtc"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "decay time constant (in ms), following a truncated Normal distribution"@en .
+
+parms:SynapticReversalPotential a owl:Class ;
+    rdfs:label "e"@en ;
+    schema:unitCode "mV" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Synaptic reversal potential"@en .
+
+parms:e_GABAA a owl:Class ;
+    rdfs:label "e_GABAA"@en ;
+    schema:unitCode "mV" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAA reversal potential"@en .
+
+parms:e_GABAB a owl:Class ;
+    rdfs:label "e_GABAB"@en ;
+    schema:unitCode "mV" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAB reversal potential"@en .
+
+parms:TimeConstantInMsForRecoveryFromFacilitation a owl:Class ;
+    rdfs:label "f"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "time constant (in ms) for recovery from facilitation, following a Gamma distribution"@en .
+
+parms:gmax a owl:Class ;
+    rdfs:label "gmax"@en ;
+    schema:unitCode "uS" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "weight conversion factor (from nS to uS)"@en .
+
+parms:gsyn a owl:Class ;
+    rdfs:label "gsyn"@en ;
+    schema:unitCode "nS" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "the peak conductance (in nS) for a single synaptic contact, following a Gamma distribution"@en .
+
+parms:gsynSRSF a owl:Class ;
+    rdfs:label "gsynSRSF"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "the scale factor for the conductance; SRSF: 'synaptic receptor scaling factor'"@en .
+
+parms:InitialConcentrationOfMg a owl:Class ;
+    rdfs:label "mg"@en ;
+    schema:unitCode "mM" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Initial concentration of Mg2+"@en .
+
+parms:nrrp a owl:Class ;
+    rdfs:label "nrrp"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "number of vesicles in readily releasable pool, following a Poisson distribution"@en .
+
+parms:scale_mg a owl:Class ;
+    rdfs:label "scale_mg"@en ;
+    schema:unitCode "mM" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Scale parameter for determining mg concentration"@en .
+
+parms:slope_mg a owl:Class ;
+    rdfs:label "slope_mg"@en ;
+    schema:unitCode "1/mV" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Slope parameter for determining mg concentration"@en .
+
+parms:tau_d_AMPA a owl:Class ;
+    rdfs:label "tau_d_AMPA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Decay time for AMPA currents."@en .
+
+parms:tau_d_GABAA a owl:Class ;
+    rdfs:label "tau_d_GABAA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAA-R synaptic conductance decay time constant"@en .
+
+parms:tau_d_GABAB a owl:Class ;
+    rdfs:label "tau_d_GABAB"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAB-R synaptic conductance decay time constant"@en .
+
+parms:tau_d_NMDA a owl:Class ;
+    rdfs:label "tau_d_NMDA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Decay time for NMDA currents."@en .
+
+parms:tau_r_AMPA a owl:Class ;
+    rdfs:label "tau_r_AMPA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Rise time for AMPA currents."@en .
+
+parms:tau_r_GABAA a owl:Class ;
+    rdfs:label "tau_r_GABAA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAA-R synaptic conductance rise time constant"@en .
+
+parms:tau_r_GABAB a owl:Class ;
+    rdfs:label "tau_r_GABAB"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "GABAB-R synaptic conductance rise time constant"@en .
+
+parms:tau_r_NMDA a owl:Class ;
+    rdfs:label "tau_r_NMDA"@en ;
+    schema:unitCode "ms" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Rise time for NMDA currents."@en .
+
+parms:u a owl:Class ;
+    rdfs:label "u"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "utilization of synaptic efficacy, following a truncated Normal distribution"@en .
+
+parms:u0 a owl:Class ;
+    rdfs:label "u0"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Initial value of u, which is the running value of Use"@en .
+
+parms:uHillCoefficient a owl:Class ;
+    rdfs:label "uHillCoefficient"@en ;
+    schema:unitCode "Unitless" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "A coefficient describing the scaling of u to be done by the simulator"@en .
+
+parms:SynapticConductanceWeight a owl:Class ;
+    rdfs:label "weight"@en ;
+    schema:unitCode "uS" ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:definition "Synaptic conductance."@en .
+
+nsg:hasBaselDendriteFeature rdfs:label "hasBaselDendriteFeature"@en .
+
+nsg:hasConstraint a owl:ObjectProperty ;
+    rdfs:label "hasConstraint"@en .
+
+nsg:hasLayerLocation rdfs:label "hasLayerLocation"@en .
+
+nsg:hasObliqDendrite rdfs:label "hasObliqDendrite"@en .
+
+nsg:hasTuftDendriteFeature rdfs:label "hasTuftDendriteFeature"@en .
+
+schema:QuantitativeValue a owl:Class ;
+    rdfs:label "Quantitative Value"@en ;
+    rdfs:subClassOf prov:Entity .
+
+schema:value a owl:ObjectProperty ;
+    rdfs:label "value"@en ;
+    rdfs:subPropertyOf owl:topObjectProperty ;
+    skos:altLabel "value"@en .
+
+bmo:EModelParameter a owl:Class ;
+    rdfs:label "EModel Parameter"^^xsd:string ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:Ion a owl:Class .
+
+bmo:ModelBrainParameterConstraint a owl:Class ;
+    rdfs:label "Model Brain Parameter Constraint"@en ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty bmo:constraints ;
+            owl:someValuesFrom bmo:ModelBrainParameter ],
+        prov:Entity .
+
+bmo:ModelConnectivityParameter a owl:Class ;
+    rdfs:label "Model Connectivity Parameter"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:NeuronPart a owl:Class .
+
+bmo:NeuronPartFeature a owl:Class .
+
+bmo:constraints a owl:ObjectProperty ;
+    rdfs:label "constraints"@en ;
+    skos:altLabel "constraint"@en .
+
+prov:Entity a owl:Class ;
+    rdfs:label "Entity"@en ;
+    skos:prefLabel "Entity"^^xsd:string .
+
+bmo:ModelBrainParameter a owl:Class ;
+    rdfs:label "Model Brain Parameter"@en ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty schema:value ;
+            owl:someValuesFrom schema:QuantitativeValue ],
+        prov:Entity ;
+    skos:definition "A brain parameter is a parameter used to represent a specific biological or theoretical value that is used in the construction of a brain model."^^xsd:string .
+

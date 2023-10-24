@@ -139,14 +139,15 @@ def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_
     return qr
 
 
-def handle_query(
+def handle_sparql_query(
         query: str, rewrite: bool,
         limit: Optional[int],
         offset: Optional[int],
         default_limit: int,
         default_offset: int,
         model_context: Context,
-        metadata_context: Context
+        metadata_context: Optional[Context],
+        debug: bool
 ):
     qr = (
         rewrite_sparql(query, model_context, metadata_context)
@@ -158,4 +159,15 @@ def handle_query(
     if offset:
         qr = _replace_in_sparql(qr, "OFFSET", offset, default_offset, r" OFFSET \d+")
 
+    if debug:
+        _debug_query(qr)
+
     return qr
+
+
+def _debug_query(query):
+    if isinstance(query, Dict):
+        print("Submitted query:", query)
+    else:
+        print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+    print()

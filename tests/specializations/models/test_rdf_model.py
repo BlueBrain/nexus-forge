@@ -24,9 +24,11 @@ from utils import full_path_relative_to_root
 
 @pytest.fixture
 def rdf_model(context_iri_file):
-    return RdfModel(full_path_relative_to_root("tests/data/shacl-model"),
-                    context={"iri": context_iri_file},
-                    origin="directory")
+    return RdfModel(
+        full_path_relative_to_root("tests/data/shacl-model"),
+        context={"iri": context_iri_file},
+        origin="directory"
+    )
 
 
 class TestVocabulary:
@@ -121,3 +123,17 @@ class TestValidation:
         assert (valid_activity_resource._last_action.operation ==
                 invalid_activity_resource._last_action.operation ==
                 rdf_model._validate_many.__name__)
+
+
+    def test_query_model(self, rdf_model: RdfModel):
+        query = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT ?id ?label WHERE {
+                ?id a owl:Class ;
+                    rdfs:label ?label  
+            } 
+        """
+        res = rdf_model.sparql(query, debug=True)
+        print(res)
+        res.serialize()

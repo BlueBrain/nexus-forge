@@ -171,26 +171,26 @@ class RdfModelServiceFromStore(RdfModelService):
         # reloads the shapes graph
         self._shapes_graph = ShapesGraphWrapper(self._graph)
 
-    def _build_ontology_map(self):
-        query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?id ?label WHERE {
-                ?id a owl:Class ;
-                    rdfs:label ?label  
-            } 
-        """
-        # make sure to get all types
-        limit = 100
-        offset = 0
-        count = limit
-        class_resource: Dict[URIRef, URIRef] = dict()
-
-        while count == limit:
-            resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
-            for r in resources:
-                class_resource[r.label] = URIRef(r.id)
-            count = len(resources)
-            offset += count
-
-        return class_resource
+    # def _build_ontology_map(self):
+    #     query = """
+    #         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    #         PREFIX sh: <http://www.w3.org/ns/shacl#>
+    #         SELECT ?id ?label WHERE {
+    #             ?id a owl:Class ;
+    #                 rdfs:label ?label
+    #         }
+    #     """
+    #     # make sure to get all types
+    #     limit = 100
+    #     offset = 0
+    #     count = limit
+    #     class_resource: Dict[URIRef, URIRef] = dict()
+    #
+    #     while count == limit:
+    #         resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
+    #         for r in resources:
+    #             class_resource[r.label] = URIRef(r.id)
+    #         count = len(resources)
+    #         offset += count
+    #
+    #     return class_resource

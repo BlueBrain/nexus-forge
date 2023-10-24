@@ -11,6 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+
 import types
 from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
@@ -18,6 +19,7 @@ from typing import List, Dict, Tuple, Set, Optional
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD
+from rdflib.plugins.sparql.processor import SPARQLResult
 
 from kgforge.core import Resource
 from kgforge.core.commons.context import Context
@@ -29,7 +31,6 @@ from kgforge.specializations.models.rdf.utils import as_term
 
 
 class RdfModelService:
-
     schema_to_source: Dict[URIRef, str]
     classes_to_shapes: Dict[str, URIRef]
 
@@ -40,13 +41,16 @@ class RdfModelService:
         self._graph = graph
         self._context_cache = {}
         self.schema_to_source, self.classes_to_shapes = self._build_shapes_map()
-        self.label_to_ontology_id: Dict[str, URIRef] = self._build_ontology_map()
+        # self.label_to_ontology_id: Dict[str, URIRef] = self._build_ontology_map()
 
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
     def schema_source(self, schema_iri: URIRef) -> str:
         return self.schema_to_source[schema_iri]
+
+    def sparql(self, query: str) -> SPARQLResult:
+        return self._graph.query(query)
 
     @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:
@@ -183,6 +187,6 @@ class RdfModelService:
 
         return {"@context": context} if len(context) > 0 else None
 
-    @abstractmethod
-    def _build_ontology_map(self):
-        pass
+    # @abstractmethod
+    # def _build_ontology_map(self):
+    #     pass

@@ -20,6 +20,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import hjson
 from pandas import DataFrame
 from rdflib import URIRef
+from rdflib.plugins.sparql.processor import SPARQLResult
+
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
@@ -28,6 +30,11 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.commons.imports import import_class
+from kgforge.core.commons.sparql_query_rewriter import handle_sparql_query
+
+
+DEFAULT_LIMIT = 100
+DEFAULT_OFFSET = 0
 
 
 class Model(ABC):
@@ -114,6 +121,35 @@ class Model(ABC):
         pass
 
     # Mappings.
+
+    def sparql(
+            self, query: str,
+            debug: bool,
+            limit: int = DEFAULT_LIMIT,
+            offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
+
+        qr = handle_sparql_query(
+            query=query,
+            model_context=self.context(),
+            metadata_context=None,  # TODO something else?
+            rewrite=rewrite,
+            limit=limit,
+            offset=offset,
+            default_limit=DEFAULT_LIMIT,
+            default_offset=DEFAULT_OFFSET,
+            debug=debug
+        )
+
+        return self._sparql(qr)
+
+    def _sparql(self, query: str) -> SPARQLResult:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        not_supported()
 
     def sources(self, pretty: bool) -> Optional[List[str]]:
         sources = sorted(self._sources())
