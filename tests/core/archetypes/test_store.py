@@ -16,7 +16,7 @@
 import pytest
 
 from kgforge.core import Resource, KnowledgeGraphForge
-from kgforge.core.archetypes.store import rewrite_sparql, _replace_in_sparql
+from kgforge.core.commons.sparql_query_rewriter import rewrite_sparql, _replace_in_sparql
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import DownloadingError, FreezingError, QueryingError
 from kgforge.specializations.resources import Dataset
