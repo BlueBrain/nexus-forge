@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import hjson
 from pandas import DataFrame
+from rdflib import URIRef
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping
@@ -151,7 +152,7 @@ class Model(ABC):
 
     # Validation.
 
-    def schema_id(self, type: str) -> str:
+    def schema_id(self, type: str) -> URIRef:
         # POLICY Should retrieve the schema id of the given type.
         not_supported()
 

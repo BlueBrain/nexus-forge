@@ -27,9 +27,9 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
-from kgforge.specializations.models.rdf.rdf_model_directory_service import DirectoryService
-from kgforge.specializations.models.rdf.rdf_service import RdfService
-from kgforge.specializations.models.rdf.rdf_model_store_service import RdfModelStoreService
+from kgforge.specializations.models.rdf.rdf_model_service_from_directory import RdfModelServiceFromDirectory
+from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
+from kgforge.specializations.models.rdf.rdf_model_service_from_store import RdfModelServiceFromStore
 from kgforge.specializations.models.rdf.utils import as_term
 
 DEFAULT_VALUE = {
@@ -95,13 +95,15 @@ class RdfModel(Model):
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
 
-    def get_shape_from_type(self, type: str):
+    def get_shape_from_type(self, type: str) -> URIRef:
         if type not in self.service.types_to_shapes:
             raise ValueError(f"Type {type} not found")
+        return self.service.types_to_shapes[type]
 
-    def schema_id(self, type: str) -> str:
-        shape_iri = self.get_shape_from_type(type)
-        return str(self.service.schema_source(shape_iri))
+    def schema_id(self, type: str) -> URIRef:
+        shape_iri: URIRef = self.get_shape_from_type(type)
+        e = self.service.schema_source(shape_iri)
+        return e
 
     # Validation.
 
@@ -132,8 +134,8 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dir_path: Path, context_iri: str, **dir_config) -> RdfService:
-        return DirectoryService(dir_path=dir_path, context_iri=context_iri)
+    def _service_from_directory(dir_path: Path, context_iri: str, **dir_config) -> RdfModelService:
+        return RdfModelServiceFromDirectory(dir_path=dir_path, context_iri=context_iri)
 
     @staticmethod
     def _service_from_store(store: Callable, context_config: Optional[Dict],
@@ -157,11 +159,11 @@ class RdfModel(Model):
                 context_store: Store = store(context_endpoint, context_bucket, context_token,
                                              **source_config)
                 # FIXME: define a store independent StoreService
-                service = RdfModelStoreService(default_store, context_iri, context_store)
+                service = RdfModelServiceFromStore(default_store, context_iri, context_store)
             else:
-                service = RdfModelStoreService(default_store, context_iri, None)
+                service = RdfModelServiceFromStore(default_store, context_iri, None)
         else:
-            service = RdfModelStoreService(default_store)
+            service = RdfModelServiceFromStore(default_store)
 
         return service
 

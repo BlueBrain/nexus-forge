@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import json
 import pytest
+from rdflib import URIRef
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import ValidationError
@@ -97,7 +98,8 @@ class TestValidation:
     @pytest.mark.parametrize("type_,", TYPES_SCHEMAS_MAP.keys())
     def test_type_to_schema(self, rdf_model: RdfModel, type_):
         # FIXME TYPES_SCHEMAS_MAP should be a type to file dictionary
-        assert rdf_model.schema_id(type_) == TYPES_SCHEMAS_MAP[type_]
+        # see _build_shapes_map from RdfModelServiceFromDirectory
+        assert rdf_model.schema_id(type_) == URIRef(TYPES_SCHEMAS_MAP[type_])
 
     def test_validate_one(self, rdf_model: RdfModel, valid_activity_resource):
         rdf_model.validate(valid_activity_resource, False, type_="Activity")

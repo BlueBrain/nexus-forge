@@ -21,11 +21,11 @@ from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.rdf_service import RdfService
+from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
 from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper
 
 
-class DirectoryService(RdfService):
+class RdfModelServiceFromDirectory(RdfModelService):
 
     def __init__(self, dir_path: Path, context_iri: str) -> None:
         self._graph = load_rdf_files_into_graph(dir_path, Graph())

@@ -28,7 +28,10 @@ from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.utils import as_term
 
 
-class RdfService:
+class RdfModelService:
+
+    schema_to_source: Dict[URIRef, str]
+    classes_to_shapes: Dict[str, URIRef]
 
     def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 
@@ -40,10 +43,10 @@ class RdfService:
         self.label_to_ontology_id: Dict[str, URIRef] = self._build_ontology_map()
 
         self.context = Context(self.resolve_context(context_iri), context_iri)
-        self.types_to_shapes = self._build_types_to_shapes()
+        self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
-    def schema_source(self, schema_iri: str) -> str:
-        return self.schema_to_source[URIRef(schema_iri)]
+    def schema_source(self, schema_iri: URIRef) -> str:
+        return self.schema_to_source[schema_iri]
 
     @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:
@@ -96,7 +99,7 @@ class RdfService:
         """Queries the source and returns a map of owl:Class to sh:NodeShape"""
         raise NotImplementedError()
 
-    def _build_types_to_shapes(self):
+    def _build_types_to_shapes(self) -> Dict[str, URIRef]:
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
          the terms available in the context """
         types_to_shapes: Dict = {}

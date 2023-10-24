@@ -24,11 +24,11 @@ from kgforge.core.archetypes import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper, \
     ShapeWrapper
-from kgforge.specializations.models.rdf.rdf_service import RdfService
+from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
 from kgforge.specializations.stores.nexus import Service
 
 
-class RdfModelStoreService(RdfService):
+class RdfModelServiceFromStore(RdfModelService):
 
     def __init__(self, default_store: Store, context_iri: Optional[str] = None,
                  context_store: Optional[Store] = None) -> None:
