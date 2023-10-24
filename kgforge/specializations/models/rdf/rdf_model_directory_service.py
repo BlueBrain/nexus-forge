@@ -110,7 +110,6 @@ def load_rdf_files_into_graph(path: Path, memory_graph: Graph) -> Graph:
             file_format = guess_format(f.name)
             if file_format is None:
                 file_format = "json-ld"
-            t = f.as_posix()
-            memory_graph.parse(t, format=file_format)
+            memory_graph.parse(f.as_posix(), format=file_format)
 
     return memory_graph
