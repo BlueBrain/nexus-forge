@@ -488,3 +488,19 @@ def get_node_path(node: NodeProperties, path: URIRef, field: str):
                     else:
                         result.append(values)
     return result
+
+
+ALL_COLLECTORS = [
+    AndCollector,
+    OrCollector,
+    PropertyCollector,
+    NodeCollector,
+    PropertyCollector,
+    MinCountCollector,
+    DatatypeCollector,
+    InCollector,
+    ClassCollector,
+    NodeKindCollector,
+    XoneCollector,
+    HasValueCollector
+]

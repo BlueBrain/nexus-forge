@@ -193,7 +193,9 @@ class Model(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
+    def _service_from_directory(
+            ontologies_path: Path, shapes_path: Path, context_iri: Optional[str]
+    ) -> Any:
         pass
 
     @staticmethod

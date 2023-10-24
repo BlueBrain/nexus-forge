@@ -1015,7 +1015,7 @@ class BlueBrainNexus(Store):
         return uri
 
 
-def _create_select_query(vars_, statements, distinct, search_in_graph):
+def _create_select_query(vars_, statements, distinct: bool, search_in_graph: bool):
     where_clauses = (
         f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else f"{{{statements}}}"
     )

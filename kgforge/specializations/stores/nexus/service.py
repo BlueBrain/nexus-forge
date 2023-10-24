@@ -107,8 +107,8 @@ class Service:
         self.namespace = namespace
         self.project_property = project_property
         self.store_metadata_keys = [
-            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
-            "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming",
+            "_outgoing", "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
         ]
 
         self.deprecated_property = deprecated_property
@@ -249,11 +249,13 @@ class Service:
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
         if iri in self.context_cache:
             return self.context_cache[iri]
+
+        context_to_resolve = (
+            self.store_local_context if iri == self.store_context else iri
+        )
+        url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
+
         try:
-            context_to_resolve = (
-                self.store_local_context if iri == self.store_context else iri
-            )
-            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
@@ -272,13 +274,18 @@ class Service:
             if '_deprecated' in resource and resource['_deprecated']:
                 raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
             document = json.loads(json.dumps(resource["@context"]))
+
         if isinstance(document, list):
             if self.store_context in document:
                 document.remove(self.store_context)
             if self.store_local_context in document:
                 document.remove(self.store_local_context)
-        self.context_cache.update({context_to_resolve: document})
-        return document
+
+        self.context_cache[context_to_resolve] = document
+
+        # TODO context_to_resolve may be different from iri. Why is having it in the cache
+        #  already leading to different outcome? (see first 2 lines of function)
+        return self.context_cache[context_to_resolve]
 
     def batch_request(
             self,
@@ -461,9 +468,9 @@ class Service:
         return url, params
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
+
         metadata = (
-            {"id": resource.id}
-            if hasattr(resource, "id")
+            {"id": resource.id} if hasattr(resource, "id")
             else (
                 {"id": resource.__getattribute__("@id")}
                 if hasattr(resource, "@id")
@@ -474,8 +481,10 @@ class Service:
         keys.extend(["_index", "_score", "id", "@id"])
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
+
         if not hasattr(resource, "id") and not hasattr(resource, "@id"):
             resource.id = result.get("id", result.get("@id", None))
+
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(

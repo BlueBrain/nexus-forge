@@ -21,22 +21,23 @@ from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.rdf_service import RdfService
+from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper
 
 
 class DirectoryService(RdfService):
 
-    def __init__(self, dirpath: Path, context_iri: str) -> None:
-        self._graph = load_rdf_files(dirpath)
-        self._sg = ShapesGraphWrapper(self._graph)
+    def __init__(self, ontologies_path: Path, shapes_path: Path, context_iri: str) -> None:
+        g = Graph()
+        g = load_rdf_files(ontologies_path, g)
+        g = load_rdf_files(shapes_path, g)
+
+        self._graph = g
+        self._shapes_graph = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
 
-    def schema_source_id(self, schema_iri: str) -> str:
-        # FIXME should return the file path where the schema is in
-        return schema_iri
-
     def materialize(self, iri: URIRef) -> NodeProperties:
-        sh = self._sg.lookup_shape_from_node(iri)
+        sh = self._shapes_graph.lookup_shape_from_node(iri)
         predecessors = set()
         props, attrs = sh.traverse(predecessors)
         if props:
@@ -61,7 +62,22 @@ class DirectoryService(RdfService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Dict:
+    def _build_ontology_map(self) -> Dict[str, URIRef]:
+        query = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT ?id ?label WHERE {
+                ?id a owl:Class ;
+                    rdfs:label ?label  
+            } 
+        """  # TODO CHANGE
+        res = self._graph.query(query)
+        return {
+            row["label"]: URIRef(row["id"])
+            for row in res
+        }
+
+    def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
         query = """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX sh: <http://www.w3.org/ns/shacl#>
@@ -73,18 +89,32 @@ class DirectoryService(RdfService):
                         ?shape a rdfs:Class
                     }
                 }
-            } ORDER BY ?type"""
+            } ORDER BY ?type
+        """
         res = self._graph.query(query)
-        return {row["type"]: row["shape"] for row in res}
+
+        class_being_shaped_id_to_shape_uri: Dict[str, URIRef] = {
+            row["type"]: URIRef(row["shape"])
+            for row in res
+        }
+
+        # FIXME should return the file path where the schema is in
+        schema_to_file = dict(
+            (e, "")  # TODO file source
+            for e in class_being_shaped_id_to_shape_uri.values()
+        )
+
+        return schema_to_file, class_being_shaped_id_to_shape_uri
 
 
-def load_rdf_files(path: Path) -> Graph:
-    memory_graph = Graph()
+def load_rdf_files(path: Path, memory_graph: Graph) -> Graph:
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
             file_format = guess_format(f.name)
             if file_format is None:
                 file_format = "json-ld"
-            memory_graph.parse(f.as_posix(), format=file_format)
+            t = f.as_posix()
+            memory_graph.parse(t, format=file_format)
+
     return memory_graph

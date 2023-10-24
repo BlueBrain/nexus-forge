@@ -19,14 +19,16 @@ from pyshacl import validate
 from rdflib import URIRef, Namespace, Graph
 
 from kgforge.core.commons.exceptions import RetrievalError
-from kgforge.core.conversions.rdf import as_jsonld, as_graph
+from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.archetypes import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper, \
+    ShapeWrapper
+from kgforge.specializations.models.rdf.rdf_service import RdfService
 from kgforge.specializations.stores.nexus import Service
 
 
-class StoreService(RdfService):
+class RdfModelStoreService(RdfService):
 
     def __init__(self, default_store: Store, context_iri: Optional[str] = None,
                  context_store: Optional[Store] = None) -> None:
@@ -34,21 +36,22 @@ class StoreService(RdfService):
         self.default_store = default_store
         self.context_store = context_store or default_store
         # FIXME: define a store independent strategy
-        self.NXV = Namespace(self.default_store.service.namespace) if hasattr(self.default_store.service, "namespace") \
+        self.NXV = Namespace(self.default_store.service.namespace) \
+            if hasattr(self.default_store.service, "namespace") \
             else Namespace(Service.NEXUS_NAMESPACE_FALLBACK)
-        self.store_metadata_iri = self.default_store.service.store_context if hasattr(self.default_store.service, "store_context") \
-            else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
-        self._shapes_to_resources: Dict
-        self._imported = []
-        self._graph = Graph()
-        self._sg = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
 
-    def schema_source_id(self, schema_iri: str) -> str:
-        return self._shapes_to_resources[schema_iri]
+        self.store_metadata_iri = self.default_store.service.store_context \
+            if hasattr(self.default_store.service, "store_context") \
+            else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
+
+        self._imported = []
+
+        g = Graph()
+        self._shapes_graph = ShapesGraphWrapper(g)
+        super().__init__(g, context_iri)
 
     def materialize(self, iri: URIRef) -> NodeProperties:
-        shape = self._type_shape(iri)
+        shape: ShapeWrapper = self._load_and_get_type_shape(iri)
         predecessors = set()
         props, attrs = shape.traverse(predecessors)
         if props:
@@ -57,24 +60,22 @@ class StoreService(RdfService):
 
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
         # _type_shape will make sure all the shapes for this type are in the graph
-        self._type_shape(iri)
+        self._load_and_get_type_shape(URIRef(iri))
         return validate(data_graph, shacl_graph=self._graph)
 
     def resolve_context(self, iri: str) -> Dict:
-        if iri in self._context_cache:
-            return self._context_cache[iri]
-        document = self.recursive_resolve(iri)
-        self._context_cache.update({iri: document})
-        return document
+        if iri not in self._context_cache:
+            self._context_cache[iri] = self.recursive_resolve(iri)
+
+        return self._context_cache[iri]
 
     def generate_context(self) -> Dict:
-        for v in self._shapes_to_resources.values():
-            self._load_shape(v)
-        # reloads the shapes graph
-        self._sg = ShapesGraphWrapper(self._graph)
+        for v in self.schema_to_source.values():
+            self._load_shape_and_reload_shapes_graph(v)
+
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Dict:
+    def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
         query = f"""
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX sh: <http://www.w3.org/ns/shacl#>
@@ -89,22 +90,24 @@ class StoreService(RdfService):
                     }}
                 }}
             }} ORDER BY ?type"""
+
         # make sure to get all types
         limit = 100
         offset = 0
         count = limit
-        class_to_shapes = {}
-        shape_resource = {}
+        class_being_shaped_id_to_shape_uri = {}
+        schema_to_resource: Dict[URIRef, URIRef] = {}
+
         while count == limit:
             resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
             for r in resources:
                 shape_uri = URIRef(r.shape)
-                class_to_shapes[r.type] = shape_uri
-                shape_resource[shape_uri] = URIRef(r.resource_id)
+                class_being_shaped_id_to_shape_uri[r.type] = shape_uri
+                schema_to_resource[shape_uri] = URIRef(r.resource_id)
             count = len(resources)
-            offset += limit
-        self._shapes_to_resources = shape_resource
-        return class_to_shapes
+            offset += count
+
+        return schema_to_resource, class_being_shaped_id_to_shape_uri
 
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
         document = {}
@@ -113,10 +116,12 @@ class StoreService(RdfService):
                 context.remove(self.store_metadata_iri)
             if hasattr(self.default_store.service, "store_local_context") and\
                     self.default_store.service.store_local_context in context:
+
                 context.remove(self.default_store.service.store_local_context)
             for x in context:
                 document.update(self.recursive_resolve(x))
         elif isinstance(context, str):
+
             try:
                 local_only = not self.default_store == self.context_store
                 doc = self.default_store.service.resolve_context(context, local_only=local_only)
@@ -125,12 +130,13 @@ class StoreService(RdfService):
                     doc = self.context_store.service.resolve_context(context, local_only=False)
                 except ValueError as e:
                     raise e
+
             document.update(self.recursive_resolve(doc))
         elif isinstance(context, dict):
             document.update(context)
         return document
 
-    def _load_shape(self, resource_id):
+    def _load_shape(self, resource_id: URIRef):
         if resource_id not in self._imported:
             try:
                 shape = self.context_store.retrieve(resource_id, version=None, cross_bucket=False)
@@ -139,8 +145,11 @@ class StoreService(RdfService):
                 # failed, don't try to load again
                 self._imported.append(resource_id)
             else:
-                json_dict = as_jsonld(shape, form="compacted", store_metadata=False, model_context=None,
-                                      metadata_context=None, context_resolver=self.context_store.service.resolve_context)
+                json_dict = as_jsonld(
+                    shape, form="compacted", store_metadata=False, model_context=None,
+                    metadata_context=None,
+                    context_resolver=self.context_store.service.resolve_context
+                )
                 # this double conversion was due blank nodes were not "regenerated" with json-ld
                 temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
                 self._graph.parse(data=temp_graph.serialize(format="n3"), format="n3")
@@ -149,12 +158,39 @@ class StoreService(RdfService):
                     for dependency in shape.imports:
                         self._load_shape(self.context.expand(dependency))
 
-    def _type_shape(self, iri: URIRef):
+    def _load_and_get_type_shape(self, iri: URIRef) -> ShapeWrapper:
         try:
-            shape = self._sg.lookup_shape_from_node(iri)
+            return self._shapes_graph.lookup_shape_from_node(iri)
         except KeyError:
-            self._load_shape(self._shapes_to_resources[iri])
-            # reloads the shapes graph
-            self._sg = ShapesGraphWrapper(self._graph)
-            shape = self._sg.lookup_shape_from_node(iri)
-        return shape
+            shape_resource_id = self.schema_to_source[iri]
+            self._load_shape_and_reload_shapes_graph(shape_resource_id)
+            return self._shapes_graph.lookup_shape_from_node(iri)
+
+    def _load_shape_and_reload_shapes_graph(self, iri: URIRef):
+        self._load_shape(iri)
+        # reloads the shapes graph
+        self._shapes_graph = ShapesGraphWrapper(self._graph)
+
+    def _build_ontology_map(self):
+        query = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT ?id ?label WHERE {
+                ?id a owl:Class ;
+                    rdfs:label ?label  
+            } 
+        """
+        # make sure to get all types
+        limit = 100
+        offset = 0
+        count = limit
+        class_resource: Dict[URIRef, URIRef] = dict()
+
+        while count == limit:
+            resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
+            for r in resources:
+                class_resource[r.label] = URIRef(r.id)
+            count = len(resources)
+            offset += count
+
+        return class_resource

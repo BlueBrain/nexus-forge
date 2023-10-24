@@ -27,9 +27,9 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
-from kgforge.specializations.models.rdf.directory_service import DirectoryService
-from kgforge.specializations.models.rdf.service import RdfService
-from kgforge.specializations.models.rdf.store_service import StoreService
+from kgforge.specializations.models.rdf.rdf_model_directory_service import DirectoryService
+from kgforge.specializations.models.rdf.rdf_service import RdfService
+from kgforge.specializations.models.rdf.rdf_model_store_service import RdfModelStoreService
 from kgforge.specializations.models.rdf.utils import as_term
 
 DEFAULT_VALUE = {
@@ -90,22 +90,20 @@ class RdfModel(Model):
     # Templates.
 
     def _template(self, type: str, only_required: bool) -> Dict:
-        try:
-            uri = self.service.types_to_shapes[type]
-        except KeyError:
-            raise ValueError("type '" + type + "' not found in " + self.source)
+        uri = self.get_shape_from_type(type)
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
 
-    # Validation.
+    def get_shape_from_type(self, type: str):
+        if type not in self.service.types_to_shapes:
+            raise ValueError(f"Type {type} not found")
 
     def schema_id(self, type: str) -> str:
-        try:
-            shape_iri = self.service.types_to_shapes[type]
-            return str(self.service.schema_source_id(shape_iri))
-        except KeyError:
-            raise ValueError("type not found")
+        shape_iri = self.get_shape_from_type(type)
+        return str(self.service.schema_source(shape_iri))
+
+    # Validation.
 
     def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
@@ -133,8 +131,12 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
-        return DirectoryService(dirpath, context_iri)
+    def _service_from_directory(
+            ontologies_path: Path, shapes_path: Path, context_iri: str, **dir_config
+    ) -> RdfService:
+        return DirectoryService(
+            ontologies_path=ontologies_path, shapes_path=shapes_path, context_iri=context_iri
+        )
 
     @staticmethod
     def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
@@ -156,11 +158,11 @@ class RdfModel(Model):
                 source_config.pop("bucket", None)
                 context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
                 # FIXME: define a store independent StoreService
-                service = StoreService(default_store, context_iri, context_store)
+                service = RdfModelStoreService(default_store, context_iri, context_store)
             else:
-                service = StoreService(default_store, context_iri, None)
+                service = RdfModelStoreService(default_store, context_iri, None)
         else:
-            service = StoreService(default_store)
+            service = RdfModelStoreService(default_store)
 
         return service
 
