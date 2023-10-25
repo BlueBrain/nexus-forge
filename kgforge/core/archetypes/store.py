@@ -388,17 +388,26 @@ class Store(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = SPARQLQueryBuilder.handle_sparql_query(
-            query=query,
-            model_context=self.model_context,
-            metadata_context=self.service.metadata_context,
-            rewrite=rewrite,
+        qr = (
+            SPARQLQueryBuilder.rewrite_sparql(
+                query,
+                context=self.model_context,
+                metadata_context=self.service.metadata_context,
+            )
+            if self.model_context is not None and rewrite
+            else query
+        )
+
+        qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
+            qr,
             limit=limit,
             offset=offset,
             default_limit=DEFAULT_LIMIT,
-            default_offset=DEFAULT_OFFSET,
-            debug=debug
+            default_offset=DEFAULT_OFFSET
         )
+
+        if debug:
+            SPARQLQueryBuilder.debug_query(qr)
 
         return self._sparql(qr)
 
@@ -412,12 +421,16 @@ class Store(ABC):
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
     ) -> List[Resource]:
         query_dict = json.loads(query)
-        if limit:
-            query_dict["size"] = limit
-        if offset:
-            query_dict["from"] = offset
+
+        query_dict = ESQueryBuilder.apply_limit_and_offset_to_query(
+            query_dict,
+            limit=limit, default_limit=None,
+            offset=offset, default_offset=None
+        )
+
         if debug:
             ESQueryBuilder.debug_query(query_dict)
+
         return self._elastic(json.dumps(query_dict))
 
     def _elastic(self, query: str) -> List[Resource]:

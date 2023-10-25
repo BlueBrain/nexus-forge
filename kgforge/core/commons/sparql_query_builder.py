@@ -116,6 +116,7 @@ sparql_operator_map = {
 
 class SPARQLQueryBuilder(QueryBuilder):
 
+
     @staticmethod
     def build(
             schema: Dict,
@@ -343,38 +344,21 @@ class SPARQLQueryBuilder(QueryBuilder):
 
         return qr
 
+
     @staticmethod
-    def handle_sparql_query(
-            query: str, rewrite: bool,
-            limit: Optional[int],
-            offset: Optional[int],
-            default_limit: int,
-            default_offset: int,
-            model_context: Context,
-            metadata_context: Optional[Context],
-            debug: bool
-    ):
-        qr = (
-            SPARQLQueryBuilder.rewrite_sparql(query, model_context, metadata_context)
-            if model_context is not None and rewrite
-            else query
-        )
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
         if limit:
-            qr = SPARQLQueryBuilder._replace_in_sparql(
-                qr, "LIMIT", limit, default_limit,
+            query = SPARQLQueryBuilder._replace_in_sparql(
+                query, "LIMIT", limit, default_limit,
                 re.compile(r" LIMIT \d+", flags=re.IGNORECASE)
             )
         if offset:
-            qr = SPARQLQueryBuilder._replace_in_sparql(
-                qr, "OFFSET", offset, default_offset,
+            query = SPARQLQueryBuilder._replace_in_sparql(
+                query, "OFFSET", offset, default_offset,
                 re.compile(r" OFFSET \d+", flags=re.IGNORECASE)
             )
 
-        if debug:
-            SPARQLQueryBuilder.debug_query(qr)
-
-        return qr
-
+        return query
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value

@@ -48,3 +48,7 @@ class QueryBuilder(ABC):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
 
+    @staticmethod
+    @abstractmethod
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+        pass

@@ -130,17 +130,26 @@ class Model(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = SPARQLQueryBuilder.handle_sparql_query(
-            query=query,
-            model_context=self.context(),
-            metadata_context=None,  # TODO something else?
-            rewrite=rewrite,
+        qr = (
+            SPARQLQueryBuilder.rewrite_sparql(
+                query,
+                self.context(),
+                metadata_context=None  # TODO smth else?
+            )
+            if self.context() is not None and rewrite
+            else query
+        )
+
+        qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
+            query=qr,
             limit=limit,
             offset=offset,
             default_limit=DEFAULT_LIMIT,
-            default_offset=DEFAULT_OFFSET,
-            debug=debug
+            default_offset=DEFAULT_OFFSET
         )
+
+        if debug:
+            SPARQLQueryBuilder.debug_query(qr)
 
         return self._sparql(qr)
 
