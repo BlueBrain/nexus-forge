@@ -184,48 +184,52 @@ class SPARQLQueryBuilder(QueryBuilder):
             query: str, response: Dict, context: Context, *args, **params
     ) -> List[Resource]:
         _, q_comp = Query.parseString(query)
+        bindings = response["results"]["bindings"]
+
         if q_comp.name == "ConstructQuery":
-            subject_triples = {}
-            for r in response["results"]["bindings"]:
-                subject = r["subject"]["value"]
-                s = f"<{r['subject']['value']}>"
-                p = f"<{r['predicate']['value']}>"
-                if r["object"]["type"] == "uri":
-                    o = f"<{r['object']['value']}>"
-                else:
-                    if "datatype" in r["object"]:
-                        o = f"\"{r['object']['value']}\"^^<{r['object']['datatype']}>"
-                    else:
-                        o = f"\"{r['object']['value']}\""
-                if subject in subject_triples:
-                    subject_triples[subject] += f"\n{s} {p} {o} . "
-                else:
-                    subject_triples[subject] = f"{s} {p} {o} . "
-
-            def triples_to_resource(iri, triples):
-                graph = Graph().parse(data=triples, format="nt")
-                data_expanded = json.loads(graph.serialize(format="json-ld"))
-                data_expanded = json.loads(graph.serialize(format="json-ld"))
-                frame = {"@id": iri}
-                data_framed = jsonld.frame(data_expanded, frame)
-                compacted = jsonld.compact(data_framed, context.document)
-                resource = from_jsonld(compacted)
-                resource.context = (
-                    context.iri
-                    if context.is_http_iri()
-                    else context.document["@context"]
-                )
-                return resource
-
-            return [triples_to_resource(s, t) for s, t in subject_triples.items()]
+            return SPARQLQueryBuilder.build_resource_from_construct_query(bindings, context)
         else:
             # SELECT QUERY
-            return SPARQLQueryBuilder.build_resource_from_select_query(
-                response["results"]["bindings"]
-            )
+            return SPARQLQueryBuilder.build_resource_from_select_query(bindings)
 
     @staticmethod
-    def build_resource_from_select_query(results: List):
+    def build_resource_from_construct_query(results: List, context: Context) -> List[Resource]:
+
+        subject_triples = {}
+
+        for r in results:
+            subject = r["subject"]["value"]
+            s = f"<{r['subject']['value']}>"
+            p = f"<{r['predicate']['value']}>"
+            if r["object"]["type"] == "uri":
+                o = f"<{r['object']['value']}>"
+            else:
+                if "datatype" in r["object"]:
+                    o = f"\"{r['object']['value']}\"^^<{r['object']['datatype']}>"
+                else:
+                    o = f"\"{r['object']['value']}\""
+            if subject in subject_triples:
+                subject_triples[subject] += f"\n{s} {p} {o} . "
+            else:
+                subject_triples[subject] = f"{s} {p} {o} . "
+
+        def triples_to_resource(iri, triples):
+            graph = Graph().parse(data=triples, format="nt")
+            data_expanded = json.loads(graph.serialize(format="json-ld"))
+            data_framed = jsonld.frame(data_expanded, {"@id": iri})
+            compacted = jsonld.compact(data_framed, context.document)
+            resource = from_jsonld(compacted)
+            resource.context = (
+                context.iri
+                if context.is_http_iri()
+                else context.document["@context"]
+            )
+            return resource
+
+        return [triples_to_resource(s, t) for s, t in subject_triples.items()]
+
+    @staticmethod
+    def build_resource_from_select_query(results: List) -> List[Resource]:
 
         def process_v(v):
             if v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
@@ -246,7 +250,7 @@ class SPARQLQueryBuilder(QueryBuilder):
             for x in results
         ]
 
-
+    @staticmethod
     def rewrite_sparql(query: str, context: Context, metadata_context: Context) -> str:
         """Rewrite local property and type names from Model.template() as IRIs.
 
@@ -344,7 +348,6 @@ class SPARQLQueryBuilder(QueryBuilder):
 
         return qr
 
-
     @staticmethod
     def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
         if limit:
@@ -359,6 +362,7 @@ class SPARQLQueryBuilder(QueryBuilder):
             )
 
         return query
+
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
