@@ -29,7 +29,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.commons.imports import import_class
-from kgforge.core.commons.sparql_query_rewriter import handle_sparql_query
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 
 DEFAULT_LIMIT = 100
@@ -130,7 +130,7 @@ class Model(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = handle_sparql_query(
+        qr = SPARQLQueryBuilder.handle_sparql_query(
             query=query,
             model_context=self.context(),
             metadata_context=None,  # TODO something else?

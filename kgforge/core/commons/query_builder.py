@@ -40,3 +40,11 @@ class QueryBuilder(ABC):
     @abstractmethod
     def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
         pass
+
+    @staticmethod
+    def debug_query(query):
+        if isinstance(query, Dict):
+            print("Submitted query:", query)
+        else:
+            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+

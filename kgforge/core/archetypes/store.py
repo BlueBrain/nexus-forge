@@ -23,6 +23,7 @@ from kgforge.core import Resource
 from kgforge.core.archetypes import Mapping, Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
     DeprecationError,
     DownloadingError,
@@ -34,7 +35,7 @@ from kgforge.core.commons.exceptions import (
     QueryingError,
 )
 from kgforge.core.commons.execution import not_supported, run
-from kgforge.core.commons.sparql_query_rewriter import handle_sparql_query, _debug_query
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.reshaping import collect_values
 
 # NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
@@ -387,7 +388,7 @@ class Store(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = handle_sparql_query(
+        qr = SPARQLQueryBuilder.handle_sparql_query(
             query=query,
             model_context=self.model_context,
             metadata_context=self.service.metadata_context,
@@ -416,7 +417,7 @@ class Store(ABC):
         if offset:
             query_dict["from"] = offset
         if debug:
-            self._debug_query(query_dict)
+            ESQueryBuilder.debug_query(query_dict)
         return self._elastic(json.dumps(query_dict))
 
     def _elastic(self, query: str) -> List[Resource]:

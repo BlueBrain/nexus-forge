@@ -11,12 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+import re
 
 # Placeholder for the test suite for actions.
 import pytest
 
 from kgforge.core import Resource, KnowledgeGraphForge
-from kgforge.core.commons.sparql_query_rewriter import rewrite_sparql, _replace_in_sparql
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import DownloadingError, FreezingError, QueryingError
 from kgforge.specializations.resources import Dataset
@@ -25,7 +26,7 @@ import json
 
 context = {
     "@context": {
-        "@vocab":"http://example.org/vocab/",
+        "@vocab": "http://example.org/vocab/",
         "type": {
             "@id": "rdf:type",
             "@type": "@id"
@@ -44,13 +45,11 @@ context = {
     }
 }
 
-
 prefixes = {
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "prov": "http://www.w3.org/ns/prov#",
     "schema": "http://schema.org/",
 }
-
 
 prefixes_string = "\n".join([f"PREFIX {k}: <{v}>" for k, v in prefixes.items()])
 
@@ -69,9 +68,10 @@ form_store_metadata_combinations = [
      "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext }",
      "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext }"),
-    ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
-     "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
-                       " schema:Person }"),
+    (
+    "SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
+    "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
+    " schema:Person }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext ?x }",
      "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
@@ -80,8 +80,9 @@ form_store_metadata_combinations = [
      "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
     ("SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}",
      "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}"),
-    ("SELECT * WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person; deprecated false.}",
-     "\nSELECT * WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext, schema:Person; <https://store.net/vocabulary/deprecated> false.}")
+    (
+    "SELECT * WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person; deprecated false.}",
+    "\nSELECT * WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext, schema:Person; <https://store.net/vocabulary/deprecated> false.}")
 ]
 
 
@@ -89,7 +90,9 @@ form_store_metadata_combinations = [
 def test_rewrite_sparql(query, expected, metadata_context):
     prefixes_string_vocab = "\n".join([prefixes_string, f"PREFIX : <http://example.org/vocab/>"])
     context_object = Context(document=context)
-    result = rewrite_sparql(query, context_object, metadata_context=metadata_context)
+    result = SPARQLQueryBuilder.rewrite_sparql(
+        query, context_object, metadata_context=metadata_context
+    )
     assert result == prefixes_string_vocab + expected
 
 
@@ -98,16 +101,17 @@ def test_rewrite_sparql_unknownterm_missing_vocab(custom_context, metadata_conte
     assert not context_object.has_vocab()
     with pytest.raises(QueryingError):
         query = "SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}"
-        rewrite_sparql(query, context_object, metadata_context)
+        SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
 
 
 def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
     query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
-    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n"\
+    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n" \
                "PREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX mba: <http://api.brain-map.org/api/v2/data/Structure/>\nPREFIX nsg: <https://neuroshapes.org/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
     context_object = Context(document=custom_context)
-    result = rewrite_sparql(query, context_object, metadata_context)
+    result = SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
     assert result == expected
+
 
 replace_in_sparql_combinations = [
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
@@ -129,31 +133,40 @@ replace_in_sparql_combinations = [
      "LIMIT", None, 100, r" LIMIT \d+", False,
      "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
-         "OFFSET", 1, 0, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  OFFSET 1"),
+     "OFFSET", 1, 0, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  OFFSET 1"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
-         "OFFSET", None, 0, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
+     "OFFSET", None, 0, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 3",
-         "OFFSET", None, 20, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 20"),
+     "OFFSET", None, 20, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 20"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 3",
-         "OFFSET", 5, None, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 5")
+     "OFFSET", 5, None, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 5")
 ]
 
-@pytest.mark.parametrize("query, what, value, default_value, search_regex, replace_if_in_query, expected",
-                         replace_in_sparql_combinations)
-def test__replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query, expected):
-    result = _replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query)
+
+@pytest.mark.parametrize(
+    "query, what, value, default_value, search_regex, replace_if_in_query, expected",
+    replace_in_sparql_combinations)
+def test__replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query,
+                            expected):
+    result = SPARQLQueryBuilder._replace_in_sparql(
+        query, what, value, default_value, re.compile(search_regex, flags=re.IGNORECASE),
+        replace_if_in_query
+    )
     assert result == expected
 
 
 def test__replace_in_sparql_exception():
     with pytest.raises(QueryingError):
         query = "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"
-        _replace_in_sparql(query, what="LIMIT", value=10, default_value=None, search_regex=r" LIMIT \d+",
-                           replace_if_in_query=False)
+        SPARQLQueryBuilder._replace_in_sparql(
+            query, what="LIMIT", value=10, default_value=None,
+            search_regex=re.compile(r"LIMIT \d+", flags=re.IGNORECASE),
+            replace_if_in_query=False
+        )
 
 
 def test_download(config):
@@ -162,8 +175,8 @@ def test_download(config):
         forge = KnowledgeGraphForge(config)
         forge._store.download(simple, "fake.path", "./", overwrite=False, cross_bucket=False)
 
-def test_freeze(config, store_metadata_value):
 
+def test_freeze(config, store_metadata_value):
     forge = KnowledgeGraphForge(config, debug=True)
     derivation1 = Dataset(forge, type="Dataset", name="A derivation dataset")
     derivation1.id = "http://derivation1"
@@ -188,20 +201,25 @@ def test_freeze(config, store_metadata_value):
     dataset.add_invalidation(invalidation1, versioned=False)
     dataset.add_contribution(contribution1, versioned=False)
 
-    expected_derivation = json.loads(json.dumps({"type":"Derivation", "entity":{"id": "http://derivation1",
-                                                                                "type":"Dataset", "name":"A derivation dataset"}}))
+    expected_derivation = json.loads(
+        json.dumps({"type": "Derivation", "entity": {"id": "http://derivation1",
+                                                     "type": "Dataset",
+                                                     "name": "A derivation dataset"}}))
     assert forge.as_json(dataset.derivation) == expected_derivation
 
     expected_generation = json.loads(json.dumps({"type": "Generation",
-                                                 "activity": {"id": "http://generation1", "type": "Dataset"}}))
+                                                 "activity": {"id": "http://generation1",
+                                                              "type": "Dataset"}}))
     assert forge.as_json(dataset.generation) == expected_generation
 
     expected_contribution = json.loads(json.dumps({"type": "Contribution",
-                                                 "agent": {"id": "http://contribution1", "type": "Person"}}))
+                                                   "agent": {"id": "http://contribution1",
+                                                             "type": "Person"}}))
     assert forge.as_json(dataset.contribution) == expected_contribution
 
     expected_invalidation = json.loads(json.dumps({"type": "Invalidation",
-                                                   "activity": {"id": "http://invalidation1", "type": "Activity"}}))
+                                                   "activity": {"id": "http://invalidation1",
+                                                                "type": "Activity"}}))
     assert forge.as_json(dataset.invalidation) == expected_invalidation
 
     dataset.id = "http://dataset"
