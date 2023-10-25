@@ -136,7 +136,7 @@ class RdfModelServiceFromStore(RdfModelService):
             document.update(context)
         return document
 
-    def _load_shape(self, resource_id: URIRef):
+    def _load_shape(self, resource_id: str):
         if resource_id not in self._imported:
             try:
                 shape = self.context_store.retrieve(resource_id, version=None, cross_bucket=False)
@@ -162,12 +162,12 @@ class RdfModelServiceFromStore(RdfModelService):
         try:
             return self._shapes_graph.lookup_shape_from_node(iri)
         except KeyError:
-            shape_resource_id = self.shape_to_source[iri]
+            shape_resource_id: str = self.shape_to_source[iri]
             self._load_shape_and_reload_shapes_graph(shape_resource_id)
             return self._shapes_graph.lookup_shape_from_node(iri)
 
-    def _load_shape_and_reload_shapes_graph(self, iri: URIRef):
-        self._load_shape(iri)
+    def _load_shape_and_reload_shapes_graph(self, resource_id: str):
+        self._load_shape(resource_id)
         # reloads the shapes graph
         self._shapes_graph = ShapesGraphWrapper(self._graph)
 
