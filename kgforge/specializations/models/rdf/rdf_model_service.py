@@ -33,21 +33,21 @@ from kgforge.specializations.models.rdf.utils import as_term
 
 
 class RdfModelService:
-    schema_to_source: Dict[URIRef, str]
-    classes_to_shapes: Dict[str, URIRef]
+    shape_to_source: Dict[URIRef, str]
+    class_to_shape: Dict[str, URIRef]
 
     def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
         self._graph = graph
-        self._context_cache = {}
-        self.schema_to_source, self.classes_to_shapes = self._build_shapes_map()
+        self._context_cache = dict()
+        self.shape_to_source, self.class_to_shape = self._build_shapes_map()
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
-    def schema_source(self, schema_iri: URIRef) -> str:
-        return self.schema_to_source[schema_iri]
+    def shape_source(self, schema_iri: URIRef) -> str:
+        return self.shape_to_source[schema_iri]
 
     def sparql(self, query: str) -> List[Resource]:
         e = self._graph.query(query)
@@ -109,7 +109,7 @@ class RdfModelService:
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
          the terms available in the context """
         types_to_shapes: Dict = {}
-        for k, v in self.classes_to_shapes.items():
+        for k, v in self.class_to_shape.items():
             term = self.context.find_term(str(k))
             if term:
                 if term.name not in types_to_shapes:
@@ -165,7 +165,7 @@ class RdfModelService:
             return l_prefixes, l_terms
 
         target_classes = []
-        for k in self.classes_to_shapes.keys():
+        for k in self.class_to_shape.keys():
             key = as_term(k)
             if key not in target_classes:
                 target_classes.append(key)
@@ -173,7 +173,7 @@ class RdfModelService:
                 # TODO: should this raise an error?
                 print("duplicated term", key, k)
 
-        for type_, shape in self.classes_to_shapes.items():
+        for type_, shape in self.class_to_shape.items():
             t_prefix, t_namespace, t_name = self._graph.compute_qname(type_)
             prefixes.update({t_prefix: str(t_namespace)})
             types_.update({t_name: {"@id": ":".join((t_prefix, t_name))}})

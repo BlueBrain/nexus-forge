@@ -58,8 +58,6 @@ class RdfModelServiceFromDirectory(RdfModelService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-
-
     def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
         query = """
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -76,18 +74,18 @@ class RdfModelServiceFromDirectory(RdfModelService):
         """
         res = self._graph.query(query)
 
-        class_being_shaped_id_to_shape_uri: Dict[str, URIRef] = {
+        class_to_shape: Dict[str, URIRef] = {
             row["type"]: URIRef(row["shape"])
             for row in res
         }
 
         # FIXME should return the file path where the schema is in
-        schema_to_file = dict(
+        shape_to_file = dict(
             (e, "")  # TODO file source
-            for e in class_being_shaped_id_to_shape_uri.values()
+            for e in class_to_shape.values()
         )
 
-        return schema_to_file, class_being_shaped_id_to_shape_uri
+        return shape_to_file, class_to_shape
 
 
 def load_rdf_files_into_graph(path: Path, memory_graph: Graph) -> Graph:

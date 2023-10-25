@@ -70,7 +70,7 @@ class RdfModelServiceFromStore(RdfModelService):
         return self._context_cache[iri]
 
     def generate_context(self) -> Dict:
-        for v in self.schema_to_source.values():
+        for v in self.shape_to_source.values():
             self._load_shape_and_reload_shapes_graph(v)
 
         return self._generate_context()
@@ -95,19 +95,19 @@ class RdfModelServiceFromStore(RdfModelService):
         limit = 100
         offset = 0
         count = limit
-        class_being_shaped_id_to_shape_uri = {}
-        schema_to_resource: Dict[URIRef, URIRef] = {}
+        class_to_shape = dict()
+        shape_to_resource: Dict[URIRef, URIRef] = dict()
 
         while count == limit:
             resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
             for r in resources:
                 shape_uri = URIRef(r.shape)
-                class_being_shaped_id_to_shape_uri[r.type] = shape_uri
-                schema_to_resource[shape_uri] = URIRef(r.resource_id)
+                class_to_shape[r.type] = shape_uri
+                shape_to_resource[shape_uri] = URIRef(r.resource_id)
             count = len(resources)
             offset += count
 
-        return schema_to_resource, class_being_shaped_id_to_shape_uri
+        return shape_to_resource, class_to_shape
 
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
         document = {}
@@ -162,7 +162,7 @@ class RdfModelServiceFromStore(RdfModelService):
         try:
             return self._shapes_graph.lookup_shape_from_node(iri)
         except KeyError:
-            shape_resource_id = self.schema_to_source[iri]
+            shape_resource_id = self.shape_to_source[iri]
             self._load_shape_and_reload_shapes_graph(shape_resource_id)
             return self._shapes_graph.lookup_shape_from_node(iri)
 

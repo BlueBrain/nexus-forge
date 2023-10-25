@@ -105,7 +105,7 @@ class RdfModel(Model):
 
     def schema_id(self, type: str) -> URIRef:
         shape_iri: URIRef = self.get_shape_from_type(type)
-        return self.service.schema_source(shape_iri)
+        return self.service.shape_source(shape_iri)
 
     # Validation.
 
