@@ -46,9 +46,13 @@ class RdfModelServiceFromStore(RdfModelService):
 
         self._imported = []
 
-        g = Graph()
-        self._shapes_graph = ShapesGraphWrapper(g)
-        super().__init__(g, context_iri)
+        graph, shape_to_resource, class_to_shape = self._build_shapes_map()
+        self._shapes_graph = ShapesGraphWrapper(graph)
+
+        super().__init__(
+            graph=graph, context_iri=context_iri, shape_to_source=shape_to_resource,
+            class_to_shape=class_to_shape
+        )
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         shape: ShapeWrapper = self._load_and_get_type_shape(iri)
@@ -75,7 +79,7 @@ class RdfModelServiceFromStore(RdfModelService):
 
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
+    def _build_shapes_map(self) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
         query = f"""
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
             PREFIX sh: <http://www.w3.org/ns/shacl#>
@@ -95,8 +99,8 @@ class RdfModelServiceFromStore(RdfModelService):
         limit = 100
         offset = 0
         count = limit
-        class_to_shape = dict()
-        shape_to_resource: Dict[URIRef, URIRef] = dict()
+        class_to_shape: Dict[str, URIRef] = dict()
+        shape_to_resource: Dict[URIRef, str] = dict()
 
         while count == limit:
             resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)
@@ -107,7 +111,7 @@ class RdfModelServiceFromStore(RdfModelService):
             count = len(resources)
             offset += count
 
-        return shape_to_resource, class_to_shape
+        return Graph(), shape_to_resource, class_to_shape
 
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
         document = {}

@@ -33,20 +33,24 @@ from kgforge.specializations.models.rdf.utils import as_term
 
 
 class RdfModelService:
-    shape_to_source: Dict[URIRef, str]
-    class_to_shape: Dict[str, URIRef]
 
-    def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
+    def __init__(
+            self, graph: Graph,
+            shape_to_source: Dict[URIRef, str],
+            class_to_shape:  Dict[str, URIRef],
+            context_iri: Optional[str] = None,
+    ) -> None:
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
         self._graph = graph
         self._context_cache = dict()
-        self.shape_to_source, self.class_to_shape = self._build_shapes_map()
+        self.shape_to_source = shape_to_source
+        self.class_to_shape = class_to_shape
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
-    def shape_source(self, schema_iri: URIRef) -> str:
+    def get_shape_source(self, schema_iri: URIRef) -> str:
         return self.shape_to_source[schema_iri]
 
     def sparql(self, query: str) -> List[Resource]:
@@ -98,11 +102,6 @@ class RdfModelService:
     @abstractmethod
     def generate_context(self) -> Dict:
         """Generates a JSON-LD context with the classes and terms present in the SHACL graph."""
-        raise NotImplementedError()
-
-    @abstractmethod
-    def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
-        """Queries the source and returns a map of owl:Class to sh:NodeShape"""
         raise NotImplementedError()
 
     def _build_types_to_shapes(self) -> Dict[str, URIRef]:

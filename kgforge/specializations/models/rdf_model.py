@@ -103,9 +103,9 @@ class RdfModel(Model):
             raise ValueError(f"Type {type} not found")
         return self.service.types_to_shapes[type]
 
-    def schema_id(self, type: str) -> URIRef:
+    def schema_source(self, type: str) -> str:
         shape_iri: URIRef = self.get_shape_from_type(type)
-        return self.service.shape_source(shape_iri)
+        return self.service.get_shape_source(shape_iri)
 
     # Validation.
 

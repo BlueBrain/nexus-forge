@@ -28,9 +28,14 @@ from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraph
 class RdfModelServiceFromDirectory(RdfModelService):
 
     def __init__(self, dir_path: Path, context_iri: str) -> None:
-        self._graph = load_rdf_files_into_graph(dir_path, Graph())
-        self._shapes_graph = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
+
+        graph, shape_to_source, class_to_shape = self._build_shapes_map(dir_path=dir_path)
+        self._shapes_graph = ShapesGraphWrapper(graph)
+
+        super().__init__(
+            graph=graph, context_iri=context_iri, shape_to_source=shape_to_source,
+            class_to_shape=class_to_shape
+        )
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._shapes_graph.lookup_shape_from_node(iri)
@@ -58,34 +63,53 @@ class RdfModelServiceFromDirectory(RdfModelService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict[URIRef, str], Dict[str, URIRef]]:
+    def _build_shapes_map(
+            self, dir_path: Path
+    ) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
+
         query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?type ?shape WHERE {
-                { ?shape sh:targetClass ?type .}
-                UNION {
-                    SELECT (?shape as ?type) ?shape WHERE {
-                        ?shape a sh:NodeShape .
-                        ?shape a rdfs:Class
-                    }
-                }
-            } ORDER BY ?type
-        """
-        res = self._graph.query(query)
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX sh: <http://www.w3.org/ns/shacl#>
+                    SELECT ?type ?shape WHERE {
+                        { ?shape sh:targetClass ?type .}
+                        UNION {
+                            SELECT (?shape as ?type) ?shape WHERE {
+                                ?shape a sh:NodeShape .
+                                ?shape a rdfs:Class
+                            }
+                        }
+                    } ORDER BY ?type
+                """
 
-        class_to_shape: Dict[str, URIRef] = {
-            row["type"]: URIRef(row["shape"])
-            for row in res
-        }
+        class_to_shape: Dict[str, URIRef] = dict()
+        shape_to_file: Dict[URIRef, str] = dict()
+        graph = Graph()
 
-        # FIXME should return the file path where the schema is in
-        shape_to_file = dict(
-            (e, "")  # TODO file source
-            for e in class_to_shape.values()
-        )
+        extensions = [".ttl", ".n3", ".json", ".rdf"]
+        for f in dir_path.rglob(os.path.join("*.*")):
+            graph_i = Graph()
+            if f.suffix in extensions:
+                file_format = guess_format(f.name)
+                if file_format is None:
+                    file_format = "json-ld"
+                graph_i.parse(f.as_posix(), format=file_format)
 
-        return shape_to_file, class_to_shape
+            res = graph_i.query(query)
+
+            class_to_shape_i = dict(
+                (row["type"], URIRef(row["shape"]))
+                for row in res
+            )
+            class_to_shape.update(class_to_shape_i)
+
+            shape_to_file.update(dict(
+                (e, f.as_posix())
+                for e in class_to_shape_i.values()
+            ))
+
+            graph += graph_i
+
+        return graph, shape_to_file, class_to_shape
 
 
 def load_rdf_files_into_graph(path: Path, memory_graph: Graph) -> Graph:

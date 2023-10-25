@@ -196,8 +196,8 @@ class Model(ABC):
 
     # Validation.
 
-    def schema_id(self, type: str) -> URIRef:
-        # POLICY Should retrieve the schema id of the given type.
+    def schema_source(self, type: str) -> str:
+        # POLICY Should retrieve the schema source of the given type.
         not_supported()
 
     def validate(self, data: Union[Resource, List[Resource]],
