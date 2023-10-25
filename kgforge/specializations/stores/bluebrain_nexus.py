@@ -33,7 +33,7 @@ import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
-
+from kgforge.core.archetypes.store import DEFAULT_LIMIT
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
@@ -687,7 +687,7 @@ class BlueBrainNexus(Store):
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
-        limit = params.get("limit", 100)
+        limit = params.get("limit", DEFAULT_LIMIT)
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
         cross_bucket = params.get("cross_bucket", False)
@@ -699,24 +699,26 @@ class BlueBrainNexus(Store):
         search_endpoint = params.get(
             "search_endpoint", self.service.sparql_endpoint["type"]
         )
-        if search_endpoint not in [
-            self.service.sparql_endpoint["type"],
-            self.service.elastic_endpoint["type"],
-        ]:
+
+        supported_search_endpoints = [
+            self.service.sparql_endpoint["type"], self.service.elastic_endpoint["type"],
+        ]
+        if search_endpoint not in supported_search_endpoints:
             raise ValueError(
-                f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
-                f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
+                f"The provided search_endpoint value '{search_endpoint}' is not supported. "
+                f"Supported search_endpoint values are: {supported_search_endpoints}"
             )
         if "filters" in params:
             raise ValueError(
-                "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+                "A 'filters' key was provided as params. "
+                "Filters should be provided as iterable to be unpacked."
+            )
 
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
 
         if filters and isinstance(filters[0], dict):
-            filters = create_filters_from_dict(filters[0])
-        filters = list(filters) if not isinstance(filters, list) else filters
+            filters: List[Filter] = create_filters_from_dict(filters[0])
 
         if search_endpoint == self.service.sparql_endpoint["type"]:
             if includes or excludes:

@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type, Pattern
 
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import QueryingError
@@ -64,15 +64,17 @@ def rewrite_sparql(query: str, context: Context, metadata_context: Context) -> s
     In the case of non-available contexts and vocab then the query is returned unchanged.
     """
     ctx = {}
-    if metadata_context and metadata_context.document:
-        ctx.update({
+
+    def _context_to_dict(c: Context):
+        return {
             k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-            for k, v in metadata_context.document["@context"].items()
-        })
-    ctx.update({
-        k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-        for k, v in context.document["@context"].items()
-    })
+            for k, v in c.document["@context"].items()
+        }
+    if metadata_context and metadata_context.document:
+        ctx.update(_context_to_dict(metadata_context))
+
+    ctx.update(_context_to_dict(context))
+
     prefixes = context.prefixes
     has_prefixes = prefixes is not None and len(prefixes.keys()) > 0
     if ctx.get("type") == "@type":
@@ -120,22 +122,33 @@ def rewrite_sparql(query: str, context: Context, metadata_context: Context) -> s
     return f"{pfx}\n{qr}"
 
 
-def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):
+def _replace_in_sparql(
+        qr: str,
+        what: str,
+        value: Optional[int],
+        default_value: int,
+        search_regex: Pattern,
+        replace_if_in_query=True
+) -> str:
 
-    is_what_in_query = bool(re.search(f"{search_regex}", qr, flags=re.IGNORECASE))
-    if is_what_in_query and value and not replace_if_in_query:
-        raise QueryingError(
-            f"Value for '{what}' is present in the provided query and set as argument: "
-            f"set 'replace_if_in_query' to True to replace '{what}' when present in the query."
-        )
+    is_what_in_query = bool(re.search(pattern=search_regex, string=qr))
+
     replace_value = f" {what} {value}" if value else \
         (f" {what} {default_value}" if default_value else None)
 
-    if is_what_in_query and replace_if_in_query and replace_value:
-        qr = re.sub(f"{search_regex}", replace_value, qr, flags=re.IGNORECASE)
+    if is_what_in_query:
+        if not replace_if_in_query and value:
+            raise QueryingError(
+                f"Value for '{what}' is present in the provided query and set as argument: "
+                f"set 'replace_if_in_query' to True to replace '{what}' when present in the query."
+            )
 
-    if not is_what_in_query and replace_value:
-        qr = f"{qr} {replace_value}"
+        if replace_if_in_query and replace_value:
+            qr = re.sub(pattern=search_regex, repl=replace_value, string=qr)
+    else:
+        if replace_value:
+            qr = f"{qr} {replace_value}"  # Added to the end of the query (not very general)
+
     return qr
 
 
@@ -155,9 +168,15 @@ def handle_sparql_query(
         else query
     )
     if limit:
-        qr = _replace_in_sparql(qr, "LIMIT", limit, default_limit, r" LIMIT \d+")
+        qr = _replace_in_sparql(
+            qr, "LIMIT", limit, default_limit,
+            re.compile(r" LIMIT \d+", flags=re.IGNORECASE)
+        )
     if offset:
-        qr = _replace_in_sparql(qr, "OFFSET", offset, default_offset, r" OFFSET \d+")
+        qr = _replace_in_sparql(
+            qr, "OFFSET", offset, default_offset,
+            re.compile(r" OFFSET \d+", flags=re.IGNORECASE)
+        )
 
     if debug:
         _debug_query(qr)
@@ -170,4 +189,3 @@ def _debug_query(query):
         print("Submitted query:", query)
     else:
         print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-    print()

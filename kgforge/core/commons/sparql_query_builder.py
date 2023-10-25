@@ -27,6 +27,7 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
 from kgforge.core.commons.query_builder import QueryBuilder
+from kgforge.core.wrappings.paths import Filter
 
 
 class CategoryDataType(Enum):
@@ -49,7 +50,7 @@ format_type = {
     CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x is True else "'false'^^xsd:boolean",
+    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean",
 }
 
 sparql_operator_map = {
@@ -66,11 +67,11 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build(
-        schema: Dict,
-        resolvers: Optional[List[Resolver]],
-        context: Context,
-        *filters,
-        **params,
+            schema: Dict,
+            resolvers: Optional[List[Resolver]],
+            context: Context,
+            filters: List[Filter],
+            **params,
     ) -> Tuple[List, List]:
 
         statements = []
@@ -91,9 +92,9 @@ class SPARQLQueryBuilder(QueryBuilder):
                 property_path = "/".join(f.path)
             try:
                 if (
-                    last_path in ["type", "@type"]
-                    or last_path in ["id", "@id"]
-                    or (last_term is not None and last_term.type == "@id")
+                        last_path in ["type", "@type"]
+                        or last_path in ["id", "@id"]
+                        or (last_term is not None and last_term.type == "@id")
                 ):
                     if f.operator == "__eq__":
                         statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
@@ -112,14 +113,18 @@ class SPARQLQueryBuilder(QueryBuilder):
                         if f.operator not in ["__eq__", "__ne__"]:
                             raise NotImplementedError("supported operators are '==' and '!=' when filtering with a str.")
                         statements.append(f"{property_path} ?v{index}")
-                        sparql_filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
+                        sparql_filters.append(
+                            f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
                     else:
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(
                             f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
                         )
             except NotImplementedError as nie:
-                raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
+                raise ValueError(
+                    f"Operator '{sparql_operator_map[f.operator]}' "
+                    f"is not supported with the value '{f.value}': {str(nie)}"
+                )
         return statements, sparql_filters
 
     @staticmethod
@@ -164,17 +169,23 @@ class SPARQLQueryBuilder(QueryBuilder):
         else:
             # SELECT QUERY
             results = response["results"]["bindings"]
+
+            def process_v(v):
+                if v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
+                     'http://www.w3.org/2001/XMLSchema#boolean':
+
+                    return json.loads(str(v["value"]).lower())
+
+                elif v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
+                        'http://www.w3.org/2001/XMLSchema#integer':
+
+                    return int(v["value"])
+
+                else:
+                    return v["value"]
+
             return [
-                Resource(**{
-                    k: json.loads(str(v["value"]).lower())
-                    if v['type'] == 'literal' and
-                    ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
-                    else (
-                        int(v["value"])
-                        if v['type'] == 'literal' and ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
-                        else v["value"]
-                    )
-                    for k, v in x.items()})
+                Resource(**{k: process_v(v) for k, v in x.items()})
                 for x in results
             ]
 

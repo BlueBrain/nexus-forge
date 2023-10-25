@@ -40,7 +40,7 @@ class ESQueryBuilder(QueryBuilder):
         schema: Dict,
         resolvers: Optional[List["Resolver"]],
         context: Context,
-        *filters,
+        filters: List[Filter],
         **params,
     ) -> Tuple[List, List, List]:
 
@@ -59,7 +59,7 @@ class ESQueryBuilder(QueryBuilder):
             m._update_from_dict(schema)
             dynamic = m._meta["dynamic"] if "dynamic" in m._meta else dynamic
 
-        for index, f in enumerate(*filters):
+        for index, f in enumerate(filters):
             _filter = None
             must = None
             must_not = None

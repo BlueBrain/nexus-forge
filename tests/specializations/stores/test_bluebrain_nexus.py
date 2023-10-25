@@ -433,7 +433,7 @@ class TestQuerying:
         ],
     )
     def test_filter_to_query_statements(self, context, filters, expected):
-        statements = SPARQLQueryBuilder.build(None, None, context, *list(filters))
+        statements = SPARQLQueryBuilder.build(None, None, context, list(filters))
         assert statements == expected
 
     @pytest.mark.parametrize(
@@ -447,7 +447,7 @@ class TestQuerying:
     )
     def test_filter_to_query_statements_exceptions(self, context, filters):
         with pytest.raises(ValueError):
-            SPARQLQueryBuilder.build(None, None, context, *list(filters))
+            SPARQLQueryBuilder.build(None, None, context, list(filters))
 
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"

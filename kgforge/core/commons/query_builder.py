@@ -18,6 +18,7 @@ from abc import abstractmethod, ABC
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
 from kgforge.core.resource import Resource
+from kgforge.core.wrappings import Filter
 
 
 class QueryBuilder(ABC):
@@ -30,7 +31,7 @@ class QueryBuilder(ABC):
         schema: Any,
         resolvers: Optional[List["Resolver"]],
         context: Context,
-        *filters,
+        filters: List[Filter],
         **params
     ) -> Any:
         pass
