@@ -14,6 +14,7 @@
 import json
 import pytest
 from rdflib import URIRef
+from rdflib.plugins.sparql import prepareQuery
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import ValidationError
@@ -125,15 +126,8 @@ class TestValidation:
                 invalid_activity_resource._last_action.operation ==
                 rdf_model._validate_many.__name__)
 
-
     def test_query_model(self, rdf_model: RdfModel):
-        query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?id ?label WHERE {
-                ?id a owl:Class ;
-                    rdfs:label ?label  
-            } 
-        """
-        res = rdf_model.sparql(query, debug=True)
+
+        q = "SELECT ?id ?label WHERE { ?id a owl:Class ; rdfs:label ?label }"
+        res = rdf_model.sparql(q, debug=True)
         # TODO assertion

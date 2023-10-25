@@ -11,16 +11,18 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
+import json
 import types
+from io import StringIO
 from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
 from typing import List, Dict, Tuple, Set, Optional
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD
-from rdflib.plugins.sparql.processor import SPARQLResult
+from rdflib.plugins.sparql.results.jsonresults import JSONResultSerializer
 
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
@@ -47,8 +49,10 @@ class RdfModelService:
     def schema_source(self, schema_iri: URIRef) -> str:
         return self.schema_to_source[schema_iri]
 
-    def sparql(self, query: str) -> SPARQLResult:
-        return self._graph.query(query)
+    def sparql(self, query: str) -> List[Resource]:
+        e = self._graph.query(query)
+        results = json.loads(e.serialize(format="json"))
+        return SPARQLQueryBuilder.build_resource_from_select_query(results["results"]["bindings"])
 
     @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:

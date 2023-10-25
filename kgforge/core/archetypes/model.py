@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import hjson
 from pandas import DataFrame
 from rdflib import URIRef
-from rdflib.plugins.sparql.processor import SPARQLResult
 
 
 from kgforge.core import Resource
@@ -145,7 +144,7 @@ class Model(ABC):
 
         return self._sparql(qr)
 
-    def _sparql(self, query: str) -> SPARQLResult:
+    def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).

@@ -168,26 +168,31 @@ class SPARQLQueryBuilder(QueryBuilder):
             return [triples_to_resource(s, t) for s, t in subject_triples.items()]
         else:
             # SELECT QUERY
-            results = response["results"]["bindings"]
+            return SPARQLQueryBuilder.build_resource_from_select_query(
+                response["results"]["bindings"]
+            )
 
-            def process_v(v):
-                if v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
-                     'http://www.w3.org/2001/XMLSchema#boolean':
+    @staticmethod
+    def build_resource_from_select_query(results: List):
 
-                    return json.loads(str(v["value"]).lower())
+        def process_v(v):
+            if v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
+                    'http://www.w3.org/2001/XMLSchema#boolean':
 
-                elif v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
-                        'http://www.w3.org/2001/XMLSchema#integer':
+                return json.loads(str(v["value"]).lower())
 
-                    return int(v["value"])
+            elif v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
+                    'http://www.w3.org/2001/XMLSchema#integer':
 
-                else:
-                    return v["value"]
+                return int(v["value"])
 
-            return [
-                Resource(**{k: process_v(v) for k, v in x.items()})
-                for x in results
-            ]
+            else:
+                return v["value"]
+
+        return [
+            Resource(**{k: process_v(v) for k, v in x.items()})
+            for x in results
+        ]
 
 
 def _box_value_as_full_iri(value):
