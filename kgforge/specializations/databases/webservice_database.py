@@ -118,7 +118,8 @@ class WebServiceDatabase(Database):
             if not isinstance(paths, list):
                 raise TypeError("Given multiple urls, paths should also be a list.")
             if len(paths) != len(urls):
-                raise ValueError("Missmatch between urls and paths, they should be the same ammount.")
+                raise ValueError(f"Missmatch between urls ({len(urls)}) and paths ({len(paths)}), \
+                                   they should be the same amount.")
             self._download_many(urls, paths)
         else:
             self._download_one(urls, paths)

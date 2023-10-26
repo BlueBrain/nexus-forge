@@ -13,12 +13,10 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from abc import ABC, abstractmethod
-import json
 from pathlib import Path
-from typing import Any, Optional, Callable, Dict, List, Union
+from typing import Any, Optional, Callable, Type, List, Union
 
 from kgforge.core import Resource
-from kgforge.core.commons.context import Context
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.archetypes import Mapping, Model
 from kgforge.core.commons.attributes import repr_class
@@ -79,7 +77,7 @@ class Database(ABC):
                 mapped_resources.append(self._forge.map(resource_dict, type_))
             elif type_ in mappings:
                 # type_ is the entity here
-                mapping_class : Mapping = import_class(mappings[type_][0], "mappings")
+                mapping_class : Type[Mapping] = import_class(mappings[type_][0], "mappings")
                 mapping = self._model.mapping(type_, self._model.source, mapping_class)
                 mapped_resources.append(self._forge.map(resource_dict, mapping))
             else:

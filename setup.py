@@ -52,7 +52,7 @@ setup(
         "pyparsing>=2.0.2",
         "owlrl>=5.2.3",
         "elasticsearch_dsl==7.4.0",
-        "SPARQLWrapper"
+        "SPARQLWrapper==2.0.0"
     ],
     extras_require={
         "dev": [

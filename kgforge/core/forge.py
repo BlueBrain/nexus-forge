@@ -1014,11 +1014,9 @@ class KnowledgeGraphForge:
     def create_db_sources(self, all_config: Optional[Dict[str, Dict[str, str]]], 
                           store_config : Optional[Dict[str, Dict[str, str]]],
                           model_context: Context
-                          ) -> Union[Database, List[Database]]:
-        names = all_config.keys()
+                          ) -> Dict[str, Database]:
         dbs = {}
-        for name in names:
-            config = all_config[name]
+        for name, config in all_config.items():
             origin = config['origin']
             source = config['source']
             if origin == 'store':
@@ -1027,7 +1025,7 @@ class KnowledgeGraphForge:
                     store_copy = deepcopy(store_config)
                     with_defaults(config, store_copy,
                                   "source", "name",
-                                   store_copy.keys())
+                                   list(store_copy.keys()))
                     config['model_context'] = model_context
                 config['name'] = name
                 dbs[name] = StoreDatabase(self, **config)
