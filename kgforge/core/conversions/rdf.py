@@ -189,7 +189,8 @@ def _as_jsonld_many(
             model_context,
             metadata_context,
             context_resolver,
-            **params) for i, resource in enumerate(resources)
+            **params
+         ) for i, resource in enumerate(resources)
     ]
 
 
@@ -316,7 +317,8 @@ def _as_graphs(
         )
     converted, json_array = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(converted, resource._store_metadata, store_metadata, metadata_context)+(converted, ) + (json_array, )
+    return _dicts_to_graph(converted, resource._store_metadata, store_metadata,
+                           metadata_context) + (converted, ) + (json_array, )
 
 
 def _dicts_to_graph(
@@ -454,12 +456,14 @@ def _add_ld_keys(
                         )
     return local_attrs, json_arrays
 
+
 def _resolve_iri(value: str, context) -> str:
     resolved_id = context.resolve(value)
     if resolved_id != "":
         return resolved_id
     else:
         raise ValueError(f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces")
+
 
 def _remove_ld_keys(
     dictionary: dict, context: Context, to_resource: Optional[bool] = True

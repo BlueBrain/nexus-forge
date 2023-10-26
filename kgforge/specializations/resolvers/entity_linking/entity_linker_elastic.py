@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
@@ -36,11 +36,11 @@ class EntityLinkerElastic(EntityLinker):
         return DictionaryMapper
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]]) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:
         encoder = store_config.pop("encoder")
         encoder_url = encoder["source"]
         encoder_result_resource_mapping = encoder["result_resource_mapping"]

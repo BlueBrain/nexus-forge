@@ -29,6 +29,7 @@ from kgforge.core.commons.query_builder import QueryBuilder
 
 from pyld import jsonld
 
+
 class CategoryDataType(Enum):
     DATETIME = "datetime"
     NUMBER = "number"
@@ -60,6 +61,7 @@ sparql_operator_map = {
     "__gt__": ">",
     "__ge__": ">=",
 }
+
 
 class SPARQLQueryBuilder(QueryBuilder):
 
@@ -121,7 +123,6 @@ class SPARQLQueryBuilder(QueryBuilder):
                 raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
         return statements, sparql_filters
 
-
     @staticmethod
     def build_resource_from_response(query: str, response: Dict, context: Context) -> List[Resource]:
         _, q_comp = Query.parseString(query)
@@ -174,6 +175,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                             for k, v in x.items()})
                 for x in results
             ]
-        
+
+
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value

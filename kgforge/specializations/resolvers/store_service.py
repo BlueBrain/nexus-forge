@@ -58,13 +58,12 @@ class StoreService:
         else:
             return None
 
-
     def validate_target(self, target):
         if target and target not in self.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.sources.keys()}")
         else:
             return True
-        
+
     def get_context(self, resolving_context, target, filters):
         if not resolving_context:
             context = self.sources[target].model_context if target in self.sources else None
@@ -72,6 +71,7 @@ class StoreService:
             raise ValueError(f"No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
         else:
             return context
+
 
 def format_response(resource, mandatory_fields):
     json_data = as_json(resource, expanded=False, store_metadata=False,

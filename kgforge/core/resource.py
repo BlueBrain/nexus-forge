@@ -95,11 +95,11 @@ class Resource:
                 self._sync_resource(v, inner)
         if inner:
             self._inner_sync = (all(inner))
-        if self._inner_sync is False:    
+        if self._inner_sync is False:
             return False
         else:
             return self.__dict__["_synchronized"]
-    
+
     def _set_synchronized(self, sync: bool) -> None:
         inner = []
         for v in self.__dict__.values():
@@ -112,24 +112,24 @@ class Resource:
             for iresource in inner:
                 iresource._synchronized = sync
         self.__dict__["_inner_sync"] = sync
-    
+
     _synchronized = property(_get_synchronized, _set_synchronized)
 
-    def has_identifier(self, return_attribute: bool = False) ->  Union[bool, Tuple[bool, str]]:
+    def has_identifier(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
         res = self._has_term("id", return_attribute)
         return res
 
     def has_type(self, return_attribute: bool = False) -> Union[bool, Tuple[bool, str]]:
         return self._has_term("type", return_attribute)
-    
+
     def _has_term(self, term, return_attribute):
         result = False
         attribute = None
         if hasattr(self, f"@{term}"):
-            result= True
+            result = True
             attribute = f"@{term}"
         if hasattr(self, term):
-            result= True
+            result = True
             attribute = term
         if return_attribute:
             return (result, attribute)
@@ -149,7 +149,7 @@ class Resource:
 
         def _(d: Union[Dict, List[Dict]], nas: List[Any]) -> Resource:
             if isinstance(d, List):
-                return [_(x,  nas) for x in d]
+                return [_(x, nas) for x in d]
             elif isinstance(d, Dict):
                 properties = {k: _(v, nas) for k, v in d.items() if v not in nas}
                 return Resource(**properties)

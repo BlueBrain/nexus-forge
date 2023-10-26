@@ -26,8 +26,9 @@ class EntityLinkerService(ABC):
         self.is_distance = is_distance
 
     @abstractmethod
-    def generate_candidates(self, mentions: List[str], target:str, mention_context: Any, limit: int, bulk: bool)\
-            -> Optional[List[EntityLinkingCandidate]]:
+    def generate_candidates(
+            self, mentions: List[str], target: str, mention_context: Any, limit: int, bulk: bool
+    ) -> Optional[List[EntityLinkingCandidate]]:
         pass
 
     def rank_candidates(self, candidates: List[EntityLinkingCandidate], strategy: ResolvingStrategy, threshold: float,

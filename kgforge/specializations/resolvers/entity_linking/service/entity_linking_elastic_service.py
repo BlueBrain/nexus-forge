@@ -78,7 +78,7 @@ class EntityLinkerElasticService(EntityLinkerService):
                 embedding_json = encode(embedding)
                 vector_field = list(embedding_json.keys())[0]
                 mention_resources, mention_resources_scores = self._similar(
-                    vector_field,embedding_json[vector_field], target, limit
+                    vector_field, embedding_json[vector_field], target, limit
                 )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)

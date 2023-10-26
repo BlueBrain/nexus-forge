@@ -252,7 +252,7 @@ def _recursive_resolve_nested(m, field_path):
     if mapping_type is None and nested_path == ():
         if len(field_path) > 1:
             return _recursive_resolve_nested(
-                m, field_path=field_path[0 : len(field_path) - 1]
+                m, field_path=field_path[0:len(field_path) - 1]
             )
         else:
             return nested_path, field_path, mapping_type

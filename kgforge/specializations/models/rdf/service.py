@@ -269,4 +269,4 @@ class RdfService:
         context.update({key: types_[key] for key in sorted(types_)})
         context.update({key: terms[key] for key in sorted(terms)})
 
-        return {"@context":  context} if len(context) > 0 else None
+        return {"@context": context} if len(context) > 0 else None

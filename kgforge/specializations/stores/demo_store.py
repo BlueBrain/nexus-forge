@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -46,7 +46,6 @@ class DemoStore(Store):
     def mapper(self) -> Type[Mapper]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
-
 
     # [C]RUD.
 
@@ -135,8 +134,9 @@ class DemoStore(Store):
     # Utils.
 
     def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict]):
+                            token: Optional[str], searchendpoints: Optional[Dict]):
         return StoreLibrary()
+
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
@@ -248,7 +248,7 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
-    
+
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         raise not_supported()
 

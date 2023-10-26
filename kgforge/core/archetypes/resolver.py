@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -24,6 +24,7 @@ from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.wrappings.paths import Filter, FilterOperator
+
 
 class Resolver(ABC):
 
@@ -68,16 +69,19 @@ class Resolver(ABC):
         pass
 
     def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
-                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str, merge_inplace_as: str,
+                strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str,
+                merge_inplace_as: str,
                 limit: int, threshold: float, forge: Optional["KnowledgeGraphForge"]) \
             -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
 
         if isinstance(text, Resource):
-            expected = [isinstance(text, Resource), property_to_resolve is not None and hasattr(text, property_to_resolve),
+            expected = [isinstance(text, Resource),
+                        property_to_resolve is not None and hasattr(text, property_to_resolve),
                         isinstance(getattr(text, property_to_resolve), str) or
-                        (isinstance(getattr(text, property_to_resolve), list) and all([isinstance(f, str) for f in
-                                                                                       getattr(text, property_to_resolve)
-                                                                                       ]))]
+                        (isinstance(getattr(text, property_to_resolve), list) and all(
+                            [isinstance(f, str) for f in
+                             getattr(text, property_to_resolve)
+                             ]))]
             if all(expected):
                 text_to_resolve = getattr(text, property_to_resolve)
             else:
@@ -90,16 +94,19 @@ class Resolver(ABC):
             text_to_resolve = text
         # The resolving strategy cannot be abstracted as it should be managed by the service.
         self._is_target_valid(target)
-        resolved = self._resolve(text_to_resolve, target, type, strategy, resolving_context, limit, threshold)
+        resolved = self._resolve(text_to_resolve, target, type, strategy, resolving_context, limit,
+                                 threshold)
         if resolved is None or len(resolved) == 0:
             return None
         resolved = resolved[0] if len(resolved) == 1 else resolved
         if isinstance(resolved, tuple):
             # Case Tuple[str,List[Dict]]
-            resolved_mapped = self.mapper(forge).map(resolved[1], self.result_mapping, None) if resolved[1] is not None else None
+            resolved_mapped = self.mapper(forge).map(resolved[1], self.result_mapping, None) if \
+            resolved[1] is not None else None
         elif isinstance(text_to_resolve, list):
             # Case List[Tuple[str, List[Dict]]]
-            resolved_mapped = {r[0]: self.mapper(forge).map(r[1], self.result_mapping, None) for r in resolved if
+            resolved_mapped = {r[0]: self.mapper(forge).map(r[1], self.result_mapping, None) for r
+                               in resolved if
                                isinstance(r, tuple)}
         else:
             # Case Dict or List[Dict]
@@ -111,9 +118,11 @@ class Resolver(ABC):
             return resolved_mapped
 
     @abstractmethod
-    def _resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
-                 strategy: ResolvingStrategy, resolving_context: Any, limit: int, threshold: float) -> Optional[
-        List[Any]]:
+    def _resolve(
+        self, text: Union[str, List[str], Resource], target: str, type: str,
+        strategy: ResolvingStrategy, resolving_context: Any, limit: int,
+        threshold: float
+    ) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
         pass
 
@@ -122,10 +131,10 @@ class Resolver(ABC):
         # POLICY Should notify of failures with exception ValueError including a message.
         pass
 
-
     # Utils.
 
-    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]],
+                            **source_config) -> Any:
         # Resolver data could be accessed from a directory, a web service, or a Store.
         # Initialize the access to the resolver data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
@@ -143,15 +152,19 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
+                                **source_config) -> Any:
         pass
 
     @staticmethod
-    def _service_from_web_service(endpoint: str, targets: Dict[str,  Dict[str, Dict[str, str]]]) -> Any:
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> Any:
+    def _service_from_store(
+            store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config
+    ) -> Any:
         not_supported()
 
 
@@ -163,6 +176,7 @@ def escape_punctuation(text):
         if p in text:
             text = text.replace(p, f"\\\\{p}")
     return text
+
 
 def write_sparql_filters(text, properties: List, regex=False,
                          case_insensitive=False) -> List[str]:
@@ -180,7 +194,9 @@ def write_sparql_filters(text, properties: List, regex=False,
     return filters
 
 
-def _build_resolving_query(text, query_template, deprecated_property, filters, strategy, _type, properties_to_filter_with, resolving_context: Any, query_builder: QueryBuilder, limit: Optional[int]):
+def _build_resolving_query(text, query_template, deprecated_property, filters, strategy, _type,
+                           properties_to_filter_with, resolving_context: Any,
+                           query_builder: QueryBuilder, limit: Optional[int]):
     first_filters = f"?id <{deprecated_property}> \"false\"^^xsd:boolean"
     if _type:
         first_filters = f"{first_filters} ; a {_type}"
@@ -201,21 +217,23 @@ def _build_resolving_query(text, query_template, deprecated_property, filters, s
             limit = 1
 
     properties_filters = write_sparql_filters(text, properties_to_filter_with,
-                                            regex, case_insensitive)
-    
+                                              regex, case_insensitive)
+
     configured_target_filters = []
     if filters:
         for path, value in filters.items():
             path = path.split(".") if '.' in path else [path]
-            configured_target_filters.append(Filter(operator=FilterOperator.EQUAL, path=path, value=value))
-        target_query_statements, target_query_filters = query_builder.build(None,
-                                                            None,
-                                                            resolving_context,
-                                                            *configured_target_filters)
-        
+            configured_target_filters.append(
+                Filter(operator=FilterOperator.EQUAL, path=path, value=value)
+            )
+        target_query_statements, target_query_filters = query_builder.build(
+            None, None, resolving_context, *configured_target_filters
+        )
+
         target_query_statements = ";\n ".join(target_query_statements)
         target_query_filters = "\n ".join(target_query_filters)
         first_filters = f"{first_filters} ; \n {target_query_statements}"
-        first_filters = f"{first_filters} . \n {target_query_filters}" if len(target_query_filters) > 0 else first_filters
+        first_filters = f"{first_filters} . \n {target_query_filters}" if len(
+            target_query_filters) > 0 else first_filters
     query = query_template.format(first_filters, *properties_filters, limit)
     return query, limit

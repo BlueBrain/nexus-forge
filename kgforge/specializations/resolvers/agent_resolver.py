@@ -29,7 +29,7 @@ class AgentResolver(Resolver):
 
     def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
-        super().__init__(source,  targets, result_resource_mapping, **source_config)
+        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -44,10 +44,10 @@ class AgentResolver(Resolver):
 
         if isinstance(text, list):
             not_supported(("text", list))
-        
+
         if target and target not in self.service.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets for the selected resolvers are: {self.service.sources.keys()}")
-        
+
         properties_to_filter_with = ['name', 'givenName', 'familyName']
         query_template = """
             CONSTRUCT {{
@@ -79,19 +79,20 @@ class AgentResolver(Resolver):
             """
         filters = self.service.filters[target] if target in self.service.filters else None
         context = self.service.get_context(resolving_context, target, filters)
-        query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, self.service.filters[target], strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
-        expected_fields = properties_to_filter_with+["type"]
+        query, strategy_dependant_limit = _build_resolving_query(
+            text, query_template, self.service.deprecated_property, self.service.filters[target],
+            strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit
+        )
+        expected_fields = properties_to_filter_with + ["type"]
         return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
-    
+
     def _is_target_valid(self, target) -> Optional[bool]:
         return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         not_supported()
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
-
-

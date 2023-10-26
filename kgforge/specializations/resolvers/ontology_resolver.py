@@ -28,7 +28,7 @@ class OntologyResolver(Resolver):
 
     def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:
-        super().__init__(source,  targets, result_resource_mapping, **source_config)
+        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -48,7 +48,7 @@ class OntologyResolver(Resolver):
         if type is None:
             type = "Class"
 
-        properties_to_filter_with = ['label', 'notation', 'prefLabel', 'altLabel']        
+        properties_to_filter_with = ['label', 'notation', 'prefLabel', 'altLabel']
         query_template = """
         CONSTRUCT {{
             ?id a ?type ;
@@ -70,7 +70,7 @@ class OntologyResolver(Resolver):
         }} WHERE {{
             GRAPH ?g {{
                 ?id a ?type ;
-                    label ?label ; 
+                    label ?label ;
                 OPTIONAL {{
                 ?id subClassOf ?subClassOf ;
                 }}
@@ -85,37 +85,37 @@ class OntologyResolver(Resolver):
                 }}
                 OPTIONAL {{
                 ?id isDefinedBy ?isDefinedBy .
-                }}     
+                }}
                 OPTIONAL {{
                 ?id notation ?notation .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id definition ?definition .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id atlasRelease ?atlasRelease .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id hasLayerLocationPhenotype ?hasLayerLocationPhenotype .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id identifier ?identifier .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id delineatedBy ?delineatedBy .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id representedInAnnotation ?representedInAnnotation .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id isPartOf ?isPartOf .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id isLayerPartOf ?isLayerPartOf .
-                }}    
+                }}
                 OPTIONAL {{
                 ?id units ?units .
-                }}    
+                }}
                 {{
                 SELECT * WHERE {{
                     {{ {0} ; label ?label {1} }} UNION
@@ -129,17 +129,22 @@ class OntologyResolver(Resolver):
         """
         filters = self.service.filters[target] if target in self.service.filters else None
         context = self.service.get_context(resolving_context, target, filters)
-        query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, filters, strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
-        expected_fields = properties_to_filter_with+["type",  "definition", "subClassOf", "isDefinedBy"]
+        query, strategy_dependant_limit = _build_resolving_query(
+            text, query_template, self.service.deprecated_property, filters, strategy, type,
+            properties_to_filter_with, context, SPARQLQueryBuilder, limit
+        )
+        expected_fields = properties_to_filter_with + [
+            "type", "definition", "subClassOf", "isDefinedBy"
+        ]
         return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
 
     def _is_target_valid(self, target) -> Optional[bool]:
         return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
         not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str,  Dict[str, Dict[str, str]]], **store_config) -> StoreService:
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)

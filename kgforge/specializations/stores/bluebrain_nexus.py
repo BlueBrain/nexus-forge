@@ -407,7 +407,6 @@ class BlueBrainNexus(Store):
                 )
                 raise ValueError(e)
 
-
             finally:
                 self.service.synchronize_resource(
                     resource, data, self.retrieve.__name__, True, True

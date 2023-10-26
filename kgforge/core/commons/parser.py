@@ -19,7 +19,7 @@ import datetime
 from dateutil.parser import ParserError
 
 
-def _parse_type(value: Any, parse_str:bool = False):
+def _parse_type(value: Any, parse_str: bool = False):
     _type = type(value)
     try:
         if _type == str and parse_str:
@@ -42,6 +42,6 @@ def _parse_type(value: Any, parse_str:bool = False):
             parsed_value = value_parts[0]
             return datetime.datetime, parsed_value
         else:
-            return _type,value
+            return _type, value
     except Exception as pe:
         return _type, value

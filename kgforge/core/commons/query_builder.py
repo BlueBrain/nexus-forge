@@ -39,4 +39,3 @@ class QueryBuilder(ABC):
     @abstractmethod
     def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
         pass
-
