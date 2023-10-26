@@ -167,7 +167,7 @@ class RdfModel(Model):
 
 def parse_attributes(node: NodeProperties, only_required: bool,
                      inherited_constraint: Optional[str]) -> Dict:
-    attributes = dict()
+    attributes = {}
     if hasattr(node, "path"):
         if only_required is True:
             if not hasattr(node, "mandatory"):
@@ -185,7 +185,7 @@ def parse_attributes(node: NodeProperties, only_required: bool,
 
 
 def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
-    props = dict()
+    props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
     return props
@@ -231,12 +231,12 @@ def default_value(value):
     # TODO: replace the as_term function with context.to_symbol
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    elif isinstance(value, URIRef):
+    if isinstance(value, URIRef):
         return as_term(value)
-    elif isinstance(value, Literal):
+    if isinstance(value, Literal):
         return value.toPython()
-    else:
-        return value
+
+    return value
 
 
 def object_value(value):
@@ -246,5 +246,5 @@ def object_value(value):
 def data_value(value):
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    else:
-        return value
+
+    return value

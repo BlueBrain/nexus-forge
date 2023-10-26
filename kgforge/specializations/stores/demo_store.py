@@ -108,8 +108,8 @@ class DemoStore(Store):
             raise DeprecationError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise DeprecationError("resource already deprecated")
-        else:
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     # Querying.
 
@@ -174,8 +174,8 @@ class StoreLibrary:
                 record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            return record
+
+        return record
 
     def update(self, data: Dict) -> Dict:
         rid = data.get("id", None)
@@ -199,17 +199,17 @@ class StoreLibrary:
             record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            metadata = record["metadata"]
-            if metadata["deprecated"]:
-                raise self.RecordDeprecated
-            version = metadata["version"]
-            key = self._archive_id(rid, version)
-            self.archives[key] = record
-            data = record["data"]
-            new_record = self._record(data, version + 1, True)
-            self.records[rid] = new_record
-            return new_record
+
+        metadata = record["metadata"]
+        if metadata["deprecated"]:
+            raise self.RecordDeprecated
+        version = metadata["version"]
+        key = self._archive_id(rid, version)
+        self.archives[key] = record
+        data = record["data"]
+        new_record = self._record(data, version + 1, True)
+        self.records[rid] = new_record
+        return new_record
 
     def tag(self, rid: str, version: int, value: str) -> None:
         if rid in self.records:

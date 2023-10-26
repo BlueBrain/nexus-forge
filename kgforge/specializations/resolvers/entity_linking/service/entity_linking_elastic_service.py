@@ -11,11 +11,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+
+from typing import Callable, Dict, List, Optional, Union, Any
+
 import itertools
 
 import requests
-
-from typing import Callable, Dict, List, Optional, Union, Any
 
 from kgforge.core.archetypes import Store
 from kgforge.core.conversions.json import as_json

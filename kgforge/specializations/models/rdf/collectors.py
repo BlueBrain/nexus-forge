@@ -49,9 +49,8 @@ class Collector(ABC):
         """Returns the Shacl constraint URI of the collector"""
         raise NotImplementedError()
 
-    @classmethod
     @abstractmethod
-    def collect(cls, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
+    def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                          Optional[Dict]]:
         """ depending on the constraint, this function will return properties, attributes or
         both.

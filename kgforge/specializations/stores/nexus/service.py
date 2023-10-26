@@ -100,7 +100,7 @@ class Service:
         self.organisation = org
         self.project = prj
         self.model_context = model_context
-        self.context_cache: Dict = dict()
+        self.context_cache: Dict = {}
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
         self.store_context = store_context
@@ -198,8 +198,8 @@ class Service:
             else None
         )
 
-        self.sparql_endpoint = dict()
-        self.elastic_endpoint = dict()
+        self.sparql_endpoint = {}
+        self.elastic_endpoint = {}
         self.sparql_endpoint["endpoint"] = "/".join(
             (
                 self.endpoint,
@@ -258,7 +258,7 @@ class Service:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
-        except Exception as e:
+        except Exception:
             if local_only is False:
                 try:
                     context = Context(context_to_resolve)
@@ -430,9 +430,9 @@ class Service:
                 content = await response.json()
                 if response.status < 400:
                     return BatchResult(resource, content)
-                else:
-                    error = exception(_error_message(content))
-                    return BatchResult(resource, error)
+
+                error = exception(_error_message(content))
+                return BatchResult(resource, error)
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connection)
@@ -467,7 +467,7 @@ class Service:
             else (
                 {"id": resource.__getattribute__("@id")}
                 if hasattr(resource, "@id")
-                else dict()
+                else {}
             )
         )
         keys = sorted(self.metadata_context.terms.keys())
@@ -517,7 +517,7 @@ class Service:
             required_synchronized: bool,
             execute_actions: bool,
     ) -> List[Resource]:
-        valid = list()
+        valid = []
         for resource in resources:
             if id_required and not hasattr(resource, "id"):
                 error = exception("resource should have an id")
@@ -559,8 +559,8 @@ class Service:
         if self.store_local_context in data_context:
             data_context.remove(self.store_local_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
-        metadata = dict()
-        data = dict()
+        metadata = {}
+        data = {}
         for k, v in payload.items():
             if k in self.metadata_context.terms.keys():
                 metadata[k] = v
@@ -611,7 +611,7 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
             messages.append(format_message(details))
         messages = messages if reason or details else [str(error)]
         return ". ".join(messages)
-    except Exception as e:
+    except Exception:
         pass
     try:
         error_text = error.response.text() if isinstance(error, HTTPError) else str(error)

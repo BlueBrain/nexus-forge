@@ -131,7 +131,7 @@ class RdfService:
     def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
 
         if context_iri is None:
-            raise ConfigurationError(f"RdfModel requires a context")
+            raise ConfigurationError("RdfModel requires a context")
         self._graph = graph
         self._context_cache = {}
         self.classes_to_shapes = self._build_shapes_map()
@@ -160,15 +160,15 @@ class RdfService:
             if isinstance(resource.type, list) and type_ is None:
                 raise ValueError("Resource has list of types as attribute and type_ parameter is not specified. "
                                  "Please provide a type_ parameter to validate against it.")
-            elif type_ is None:
+            if type_ is None:
                 shape_iri = self.types_to_shapes[resource.type]
             else:
                 shape_iri = self.types_to_shapes[type_]
         except AttributeError:
             raise TypeError("resource requires a type attribute")
-        else:
-            data_graph = as_graph(resource, False, self.context, None, None)
-            return self._validate(shape_iri, data_graph)
+
+        data_graph = as_graph(resource, False, self.context, None, None)
+        return self._validate(shape_iri, data_graph)
 
     @abstractmethod
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:

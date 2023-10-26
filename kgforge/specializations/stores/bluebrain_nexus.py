@@ -19,28 +19,25 @@ import copy
 import json
 import mimetypes
 import re
+from datetime import datetime
 from asyncio import Semaphore, Task
 from enum import Enum
-from json import JSONDecodeError
 
-from kgforge.core.commons.dictionaries import update_dict
-from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from urllib.parse import quote_plus, unquote, urlparse, parse_qs
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
+
+from requests import HTTPError
 
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
-from numpy import nan
-from pyld import jsonld
-from rdflib import Graph
-from rdflib.plugins.sparql.parser import Query
-from datetime import datetime
-from requests import HTTPError
+from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
+
+from kgforge.core.commons.dictionaries import update_dict
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.actions import LazyAction
@@ -235,13 +232,13 @@ class BlueBrainNexus(Store):
 
         except nexus.HTTPError as e:
             raise RegistrationError(_error_message(e))
-        else:
-            response_json = response.json()
-            resource.id = response_json["@id"]
-            # If resource had no context, update it with the one provided by the store.
-            if not hasattr(resource, "context"):
-                resource.context = data["@context"]
-            self.service.sync_metadata(resource, response_json)
+
+        response_json = response.json()
+        resource.id = response_json["@id"]
+        # If resource had no context, update it with the one provided by the store.
+        if not hasattr(resource, "context"):
+            resource.context = data["@context"]
+        self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
         async def _bulk():
@@ -490,10 +487,10 @@ class BlueBrainNexus(Store):
             raise DownloadingError(
                 f"Downloading from bucket {bucket} failed: {_error_message(e)}"
             )
-        else:
-            with open(path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=4096):
-                    f.write(chunk)
+
+        with open(path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=4096):
+                f.write(chunk)
 
     def _prepare_download_one(
             self,
@@ -635,8 +632,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise TaggingError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
     # CRU[D].
 
@@ -682,8 +679,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise DeprecationError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
         # Querying.
 
@@ -773,7 +770,7 @@ class BlueBrainNexus(Store):
             results = self.service.batch_request(
                 resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
             )
-            resources = list()
+            resources = []
             for result in results:
                 resource = result.resource
                 if retrieve_source:
@@ -893,20 +890,20 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)
-        else:
-            results = response.json()
-            return [
-                self.service.to_resource(
-                    hit["_source"],
-                    True,
-                    **{
-                        "id": hit.get("_id", None),
-                        "_index": hit.get("_index", None),
-                        "_score": hit.get("_score", None),
-                    },
-                )
-                for hit in results["hits"]["hits"]
-            ]
+
+        results = response.json()
+        return [
+            self.service.to_resource(
+                hit["_source"],
+                True,
+                **{
+                    "id": hit.get("_id", None),
+                    "_index": hit.get("_index", None),
+                    "_score": hit.get("_score", None),
+                },
+            )
+            for hit in results["hits"]["hits"]
+        ]
 
     # Utils.
 
@@ -1018,8 +1015,8 @@ class BlueBrainNexus(Store):
                 resolved_id = id
             if resolved_id in schema_and_id:
                 return uri  # expanded already given
-            else:
-                return url.replace(id, quote_plus(resolved_id))
+
+            return url.replace(id, quote_plus(resolved_id))
         if not is_file and "/_/" not in url:  # adding _ for empty schema
             uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
         else:

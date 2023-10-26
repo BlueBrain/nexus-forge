@@ -76,8 +76,8 @@ class DemoModel(Model):
         filepath = Path(self.source, "mappings", source, type.__name__, filename)
         if filepath.is_file():
             return type.load(filepath)
-        else:
-            raise ValueError("unrecognized entity type or source")
+
+        raise ValueError("unrecognized entity type or source")
 
     # Validation.
 
