@@ -62,12 +62,12 @@ class DemoStore(Store):
 
     # C[R]UD.
 
-    def retrieve(self, id: str, version: Optional[Union[int, str]],
+    def retrieve(self, id_: str, version: Optional[Union[int, str]],
                  cross_bucket: bool, **params) -> Resource:
         if cross_bucket:
             not_supported(("cross_bucket", True))
         try:
-            record = self.service.read(id, version)
+            record = self.service.read(id_, version)
         except StoreLibrary.RecordMissing:
             raise RetrievalError("resource not found")
 

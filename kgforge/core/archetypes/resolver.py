@@ -114,8 +114,8 @@ class Resolver(ABC):
         if isinstance(text, Resource) and isinstance(merge_inplace_as, str):
             text.__setattr__(merge_inplace_as, resolved_mapped)
             return text
-        else:
-            return resolved_mapped
+
+        return resolved_mapped
 
     @abstractmethod
     def _resolve(

@@ -496,16 +496,16 @@ class KnowledgeGraphForge:
                     "A non None 'what' value is required when formatter == Formatter.STR"
                 )
             return self._formatters[what].format(*args, **kwargs)
-        elif formatter == Formatter.URI_REWRITER:
+        if formatter == Formatter.URI_REWRITER:
             if uri is None:
                 raise AttributeError(
                     "A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
                 )
             return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
-        else:
-            raise AttributeError(
-                f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
-            )
+
+        raise AttributeError(
+            f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+        )
 
     # Mapping User Interface.
 

@@ -89,27 +89,26 @@ def as_jsonld(
 def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]]:
     if isinstance(data, List) and all(isinstance(x, Dict) for x in data):
         return _from_jsonld_many(data)
-    elif isinstance(data, Dict):
+    if isinstance(data, Dict):
         return _from_jsonld_one(data)
-    else:
-        raise TypeError("not a dictionary nor a list of dictionaries")
+
+    raise TypeError("not a dictionary nor a list of dictionaries")
 
 
 def from_graph(
         data: Graph,
-        type: Optional[Union[str, List]] = None,
+        type_: Optional[Union[str, List]] = None,
         frame: Dict = None,
         model_context: Optional[Context] = None,
 ) -> Union[Resource, List[Resource]]:
-    from collections import OrderedDict
 
-    if not type:
+    if not type_:
         _types = data.triples(
             (None, RDF.type, None)
         )  # type of data to transform to JSONLD
         _types = [str(_type[2]) for _type in _types]
     else:
-        _types = type
+        _types = type_
 
     # to get curies as keys when the model context is not used
     graph_n3 = data.serialize(format="n3")
@@ -152,8 +151,8 @@ def _graph_free_jsonld(jsonld_doc, context=None):
                 graph_free.move_to_end(CONTEXT, last=False)
             results.append(graph_free)
         return results
-    else:
-        return jsonld_doc
+
+    return jsonld_doc
 
 
 def _from_jsonld_many(dataset: List[Dict]) -> List[Resource]:
@@ -402,10 +401,10 @@ def _unpack_from_list(data):
             return data
     else:
         return data
+
     if len(node) == 1:
         return node[0]
-    else:
-        return node
+    return node
 
 
 def _add_ld_keys(
@@ -463,9 +462,9 @@ def _resolve_iri(value: str, context) -> str:
     resolved_id = context.resolve(value)
     if resolved_id != "":
         return resolved_id
-    else:
-        raise ValueError(
-            f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces")
+
+    raise ValueError(
+        f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces")
 
 
 def _remove_ld_keys(
@@ -501,8 +500,8 @@ def _remove_ld_keys(
                     local_attrs[k] = v
     if to_resource:
         return Resource(**local_attrs)
-    else:
-        return local_attrs
+
+    return local_attrs
 
 
 # Context

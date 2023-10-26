@@ -66,8 +66,8 @@ class Resource:
             sdict = _data(self)
             odict = _data(other)
             return sdict == odict
-        else:
-            return False
+
+        return False
 
     def __setattr__(self, key, value) -> None:
         if key not in self._RESERVED:
@@ -95,10 +95,10 @@ class Resource:
                 self._sync_resource(v, inner)
         if inner:
             self._inner_sync = (all(inner))
-        if self._inner_sync is False:
+        if not self._inner_sync:
             return False
-        else:
-            return self.__dict__["_synchronized"]
+
+        return self.__dict__["_synchronized"]
 
     def _set_synchronized(self, sync: bool) -> None:
         inner = []
@@ -133,8 +133,8 @@ class Resource:
             attribute = term
         if return_attribute:
             return (result, attribute)
-        else:
-            return result
+
+        return result
 
     def get_type(self) -> Union[str, List[str]]:
         resource_has_type, type_key = self.has_type(return_attribute=True)
@@ -150,11 +150,11 @@ class Resource:
         def _(d: Union[Dict, List[Dict]], nas: List[Any]) -> Resource:
             if isinstance(d, List):
                 return [_(x, nas) for x in d]
-            elif isinstance(d, Dict):
+            if isinstance(d, Dict):
                 properties = {k: _(v, nas) for k, v in d.items() if v not in nas}
                 return Resource(**properties)
-            else:
-                return d
+
+            return d
 
         nas = na if isinstance(na, List) else [na]
         return [_(d, nas) for d in data] if isinstance(data, List) else _(data, nas)
@@ -163,9 +163,9 @@ class Resource:
 def encode(data: Any) -> Union[str, Dict]:
     if isinstance(data, Resource):
         return {k: v for k, v in data.__dict__.items() if k not in data._RESERVED}
-    elif type(data).__name__ == "LazyAction":
+    if type(data).__name__ == "LazyAction":
         return str(data)
-    elif isinstance(data, set) or isinstance(data, list):
+    if isinstance(data, set) or isinstance(data, list):
         return {encode(r) for r in data}
-    else:
-        return data.__dict__
+
+    return data.__dict__

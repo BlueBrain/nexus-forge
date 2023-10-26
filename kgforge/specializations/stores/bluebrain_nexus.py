@@ -291,12 +291,12 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     def retrieve(
-            self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
-        :param id: the resource identifier to retrieve
+        :param id_: the resource identifier to retrieve
         :param version: a version of the resource to retrieve
         :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
         :param params: a dictionary of parameters. Supported parameters are:
@@ -312,7 +312,7 @@ class BlueBrainNexus(Store):
                 version_params = {"tag": version}
             else:
                 raise RetrievalError("incorrect 'version'")
-        parsed_id = urlparse(id)
+        parsed_id = urlparse(id_)
         fragment = None
         query_params = None
         # urlparse is not separating fragment and query params when the latter are put after a fragment
@@ -353,7 +353,7 @@ class BlueBrainNexus(Store):
             else:
                 nexus_path = self.service.url_resources
             # Try to use the id as it was given
-            if id.startswith(nexus_path):
+            if id_.startswith(nexus_path):
                 url_resource = id_without_query
                 if retrieve_source and not cross_bucket:
                     url = "/".join((id_without_query, "source"))

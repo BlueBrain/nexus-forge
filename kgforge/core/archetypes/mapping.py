@@ -70,12 +70,12 @@ class Mapping(ABC):
 
         if mapping_type == MappingType.FILE:
             return cls.load_file(source)
-        elif mapping_type == MappingType.URL:
+        if mapping_type == MappingType.URL:
             return cls.load_url(source)
-        elif mapping_type == MappingType.STR:
+        if mapping_type == MappingType.STR:
             return cls.load_str(source)
-        else:
-            raise NotImplementedError
+
+        raise NotImplementedError
 
     @classmethod
     def load_file(cls, filepath, raise_ex=True):

@@ -79,8 +79,8 @@ def catch(fun):
                     print(f"<action> {fs.name}"
                           f"\n<error> {type(e).__name__}: {e}\n")
                     return None
-                else:
-                    raise
+
+                raise
 
     return wrapper
 

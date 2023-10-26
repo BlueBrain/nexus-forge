@@ -102,8 +102,8 @@ def wrap_paths(template: Dict) -> PathsWrapper:
 def _wrap(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:
     if isinstance(data, Dict):
         return PathsWrapper(path, {k: _wrap(v, path + [k]) for k, v in data.items()})
-    else:
-        return PathWrapper(path)
+
+    return PathWrapper(path)
 
 
 def create_filters_from_dict(filter_dict: Dict, path_prefix=None) -> List[Filter]:
