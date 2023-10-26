@@ -174,4 +174,3 @@ class RdfModelServiceFromStore(RdfModelService):
         self._load_shape(resource_id)
         # reloads the shapes graph
         self._shapes_graph = ShapesGraphWrapper(self._graph)
-

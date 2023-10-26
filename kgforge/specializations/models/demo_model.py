@@ -75,7 +75,7 @@ class DemoModel(Model):
         filename = f"{entity}.hjson"
         filepath = Path(self.source, "mappings", source, type.__name__, filename)
         if filepath.is_file():
-            return type.load(filepath) # TODO should be str
+            return type.load(filepath)  # TODO should be str
 
         raise ValueError("unrecognized entity type or source")
 

@@ -229,7 +229,7 @@ def _build_resolving_query(text, query_template, deprecated_property, filters, s
         target_query_statements, target_query_filters = query_builder.build(
             None, None, resolving_context, configured_target_filters
         )
-        
+
         target_query_statements = ";\n ".join(target_query_statements)
         target_query_filters = "\n ".join(target_query_filters)
         first_filters = f"{first_filters} ; \n {target_query_statements}"

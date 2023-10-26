@@ -40,6 +40,8 @@ class CategoryDataType(Enum):
     LITERAL = "literal"
 
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
+
+
 SPARQL_CLAUSES = [
     "where",
     "filter",
@@ -115,7 +117,6 @@ sparql_operator_map = {
 
 
 class SPARQLQueryBuilder(QueryBuilder):
-
 
     @staticmethod
     def build(
@@ -287,8 +288,7 @@ class SPARQLQueryBuilder(QueryBuilder):
             else:
                 v = (
                     ctx.get(m4, ":" + m4 if context.has_vocab() else None)
-                    if str(m4).lower() not in SPARQL_CLAUSES
-                       and not str(m4).startswith("https")
+                    if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
                     else m4
                 )
                 if v is None:
