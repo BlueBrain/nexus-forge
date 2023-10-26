@@ -29,7 +29,6 @@ from kgforge.core.commons.parser import _parse_type
 from kgforge.core.commons.query_builder import QueryBuilder
 
 
-
 class CategoryDataType(Enum):
     DATETIME = "datetime"
     NUMBER = "number"
