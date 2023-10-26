@@ -428,7 +428,7 @@ def _add_ld_keys(
                     local_attrs[key] = _resolve_iri(v, local_context)
                 else:
 
-                    if isinstance(v, Resource) or isinstance(v, Dict):
+                    if isinstance(v, (Resource, Dict)):
                         attrs = _add_ld_keys(v, context, base)
                         local_attrs[key] = attrs[0]
                         json_arrays.extend(attrs[1])
@@ -437,7 +437,7 @@ def _add_ld_keys(
                         l_a = []
                         j_a = []
                         for item in v:
-                            if isinstance(item, Resource) or isinstance(item, Dict):
+                            if isinstance(item, (Resource, Dict)):
                                 attrs = _add_ld_keys(item, context, base)
                                 l_a.append(attrs[0])
                                 j_a.extend(attrs[1])

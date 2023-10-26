@@ -190,7 +190,7 @@ class ClassCollector(Collector):
         attributes = {}
         properties = []
         for target_class in self.class_rules:
-            target_class_shapes = [s for s in self.shape.sg.graph.subjects(SH_targetClass, target_class)]
+            target_class_shapes = list(self.shape.sg.graph.subjects(SH_targetClass, target_class))
             if target_class_shapes:
                 for target_class_shape in target_class_shapes:
                     target_shape = self.shape.get_other_shape(target_class_shape)

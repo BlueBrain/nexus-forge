@@ -124,7 +124,9 @@ class SPARQLQueryBuilder(QueryBuilder):
         return statements, sparql_filters
 
     @staticmethod
-    def build_resource_from_response(query: str, response: Dict, context: Context) -> List[Resource]:
+    def build_resource_from_response(
+            query: str, response: Dict, context: Context, *args, **params
+    ) -> List[Resource]:
         _, q_comp = Query.parseString(query)
         if q_comp.name == "ConstructQuery":
             subject_triples = {}

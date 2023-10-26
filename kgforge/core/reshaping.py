@@ -94,7 +94,7 @@ def collect_values(data: Union[Resource, List[Resource]], follow: str,
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
         if reshaped is None:
-            raise Exception(f"Nothing to collect")
+            raise Exception("Nothing to collect")
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))

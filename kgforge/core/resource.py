@@ -94,7 +94,7 @@ class Resource:
             else:
                 self._sync_resource(v, inner)
         if inner:
-            self._inner_sync = (all(inner))
+            self._inner_sync = all(inner)
         if not self._inner_sync:
             return False
 
