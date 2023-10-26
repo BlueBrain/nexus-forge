@@ -190,8 +190,8 @@ class Store(ABC):
             p = Path(path)
             uploaded = self._upload(p, content_type)
             return self.mapper(forge).map(uploaded, self.file_mapping, None)
-        else:
-            raise UploadingError("no file_resource_mapping has been configured")
+
+        raise UploadingError("no file_resource_mapping has been configured")
 
     def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
         # path: Union[FilePath, DirPath].
@@ -200,8 +200,8 @@ class Store(ABC):
                 x for x in path.iterdir() if x.is_file() and not x.name.startswith(".")
             ]
             return self._upload_many(filepaths, content_type)
-        else:
-            return self._upload_one(path, content_type)
+
+        return self._upload_one(path, content_type)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Any]:
         # Bulk uploading could be optimized by overriding this method in the specialization.

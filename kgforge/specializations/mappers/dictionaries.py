@@ -52,11 +52,12 @@ class DictionaryMapper(Mapper):
 def _apply_rules(value: Any, variables: Dict) -> Union[Dict, List[Dict]]:
     if isinstance(value, Dict):
         return {k: _apply_rules(v, variables) for k, v in value.items()}
-    elif isinstance(value, List):
+
+    if isinstance(value, List):
         return [_apply_rules(x, variables) for x in value]
-    else:
-        # TODO Add support for the full syntax of JSONPath. DKE-147.
-        try:
-            return eval(value, variables, variables)
-        except (TypeError, NameError, SyntaxError):
-            return value
+
+    # TODO Add support for the full syntax of JSONPath. DKE-147.
+    try:
+        return eval(value, variables, variables)
+    except (TypeError, NameError, SyntaxError):
+        return value

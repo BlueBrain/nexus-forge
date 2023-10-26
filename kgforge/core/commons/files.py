@@ -12,11 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from builtins import all
-
+from urllib.parse import urlparse
 from pathlib import Path
 import requests
 from requests import RequestException
-from urllib.parse import urlparse
 
 
 def load_file_as_byte(source: str):
@@ -38,5 +37,5 @@ def is_valid_url(url):
     try:
         result = urlparse(url)
         return all([result.scheme, result.netloc])
-    except Exception as e:
+    except Exception:
         return False

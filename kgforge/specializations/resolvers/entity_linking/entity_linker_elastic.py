@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import Callable, Dict, List, Any, Optional, Tuple
+from typing import Callable, Dict, List, Any, Optional
 
 from kgforge.core.commons.execution import not_supported
 from kgforge.specializations.mappers import DictionaryMapper
@@ -49,5 +49,5 @@ class EntityLinkerElastic(EntityLinker):
     def _is_target_valid(self, target: str) -> Optional[bool]:
         if target and target not in self.service.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.service.sources.keys()}")
-        else:
-            return True
+
+        return True

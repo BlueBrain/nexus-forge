@@ -16,11 +16,12 @@ from datetime import datetime
 from enum import Enum
 import json
 from typing import Tuple, List, Dict, Optional, Any
-from kgforge.core.conversions.rdf import from_jsonld
-from kgforge.core.resource import Resource
+
 import rdflib
 from rdflib.plugins.sparql.parser import Query
 
+from kgforge.core.conversions.rdf import from_jsonld
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
@@ -74,8 +75,8 @@ class SPARQLQueryBuilder(QueryBuilder):
         **params,
     ) -> Tuple[List, List]:
 
-        statements = list()
-        sparql_filters = list()
+        statements = []
+        sparql_filters = []
         for index, f in enumerate(filters):
             last_path = f.path[-1]
             try:
@@ -103,7 +104,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                         sparql_filters.append(f"FILTER(?v{index} != {f.value})")
                     else:
                         raise NotImplementedError(
-                            f"supported operators are '==' and '!=' when filtering by type or id."
+                            "supported operators are '==' and '!=' when filtering by type or id."
                         )
                 else:
                     parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
@@ -111,7 +112,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                     value = format_type[value_type](parsed_value if parsed_value else f.value)
                     if value_type is CategoryDataType.LITERAL:
                         if f.operator not in ["__eq__", "__ne__"]:
-                            raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
+                            raise NotImplementedError("supported operators are '==' and '!=' when filtering with a str.")
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
                     else:

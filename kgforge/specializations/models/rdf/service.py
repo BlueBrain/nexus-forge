@@ -65,8 +65,8 @@ def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
     """
 
     parameters = self.parameters()
-    properties = list()
-    attributes = dict()
+    properties = []
+    attributes = {}
     done_collectors = set()
     for param in iter(parameters):
         if param in ALL_COLLECTORS_MAP:
@@ -133,7 +133,7 @@ class RdfService:
         if context_iri is None:
             raise ConfigurationError(f"RdfModel requires a context")
         self._graph = graph
-        self._context_cache = dict()
+        self._context_cache = {}
         self.classes_to_shapes = self._build_shapes_map()
         resolved_context = self.resolve_context(context_iri)
         self.context = Context(resolved_context, context_iri)
@@ -192,7 +192,7 @@ class RdfService:
     def _build_types_to_shapes(self):
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
          the terms available in the context """
-        types_to_shapes: Dict = dict()
+        types_to_shapes: Dict = {}
         for k, v in self.classes_to_shapes.items():
             term = self.context.find_term(str(k))
             if term:
@@ -207,14 +207,14 @@ class RdfService:
         """Materializes all Types into templates and parses the templates to generate a context"""
         # FIXME: the status of this function is experimental
         # TODO: check if there are conflicting terms, and throw error
-        context = dict()
-        prefixes = dict()
-        types_ = dict()
-        terms = dict()
+        context = {}
+        prefixes = {}
+        types_ = {}
+        terms = {}
 
         def traverse_properties(properties) -> Tuple[Dict, Dict]:
-            l_prefixes = dict()
-            l_terms = dict()
+            l_prefixes = {}
+            l_terms = {}
             for property_ in properties:
                 if hasattr(property_, "path"):
                     if property_.path != RDF.type and str(property_.path) != "id":
@@ -246,7 +246,7 @@ class RdfService:
                     l_terms.update(l_t)
             return l_prefixes, l_terms
 
-        target_classes = list()
+        target_classes = []
         for k in self.classes_to_shapes.keys():
             key = as_term(k)
             if key not in target_classes:

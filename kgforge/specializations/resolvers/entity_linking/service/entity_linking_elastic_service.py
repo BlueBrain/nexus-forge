@@ -17,7 +17,6 @@ import requests
 
 from typing import Callable, Dict, List, Optional, Union, Any
 
-from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
@@ -42,7 +41,7 @@ class EntityLinkerElasticService(EntityLinkerService):
         **store_config
     ):
         super().__init__(is_distance=False)
-        self.sources: Dict[str, Store] = dict()
+        self.sources: Dict[str, Store] = {}
         for identifier in targets:
             bucket = targets[identifier]['bucket']
             store_config.update(bucket=bucket)
@@ -127,5 +126,5 @@ class EntityLinkerElasticService(EntityLinkerService):
                 ),
                 scores,
             )
-        else:
-            return None
+
+        return None

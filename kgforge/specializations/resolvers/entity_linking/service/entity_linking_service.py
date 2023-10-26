@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from abc import ABC, abstractmethod
 
-from typing import List, Optional, Union, Any, Dict
+from typing import List, Optional, Any, Dict
 
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.resource import encode
@@ -41,9 +41,10 @@ class EntityLinkerService(ABC):
             zeros = [x for x in candidates if x.score == exact_match_score]
             if zeros and len(zeros) > 0:
                 return [encode(zeros[0])]
-            else:
-                return None
-        elif strategy == ResolvingStrategy.BEST_MATCH:
+
+            return None
+
+        if strategy == ResolvingStrategy.BEST_MATCH:
             chosen = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)[0]
             return [encode(chosen)] if eval(f"{chosen.score} {threshold_operator} {threshold}") else None
         else:

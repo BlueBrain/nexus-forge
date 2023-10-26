@@ -11,14 +11,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import copy
+from typing import Tuple, List, Dict, Optional, Any
 
+import copy
 import datetime
 import dateutil
 import elasticsearch_dsl
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
-from typing import Tuple, List, Dict, Optional, Any
 from kgforge.core.commons.execution import not_supported
 
 from kgforge.core.commons.context import Context
@@ -44,10 +44,10 @@ class ESQueryBuilder(QueryBuilder):
         **params,
     ) -> Tuple[List, List, List]:
 
-        es_filters = list()
-        musts = list()
-        must_nots = list()
-        script_scores = list()
+        es_filters = []
+        musts = []
+        must_nots = []
+        script_scores = []
 
         default_str_keyword_field = params.get("default_str_keyword_field", "keyword")
         includes = params.get("includes", None)
@@ -254,8 +254,8 @@ def _recursive_resolve_nested(m, field_path):
             return _recursive_resolve_nested(
                 m, field_path=field_path[0:len(field_path) - 1]
             )
-        else:
-            return nested_path, field_path, mapping_type
+
+        return nested_path, field_path, mapping_type
 
     else:
         return nested_path, field_path, mapping_type

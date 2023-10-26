@@ -39,7 +39,7 @@ class DictionaryMapping(Mapping):
         if len(source.strip()) > 0 and source.strip()[0] != "{":
             if raise_ex:
                 raise hjson.scanner.HjsonDecodeError(
-                    f"Invalid hjson mapping", doc=source, pos=0
+                    "Invalid hjson mapping", doc=source, pos=0
                 )
             return None
         return cls(source)

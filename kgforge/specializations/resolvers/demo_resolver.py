@@ -74,17 +74,17 @@ class DemoResolver(Resolver):
                 ordered = sorted(results, key=lambda x: x[0])
                 if strategy == ResolvingStrategy.BEST_MATCH:
                     return ordered[0][1]
-                else:
-                    # Case: ResolvingStrategy.ALL_MATCHES.
-                    return [x[1] for x in ordered]
-            else:
-                return None
+
+                # Case: ResolvingStrategy.ALL_MATCHES.
+                return [x[1] for x in ordered]
+
+            return None
 
     def _is_target_valid(self, target: str) -> Optional[bool]:
         if target and target not in self.service:
             raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.service.keys()}")
-        else:
-            return True
+
+        return True
 
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config)\

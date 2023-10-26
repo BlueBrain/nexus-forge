@@ -30,9 +30,9 @@ def _parse_type(value: Any, parse_str: bool = False):
             if float(value):
                 return float, value
 
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # always parse str for datetime. TODO: find a better way of parsing datetime literal
@@ -41,7 +41,7 @@ def _parse_type(value: Any, parse_str: bool = False):
             value_parts = value.split("^^")
             parsed_value = value_parts[0]
             return datetime.datetime, parsed_value
-        else:
-            return _type, value
-    except Exception as pe:
+
+        return _type, value
+    except Exception:
         return _type, value
