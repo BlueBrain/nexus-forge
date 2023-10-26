@@ -19,28 +19,24 @@ import copy
 import json
 import mimetypes
 import re
+from datetime import datetime
 from asyncio import Semaphore, Task
 from enum import Enum
-from json import JSONDecodeError
 
-from kgforge.core.commons.dictionaries import update_dict
-from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
+from requests import HTTPError
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
-from numpy import nan
-from pyld import jsonld
-from rdflib import Graph
-from rdflib.plugins.sparql.parser import Query
-from datetime import datetime
-from requests import HTTPError
 
+
+from kgforge.core.commons.dictionaries import update_dict
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.commons.actions import LazyAction
@@ -57,9 +53,8 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
-from kgforge.core.commons.parser import _parse_type
 from kgforge.core.conversions.json import as_json
-from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
+from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
@@ -87,8 +82,7 @@ format_type = {
     CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda
-        x: "'true'^^xsd:boolean" if x is True else "'false'^^xsd:boolean",
+    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean",
 }
 
 sparql_operator_map = {
@@ -235,13 +229,13 @@ class BlueBrainNexus(Store):
 
         except nexus.HTTPError as e:
             raise RegistrationError(_error_message(e))
-        else:
-            response_json = response.json()
-            resource.id = response_json["@id"]
-            # If resource had no context, update it with the one provided by the store.
-            if not hasattr(resource, "context"):
-                resource.context = data["@context"]
-            self.service.sync_metadata(resource, response_json)
+
+        response_json = response.json()
+        resource.id = response_json["@id"]
+        # If resource had no context, update it with the one provided by the store.
+        if not hasattr(resource, "context"):
+            resource.context = data["@context"]
+        self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
         async def _bulk():
@@ -272,11 +266,11 @@ class BlueBrainNexus(Store):
                     body = await response.json()
                     if response.status < 400:
                         return body
-                    else:
-                        msg = " ".join(
-                            re.findall("[A-Z][^A-Z]*", body["@type"])
-                        ).lower()
-                        raise UploadingError(msg)
+
+                    msg = " ".join(
+                        re.findall("[A-Z][^A-Z]*", body["@type"])
+                    ).lower()
+                    raise UploadingError(msg)
 
         return asyncio.run(_bulk())
 
@@ -291,18 +285,18 @@ class BlueBrainNexus(Store):
             )
         except HTTPError as e:
             raise UploadingError(_error_message(e))
-        else:
-            return response
+
+        return response
 
     # C[R]UD.
 
     def retrieve(
-            self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
-        :param id: the resource identifier to retrieve
+        :param id_: the resource identifier to retrieve
         :param version: a version of the resource to retrieve
         :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
         :param params: a dictionary of parameters. Supported parameters are:
@@ -318,7 +312,7 @@ class BlueBrainNexus(Store):
                 version_params = {"tag": version}
             else:
                 raise RetrievalError("incorrect 'version'")
-        parsed_id = urlparse(id)
+        parsed_id = urlparse(id_)
         fragment = None
         query_params = None
         # urlparse is not separating fragment and query params when the latter are put after a fragment
@@ -359,7 +353,7 @@ class BlueBrainNexus(Store):
             else:
                 nexus_path = self.service.url_resources
             # Try to use the id as it was given
-            if id.startswith(nexus_path):
+            if id_.startswith(nexus_path):
                 url_resource = id_without_query
                 if retrieve_source and not cross_bucket:
                     url = "/".join((id_without_query, "source"))
@@ -407,16 +401,15 @@ class BlueBrainNexus(Store):
                 )
                 raise ValueError(e)
 
-
             finally:
                 self.service.synchronize_resource(
                     resource, data, self.retrieve.__name__, True, True
                 )
             return resource
 
-    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
+    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         try:
-            response = requests.get(id, headers=self.service.headers)
+            response = requests.get(id_, headers=self.service.headers)
             response.raise_for_status()
             metadata = response.json()
             return metadata["_filename"], metadata["_mediaType"]
@@ -459,10 +452,9 @@ class BlueBrainNexus(Store):
                         raise DownloadingError(
                             f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
                         )
-                    else:
-                        with open(path, "wb") as f:
-                            data = await response.read()
-                            f.write(data)
+                    with open(path, "wb") as f:
+                        data = await response.read()
+                        f.write(data)
 
         return asyncio.run(_bulk())
 
@@ -491,10 +483,10 @@ class BlueBrainNexus(Store):
             raise DownloadingError(
                 f"Downloading from bucket {bucket} failed: {_error_message(e)}"
             )
-        else:
-            with open(path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=4096):
-                    f.write(chunk)
+
+        with open(path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=4096):
+                f.write(chunk)
 
     def _prepare_download_one(
             self,
@@ -517,7 +509,7 @@ class BlueBrainNexus(Store):
         file_id = unquote(file_id)
         if len(file_id) < 1:
             raise DownloadingError(f"Invalid file url: {url}")
-        elif file_id.startswith("http"):
+        if file_id.startswith("http"):
             url_base = url
         else:
             # this is a hack since _self and _id have the same uuid
@@ -588,8 +580,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise UpdatingError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(
@@ -636,8 +628,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise TaggingError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
     # CRU[D].
 
@@ -683,8 +675,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise DeprecationError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
         # Querying.
 
@@ -774,7 +766,7 @@ class BlueBrainNexus(Store):
             results = self.service.batch_request(
                 resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
             )
-            resources = list()
+            resources = []
             for result in results:
                 resource = result.resource
                 if retrieve_source:
@@ -877,12 +869,12 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)
-        else:
-            data = response.json()
-            # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-            #  https://github.com/BlueBrain/nexus/issues/1155
-            context = self.model_context or self.context
-            return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
+
+        data = response.json()
+        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
+        #  https://github.com/BlueBrain/nexus/issues/1155
+        context = self.model_context or self.context
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
         try:
@@ -894,20 +886,20 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)
-        else:
-            results = response.json()
-            return [
-                self.service.to_resource(
-                    hit["_source"],
-                    True,
-                    **{
-                        "id": hit.get("_id", None),
-                        "_index": hit.get("_index", None),
-                        "_score": hit.get("_score", None),
-                    },
-                )
-                for hit in results["hits"]["hits"]
-            ]
+
+        results = response.json()
+        return [
+            self.service.to_resource(
+                hit["_source"],
+                True,
+                **{
+                    "id": hit.get("_id", None),
+                    "_index": hit.get("_index", None),
+                    "_score": hit.get("_score", None),
+                },
+            )
+            for hit in results["hits"]["hits"]
+        ]
 
     # Utils.
 
@@ -956,26 +948,26 @@ class BlueBrainNexus(Store):
             params = store_config.pop("params", {})
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
-        else:
-            return Service(
-                endpoint=endpoint,
-                org=self.organisation,
-                prj=self.project,
-                token=token,
-                model_context=self.model_context,
-                max_connection=max_connection,
-                searchendpoints=searchendpoints,
-                store_context=nexus_context_iri,
-                store_local_context=nexus_context_local_iri,
-                namespace=namespace,
-                project_property=project_property,
-                deprecated_property=deprecated_property,
-                content_type=content_type,
-                accept=accept,
-                files_upload_config=files_upload_config,
-                files_download_config=files_download_config,
-                **params,
-            )
+
+        return Service(
+            endpoint=endpoint,
+            org=self.organisation,
+            prj=self.project,
+            token=token,
+            model_context=self.model_context,
+            max_connection=max_connection,
+            searchendpoints=searchendpoints,
+            store_context=nexus_context_iri,
+            store_local_context=nexus_context_local_iri,
+            namespace=namespace,
+            project_property=project_property,
+            deprecated_property=deprecated_property,
+            content_type=content_type,
+            accept=accept,
+            files_upload_config=files_upload_config,
+            files_download_config=files_download_config,
+            **params,
+        )
 
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         is_file = kwargs.get("is_file", True)
@@ -996,31 +988,31 @@ class BlueBrainNexus(Store):
                 extended_schema = resolved + groups[1]
                 url = raw_url.replace(old_schema, quote_plus(extended_schema))
                 schema_and_id = url.split(url_base + "/")[1]
-                id = schema_and_id.split(quote_plus(extended_schema) + "/")[-1]
-                if not is_valid_url(id):
-                    resolved_id = context.resolve_iri(id)
+                id_ = schema_and_id.split(quote_plus(extended_schema) + "/")[-1]
+                if not is_valid_url(id_):
+                    resolved_id = context.resolve_iri(id_)
                 else:
-                    resolved_id = id
-                return url.replace(id, quote_plus(resolved_id))
-            else:
-                extended_schema = ''.join([resolved, groups[1]])
-                url = raw_url.replace(old_schema, extended_schema)
+                    resolved_id = id_
+                return url.replace(id_, quote_plus(resolved_id))
+
+            extended_schema = ''.join([resolved, groups[1]])
+            url = raw_url.replace(old_schema, extended_schema)
         else:
             url = raw_url
         if url.startswith(url_base):
             schema_and_id = url.split(url_base)[1]
             if "/_/" in schema_and_id:  # has _ schema
-                id = schema_and_id.split("/_/")[-1]
+                id_ = schema_and_id.split("/_/")[-1]
             else:
-                id = schema_and_id.split("/")[-1]
-            if not is_valid_url(id):
-                resolved_id = context.resolve_iri(id)
+                id_ = schema_and_id.split("/")[-1]
+            if not is_valid_url(id_):
+                resolved_id = context.resolve_iri(id_)
             else:
-                resolved_id = id
+                resolved_id = id_
             if resolved_id in schema_and_id:
                 return uri  # expanded already given
-            else:
-                return url.replace(id, quote_plus(resolved_id))
+
+            return url.replace(id_, quote_plus(resolved_id))
         if not is_file and "/_/" not in url:  # adding _ for empty schema
             uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
         else:

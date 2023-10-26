@@ -15,7 +15,6 @@
 import asyncio
 import copy
 import json
-import re
 from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
@@ -64,7 +63,6 @@ BatchResults = List[BatchResult]
 
 
 class Service:
-
     NEXUS_NAMESPACE_FALLBACK = "https://bluebrain.github.io/nexus/vocabulary/"
     NEXUS_CONTEXT_FALLBACK = "https://bluebrain.github.io/nexus/contexts/resource.json"
     NEXUS_CONTEXT_SOURCE_FALLBACK = (
@@ -77,39 +75,41 @@ class Service:
     UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
 
     def __init__(
-        self,
-        endpoint: str,
-        org: str,
-        prj: str,
-        token: str,
-        model_context: Context,
-        max_connection: int,
-        searchendpoints: Dict,
-        store_context: str,
-        store_local_context: str,
-        namespace: str,
-        project_property: str,
-        deprecated_property: bool,
-        content_type: str,
-        accept: str,
-        files_upload_config: Dict,
-        files_download_config: Dict,
-        **params,
+            self,
+            endpoint: str,
+            org: str,
+            prj: str,
+            token: str,
+            model_context: Context,
+            max_connection: int,
+            searchendpoints: Dict,
+            store_context: str,
+            store_local_context: str,
+            namespace: str,
+            project_property: str,
+            deprecated_property: bool,
+            content_type: str,
+            accept: str,
+            files_upload_config: Dict,
+            files_download_config: Dict,
+            **params,
     ):
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
         self.organisation = org
         self.project = prj
         self.model_context = model_context
-        self.context_cache: Dict = dict()
+        self.context_cache: Dict = {}
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
         self.store_context = store_context
         self.store_local_context = store_local_context
         self.namespace = namespace
         self.project_property = project_property
-        self.store_metadata_keys = ["_constrainedBy","_createdAt","_createdBy","_deprecated","_incoming",
-                                   "_outgoing","_project","_rev","_schemaProject", "_self","_updatedAt","_updatedBy"]
+        self.store_metadata_keys = [
+            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
+            "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+        ]
 
         self.deprecated_property = deprecated_property
         self.revision_property = f"{self.namespace}rev"
@@ -197,8 +197,8 @@ class Service:
             else None
         )
 
-        self.sparql_endpoint = dict()
-        self.elastic_endpoint = dict()
+        self.sparql_endpoint = {}
+        self.elastic_endpoint = {}
         self.sparql_endpoint["endpoint"] = "/".join(
             (
                 self.endpoint,
@@ -257,14 +257,14 @@ class Service:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
-        except Exception as e:
-            if local_only is False:
+        except Exception:
+            if not local_only:
                 try:
                     context = Context(context_to_resolve)
                 except URLError:
                     raise ValueError(f"{context_to_resolve} is not resolvable")
-                else:
-                    document = context.document["@context"]
+
+                document = context.document["@context"]
             else:
                 raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
@@ -279,17 +279,17 @@ class Service:
                 document.remove(self.store_local_context)
         self.context_cache.update({context_to_resolve: document})
         return document
-    
+
     def batch_request(
-        self,
-        resources: List[Resource],
-        action: BatchAction,
-        callback: Callable,
-        error_type: Callable,
-        **kwargs,
+            self,
+            resources: List[Resource],
+            action: BatchAction,
+            callback: Callable,
+            error_type: Callable,
+            **kwargs,
     ) -> Tuple[BatchResults, BatchResults]:
         def create_tasks(
-            semaphore, session, loop, data, batch_action, f_callback, error
+                semaphore, session, loop, data, batch_action, f_callback, error
         ):
             futures = []
             schema_id = kwargs.get("schema_id")
@@ -394,7 +394,8 @@ class Service:
                         url = "/".join((url, "source"))
                     params.pop("retrieve_source")
                     prepared_request = loop.create_task(
-                        queue(hdrs.METH_GET, semaphore, session, url, resource, error, params=params)
+                        queue(hdrs.METH_GET, semaphore, session, url, resource, error,
+                              params=params)
                     )
 
                 if f_callback:
@@ -403,14 +404,14 @@ class Service:
             return futures
 
         async def queue(
-            method,
-            semaphore,
-            session,
-            url,
-            resource,
-            exception,
-            payload=None,
-            params=None,
+                method,
+                semaphore,
+                session,
+                url,
+                resource,
+                exception,
+                payload=None,
+                params=None,
         ):
             async with semaphore:
                 return await request(
@@ -419,18 +420,18 @@ class Service:
 
         async def request(method, session, url, resource, payload, params, exception):
             async with session.request(
-                method,
-                url,
-                headers=self.headers,
-                data=json.dumps(payload),
-                params=params,
+                    method,
+                    url,
+                    headers=self.headers,
+                    data=json.dumps(payload),
+                    params=params,
             ) as response:
                 content = await response.json()
                 if response.status < 400:
                     return BatchResult(resource, content)
-                else:
-                    error = exception(_error_message(content))
-                    return BatchResult(resource, error)
+
+                error = exception(_error_message(content))
+                return BatchResult(resource, error)
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connection)
@@ -443,23 +444,20 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
-
     def _prepare_tag(self, resource, tag) -> Tuple[str, str, str]:
         url, params = self._prepare_uri(resource)
         url = "/".join((url, "tags"))
         data = {"tag": tag}
         data.update(params)
         return url, data, params
-    
-   
+
     def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, str, str]:
         schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
         schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
         url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
         rev = resource._store_metadata._rev
-        params = {"rev":rev}
+        params = {"rev": rev}
         return url, params
-    
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
         metadata = (
@@ -468,7 +466,7 @@ class Service:
             else (
                 {"id": resource.__getattribute__("@id")}
                 if hasattr(resource, "@id")
-                else dict()
+                else {}
             )
         )
         keys = sorted(self.metadata_context.terms.keys())
@@ -476,16 +474,16 @@ class Service:
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
         if not hasattr(resource, "id") and not hasattr(resource, "@id"):
-            resource.id= result.get("id", result.get("@id",None))
+            resource.id = result.get("id", result.get("@id", None))
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(
-        self,
-        resource: Resource,
-        response: Union[Exception, Dict],
-        action_name: str,
-        succeeded: bool,
-        synchronized: bool,
+            self,
+            resource: Resource,
+            response: Union[Exception, Dict],
+            action_name: str,
+            succeeded: bool,
+            synchronized: bool,
     ) -> None:
         if succeeded:
             action = Action(action_name, succeeded, None)
@@ -510,15 +508,15 @@ class Service:
         return callback
 
     def verify(
-        self,
-        resources: List[Resource],
-        function_name,
-        exception: Callable,
-        id_required: bool,
-        required_synchronized: bool,
-        execute_actions: bool,
+            self,
+            resources: List[Resource],
+            function_name,
+            exception: Callable,
+            id_required: bool,
+            required_synchronized: bool,
+            execute_actions: bool,
     ) -> List[Resource]:
-        valid = list()
+        valid = []
         for resource in resources:
             if id_required and not hasattr(resource, "id"):
                 error = exception("resource should have an id")
@@ -547,11 +545,12 @@ class Service:
         return valid
 
     def to_resource(
-        self, payload: Dict, sync_metadata: bool = True, **kwargs
+            self, payload: Dict, sync_metadata: bool = True, **kwargs
     ) -> Resource:
         # Use JSONLD context defined in Model if no context is retrieved from payload
         # Todo: BlueBrainNexus store is not indexing in ES the JSONLD context, user provided context can be changed to Model defined one
-        data_context = deepcopy(payload.get("@context", self.model_context.iri if self.model_context else None))
+        data_context = deepcopy(
+            payload.get("@context", self.model_context.iri if self.model_context else None))
         if not isinstance(data_context, list):
             data_context = [data_context]
         if self.store_context in data_context:
@@ -559,8 +558,8 @@ class Service:
         if self.store_local_context in data_context:
             data_context.remove(self.store_local_context)
         data_context = data_context[0] if len(data_context) == 1 else data_context
-        metadata = dict()
-        data = dict()
+        metadata = {}
+        data = {}
         for k, v in payload.items():
             if k in self.metadata_context.terms.keys():
                 metadata[k] = v
@@ -568,9 +567,9 @@ class Service:
                 data[k] = v
 
         if (
-            self.model_context
-            and data_context is not None
-            and data_context == self.model_context.iri
+                self.model_context
+                and data_context is not None
+                and data_context == self.model_context.iri
         ):
             resolved_ctx = self.model_context.document["@context"]
         elif data_context is not None:
@@ -611,10 +610,10 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
             messages.append(format_message(details))
         messages = messages if reason or details else [str(error)]
         return ". ".join(messages)
-    except Exception as e:
+    except Exception:
         pass
     try:
-        error_text =  error.response.text() if isinstance(error, HTTPError) else str(error)
+        error_text = error.response.text() if isinstance(error, HTTPError) else str(error)
         return format_message(error_text)
     except Exception:
         return format_message(str(error))

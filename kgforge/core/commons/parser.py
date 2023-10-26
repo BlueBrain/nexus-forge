@@ -11,15 +11,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from rdflib import Literal, XSD
 from typing import Any
 
-import dateutil
 import datetime
-from dateutil.parser import ParserError
 
 
-def _parse_type(value: Any, parse_str:bool = False):
+def _parse_type(value: Any, parse_str: bool = False):
     _type = type(value)
     try:
         if _type == str and parse_str:
@@ -30,9 +27,9 @@ def _parse_type(value: Any, parse_str:bool = False):
             if float(value):
                 return float, value
 
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # always parse str for datetime. TODO: find a better way of parsing datetime literal
@@ -41,7 +38,7 @@ def _parse_type(value: Any, parse_str:bool = False):
             value_parts = value.split("^^")
             parsed_value = value_parts[0]
             return datetime.datetime, parsed_value
-        else:
-            return _type,value
-    except Exception as pe:
+
+        return _type, value
+    except Exception:
         return _type, value

@@ -37,7 +37,7 @@ class Context(JSONLD_Context):
         """
         super().__init__(document)
         if isinstance(document, list):
-            sub_docs = dict()
+            sub_docs = {}
             for x in document:
                 sub_context = Context(x)
                 sub_docs.update(sub_context.document["@context"])
@@ -55,8 +55,8 @@ class Context(JSONLD_Context):
     def is_http_iri(self):
         if self.iri:
             return self.iri.startswith("http")
-        else:
-            return False
+
+        return False
 
     def has_vocab(self):
         return self.vocab is not None

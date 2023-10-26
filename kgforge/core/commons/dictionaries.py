@@ -26,7 +26,7 @@ def with_defaults(original: Dict, other: Dict, original_key: str, other_key: str
                 original[x] = other[x]
 
 
-def update_dict(original: Dict, other:Dict) -> Dict:
+def update_dict(original: Dict, other: Dict) -> Dict:
     original_copy = copy.deepcopy(original)
     original_copy.update(other)
     return original_copy

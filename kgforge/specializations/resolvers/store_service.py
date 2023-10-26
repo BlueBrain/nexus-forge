@@ -20,8 +20,8 @@ from kgforge.core.conversions.json import as_json
 class StoreService:
 
     def __init__(self, store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config):
-        self.sources: Dict[str, Store] = dict()
-        self.filters: Dict[str, str] = dict()
+        self.sources: Dict[str, Store] = {}
+        self.filters: Dict[str, str] = {}
         for identifier in targets:
             bucket = targets[identifier]["bucket"]
             if 'filters' in targets[identifier]:
@@ -48,30 +48,30 @@ class StoreService:
             if self.validate_target(target):
                 resources = self.sources[target].sparql(query, debug=False, limit=limit)
         else:
-            resources = list()
+            resources = []
             if len(list(self.sources.values())) > 0:
                 first_source = list(self.sources.values())[0]
                 resources.extend(first_source.sparql(query, debug=False, limit=limit))
 
         if len(resources) > 0:
             return [format_response(r, expected_fields) for r in resources]
-        else:
-            return None
 
+        return None
 
     def validate_target(self, target):
         if target and target not in self.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.sources.keys()}")
-        else:
-            return True
-        
+
+        return True
+
     def get_context(self, resolving_context, target, filters):
         if not resolving_context:
             context = self.sources[target].model_context if target in self.sources else None
         if not context and filters:
-            raise ValueError(f"No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
-        else:
-            return context
+            raise ValueError("No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
+
+        return context
+
 
 def format_response(resource, mandatory_fields):
     json_data = as_json(resource, expanded=False, store_metadata=False,

@@ -18,7 +18,7 @@ from kgforge.core import Resource
 
 class EntityLinkingCandidate(Resource):
 
-    def __init__(self, score, candidate_context:Any = None, **properties):
+    def __init__(self, score, candidate_context: Any = None, **properties):
         self.score = score
         self.candidate_context = candidate_context
         super().__init__(**properties)

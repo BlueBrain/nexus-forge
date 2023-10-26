@@ -79,8 +79,8 @@ def catch(fun):
                     print(f"<action> {fs.name}"
                           f"\n<error> {type(e).__name__}: {e}\n")
                     return None
-                else:
-                    raise
+
+                raise
 
     return wrapper
 
@@ -91,10 +91,10 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
     # POLICY The method calling this function should be decorated with execution.catch().
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         return fun_many(data, *args, **params)
-    elif isinstance(data, Resource):
+    if isinstance(data, Resource):
         return fun_one(data, *args, **params)
-    else:
-        raise TypeError("not a Resource nor a list of Resource")
+
+    raise TypeError("not a Resource nor a list of Resource")
 
 
 def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],

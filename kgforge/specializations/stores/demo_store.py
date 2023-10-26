@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -47,7 +47,6 @@ class DemoStore(Store):
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
 
-
     # [C]RUD.
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
@@ -57,22 +56,22 @@ class DemoStore(Store):
             record = self.service.create(data)
         except StoreLibrary.RecordExists:
             raise RegistrationError("resource already exists")
-        else:
-            resource.id = record["data"]["id"]
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource.id = record["data"]["id"]
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     # C[R]UD.
 
-    def retrieve(self, id: str, version: Optional[Union[int, str]],
+    def retrieve(self, id_: str, version: Optional[Union[int, str]],
                  cross_bucket: bool, **params) -> Resource:
         if cross_bucket:
             not_supported(("cross_bucket", True))
         try:
-            record = self.service.read(id, version)
+            record = self.service.read(id_, version)
         except StoreLibrary.RecordMissing:
             raise RetrievalError("resource not found")
-        else:
-            return _to_resource(record)
+
+        return _to_resource(record)
 
     # CR[U]D.
 
@@ -85,8 +84,8 @@ class DemoStore(Store):
             raise UpdatingError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise UpdatingError("resource is deprecated")
-        else:
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         # Chosen case: tagging does not modify the resource.
@@ -109,8 +108,8 @@ class DemoStore(Store):
             raise DeprecationError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise DeprecationError("resource already deprecated")
-        else:
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     # Querying.
 
@@ -134,9 +133,12 @@ class DemoStore(Store):
 
     # Utils.
 
-    def _initialize_service(self, endpoint: Optional[str], bucket: Optional[str],
-                            token: Optional[str], searchendpoints:Optional[Dict]):
+    def _initialize_service(
+            self, endpoint: Optional[str], bucket: Optional[str],
+            token: Optional[str], searchendpoints: Optional[Dict] = None, **store_config,
+    ):
         return StoreLibrary()
+
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
@@ -174,8 +176,8 @@ class StoreLibrary:
                 record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            return record
+
+        return record
 
     def update(self, data: Dict) -> Dict:
         rid = data.get("id", None)
@@ -183,41 +185,41 @@ class StoreLibrary:
             record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            metadata = record["metadata"]
-            if metadata["deprecated"]:
-                raise self.RecordDeprecated
-            version = metadata["version"]
-            key = self._archive_id(rid, version)
-            self.archives[key] = record
-            new_record = self._record(data, version + 1, False)
-            self.records[rid] = new_record
-            return new_record
+
+        metadata = record["metadata"]
+        if metadata["deprecated"]:
+            raise self.RecordDeprecated
+        version = metadata["version"]
+        key = self._archive_id(rid, version)
+        self.archives[key] = record
+        new_record = self._record(data, version + 1, False)
+        self.records[rid] = new_record
+        return new_record
 
     def deprecate(self, rid: str) -> Dict:
         try:
             record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            metadata = record["metadata"]
-            if metadata["deprecated"]:
-                raise self.RecordDeprecated
-            version = metadata["version"]
-            key = self._archive_id(rid, version)
-            self.archives[key] = record
-            data = record["data"]
-            new_record = self._record(data, version + 1, True)
-            self.records[rid] = new_record
-            return new_record
+
+        metadata = record["metadata"]
+        if metadata["deprecated"]:
+            raise self.RecordDeprecated
+        version = metadata["version"]
+        key = self._archive_id(rid, version)
+        self.archives[key] = record
+        data = record["data"]
+        new_record = self._record(data, version + 1, True)
+        self.records[rid] = new_record
+        return new_record
 
     def tag(self, rid: str, version: int, value: str) -> None:
         if rid in self.records:
             key = self._tag_id(rid, value)
             if key in self.tags:
                 raise self.TagExists
-            else:
-                self.tags[key] = version
+
+            self.tags[key] = version
         else:
             raise self.RecordMissing
 
@@ -248,7 +250,7 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
-    
+
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         raise not_supported()
 

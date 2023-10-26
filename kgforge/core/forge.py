@@ -13,20 +13,16 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import re
 import numpy as np
 import yaml
-from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
-from urllib.parse import quote_plus, urlparse
 
 from kgforge.core import Resource
+from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
-from kgforge.core.commons.context import Context
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -303,8 +299,8 @@ class KnowledgeGraphForge:
     def validate(
         self,
         data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
-        type_: str=None
+        execute_actions_before: bool = False,
+        type_: str = None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -356,10 +352,10 @@ class KnowledgeGraphForge:
                         "         - targets: ", ",".join(resolver_value.targets.keys())
                     )
         elif output == "dict":
-            resolvers_dict = dict()
+            resolvers_dict = {}
             # iterate over target_key, target_value and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
-                individual_dict = dict()
+                individual_dict = {}
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
                         individual_dict[target_key] = target_value
@@ -392,10 +388,15 @@ class KnowledgeGraphForge:
         :param resolver: a resolver name
         :param target: a target identifier
         :param type: a type of resources to resolve
-        :param strategy:  the ResolvingStrategy to apply: BEST_MATCH (return the resource with the best score), EXACT_MATCH (return the resource with the highest score), ALL_MATCHES (return all retrieved resources sorted by score)
+        :param strategy:  the ResolvingStrategy to apply:
+        BEST_MATCH (return the resource with the best score),
+        EXACT_MATCH (return the resource with the highest score),
+        ALL_MATCHES (return all retrieved resources sorted by score)
         :param resolving_context: A context (e.g JSON-LD context) to use during resolving
         :param property_to_resolve: the property from which the text(s) to resolve is taken when 'text' is a Resource
-        :param merge_inplace_as: the property name that should hold the resolving result when 'text' is a Resource. When missing, the resolving result is returned insteada of being added to the provided resource.
+        :param merge_inplace_as: the property name that should hold the resolving result
+        when 'text' is a Resource. When missing, the resolving result is returned
+         instead of being added to the provided resource.
         :param limit: the number of resources to retrieve
         :param threshold: the threshold score
         :return: Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]
@@ -437,9 +438,11 @@ class KnowledgeGraphForge:
                     if isinstance(strategy, ResolvingStrategy)
                     else ResolvingStrategy[strategy]
                 )
-            except Exception as e:
+            except Exception:
                 raise AttributeError(
-                    f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
+                    f"Invalid ResolvingStrategy value '{strategy}'. "
+                    f"Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} "
+                    f"and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
                 )
             return rov.resolve(
                 text,
@@ -464,14 +467,14 @@ class KnowledgeGraphForge:
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
         :param args: a list of string to use for formatting
-        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)  
+        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)
         :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
-        
+
         if what and uri:
             raise AttributeError(
-                    f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
+                f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
             )
 
         try:
@@ -482,26 +485,27 @@ class KnowledgeGraphForge:
             )
         except Exception as e:
             raise AttributeError(
-                f"Invalid Formatter value '{formatter}'. Allowed names are {[name for name, member in Formatter.__members__.items()]} and allowed members are {[member for name, member in Formatter.__members__.items()]}"
+                f"Invalid Formatter value '{formatter}'. "
+                f"Allowed names are {[name for name, member in Formatter.__members__.items()]} "
+                f"and allowed members are {[member for name, member in Formatter.__members__.items()]}"
             )
-        
+
         if formatter == Formatter.STR:
             if what is None:
                 raise AttributeError(
-                        f"A non None 'what' value is required when formatter == Formatter.STR"
+                    "A non None 'what' value is required when formatter == Formatter.STR"
                 )
             return self._formatters[what].format(*args, **kwargs)
-        elif formatter == Formatter.URI_REWRITER:
+        if formatter == Formatter.URI_REWRITER:
             if uri is None:
                 raise AttributeError(
-                            f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
-                    )
+                    "A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
+                )
             return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
-        else:
-            raise AttributeError(
-                    f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
-            )
 
+        raise AttributeError(
+            f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+        )
 
     # Mapping User Interface.
 
@@ -705,7 +709,7 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
-        #self._store.mapper = self._store.mapper(self)
+        # self._store.mapper = self._store.mapper(self)
         self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
@@ -927,7 +931,7 @@ class KnowledgeGraphForge:
         :return: Union[Resource, List[Resource]]
         """
         return from_dataframe(data, na, nesting)
-    
+
     def get_store_context(self):
         """Expose the context used in the store."""
         return self._store.context
@@ -935,7 +939,8 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
-    
+
+
 def prepare_resolvers(
     config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:

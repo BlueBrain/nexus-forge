@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -58,8 +58,9 @@ class Dataset(Resource):
         """Add information on the contribution of an agent during the generation of the dataset."""
 
         keep = ["id", "type", "_store_metadata"]
-        contribution = self._add_prov_property(resource, "Contribution", "agent", "Agent", keep, versioned,
-                                             **kwargs)
+        contribution = self._add_prov_property(
+            resource, "Contribution", "agent", "Agent", keep, versioned, **kwargs
+        )
         _set(self, "contribution", contribution)
 
     @catch
@@ -85,10 +86,13 @@ class Dataset(Resource):
         """Add information about the invalidation of the dataset."""
 
         keep = ["id", "type", "_store_metadata"]
-        invalidation = self._add_prov_property(resource,"Invalidation","activity","Activity",keep,versioned, **kwargs)
+        invalidation = self._add_prov_property(
+            resource, "Invalidation", "activity", "Activity", keep, versioned, **kwargs
+        )
         _set(self, "invalidation", invalidation)
 
-    def _add_prov_property(self,resource, prov_type, reference_property, reference_type, keep, versioned, **kwargs):
+    def _add_prov_property(self, resource, prov_type, reference_property, reference_type, keep,
+                           versioned, **kwargs):
 
         if versioned and isinstance(resource, str):
             not_supported((f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True))
@@ -105,7 +109,7 @@ class Dataset(Resource):
                     raise ae
 
         result = Resource(type=prov_type, **kwargs)
-        result.__setattr__(reference_property,reference)
+        result.__setattr__(reference_property, reference)
         return result
 
     @catch
@@ -115,7 +119,7 @@ class Dataset(Resource):
         action = self._forge.attach(path, content_type)
         distribution = Resource(distribution=action)
         _set(self, "hasPart", distribution)
- 
+
     @catch
     def download(self, path: str = ".", source: str = "distributions", follow: str = None, overwrite: bool = False, cross_bucket: bool = False,
                  content_type: str = None) -> None:
@@ -148,7 +152,11 @@ class Dataset(Resource):
             elif source == "parts":
                 follow = "hasPart.distribution.contentUrl"
             elif source:
-                raise ValueError("unrecognized source. Use 'distributions' if the downloadable url is the value of 'distribution.contentUrl' or 'parts' if the downloadable url is the value of 'hasPart.distribution.contentUrl'")
+                raise ValueError(
+                    "unrecognized source. Use 'distributions' if the downloadable url is the value "
+                    "of 'distribution.contentUrl' or 'parts' if the downloadable url is the value "
+                    "of 'hasPart.distribution.contentUrl'"
+                )
             else:
                 raise ValueError(
                     "'source' or 'follow' argument should be provided."

@@ -20,4 +20,3 @@ class Formatter(Enum):
     STR = auto()
     # URI rewriter.
     URI_REWRITER = auto()
-

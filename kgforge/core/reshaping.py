@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -56,8 +56,8 @@ class Reshaper:
             if value is not None:
                 if isinstance(value, List):
                     new_value = self._reshape_many(value, leaves, versioned)
-                    for i,nv in enumerate(new_value):
-                        if nv is None and isinstance(value[i],str):
+                    for i, nv in enumerate(new_value):
+                        if nv is None and isinstance(value[i], str):
                             new_value[i] = value[i]
                 elif isinstance(value, Resource):
                     if leaves:
@@ -78,7 +78,7 @@ class Reshaper:
 
 
 # TODO Use an implementation of JSONPath for Python instead to get values. DKE-147.
-def collect_values(data: Union[Resource, List[Resource]],  follow: str,
+def collect_values(data: Union[Resource, List[Resource]], follow: str,
                    exception: Callable = Exception) -> List[str]:
     def _collect(things: List) -> Iterator[str]:
         for x in things:
@@ -94,7 +94,7 @@ def collect_values(data: Union[Resource, List[Resource]],  follow: str,
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
         if reshaped is None:
-            raise Exception(f"Nothing to collect")
+            raise Exception("Nothing to collect")
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))
