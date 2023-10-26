@@ -356,10 +356,10 @@ class KnowledgeGraphForge:
                         "         - targets: ", ",".join(resolver_value.targets.keys())
                     )
         elif output == "dict":
-            resolvers_dict = dict()
+            resolvers_dict = {}
             # iterate over target_key, target_value and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
-                individual_dict = dict()
+                individual_dict = {}
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
                         individual_dict[target_key] = target_value

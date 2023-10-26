@@ -346,7 +346,7 @@ def recursive_resolve(
         resolver: Optional[Callable],
         already_loaded: List = [],
 ) -> Dict:
-    document = dict()
+    document = {}
     if isinstance(context, list):
         for x in context:
             if x not in already_loaded:
@@ -413,7 +413,7 @@ def _add_ld_keys(
         context: Optional[Union[Dict, List, str]],
         base: Optional[str],
 ) -> Union[Dict, List[str]]:
-    local_attrs = dict()
+    local_attrs = {}
     local_context = None
     json_arrays = []
     items = rsc.__dict__.items() if isinstance(rsc, Resource) else rsc.items()
@@ -471,7 +471,7 @@ def _resolve_iri(value: str, context) -> str:
 def _remove_ld_keys(
         dictionary: dict, context: Context, to_resource: Optional[bool] = True
 ) -> Union[Dict, Resource]:
-    local_attrs = dict()
+    local_attrs = {}
     for k, v in dictionary.items():
         if k == "@context":
             if v != context:
