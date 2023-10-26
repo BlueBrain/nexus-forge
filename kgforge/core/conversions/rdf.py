@@ -14,16 +14,16 @@
 
 from copy import deepcopy
 
-from rdflib.plugins.shared.jsonld.keys import CONTEXT, GRAPH
 from typing import Union, Dict, List, Tuple, Optional, Callable, Any
-from urllib.error import URLError, HTTPError
 
 from enum import Enum
-from pyld import jsonld
-from rdflib import Graph
 import json
 from collections import OrderedDict
+from urllib.error import URLError, HTTPError
+from rdflib import Graph
+from rdflib.plugins.shared.jsonld.keys import CONTEXT, GRAPH
 from rdflib.namespace import RDF
+from pyld import jsonld
 
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context

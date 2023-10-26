@@ -13,20 +13,16 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import re
 import numpy as np
 import yaml
-from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
-from urllib.parse import quote_plus, urlparse
 
 from kgforge.core import Resource
+from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
-from kgforge.core.commons.context import Context
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -442,7 +438,7 @@ class KnowledgeGraphForge:
                     if isinstance(strategy, ResolvingStrategy)
                     else ResolvingStrategy[strategy]
                 )
-            except Exception as e:
+            except Exception:
                 raise AttributeError(
                     f"Invalid ResolvingStrategy value '{strategy}'. "
                     f"Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} "

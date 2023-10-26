@@ -25,14 +25,13 @@ from enum import Enum
 
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 from requests import HTTPError
-
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
-from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 
 from kgforge.core.commons.dictionaries import update_dict
@@ -54,9 +53,8 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.core.commons.files import is_valid_url
-from kgforge.core.commons.parser import _parse_type
 from kgforge.core.conversions.json import as_json
-from kgforge.core.conversions.rdf import as_jsonld, from_jsonld
+from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers import DictionaryMapper
@@ -409,9 +407,9 @@ class BlueBrainNexus(Store):
                 )
             return resource
 
-    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
+    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         try:
-            response = requests.get(id, headers=self.service.headers)
+            response = requests.get(id_, headers=self.service.headers)
             response.raise_for_status()
             metadata = response.json()
             return metadata["_filename"], metadata["_mediaType"]
@@ -454,10 +452,9 @@ class BlueBrainNexus(Store):
                         raise DownloadingError(
                             f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
                         )
-                    else:
-                        with open(path, "wb") as f:
-                            data = await response.read()
-                            f.write(data)
+                    with open(path, "wb") as f:
+                        data = await response.read()
+                        f.write(data)
 
         return asyncio.run(_bulk())
 
@@ -512,7 +509,7 @@ class BlueBrainNexus(Store):
         file_id = unquote(file_id)
         if len(file_id) < 1:
             raise DownloadingError(f"Invalid file url: {url}")
-        elif file_id.startswith("http"):
+        if file_id.startswith("http"):
             url_base = url
         else:
             # this is a hack since _self and _id have the same uuid
@@ -583,8 +580,8 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except HTTPError as e:
             raise UpdatingError(_error_message(e))
-        else:
-            self.service.sync_metadata(resource, response.json())
+
+        self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(
@@ -991,31 +988,31 @@ class BlueBrainNexus(Store):
                 extended_schema = resolved + groups[1]
                 url = raw_url.replace(old_schema, quote_plus(extended_schema))
                 schema_and_id = url.split(url_base + "/")[1]
-                id = schema_and_id.split(quote_plus(extended_schema) + "/")[-1]
-                if not is_valid_url(id):
-                    resolved_id = context.resolve_iri(id)
+                id_ = schema_and_id.split(quote_plus(extended_schema) + "/")[-1]
+                if not is_valid_url(id_):
+                    resolved_id = context.resolve_iri(id_)
                 else:
-                    resolved_id = id
-                return url.replace(id, quote_plus(resolved_id))
-            else:
-                extended_schema = ''.join([resolved, groups[1]])
-                url = raw_url.replace(old_schema, extended_schema)
+                    resolved_id = id_
+                return url.replace(id_, quote_plus(resolved_id))
+
+            extended_schema = ''.join([resolved, groups[1]])
+            url = raw_url.replace(old_schema, extended_schema)
         else:
             url = raw_url
         if url.startswith(url_base):
             schema_and_id = url.split(url_base)[1]
             if "/_/" in schema_and_id:  # has _ schema
-                id = schema_and_id.split("/_/")[-1]
+                id_ = schema_and_id.split("/_/")[-1]
             else:
-                id = schema_and_id.split("/")[-1]
-            if not is_valid_url(id):
-                resolved_id = context.resolve_iri(id)
+                id_ = schema_and_id.split("/")[-1]
+            if not is_valid_url(id_):
+                resolved_id = context.resolve_iri(id_)
             else:
-                resolved_id = id
+                resolved_id = id_
             if resolved_id in schema_and_id:
                 return uri  # expanded already given
 
-            return url.replace(id, quote_plus(resolved_id))
+            return url.replace(id_, quote_plus(resolved_id))
         if not is_file and "/_/" not in url:  # adding _ for empty schema
             uri = "/".join((url_base, "_", quote_plus(url, encoding=encoding)))
         else:

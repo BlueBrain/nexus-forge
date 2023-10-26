@@ -216,8 +216,8 @@ class StoreLibrary:
             key = self._tag_id(rid, value)
             if key in self.tags:
                 raise self.TagExists
-            else:
-                self.tags[key] = version
+
+            self.tags[key] = version
         else:
             raise self.RecordMissing
 

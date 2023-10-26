@@ -14,9 +14,9 @@
 
 from datetime import datetime
 from enum import Enum
-import json
 from typing import Tuple, List, Dict, Optional, Any
-
+import json
+from pyld import jsonld
 import rdflib
 from rdflib.plugins.sparql.parser import Query
 
@@ -28,7 +28,6 @@ from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
 from kgforge.core.commons.query_builder import QueryBuilder
 
-from pyld import jsonld
 
 
 class CategoryDataType(Enum):
