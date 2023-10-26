@@ -165,15 +165,16 @@ class SPARQLQueryBuilder(QueryBuilder):
             # SELECT QUERY
             results = response["results"]["bindings"]
             return [
-                Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
-                            ('datatype' in v and v['datatype'] ==
-                                'http://www.w3.org/2001/XMLSchema#boolean')
-                            else (int(v["value"]) if v['type'] == 'literal' and
-                                    ('datatype' in v and v['datatype'] ==
-                                    'http://www.w3.org/2001/XMLSchema#integer')
-                                    else v["value"]
-                                    )
-                            for k, v in x.items()})
+                Resource(**{
+                    k: json.loads(str(v["value"]).lower())
+                    if v['type'] == 'literal' and
+                    ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
+                    else (
+                        int(v["value"])
+                        if v['type'] == 'literal' and ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
+                        else v["value"]
+                    )
+                    for k, v in x.items()})
                 for x in results
             ]
 

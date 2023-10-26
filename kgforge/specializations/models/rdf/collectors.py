@@ -50,8 +50,9 @@ class Collector(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
-                                                         Optional[Dict]]:
+    def collect(
+            self, predecessors: Set[URIRef]
+    ) -> Tuple[Optional[List[NodeProperties]], Optional[Dict]]:
         """ depending on the constraint, this function will return properties, attributes or
         both.
 

@@ -84,8 +84,7 @@ format_type = {
     CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda
-        x: "'true'^^xsd:boolean" if x is True else "'false'^^xsd:boolean",
+    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean",
 }
 
 sparql_operator_map = {

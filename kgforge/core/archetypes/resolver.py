@@ -101,8 +101,8 @@ class Resolver(ABC):
         resolved = resolved[0] if len(resolved) == 1 else resolved
         if isinstance(resolved, tuple):
             # Case Tuple[str,List[Dict]]
-            resolved_mapped = self.mapper(forge).map(resolved[1], self.result_mapping, None) if \
-            resolved[1] is not None else None
+            resolved_mapped = self.mapper(forge).map(resolved[1], self.result_mapping, None)\
+                if resolved[1] is not None else None
         elif isinstance(text_to_resolve, list):
             # Case List[Tuple[str, List[Dict]]]
             resolved_mapped = {r[0]: self.mapper(forge).map(r[1], self.result_mapping, None) for r

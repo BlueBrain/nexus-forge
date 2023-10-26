@@ -575,8 +575,7 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
         else:
             v = (
                 ctx.get(m4, ":" + m4 if context.has_vocab() else None)
-                if str(m4).lower() not in SPARQL_CLAUSES
-                   and not str(m4).startswith("https")
+                if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
                 else m4
             )
             if v is None:
