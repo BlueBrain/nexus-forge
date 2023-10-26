@@ -220,9 +220,9 @@ def default_values(values, one: bool):
                 sortable = all(isinstance(v, first_type) for v in all_default_values)
                 if sortable:
                     return sorted(all_default_values)
-                else:
-                    types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
-                    return [types_position[k] for k in sorted(types_position.keys())]
+
+                types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
+                return [types_position[k] for k in sorted(types_position.keys())]
     else:
         return default_value(values)
 

@@ -127,7 +127,7 @@ class MinCountCollector(Collector):
     def collect(self, predecessors: Set[URIRef]) -> Tuple[Optional[List[NodeProperties]],
                                                           Optional[Dict]]:
         attrs = {}
-        attrs["mandatory"] = True if self.min_count.toPython() >= 1 else False
+        attrs["mandatory"] = self.min_count.toPython() >= 1
         return None, attrs
 
 

@@ -12,9 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import types
+from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
-from typing import List, Dict, Tuple, Set, Optional
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD

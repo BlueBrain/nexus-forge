@@ -15,7 +15,6 @@
 import asyncio
 import copy
 import json
-import re
 from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
@@ -264,10 +263,10 @@ class Service:
                     context = Context(context_to_resolve)
                 except URLError:
                     raise ValueError(f"{context_to_resolve} is not resolvable")
-                else:
-                    document = context.document["@context"]
-            else:
-                raise ValueError(f"{context_to_resolve} is not resolvable")
+
+                document = context.document["@context"]
+
+            raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             # Make sure context is not deprecated
             if '_deprecated' in resource and resource['_deprecated']:

@@ -142,13 +142,13 @@ class Resolver(ABC):
         if origin == "directory":
             dirpath = Path(source)
             return self._service_from_directory(dirpath, targets, **source_config)
-        elif origin == "web_service":
+        if origin == "web_service":
             return self._service_from_web_service(source, targets)
-        elif origin == "store":
+        if origin == "store":
             store = import_class(source, "stores")
             return self._service_from_store(store, targets, **source_config)
-        else:
-            raise ConfigurationError(f"unrecognized Resolver origin '{origin}'")
+
+        raise ConfigurationError(f"unrecognized Resolver origin '{origin}'")
 
     @staticmethod
     @abstractmethod

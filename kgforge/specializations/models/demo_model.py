@@ -117,8 +117,8 @@ class ModelLibrary:
     def compact(self, value: Union[str, Dict]) -> Union[str, Dict]:
         if isinstance(value, Dict):
             return {self.compact(k): self.compact(v) for k, v in value.items()}
-        else:
-            return re.sub("[a-z]+:", "", value)
+
+        return re.sub("[a-z]+:", "", value)
 
     def schema(self, type_expanded: str) -> Dict:
         return self.schemas[type_expanded]

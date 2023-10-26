@@ -84,8 +84,9 @@ class Mapping(ABC):
 
             if filepath.is_file():
                 return cls(filepath.read_text())
-            else:
-                raise OSError
+
+            raise OSError
+
         except OSError:
             if raise_ex:
                 raise FileNotFoundError

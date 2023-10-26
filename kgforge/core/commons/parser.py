@@ -11,12 +11,9 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from rdflib import Literal, XSD
 from typing import Any
 
-import dateutil
 import datetime
-from dateutil.parser import ParserError
 
 
 def _parse_type(value: Any, parse_str: bool = False):

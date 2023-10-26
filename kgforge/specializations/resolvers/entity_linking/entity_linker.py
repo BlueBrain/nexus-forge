@@ -40,7 +40,16 @@ class EntityLinker(Resolver, metaclass=ABCMeta):
             entity_linker_service = entity_linker_service.execute()
             self.service[target] = entity_linker_service
         mentions = [text] if isinstance(text, str) else text
-        candidates = entity_linker_service.generate_candidates(mentions=mentions, target=target, mention_context=resolving_context,
-                                                               limit=limit, bulk=False)
-        return [(m, entity_linker_service.rank_candidates(candidates=cl, strategy=strategy, threshold=threshold,
-                                                          mention=m, mention_context=resolving_context)) for m, cl in candidates]
+        candidates = entity_linker_service.generate_candidates(
+            mentions=mentions, target=target, mention_context=resolving_context,
+            limit=limit, bulk=False
+        )
+        return [
+            (
+                m,
+                entity_linker_service.rank_candidates(
+                    candidates=cl, strategy=strategy, threshold=threshold,
+                    mention=m, mention_context=resolving_context)
+                )
+            for m, cl in candidates
+        ]

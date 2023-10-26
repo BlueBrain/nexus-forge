@@ -56,9 +56,9 @@ class DemoStore(Store):
             record = self.service.create(data)
         except StoreLibrary.RecordExists:
             raise RegistrationError("resource already exists")
-        else:
-            resource.id = record["data"]["id"]
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource.id = record["data"]["id"]
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     # C[R]UD.
 
@@ -70,8 +70,8 @@ class DemoStore(Store):
             record = self.service.read(id, version)
         except StoreLibrary.RecordMissing:
             raise RetrievalError("resource not found")
-        else:
-            return _to_resource(record)
+
+        return _to_resource(record)
 
     # CR[U]D.
 
@@ -84,8 +84,8 @@ class DemoStore(Store):
             raise UpdatingError("resource not found")
         except StoreLibrary.RecordDeprecated:
             raise UpdatingError("resource is deprecated")
-        else:
-            resource._store_metadata = wrap_dict(record["metadata"])
+
+        resource._store_metadata = wrap_dict(record["metadata"])
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         # Chosen case: tagging does not modify the resource.
@@ -183,16 +183,16 @@ class StoreLibrary:
             record = self.records[rid]
         except KeyError:
             raise self.RecordMissing
-        else:
-            metadata = record["metadata"]
-            if metadata["deprecated"]:
-                raise self.RecordDeprecated
-            version = metadata["version"]
-            key = self._archive_id(rid, version)
-            self.archives[key] = record
-            new_record = self._record(data, version + 1, False)
-            self.records[rid] = new_record
-            return new_record
+
+        metadata = record["metadata"]
+        if metadata["deprecated"]:
+            raise self.RecordDeprecated
+        version = metadata["version"]
+        key = self._archive_id(rid, version)
+        self.archives[key] = record
+        new_record = self._record(data, version + 1, False)
+        self.records[rid] = new_record
+        return new_record
 
     def deprecate(self, rid: str) -> Dict:
         try:

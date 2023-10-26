@@ -268,11 +268,11 @@ class BlueBrainNexus(Store):
                     body = await response.json()
                     if response.status < 400:
                         return body
-                    else:
-                        msg = " ".join(
-                            re.findall("[A-Z][^A-Z]*", body["@type"])
-                        ).lower()
-                        raise UploadingError(msg)
+
+                    msg = " ".join(
+                        re.findall("[A-Z][^A-Z]*", body["@type"])
+                    ).lower()
+                    raise UploadingError(msg)
 
         return asyncio.run(_bulk())
 
@@ -287,8 +287,8 @@ class BlueBrainNexus(Store):
             )
         except HTTPError as e:
             raise UploadingError(_error_message(e))
-        else:
-            return response
+
+        return response
 
     # C[R]UD.
 
@@ -872,12 +872,12 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)
-        else:
-            data = response.json()
-            # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-            #  https://github.com/BlueBrain/nexus/issues/1155
-            context = self.model_context or self.context
-            return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
+
+        data = response.json()
+        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
+        #  https://github.com/BlueBrain/nexus/issues/1155
+        context = self.model_context or self.context
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
         try:
@@ -951,26 +951,26 @@ class BlueBrainNexus(Store):
             params = store_config.pop("params", {})
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
-        else:
-            return Service(
-                endpoint=endpoint,
-                org=self.organisation,
-                prj=self.project,
-                token=token,
-                model_context=self.model_context,
-                max_connection=max_connection,
-                searchendpoints=searchendpoints,
-                store_context=nexus_context_iri,
-                store_local_context=nexus_context_local_iri,
-                namespace=namespace,
-                project_property=project_property,
-                deprecated_property=deprecated_property,
-                content_type=content_type,
-                accept=accept,
-                files_upload_config=files_upload_config,
-                files_download_config=files_download_config,
-                **params,
-            )
+
+        return Service(
+            endpoint=endpoint,
+            org=self.organisation,
+            prj=self.project,
+            token=token,
+            model_context=self.model_context,
+            max_connection=max_connection,
+            searchendpoints=searchendpoints,
+            store_context=nexus_context_iri,
+            store_local_context=nexus_context_local_iri,
+            namespace=namespace,
+            project_property=project_property,
+            deprecated_property=deprecated_property,
+            content_type=content_type,
+            accept=accept,
+            files_upload_config=files_upload_config,
+            files_download_config=files_download_config,
+            **params,
+        )
 
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         is_file = kwargs.get("is_file", True)

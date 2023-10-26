@@ -572,22 +572,22 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
         m4 = match.group(4)
         if m4 is None:
             return match.group(0)
-        else:
-            v = (
-                ctx.get(m4, ":" + m4 if context.has_vocab() else None)
-                if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
-                else m4
+
+        v = (
+            ctx.get(m4, ":" + m4 if context.has_vocab() else None)
+            if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
+            else m4
+        )
+        if v is None:
+            raise QueryingError(
+                f"Failed to construct a valid SPARQL query: add '{m4}'"
+                f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
             )
-            if v is None:
-                raise QueryingError(
-                    f"Failed to construct a valid SPARQL query: add '{m4}'"
-                    f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
-                )
-            m5 = match.group(5)
-            if "//" in v:
-                return f"<{v}>{m5}"
-            else:
-                return f"{v}{m5}"
+        m5 = match.group(5)
+        if "//" in v:
+            return f"<{v}>{m5}"
+
+        return f"{v}{m5}"
 
     g4 = r"([a-zA-Z_]+)"
     g5 = r"([.;]?)"
@@ -598,8 +598,10 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
 
     if not has_prefixes or "prefix" in str(qr).lower():
         return qr
-    else:
-        pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+
+    pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+
     if context.has_vocab():
         pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
+
     return f"{pfx}\n{qr}"

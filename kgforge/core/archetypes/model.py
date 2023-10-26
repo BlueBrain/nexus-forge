@@ -177,13 +177,13 @@ class Model(ABC):
         if origin == "directory":
             dirpath = Path(source)
             return self._service_from_directory(dirpath, context_iri)
-        elif origin == "url":
+        if origin == "url":
             return self._service_from_url(source, context_iri)
-        elif origin == "store":
+        if origin == "store":
             store = import_class(source, "stores")
             return self._service_from_store(store, context_config, **source_config)
-        else:
-            raise ConfigurationError(f"unrecognized Model origin '{origin}'")
+
+        raise ConfigurationError(f"unrecognized Model origin '{origin}'")
 
     @staticmethod
     @abstractmethod

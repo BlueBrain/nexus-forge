@@ -243,8 +243,8 @@ def _add_source(query, includes, excludes):
         query_copy = copy.deepcopy(query)
         query_copy["_source"] = _source
         return query_copy
-    else:
-        return query
+
+    return query
 
 
 def _recursive_resolve_nested(m, field_path):
@@ -257,8 +257,7 @@ def _recursive_resolve_nested(m, field_path):
 
         return nested_path, field_path, mapping_type
 
-    else:
-        return nested_path, field_path, mapping_type
+    return nested_path, field_path, mapping_type
 
 
 def _build_keyword_path(
@@ -401,15 +400,15 @@ def _detect_mapping_type(value: Any):
         # double
         if float(value):
             return elasticsearch_dsl.Float()
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # Date
         if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
             return elasticsearch_dsl.Date()
-    except ParserError as pe:
+    except ParserError:
         return elasticsearch_dsl.Text()
 
 
