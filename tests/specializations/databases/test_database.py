@@ -124,10 +124,10 @@ def storedb_config():
 class TestStoreDB:
 
     @pytest.fixture
-    def forge_with_store(storedb_config, model_config):
+    def forge_with_store(self, storedb_config, model_config):
         return forge(storedb_config, model_config)
 
-    def test_database_config(forge_with_store, storedb_config, model_config):
+    def test_database_config(self, forge_with_store, storedb_config, model_config):
         with pytest.raises(ValueError):
             StoreDatabase(storedb_config) # Missing forge
         with pytest.raises(ValueError):
@@ -141,13 +141,13 @@ class TestStoreDB:
                            'source':'tests/data/demo-store/',
                            'model': model_config})
 
-    def test_database_directory(forge_with_store, model_config):
+    def test_database_directory(self, forge_with_store, model_config):
         with pytest.raises(Exception):
             StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'directory',
                            'source':'tests/data/demo-store/',
                            'model': model_config})
 
-    def test_database_wrong_web_service(forge_with_store, model_config):
+    def test_database_wrong_web_service(self, forge_with_store, model_config):
         with pytest.raises(Exception):
             StoreDatabase(forge_with_store, **{'name': 'mydb', 'origin': 'web_service',
                            'source':'tests/data/demo-store/',
@@ -175,10 +175,10 @@ def ws_db_config():
 
 class TestWebServiceDB:
     @pytest.fixture
-    def forge_with_wsdb(ws_db_config, model_config):
+    def forge_with_wsdb(self, ws_db_config, model_config):
         return forge(ws_db_config, model_config)
 
-    def test_database_config(forge_with_wsdb, ws_db_config, model_config):
+    def test_database_config(self, forge_with_wsdb, ws_db_config, model_config):
         with pytest.raises(ValueError):
             WebServiceDatabase(ws_db_config) # Missing forge
         with pytest.raises(ValueError):
@@ -197,24 +197,24 @@ class TestWebServiceDB:
                            'source':'tests/data/demo-store/', 'max_connection': 5,
                            'content_type': 'application/json'})
         
-    def test_database_directory(forge_with_wsdb, model_config):
+    def test_database_directory(self, forge_with_wsdb, model_config):
         with pytest.raises(Exception):
             WebServiceDatabase(forge_with_wsdb, **{'name':'mydb', 'origin': 'directory',
                            'source':'tests/data/demo-store/',
                            'model': model_config})
-    def test_database_wrong_store(forge_with_wsdb, model_config):
+    def test_database_wrong_store(self, forge_with_wsdb, model_config):
         with pytest.raises(Exception):
             WebServiceDatabase(forge_with_wsdb, **{'name': 'mydb', 'origin': 'store',
                            'source':'tests/data/demo-store/',
                            'model': model_config})
 
-    def test_searchendpoint_config(forge_with_wsdb, ws_db_config):
+    def test_searchendpoint_config(self, forge_with_wsdb, ws_db_config):
         tmp_config = copy.deepcopy(ws_db_config)
         tmp_config['searchendpoints'] = {'some_endpoint': {'wrong': 'True'}}
         with pytest.raises(ConfigurationError):
             WebServiceDatabase(forge_with_wsdb, **tmp_config)
 
-    def test_search(forge_with_wsdb, ws_db_config):
+    def test_search(self, forge_with_wsdb, ws_db_config):
         tmp_config = copy.deepcopy(ws_db_config)
         tmp_config['searchendpoints'] = {'some_endpoint': {'endpoint': "https://my_endpoint.com/API/"}}
         db = WebServiceDatabase(forge_with_wsdb, **tmp_config)
