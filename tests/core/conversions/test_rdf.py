@@ -260,7 +260,7 @@ class TestGraph:
 
         graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
         graph.add((term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg"), RDF.type, term.URIRef("http://schema.org/Image")))
-        results = from_graph(graph, type=["http://schema.org/Building","http://schema.org/Image"])
+        results = from_graph(graph, type_=["http://schema.org/Building", "http://schema.org/Image"])
         assert len(results) == 2
         assert results[0].type is not None
         assert results[1].type is not None
