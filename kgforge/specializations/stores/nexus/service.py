@@ -258,15 +258,15 @@ class Service:
             response.raise_for_status()
             resource = response.json()
         except Exception:
-            if local_only is False:
+            if not local_only:
                 try:
                     context = Context(context_to_resolve)
                 except URLError:
                     raise ValueError(f"{context_to_resolve} is not resolvable")
 
                 document = context.document["@context"]
-
-            raise ValueError(f"{context_to_resolve} is not resolvable")
+            else:
+                raise ValueError(f"{context_to_resolve} is not resolvable")
         else:
             # Make sure context is not deprecated
             if '_deprecated' in resource and resource['_deprecated']:
