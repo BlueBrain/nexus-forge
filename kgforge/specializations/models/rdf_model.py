@@ -3,12 +3,12 @@
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import datetime
@@ -115,7 +115,7 @@ class RdfModel(Model):
         try:
             uri = self.service.types_to_shapes[type]
         except KeyError:
-            raise ValueError("type '"+type+"' not found in "+self.source)
+            raise ValueError("type '" + type + "' not found in " + self.source)
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
@@ -189,7 +189,7 @@ class RdfModel(Model):
 
 def parse_attributes(node: NodeProperties, only_required: bool,
                      inherited_constraint: Optional[str]) -> Dict:
-    attributes = dict()
+    attributes = {}
     if hasattr(node, "path"):
         if only_required is True:
             if not hasattr(node, "mandatory"):
@@ -207,7 +207,7 @@ def parse_attributes(node: NodeProperties, only_required: bool,
 
 
 def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
-    props = dict()
+    props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
     return props
@@ -242,9 +242,9 @@ def default_values(values, one: bool):
                 sortable = all(isinstance(v, first_type) for v in all_default_values)
                 if sortable:
                     return sorted(all_default_values)
-                else:
-                    types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
-                    return [types_position[k] for k in sorted(types_position.keys())]
+
+                types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
+                return [types_position[k] for k in sorted(types_position.keys())]
     else:
         return default_value(values)
 
@@ -253,12 +253,12 @@ def default_value(value):
     # TODO: replace the as_term function with context.to_symbol
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    elif isinstance(value, URIRef):
+    if isinstance(value, URIRef):
         return as_term(value)
-    elif isinstance(value, Literal):
+    if isinstance(value, Literal):
         return value.toPython()
-    else:
-        return value
+
+    return value
 
 
 def object_value(value):
@@ -268,5 +268,5 @@ def object_value(value):
 def data_value(value):
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    else:
-        return value
+
+    return value

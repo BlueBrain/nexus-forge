@@ -11,14 +11,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import copy
+from typing import Tuple, List, Dict, Optional, Any
 
+import copy
 import datetime
 import dateutil
 import elasticsearch_dsl
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
-from typing import Tuple, List, Dict, Optional, Any
 from kgforge.core.commons.execution import not_supported
 
 from kgforge.core.commons.context import Context
@@ -44,10 +44,10 @@ class ESQueryBuilder(QueryBuilder):
         **params,
     ) -> Tuple[List, List, List]:
 
-        es_filters = list()
-        musts = list()
-        must_nots = list()
-        script_scores = list()
+        es_filters = []
+        musts = []
+        must_nots = []
+        script_scores = []
 
         default_str_keyword_field = params.get("default_str_keyword_field", "keyword")
         includes = params.get("includes", None)
@@ -243,8 +243,8 @@ def _add_source(query, includes, excludes):
         query_copy = copy.deepcopy(query)
         query_copy["_source"] = _source
         return query_copy
-    else:
-        return query
+
+    return query
 
 
 def _recursive_resolve_nested(m, field_path):
@@ -252,13 +252,12 @@ def _recursive_resolve_nested(m, field_path):
     if mapping_type is None and nested_path == ():
         if len(field_path) > 1:
             return _recursive_resolve_nested(
-                m, field_path=field_path[0 : len(field_path) - 1]
+                m, field_path=field_path[0:len(field_path) - 1]
             )
-        else:
-            return nested_path, field_path, mapping_type
 
-    else:
         return nested_path, field_path, mapping_type
+
+    return nested_path, field_path, mapping_type
 
 
 def _build_keyword_path(
@@ -401,15 +400,15 @@ def _detect_mapping_type(value: Any):
         # double
         if float(value):
             return elasticsearch_dsl.Float()
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # Date
         if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
             return elasticsearch_dsl.Date()
-    except ParserError as pe:
+    except ParserError:
         return elasticsearch_dsl.Text()
 
 

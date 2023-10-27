@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -52,11 +52,12 @@ class DictionaryMapper(Mapper):
 def _apply_rules(value: Any, variables: Dict) -> Union[Dict, List[Dict]]:
     if isinstance(value, Dict):
         return {k: _apply_rules(v, variables) for k, v in value.items()}
-    elif isinstance(value, List):
+
+    if isinstance(value, List):
         return [_apply_rules(x, variables) for x in value]
-    else:
-        # TODO Add support for the full syntax of JSONPath. DKE-147.
-        try:
-            return eval(value, variables, variables)
-        except (TypeError, NameError, SyntaxError):
-            return value
+
+    # TODO Add support for the full syntax of JSONPath. DKE-147.
+    try:
+        return eval(value, variables, variables)
+    except (TypeError, NameError, SyntaxError):
+        return value

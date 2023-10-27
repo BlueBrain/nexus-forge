@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from abc import ABC, abstractmethod
 
-from typing import List, Optional, Union, Any, Dict
+from typing import List, Optional, Any, Dict
 
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.resource import encode
@@ -26,8 +26,9 @@ class EntityLinkerService(ABC):
         self.is_distance = is_distance
 
     @abstractmethod
-    def generate_candidates(self, mentions: List[str], target:str, mention_context: Any, limit: int, bulk: bool)\
-            -> Optional[List[EntityLinkingCandidate]]:
+    def generate_candidates(
+            self, mentions: List[str], target: str, mention_context: Any, limit: int, bulk: bool
+    ) -> Optional[List[EntityLinkingCandidate]]:
         pass
 
     def rank_candidates(self, candidates: List[EntityLinkingCandidate], strategy: ResolvingStrategy, threshold: float,
@@ -35,16 +36,17 @@ class EntityLinkerService(ABC):
 
         exact_match_score = 0 if self.is_distance else 1
         threshold_operator = "<=" if self.is_distance else ">="
-        is_sorted_reversed = True if not self.is_distance else False
+        is_sorted_reversed = not self.is_distance
         if strategy == ResolvingStrategy.EXACT_MATCH:
             zeros = [x for x in candidates if x.score == exact_match_score]
             if zeros and len(zeros) > 0:
                 return [encode(zeros[0])]
-            else:
-                return None
-        elif strategy == ResolvingStrategy.BEST_MATCH:
+
+            return None
+
+        if strategy == ResolvingStrategy.BEST_MATCH:
             chosen = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)[0]
             return [encode(chosen)] if eval(f"{chosen.score} {threshold_operator} {threshold}") else None
-        else:
-            mentions = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)
-            return [encode(mention) for mention in mentions if eval(f"{mention.score} {threshold_operator} {threshold}")]
+
+        mentions = sorted(candidates, key=lambda x: x.score, reverse=is_sorted_reversed)
+        return [encode(mention) for mention in mentions if eval(f"{mention.score} {threshold_operator} {threshold}")]

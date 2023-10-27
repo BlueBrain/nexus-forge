@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -76,8 +76,8 @@ class DemoModel(Model):
         filepath = Path(self.source, "mappings", source, type.__name__, filename)
         if filepath.is_file():
             return type.load(filepath)
-        else:
-            raise ValueError("unrecognized entity type or source")
+
+        raise ValueError("unrecognized entity type or source")
 
     # Validation.
 
@@ -117,8 +117,8 @@ class ModelLibrary:
     def compact(self, value: Union[str, Dict]) -> Union[str, Dict]:
         if isinstance(value, Dict):
             return {self.compact(k): self.compact(v) for k, v in value.items()}
-        else:
-            return re.sub("[a-z]+:", "", value)
+
+        return re.sub("[a-z]+:", "", value)
 
     def schema(self, type_expanded: str) -> Dict:
         return self.schemas[type_expanded]

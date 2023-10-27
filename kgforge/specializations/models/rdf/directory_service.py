@@ -49,14 +49,14 @@ class DirectoryService(RdfService):
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
             return self._context_cache[iri]
-        else:
-            try:
-                context = Context(iri)
-            except FileNotFoundError as e:
-                raise ValueError(e)
-            else:
-                self._context_cache.update({iri: context.document})
-                return context.document
+
+        try:
+            context = Context(iri)
+        except FileNotFoundError as e:
+            raise ValueError(e)
+
+        self._context_cache.update({iri: context.document})
+        return context.document
 
     def generate_context(self) -> Dict:
         return self._generate_context()

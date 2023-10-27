@@ -11,13 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+
+from typing import Callable, Dict, List, Optional, Union, Any
+
 import itertools
 
 import requests
 
-from typing import Callable, Dict, List, Optional, Union, Any
-
-from kgforge.core import Resource
 from kgforge.core.archetypes import Store
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
@@ -42,7 +42,7 @@ class EntityLinkerElasticService(EntityLinkerService):
         **store_config
     ):
         super().__init__(is_distance=False)
-        self.sources: Dict[str, Store] = dict()
+        self.sources: Dict[str, Store] = {}
         for identifier in targets:
             bucket = targets[identifier]['bucket']
             store_config.update(bucket=bucket)
@@ -78,7 +78,7 @@ class EntityLinkerElasticService(EntityLinkerService):
                 embedding_json = encode(embedding)
                 vector_field = list(embedding_json.keys())[0]
                 mention_resources, mention_resources_scores = self._similar(
-                    vector_field,embedding_json[vector_field], target, limit
+                    vector_field, embedding_json[vector_field], target, limit
                 )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)
@@ -127,5 +127,5 @@ class EntityLinkerElasticService(EntityLinkerService):
                 ),
                 scores,
             )
-        else:
-            return None
+
+        return None

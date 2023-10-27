@@ -39,7 +39,6 @@ from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.conversions.rdf import from_jsonld
 from kgforge.core.reshaping import collect_values
 
-
 # NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
 
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
@@ -108,15 +107,15 @@ class Store(ABC):
     # POLICY Implementations should pass tests/specializations/stores/demo_store.feature tests.
 
     def __init__(
-        self,
-        endpoint: Optional[str] = None,
-        bucket: Optional[str] = None,
-        token: Optional[str] = None,
-        versioned_id_template: Optional[str] = None,
-        file_resource_mapping: Optional[str] = None,
-        model_context: Optional[Context] = None,
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
+            self,
+            endpoint: Optional[str] = None,
+            bucket: Optional[str] = None,
+            token: Optional[str] = None,
+            versioned_id_template: Optional[str] = None,
+            file_resource_mapping: Optional[str] = None,
+            model_context: Optional[Context] = None,
+            searchendpoints: Optional[Dict] = None,
+            **store_config,
     ) -> None:
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
         # POLICY There could be data caching but it should be aware of changes made in the source.
@@ -155,11 +154,11 @@ class Store(ABC):
     def mapper(self) -> Type[Mapper]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         ...
-    
+
     # [C]RUD.
 
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: str = None
+            self, data: Union[Resource, List[Resource]], schema_id: str = None
     ) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
         run(
@@ -186,14 +185,16 @@ class Store(ABC):
         pass
 
     # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
-    def upload(self, path: str, content_type: str, forge: Optional['KnowledgeGraphForge']) -> Union[Resource, List[Resource]]:
+    def upload(
+            self, path: str, content_type: str, forge: Optional['KnowledgeGraphForge']
+    ) -> Union[Resource, List[Resource]]:
         # path: Union[FilePath, DirPath].
         if self.file_mapping is not None:
             p = Path(path)
             uploaded = self._upload(p, content_type)
             return self.mapper(forge).map(uploaded, self.file_mapping, None)
-        else:
-            raise UploadingError("no file_resource_mapping has been configured")
+
+        raise UploadingError("no file_resource_mapping has been configured")
 
     def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
         # path: Union[FilePath, DirPath].
@@ -202,8 +203,8 @@ class Store(ABC):
                 x for x in path.iterdir() if x.is_file() and not x.name.startswith(".")
             ]
             return self._upload_many(filepaths, content_type)
-        else:
-            return self._upload_one(path, content_type)
+
+        return self._upload_one(path, content_type)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Any]:
         # Bulk uploading could be optimized by overriding this method in the specialization.
@@ -219,7 +220,7 @@ class Store(ABC):
 
     @abstractmethod
     def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
@@ -230,23 +231,24 @@ class Store(ABC):
     def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         # TODO This operation might be adapted if other file metadata are needed.
         not_supported()
-    
-    def _prepare_download_one(self,
-        url: str,
-        store_metadata: Optional[DictWrapper],
-        cross_bucket: bool
+
+    def _prepare_download_one(
+            self,
+            url: str,
+            store_metadata: Optional[DictWrapper],
+            cross_bucket: bool
     ) -> Tuple[str, str]:
         # Prepare download url and download bucket
         not_supported()
 
     def download(
-        self,
-        data: Union[Resource, List[Resource]],
-        follow: str,
-        path: str,
-        overwrite: bool,
-        cross_bucket: bool,
-        content_type: str = None
+            self,
+            data: Union[Resource, List[Resource]],
+            follow: str,
+            path: str,
+            overwrite: bool,
+            cross_bucket: bool,
+            content_type: str = None
     ) -> None:
         # path: DirPath.
         urls = []
@@ -270,7 +272,8 @@ class Store(ABC):
         download_urls = []
         download_store_metadata = []
         for i, x in enumerate(urls):
-            x_download_url, x_bucket = self._prepare_download_one(x, store_metadata[i], cross_bucket)
+            x_download_url, x_bucket = self._prepare_download_one(x, store_metadata[i],
+                                                                  cross_bucket)
             filename, store_content_type = self._retrieve_filename(x_download_url)
             if not content_type or (content_type and store_content_type == content_type):
                 filepath = dirpath / filename
@@ -282,22 +285,24 @@ class Store(ABC):
                 buckets.append(x_bucket)
                 download_store_metadata.append(store_metadata[i])
         if len(download_urls) > 1:
-            self._download_many(download_urls, filepaths, download_store_metadata, cross_bucket, content_type, buckets)
-        elif len(download_urls) == 1 :
-            self._download_one(download_urls[0], filepaths[0], download_store_metadata[0], cross_bucket, content_type, buckets[0])
+            self._download_many(download_urls, filepaths, download_store_metadata, cross_bucket,
+                                content_type, buckets)
+        elif len(download_urls) == 1:
+            self._download_one(download_urls[0], filepaths[0], download_store_metadata[0],
+                               cross_bucket, content_type, buckets[0])
         else:
             raise DownloadingError(
                 f"No resource with content_type {content_type} was found when following the resource path '{follow}'."
             )
 
     def _download_many(
-        self,
-        urls: List[str],
-        paths: List[str],
-        store_metadata: Optional[List[DictWrapper]],
-        cross_bucket: bool,
-        content_type: str,
-        buckets: List[str]
+            self,
+            urls: List[str],
+            paths: List[str],
+            store_metadata: Optional[List[DictWrapper]],
+            cross_bucket: bool,
+            content_type: str,
+            buckets: List[str]
     ) -> None:
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
@@ -306,13 +311,13 @@ class Store(ABC):
             self._download_one(url, path, store_m, cross_bucket, content_type)
 
     def _download_one(
-        self,
-        url: str,
-        path: str,
-        store_metadata: Optional[DictWrapper],
-        cross_bucket: bool,
-        content_type: str,
-        bucket: str
+            self,
+            url: str,
+            path: str,
+            store_metadata: Optional[DictWrapper],
+            cross_bucket: bool,
+            content_type: str,
+            bucket: str
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
@@ -321,7 +326,7 @@ class Store(ABC):
     # CR[U]D.
 
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
         run(
@@ -400,7 +405,7 @@ class Store(ABC):
     # Querying.
 
     def search(
-        self, resolvers: Optional[List["Resolver"]], *filters, **params
+            self, resolvers: Optional[List["Resolver"]], *filters, **params
     ) -> List[Resource]:
 
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
@@ -424,7 +429,8 @@ class Store(ABC):
         not_supported()
 
     def sparql(
-        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET, **params
+            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
+            **params
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
@@ -447,13 +453,13 @@ class Store(ABC):
         not_supported()
 
     def elastic(
-        self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
+            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
     ) -> List[Resource]:
         query_dict = json.loads(query)
         if limit:
             query_dict["size"] = limit
         if offset:
-            query_dict["from"] = offset 
+            query_dict["from"] = offset
         if debug:
             self._debug_query(query_dict)
         return self._elastic(json.dumps(query_dict))
@@ -499,12 +505,12 @@ class Store(ABC):
 
     @abstractmethod
     def _initialize_service(
-        self,
-        endpoint: Optional[str],
-        bucket: Optional[str],
-        token: Optional[str],
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
+            self,
+            endpoint: Optional[str],
+            bucket: Optional[str],
+            token: Optional[str],
+            searchendpoints: Optional[Dict] = None,
+            **store_config,
     ) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
         pass
@@ -516,7 +522,7 @@ class Store(ABC):
         else:
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
-    
+
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context
         :param uri: a URI to rewrite.
@@ -527,11 +533,12 @@ class Store(ABC):
 
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):
-
     is_what_in_query = bool(re.search(f"{search_regex}", qr, flags=re.IGNORECASE))
     if is_what_in_query and value and not replace_if_in_query:
-        raise QueryingError(f"Value for '{what}' is present in the provided query and set as argument: set 'replace_if_in_query' to True to replace '{what}' when present in the query.")
-    replace_value = f" {what} {value}" if value else (f" {what} {default_value}" if default_value else None)
+        raise QueryingError(
+            f"Value for '{what}' is present in the provided query and set as argument: set 'replace_if_in_query' to True to replace '{what}' when present in the query.")
+    replace_value = f" {what} {value}" if value else (
+        f" {what} {default_value}" if default_value else None)
     if is_what_in_query and replace_if_in_query and replace_value:
         qr = re.sub(f"{search_regex}", replace_value, qr, flags=re.IGNORECASE)
     if not is_what_in_query and replace_value:
@@ -568,23 +575,22 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
         m4 = match.group(4)
         if m4 is None:
             return match.group(0)
-        else:
-            v = (
-                ctx.get(m4, ":" + m4 if context.has_vocab() else None)
-                if str(m4).lower() not in SPARQL_CLAUSES
-                and not str(m4).startswith("https")
-                else m4
+
+        v = (
+            ctx.get(m4, ":" + m4 if context.has_vocab() else None)
+            if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
+            else m4
+        )
+        if v is None:
+            raise QueryingError(
+                f"Failed to construct a valid SPARQL query: add '{m4}'"
+                f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
             )
-            if v is None:
-                raise QueryingError(
-                    f"Failed to construct a valid SPARQL query: add '{m4}'"
-                    f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
-                )
-            m5 = match.group(5)
-            if "//" in v:
-                return f"<{v}>{m5}"
-            else:
-                return f"{v}{m5}"
+        m5 = match.group(5)
+        if "//" in v:
+            return f"<{v}>{m5}"
+
+        return f"{v}{m5}"
 
     g4 = r"([a-zA-Z_]+)"
     g5 = r"([.;]?)"
@@ -595,10 +601,12 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
 
     if not has_prefixes or "prefix" in str(qr).lower():
         return qr
-    else:
-        pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+
+    pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+
     if context.has_vocab():
         pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
+
     return f"{pfx}\n{qr}"
 
 

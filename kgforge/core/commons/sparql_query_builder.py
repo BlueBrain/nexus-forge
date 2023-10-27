@@ -14,20 +14,20 @@
 
 from datetime import datetime
 from enum import Enum
-import json
 from typing import Tuple, List, Dict, Optional, Any
-from kgforge.core.conversions.rdf import from_jsonld
-from kgforge.core.resource import Resource
+import json
+from pyld import jsonld
 import rdflib
 from rdflib.plugins.sparql.parser import Query
 
+from kgforge.core.conversions.rdf import from_jsonld
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.commons.parser import _parse_type
 from kgforge.core.commons.query_builder import QueryBuilder
 
-from pyld import jsonld
 
 class CategoryDataType(Enum):
     DATETIME = "datetime"
@@ -61,6 +61,7 @@ sparql_operator_map = {
     "__ge__": ">=",
 }
 
+
 class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
@@ -72,8 +73,8 @@ class SPARQLQueryBuilder(QueryBuilder):
         **params,
     ) -> Tuple[List, List]:
 
-        statements = list()
-        sparql_filters = list()
+        statements = []
+        sparql_filters = []
         for index, f in enumerate(filters):
             last_path = f.path[-1]
             try:
@@ -101,7 +102,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                         sparql_filters.append(f"FILTER(?v{index} != {f.value})")
                     else:
                         raise NotImplementedError(
-                            f"supported operators are '==' and '!=' when filtering by type or id."
+                            "supported operators are '==' and '!=' when filtering by type or id."
                         )
                 else:
                     parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
@@ -109,7 +110,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                     value = format_type[value_type](parsed_value if parsed_value else f.value)
                     if value_type is CategoryDataType.LITERAL:
                         if f.operator not in ["__eq__", "__ne__"]:
-                            raise NotImplementedError(f"supported operators are '==' and '!=' when filtering with a str.")
+                            raise NotImplementedError("supported operators are '==' and '!=' when filtering with a str.")
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
                     else:
@@ -121,9 +122,10 @@ class SPARQLQueryBuilder(QueryBuilder):
                 raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
         return statements, sparql_filters
 
-
     @staticmethod
-    def build_resource_from_response(query: str, response: Dict, context: Context) -> List[Resource]:
+    def build_resource_from_response(
+            query: str, response: Dict, context: Context, *args, **params
+    ) -> List[Resource]:
         _, q_comp = Query.parseString(query)
         if q_comp.name == "ConstructQuery":
             subject_triples = {}
@@ -163,17 +165,19 @@ class SPARQLQueryBuilder(QueryBuilder):
             # SELECT QUERY
             results = response["results"]["bindings"]
             return [
-                Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
-                            ('datatype' in v and v['datatype'] ==
-                                'http://www.w3.org/2001/XMLSchema#boolean')
-                            else (int(v["value"]) if v['type'] == 'literal' and
-                                    ('datatype' in v and v['datatype'] ==
-                                    'http://www.w3.org/2001/XMLSchema#integer')
-                                    else v["value"]
-                                    )
-                            for k, v in x.items()})
+                Resource(**{
+                    k: json.loads(str(v["value"]).lower())
+                    if v['type'] == 'literal' and
+                    ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
+                    else (
+                        int(v["value"])
+                        if v['type'] == 'literal' and ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
+                        else v["value"]
+                    )
+                    for k, v in x.items()})
                 for x in results
             ]
-        
+
+
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value

@@ -23,7 +23,7 @@ def with_defaults(original: Dict, other: Dict, original_key: str, other_key: str
     if original[original_key] == other[other_key]:
         use_values(original, other, keys)
 
-
+        
 def use_values(original: Dict, other: Dict,
                   keys: List[str]) -> None:
     for x in keys:

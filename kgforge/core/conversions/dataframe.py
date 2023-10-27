@@ -65,7 +65,7 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
 
 
 def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
-    d = dict()
+    d = {}
     i = 0
     while i < len(items):
         k, v = items[i]

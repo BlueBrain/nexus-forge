@@ -29,12 +29,12 @@ class DictWrapper(dict):
 def wrap_dict(data: Dict) -> DictWrapper:
     if isinstance(data, Dict):
         return _wrap(data)
-    else:
-        raise TypeError("not a dictionary")
+
+    raise TypeError("not a dictionary")
 
 
 def _wrap(data: Any) -> Any:
     if isinstance(data, Dict):
         return DictWrapper({k: _wrap(v) for k, v in data.items()})
-    else:
-        return data
+
+    return data
