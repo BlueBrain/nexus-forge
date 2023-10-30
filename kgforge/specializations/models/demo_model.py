@@ -27,9 +27,6 @@ from kgforge.core.commons.exceptions import ValidationError
 class DemoModel(Model):
     """An example to show how to implement a Model and to demonstrate how it is used."""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
-
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:

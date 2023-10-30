@@ -26,10 +26,6 @@ from kgforge.specializations.resolvers.store_service import StoreService
 
 class OntologyResolver(Resolver):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
-
     @property
     def mapping(self) -> Callable:
         return DictionaryMapping

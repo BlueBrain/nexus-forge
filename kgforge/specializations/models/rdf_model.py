@@ -66,9 +66,6 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
-
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:

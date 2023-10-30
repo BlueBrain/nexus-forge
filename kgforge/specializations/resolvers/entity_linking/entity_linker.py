@@ -22,10 +22,6 @@ from kgforge.core.commons.strategies import ResolvingStrategy
 
 class EntityLinker(Resolver, metaclass=ABCMeta):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
-
     def _resolve(self, text: Union[str, List[str]], target: str, type: str,
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int],
                  threshold: Optional[float]) -> Optional[List[Tuple[str, List[Dict]]]]:

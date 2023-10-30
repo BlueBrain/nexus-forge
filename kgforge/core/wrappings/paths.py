@@ -84,8 +84,7 @@ class FilterMixin:
 
 
 class PathWrapper(FilterMixin):
-    def __init__(self, path: List[str]) -> None:
-        super().__init__(path)
+    ...
 
 
 class PathsWrapper(FilterMixin):

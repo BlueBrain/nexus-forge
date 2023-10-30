@@ -22,9 +22,6 @@ from kgforge.core.commons.attributes import sort_attrs
 
 class DictionaryMapping(Mapping):
 
-    def __init__(self, mapping: str) -> None:
-        super().__init__(mapping)
-
     @staticmethod
     def _load_rules(mapping: str) -> OrderedDict:
         return hjson.loads(mapping)

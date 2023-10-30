@@ -28,9 +28,6 @@ from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 
 class DictionaryMapper(Mapper):
 
-    def __init__(self, forge: Optional["KnowledgeGraphForge"] = None) -> None:
-        super().__init__(forge)
-
     def _map_one(
             self, data: Union[Path, Dict], mappings: List[Mapping], nas: List[Any]
     ) -> List[Resource]:

@@ -103,27 +103,6 @@ elasticsearch_operator_map = {
 
 
 class BlueBrainNexus(Store):
-    def __init__(
-            self,
-            endpoint: Optional[str] = None,
-            bucket: Optional[str] = None,
-            token: Optional[str] = None,
-            versioned_id_template: Optional[str] = None,
-            file_resource_mapping: Optional[str] = None,
-            model_context: Optional[Context] = None,
-            searchendpoints: Optional[Dict] = None,
-            **store_config,
-    ) -> None:
-        super().__init__(
-            endpoint,
-            bucket,
-            token,
-            versioned_id_template,
-            file_resource_mapping,
-            model_context,
-            searchendpoints,
-            **store_config,
-        )
 
     @property
     def mapping(self) -> Optional[Callable]:
