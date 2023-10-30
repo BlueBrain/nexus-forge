@@ -14,7 +14,7 @@
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
-from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.resolver import _build_resolving_query
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder

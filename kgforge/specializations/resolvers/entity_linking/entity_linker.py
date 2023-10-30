@@ -14,7 +14,7 @@
 from abc import ABCMeta
 from typing import Dict, List, Optional, Tuple, Union, Any
 
-from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.exceptions import ResolvingError
 from kgforge.core.commons.strategies import ResolvingStrategy

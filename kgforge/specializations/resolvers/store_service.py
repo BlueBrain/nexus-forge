@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from typing import Callable, Dict, List, Optional
 
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.store import Store
 from kgforge.core.conversions.json import as_json
 
 

@@ -17,7 +17,7 @@ import traceback
 from functools import wraps
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
                                           execute_lazy_actions)
 from kgforge.core.commons.exceptions import NotSupportedError

@@ -19,7 +19,7 @@ from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
 from rdflib import Graph, URIRef, RDF, XSD
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.conversions.rdf import as_graph

@@ -20,8 +20,9 @@ from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Model, Store
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
@@ -115,15 +116,16 @@ class RdfModel(Model):
         for resource in resources:
             conforms, graph, _ = self.service.validate(resource, type_=type_)
             if conforms:
-                resource._validated = True
+                resource.set_validated(True)
                 action = Action(self._validate_many.__name__, conforms, None)
             else:
-                resource._validated = False
+                resource.set_validated(False)
                 violations = set(" ".join(re.findall('[A-Z][^A-Z]*', as_term(o)))
                                  for o in graph.objects(None, SH.sourceConstraintComponent))
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
-            resource._last_action = action
+
+            resource.set_last_action(action)
 
     def _validate_one(self, resource: Resource, type_: str) -> None:
         conforms, _, report = self.service.validate(resource, type_)

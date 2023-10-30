@@ -17,7 +17,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Union, Any
 
-from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy

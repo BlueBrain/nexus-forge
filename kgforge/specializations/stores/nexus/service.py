@@ -30,7 +30,7 @@ from aiohttp import ClientSession, hdrs
 from numpy import nan
 from requests import HTTPError
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
     Action,
     collect_lazy_actions,

@@ -17,8 +17,9 @@ import re
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 

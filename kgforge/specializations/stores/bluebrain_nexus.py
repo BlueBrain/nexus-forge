@@ -37,8 +37,8 @@ from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.core import Resource
-from kgforge.core.archetypes import Store
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (

@@ -16,11 +16,17 @@ from copy import deepcopy
 from typing import Dict, List, Optional, Union, Type
 from uuid import uuid4
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Resolver, Store, Mapper, Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.mapping import Mapping
+
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
-                                             RetrievalError, TaggingError, UpdatingError)
+from kgforge.core.commons.exceptions import (
+    DeprecationError, RegistrationError,
+    RetrievalError, TaggingError, UpdatingError
+)
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict

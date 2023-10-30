@@ -20,8 +20,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import hjson
 from pandas import DataFrame
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import repr_class, sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError

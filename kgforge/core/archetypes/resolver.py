@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported

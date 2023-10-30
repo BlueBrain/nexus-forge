@@ -15,7 +15,7 @@
 from typing import List, Union
 from warnings import warn
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.forge import KnowledgeGraphForge

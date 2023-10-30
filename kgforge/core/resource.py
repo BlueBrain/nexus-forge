@@ -85,6 +85,12 @@ class Resource:
             else:
                 vlist.append(item)
 
+    def set_validated(self, validation_status: bool):
+        self._validated = validation_status
+
+    def set_last_action(self, action: "Action"):
+        self._last_action = action
+
     def _get_synchronized(self) -> bool:
         inner = []
         for v in self.__dict__.values():
@@ -160,12 +166,12 @@ class Resource:
         return [_(d, nas) for d in data] if isinstance(data, List) else _(data, nas)
 
 
-def encode(data: Any) -> Union[str, Dict]:
+def encode(data: Any) -> Union[str, Dict, set]:
     if isinstance(data, Resource):
         return {k: v for k, v in data.__dict__.items() if k not in data._RESERVED}
     if type(data).__name__ == "LazyAction":
         return str(data)
-    if isinstance(data, set) or isinstance(data, list):
+    if isinstance(data, (set, list)):
         return {encode(r) for r in data}
 
     return data.__dict__

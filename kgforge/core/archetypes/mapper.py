@@ -16,8 +16,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sequence, Union
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import repr_class
 
 

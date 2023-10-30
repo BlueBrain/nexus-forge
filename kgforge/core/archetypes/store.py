@@ -19,8 +19,10 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Match, Optional, Tuple, Union, Type
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Mapper
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -35,14 +37,13 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import not_supported, run
 from kgforge.core.reshaping import collect_values
-
-# NB: Do not 'from kgforge.core.archetypes import Resolver' to avoid cyclic dependency.
-
-# FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 from kgforge.core.wrappings.dict import DictWrapper
 
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
+
+# FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
+
 SPARQL_CLAUSES = [
     "where",
     "filter",
@@ -402,7 +403,7 @@ class Store(ABC):
     # Querying.
 
     def search(
-            self, resolvers: Optional[List["Resolver"]], *filters, **params
+            self, resolvers: Optional[List[Resolver]], *filters, **params
     ) -> List[Resource]:
 
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py

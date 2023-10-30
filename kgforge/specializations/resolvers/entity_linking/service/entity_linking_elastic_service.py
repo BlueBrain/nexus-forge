@@ -18,7 +18,7 @@ import itertools
 
 import requests
 
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.store import Store
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
