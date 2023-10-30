@@ -50,11 +50,6 @@ class Mapping(ABC):
     def __str__(self):
         return self._normalize_rules(self.rules)
 
-    def __eq__(self, other: object) -> bool:
-        # FIXME To properly work the loading of rules should normalize them. DKE-184.
-        # return eq_class(self, other)
-        raise NotImplementedError
-
     @classmethod
     def load(cls, source: str, mapping_type: MappingType = None):
         # source: Union[str, FilePath, URL].

@@ -526,7 +526,7 @@ class Service:
                 synchronized = resource._synchronized
                 if synchronized is not required_synchronized:
                     be_or_not_be = "be" if required_synchronized is True else "not be"
-                    error = exception(f"Resource should {be_or_not_be} synchronized")
+                    error = exception(f"resource should {be_or_not_be} synchronized")
                     self.synchronize_resource(
                         resource, error, function_name, False, False
                     )

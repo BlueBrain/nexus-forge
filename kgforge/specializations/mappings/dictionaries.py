@@ -18,9 +18,15 @@ import hjson
 
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import sort_attrs
+from kgforge.core.commons.execution import not_supported
 
 
 class DictionaryMapping(Mapping):
+
+    def __eq__(self, other: object) -> bool:
+        # FIXME To properly work the loading of rules should normalize them. DKE-184.
+        # return eq_class(self, other)
+        raise not_supported()
 
     @staticmethod
     def _load_rules(mapping: str) -> OrderedDict:
