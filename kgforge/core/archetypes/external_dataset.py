@@ -38,7 +38,7 @@ class ExternalDataset(ReadStore):
     def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
         return list(self.model.mappings(self.model.source, False).keys())
-    
+
     def search(self, resolvers, *filters, **params):
         """Search within the database.
 
@@ -121,7 +121,7 @@ def resources_from_request(url, headers, **params):
             results = data["results"]["bindings"]
             return resources_from_results(results)
 
- 
+
 def resources_from_results(results):
     """Returns Resources from standard response bindings."""
     return [

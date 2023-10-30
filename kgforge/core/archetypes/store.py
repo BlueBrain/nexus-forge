@@ -125,8 +125,10 @@ class ReadStore(ABC):
             self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         )
         self.file_mapping: Optional[Any] = loaded
-        if hasattr(model, 'context'):
-            self.model_context = self.model.context()
+        if 'model_context' in store_config:
+            self.model_context = store_config.get('model_context')
+        elif hasattr(self.model, 'context'):
+            self.model_context = self.model_context()
         else:
             self.model_context = None
         self.service: Any = self._initialize_service(
@@ -385,8 +387,8 @@ class Store(ReadStore):
             **store_config,
     ) -> None:
         super().__init__(model, endpoint, bucket, token, versioned_id_template,
-                       file_resource_mapping,
-                       searchendpoints, **store_config)
+                         file_resource_mapping,
+                         searchendpoints, **store_config)
 
     def __repr__(self) -> str:
         return repr_class(self)
