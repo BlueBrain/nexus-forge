@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List,  Optional, Union, Type, Match
 
 from kgforge.core import Resource
-from kgforge.core.archetypes.read_store import ReadStore
+from kgforge.core.archetypes.read_store import ReadStore, DEFAULT_LIMIT, DEFAULT_OFFSET
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
@@ -36,8 +36,6 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import not_supported, run
 
-DEFAULT_LIMIT = 100
-DEFAULT_OFFSET = 0
 SPARQL_CLAUSES = [
     "where",
     "filter",

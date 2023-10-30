@@ -29,6 +29,9 @@ from kgforge.core.commons.execution import not_supported
 from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings.dict import DictWrapper
 
+DEFAULT_LIMIT = 100
+DEFAULT_OFFSET = 0
+
 
 class ReadStore(ABC):
 
@@ -188,8 +191,9 @@ class ReadStore(ABC):
         ...
 
     @abstractmethod
-    def sparql(self, query: str, debug: bool = False, limit: Optional[int] = None,
-               offset: Optional[int] = None, **params) -> Optional[Union[List[Resource], Resource]]:
+    def sparql(self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> Optional[Union[List[Resource], Resource]]:
         ...
 
     # Versioning.
@@ -220,4 +224,4 @@ class ReadStore(ABC):
         :param context: a Store Context object
         :return: str
         """
-        pass
+        not_supported()
