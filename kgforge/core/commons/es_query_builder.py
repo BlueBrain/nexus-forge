@@ -37,11 +37,11 @@ elasticsearch_operator_range_map = {
 class ESQueryBuilder(QueryBuilder):
     @staticmethod
     def build(
-        schema: Dict,
-        resolvers: Optional[List["Resolver"]],
-        context: Context,
-        *filters,
-        **params,
+            schema: Dict,
+            resolvers: Optional[List["Resolver"]],
+            context: Context,
+            *filters,
+            **params,
     ) -> Tuple[List, List, List]:
 
         es_filters = []
@@ -69,14 +69,14 @@ class ESQueryBuilder(QueryBuilder):
             found_path_parts = None
             nested_path, mapping_type = m.resolve_nested(field_path=property_path)
             if isinstance(mapping_type, elasticsearch_dsl.Nested) or isinstance(
-                mapping_type, elasticsearch_dsl.Object
+                    mapping_type, elasticsearch_dsl.Object
             ):
                 raise ValueError(
                     f"The provided path {f.path} can't be used for filter/search because it is not a leaf property."
                 )
             if (
-                isinstance(mapping_type, elasticsearch_dsl.DenseVector)
-                and f.operator != FilterOperator.EQUAL.value
+                    isinstance(mapping_type, elasticsearch_dsl.DenseVector)
+                    and f.operator != FilterOperator.EQUAL.value
             ):
                 raise ValueError(
                     f"The provided DenseVector path '{f.path}' can't be used for filter/search but only with the "
@@ -182,15 +182,16 @@ class ESQueryBuilder(QueryBuilder):
 
     @staticmethod
     @abstractmethod
-    def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
+    def build_resource_from_response(query: str, response: Dict, context: Context, *args,
+                                     **params) -> List[Resource]:
         ...
 
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):
     if (
-        len(f.path) >= 2
-        and last_path in ["id", "@id"]
-        and f.path[-2] in ["type", "@type"]
+            len(f.path) >= 2
+            and last_path in ["id", "@id"]
+            and f.path[-2] in ["type", "@type"]
     ):  # to cope with paths.type.id TODO: fix forge.paths to not add id after type
         property_path = _join_property_path(f.path[:-2], "@type")
 
@@ -262,17 +263,17 @@ def _recursive_resolve_nested(m, field_path):
 
 
 def _build_keyword_path(
-    mapping_type,
-    property_path,
-    dynamic_mapping_type=None,
-    default_str_keyword_field=None,
+        mapping_type,
+        property_path,
+        dynamic_mapping_type=None,
+        default_str_keyword_field=None,
 ):
     if isinstance(mapping_type, elasticsearch_dsl.Keyword):
         keyword_path = property_path
     elif (
-        mapping_type is None
-        and default_str_keyword_field is not None
-        and isinstance(dynamic_mapping_type, elasticsearch_dsl.Text)
+            mapping_type is None
+            and default_str_keyword_field is not None
+            and isinstance(dynamic_mapping_type, elasticsearch_dsl.Text)
     ):
         keyword_path = ".".join([property_path, default_str_keyword_field])
     elif mapping_type is not None:
@@ -292,22 +293,22 @@ def _build_keyword_path(
 
 
 def _build_bool_query(
-    filter: Filter,
-    mapping_type: Field,
-    k_path: str,
-    property_path: str,
-    filter_or_must_or_must_not: str,
-    term_or_match: str,
-    nested_path: List[str] = None,
+        filter: Filter,
+        mapping_type: Field,
+        k_path: str,
+        property_path: str,
+        filter_or_must_or_must_not: str,
+        term_or_match: str,
+        nested_path: List[str] = None,
 ):
     _filter = None
     must = None
     must_not = None
     script_score = None
     if (
-        filter.operator in elasticsearch_operator_range_map.keys()
-        and not isinstance(mapping_type, elasticsearch_dsl.Text)
-        and not isinstance(mapping_type, elasticsearch_dsl.Boolean)
+            filter.operator in elasticsearch_operator_range_map.keys()
+            and not isinstance(mapping_type, elasticsearch_dsl.Text)
+            and not isinstance(mapping_type, elasticsearch_dsl.Boolean)
     ):  # range filter query
         if nested_path:
             _filter = _wrap_in_nested_bool_query(
@@ -327,15 +328,13 @@ def _build_bool_query(
                 {elasticsearch_operator_range_map[filter.operator]: filter.value},
             )
 
-    elif filter.operator in elasticsearch_operator_range_map.keys() and (
-        isinstance(mapping_type, elasticsearch_dsl.Text)
-        or isinstance(mapping_type, elasticsearch_dsl.Boolean)
-    ):
+    elif filter.operator in elasticsearch_operator_range_map.keys() and \
+            isinstance(mapping_type, (elasticsearch_dsl.Text, elasticsearch_dsl.Boolean)):
         raise ValueError(
             f"Using the range operator {filter.operator} on the Text field/path {filter.path} is not supported."
         )
     elif filter.operator == FilterOperator.EQUAL.value and isinstance(
-        mapping_type, elasticsearch_dsl.DenseVector
+            mapping_type, elasticsearch_dsl.DenseVector
     ):
         if nested_path:
             sim_query = _wrap_in_script_query(k_path, filter.value)
@@ -369,7 +368,7 @@ def _build_bool_query(
 
 
 def _wrap_in_nested_bool_query(
-    path, filter_or_must_or_must_not, filter_type, filter_value
+        path, filter_or_must_or_must_not, filter_type, filter_value
 ):
     return _wrap_in_nested_query(
         path=path,
@@ -390,7 +389,6 @@ def _wrap_in_nested_query(path: str, query: Dict):
 
 # TODO: reuse kgforge.core.commons.parser._parse_type
 def _detect_mapping_type(value: Any):
-
     try:
         # integer
         if str(value).isnumeric():
@@ -418,8 +416,8 @@ def _wrap_in_non_nested_query_query(path, filter_type, filter_value):
     return query
 
 
-def _wrap_in_script_query(field: str, queryVector: List):
+def _wrap_in_script_query(field: str, query_vector: List):
     return elasticsearch_dsl.query.Script(
         source=f"doc['{field}'].size() == 0 ? 0 : (cosineSimilarity(params.queryVector, doc['{field}'])+1.0) / 2",
-        params={"queryVector": queryVector},
+        params={"queryVector": query_vector},
     )

@@ -21,13 +21,12 @@ from copy import deepcopy
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Union, Tuple
 from urllib.error import URLError
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
-from numpy import nan
 from requests import HTTPError
 
 from kgforge.core.resource import Resource

@@ -11,10 +11,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from pathlib import Path
-from typing import Callable, Dict, List, Any, Optional
+from typing import Callable, Dict, Optional
 
-from kgforge.core.commons.execution import not_supported
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker

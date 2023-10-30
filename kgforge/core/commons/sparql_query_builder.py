@@ -14,7 +14,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Tuple, List, Dict, Optional, Any
+from typing import Tuple, List, Dict, Optional
 import json
 from pyld import jsonld
 import rdflib

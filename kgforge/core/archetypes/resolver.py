@@ -75,13 +75,14 @@ class Resolver(ABC):
             -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
 
         if isinstance(text, Resource):
-            expected = [isinstance(text, Resource),
-                        property_to_resolve is not None and hasattr(text, property_to_resolve),
-                        isinstance(getattr(text, property_to_resolve), str) or
-                        (isinstance(getattr(text, property_to_resolve), list) and all(
-                            [isinstance(f, str) for f in
-                             getattr(text, property_to_resolve)
-                             ]))]
+            expected = [
+                isinstance(text, Resource),
+                property_to_resolve is not None and hasattr(text, property_to_resolve),
+                isinstance(getattr(text, property_to_resolve), str) or (
+                    isinstance(getattr(text, property_to_resolve), list) and
+                    all(isinstance(f, str) for f in getattr(text, property_to_resolve))
+                )
+            ]
             if all(expected):
                 text_to_resolve = getattr(text, property_to_resolve)
             else:
