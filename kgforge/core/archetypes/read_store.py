@@ -191,9 +191,9 @@ class ReadStore(ABC):
         ...
 
     @abstractmethod
-    def sparql(self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
-            **params
-    ) -> Optional[Union[List[Resource], Resource]]:
+    def sparql(self, query: str, debug: bool, limit: int = DEFAULT_LIMIT,
+               offset: int = DEFAULT_OFFSET,
+               **params) -> Optional[Union[List[Resource], Resource]]:
         ...
 
     # Versioning.
