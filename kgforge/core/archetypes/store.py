@@ -128,7 +128,7 @@ class ReadStore(ABC):
         if 'model_context' in store_config:
             self.model_context = store_config.get('model_context')
         elif hasattr(self.model, 'context'):
-            self.model_context = self.model_context()
+            self.model_context = self.model.context()
         else:
             self.model_context = None
         self.service: Any = self._initialize_service(
