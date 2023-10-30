@@ -158,14 +158,16 @@ class RdfService:
     def validate(self, resource: Resource, type_: str):
         try:
             if isinstance(resource.type, list) and type_ is None:
-                raise ValueError("Resource has list of types as attribute and type_ parameter is not specified. "
-                                 "Please provide a type_ parameter to validate against it.")
+                raise ValueError(
+                    "Resource has list of types as attribute and type_ parameter is not specified. "
+                    "Please provide a type_ parameter to validate against it."
+                )
             if type_ is None:
                 shape_iri = self.types_to_shapes[resource.type]
             else:
                 shape_iri = self.types_to_shapes[type_]
-        except AttributeError:
-            raise TypeError("resource requires a type attribute")
+        except AttributeError as exc:
+            raise TypeError("Resource requires a type attribute") from exc
 
         data_graph = as_graph(resource, False, self.context, None, None)
         return self._validate(shape_iri, data_graph)

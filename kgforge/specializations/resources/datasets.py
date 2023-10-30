@@ -103,10 +103,13 @@ class Dataset(Resource):
                 reference = self._forge.reshape(resource, keep, versioned)
             except AttributeError as ae:
                 if '_rev' in str(ae) and versioned:
-                    raise ValueError(f"Missing resource revision value to build a versioned ({versioned}) reference. "
-                                     f"Provide a revision number to the resource (by registering it for example) or set 'versioned' argument to False if no versioned reference is needed.")
-                else:
-                    raise ae
+                    raise ValueError(
+                        f"Missing resource revision value to build a versioned ({versioned}) reference. "
+                        f"Provide a revision number to the resource (by registering it for example) "
+                        f"or set 'versioned' argument to False if no versioned reference is needed."
+                    ) from ae
+
+                raise ae
 
         result = Resource(type=prov_type, **kwargs)
         result.__setattr__(reference_property, reference)

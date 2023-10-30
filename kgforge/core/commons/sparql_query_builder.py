@@ -119,7 +119,10 @@ class SPARQLQueryBuilder(QueryBuilder):
                             f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
                         )
             except NotImplementedError as nie:
-                raise ValueError(f"Operator '{sparql_operator_map[f.operator]}' is not supported with the value '{f.value}': {str(nie)}")
+                raise ValueError(
+                    f"Operator '{sparql_operator_map[f.operator]}' "
+                    f"is not supported with the value '{f.value}': {str(nie)}"
+                ) from nie
         return statements, sparql_filters
 
     @staticmethod

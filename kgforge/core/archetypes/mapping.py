@@ -87,9 +87,9 @@ class Mapping(ABC):
 
             raise OSError
 
-        except OSError:
+        except OSError as e:
             if raise_ex:
-                raise FileNotFoundError
+                raise FileNotFoundError from e
             return None
 
     @classmethod

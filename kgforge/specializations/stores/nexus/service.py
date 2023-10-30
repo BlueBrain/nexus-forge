@@ -257,16 +257,16 @@ class Service:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
-        except Exception:
+        except Exception as exc:
             if not local_only:
                 try:
                     context = Context(context_to_resolve)
-                except URLError:
-                    raise ValueError(f"{context_to_resolve} is not resolvable")
+                except URLError as exc2:
+                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
 
                 document = context.document["@context"]
             else:
-                raise ValueError(f"{context_to_resolve} is not resolvable")
+                raise ValueError(f"{context_to_resolve} is not resolvable") from exc
         else:
             # Make sure context is not deprecated
             if '_deprecated' in resource and resource['_deprecated']:
@@ -490,7 +490,8 @@ class Service:
             self.sync_metadata(resource, response)
         else:
             action = Action(action_name, succeeded, response)
-        resource._last_action = action
+
+        resource.set_last_action(action)
         resource._synchronized = synchronized
 
     def default_callback(self, fun_name: str) -> Callable:
@@ -526,7 +527,7 @@ class Service:
                 synchronized = resource._synchronized
                 if synchronized is not required_synchronized:
                     be_or_not_be = "be" if required_synchronized is True else "not be"
-                    error = exception(f"resource should {be_or_not_be} synchronized")
+                    error = exception(f"Resource should {be_or_not_be} synchronized")
                     self.synchronize_resource(
                         resource, error, function_name, False, False
                     )

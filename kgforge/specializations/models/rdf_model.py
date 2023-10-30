@@ -93,8 +93,8 @@ class RdfModel(Model):
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
             uri = self.service.types_to_shapes[type]
-        except KeyError:
-            raise ValueError("type '" + type + "' not found in " + self.source)
+        except KeyError as exc:
+            raise ValueError("type '" + type + "' not found in " + self.source) from exc
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
@@ -105,8 +105,8 @@ class RdfModel(Model):
         try:
             shape_iri = self.service.types_to_shapes[type]
             return str(self.service.schema_source_id(shape_iri))
-        except KeyError:
-            raise ValueError("type not found")
+        except KeyError as exc:
+            raise ValueError("type not found") from exc
 
     def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,

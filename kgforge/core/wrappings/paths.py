@@ -33,10 +33,10 @@ class Filter:
         try:
             self.operator: str = operator.value if isinstance(operator, FilterOperator) \
                 else FilterOperator(operator).value
-        except Exception:
+        except Exception as e:
             raise ValueError(
                 f"Invalid operator value '{operator}'. Allowed operators are {[member.value for name, member in FilterOperator.__members__.items()]}"
-            )
+            ) from e
         self.value: Any = value
 
     def __eq__(self, other):

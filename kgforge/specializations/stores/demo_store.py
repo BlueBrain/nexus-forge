@@ -60,8 +60,8 @@ class DemoStore(Store):
                        metadata_context=None, context_resolver=None)
         try:
             record = self.service.create(data)
-        except StoreLibrary.RecordExists:
-            raise RegistrationError("resource already exists")
+        except StoreLibrary.RecordExists as exc:
+            raise RegistrationError("resource already exists") from exc
 
         resource.id = record["data"]["id"]
         resource._store_metadata = wrap_dict(record["metadata"])
@@ -74,8 +74,8 @@ class DemoStore(Store):
             not_supported(("cross_bucket", True))
         try:
             record = self.service.read(id_, version)
-        except StoreLibrary.RecordMissing:
-            raise RetrievalError("resource not found")
+        except StoreLibrary.RecordMissing as exc:
+            raise RetrievalError("resource not found") from exc
 
         return _to_resource(record)
 
@@ -86,10 +86,10 @@ class DemoStore(Store):
                        metadata_context=None, context_resolver=None)
         try:
             record = self.service.update(data)
-        except StoreLibrary.RecordMissing:
-            raise UpdatingError("resource not found")
-        except StoreLibrary.RecordDeprecated:
-            raise UpdatingError("resource is deprecated")
+        except StoreLibrary.RecordMissing as exc1:
+            raise UpdatingError("resource not found") from exc1
+        except StoreLibrary.RecordDeprecated as exc2:
+            raise UpdatingError("resource is deprecated") from exc2
 
         resource._store_metadata = wrap_dict(record["metadata"])
 
@@ -99,10 +99,10 @@ class DemoStore(Store):
         version = resource._store_metadata.version
         try:
             self.service.tag(rid, version, value)
-        except StoreLibrary.TagExists:
-            raise TaggingError("resource version already tagged")
-        except StoreLibrary.RecordMissing:
-            raise TaggingError("resource not found")
+        except StoreLibrary.TagExists as exc1:
+            raise TaggingError("resource version already tagged") from exc1
+        except StoreLibrary.RecordMissing as exc2:
+            raise TaggingError("resource not found") from exc2
 
     # CRU[D].
 
@@ -110,10 +110,10 @@ class DemoStore(Store):
         rid = resource.id
         try:
             record = self.service.deprecate(rid)
-        except StoreLibrary.RecordMissing:
-            raise DeprecationError("resource not found")
-        except StoreLibrary.RecordDeprecated:
-            raise DeprecationError("resource already deprecated")
+        except StoreLibrary.RecordMissing as exc1:
+            raise DeprecationError("resource not found") from exc1
+        except StoreLibrary.RecordDeprecated as exc2:
+            raise DeprecationError("resource already deprecated") from exc2
 
         resource._store_metadata = wrap_dict(record["metadata"])
 
@@ -180,8 +180,8 @@ class StoreLibrary:
                 record = self.archives[akey]
             else:
                 record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         return record
 
@@ -189,8 +189,8 @@ class StoreLibrary:
         rid = data.get("id", None)
         try:
             record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         metadata = record["metadata"]
         if metadata["deprecated"]:
@@ -205,8 +205,8 @@ class StoreLibrary:
     def deprecate(self, rid: str) -> Dict:
         try:
             record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         metadata = record["metadata"]
         if metadata["deprecated"]:

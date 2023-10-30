@@ -99,4 +99,6 @@ def collect_values(data: Union[Resource, List[Resource]], follow: str,
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))
     except Exception as e:
-        raise exception(f"An error occur when collecting values for path to follow '{follow}': {str(e)}")
+        raise exception(
+            f"An error occur when collecting values for path to follow '{follow}': {str(e)}"
+        ) from e

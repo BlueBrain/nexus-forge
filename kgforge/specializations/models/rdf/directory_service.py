@@ -53,7 +53,7 @@ class DirectoryService(RdfService):
         try:
             context = Context(iri)
         except FileNotFoundError as e:
-            raise ValueError(e)
+            raise ValueError(e) from e
 
         self._context_cache.update({iri: context.document})
         return context.document

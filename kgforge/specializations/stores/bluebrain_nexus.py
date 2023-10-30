@@ -228,7 +228,7 @@ class BlueBrainNexus(Store):
             response.raise_for_status()
 
         except nexus.HTTPError as e:
-            raise RegistrationError(_error_message(e))
+            raise RegistrationError(_error_message(e)) from e
 
         response_json = response.json()
         resource.id = response_json["@id"]
@@ -284,7 +284,7 @@ class BlueBrainNexus(Store):
                 self.organisation, self.project, file, content_type=mime_type
             )
         except HTTPError as e:
-            raise UploadingError(_error_message(e))
+            raise UploadingError(_error_message(e)) from e
 
         return response
 
@@ -365,9 +365,9 @@ class BlueBrainNexus(Store):
                     )
                     response.raise_for_status()
                 except HTTPError as e:
-                    raise RetrievalError(_error_message(e))
+                    raise RetrievalError(_error_message(e)) from e
             else:
-                raise RetrievalError(_error_message(er))
+                raise RetrievalError(_error_message(er)) from er
         finally:
             if retrieve_source and not cross_bucket:
 
@@ -388,7 +388,7 @@ class BlueBrainNexus(Store):
                 data = response.json()
                 resource = self.service.to_resource(data)
             except Exception as e:
-                raise ValueError(e)
+                raise ValueError(e) from e
 
             try:
                 if retrieve_source and not cross_bucket:
@@ -399,7 +399,7 @@ class BlueBrainNexus(Store):
                 self.service.synchronize_resource(
                     resource, data, self.retrieve.__name__, False, False
                 )
-                raise ValueError(e)
+                raise ValueError(e) from e
 
             finally:
                 self.service.synchronize_resource(
@@ -414,7 +414,7 @@ class BlueBrainNexus(Store):
             metadata = response.json()
             return metadata["_filename"], metadata["_mediaType"]
         except HTTPError as e:
-            raise DownloadingError(_error_message(e))
+            raise DownloadingError(_error_message(e)) from e
 
     def _download_many(
             self,
@@ -451,7 +451,7 @@ class BlueBrainNexus(Store):
                     except Exception as e:
                         raise DownloadingError(
                             f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
-                        )
+                        ) from e
                     with open(path, "wb") as f:
                         data = await response.read()
                         f.write(data)
@@ -482,7 +482,7 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise DownloadingError(
                 f"Downloading from bucket {bucket} failed: {_error_message(e)}"
-            )
+            ) from e
 
         with open(path, "wb") as f:
             for chunk in response.iter_content(chunk_size=4096):
@@ -579,7 +579,7 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except HTTPError as e:
-            raise UpdatingError(_error_message(e))
+            raise UpdatingError(_error_message(e)) from e
 
         self.service.sync_metadata(resource, response.json())
 
@@ -627,7 +627,7 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except HTTPError as e:
-            raise TaggingError(_error_message(e))
+            raise TaggingError(_error_message(e)) from e
 
         self.service.sync_metadata(resource, response.json())
 
@@ -674,7 +674,7 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except HTTPError as e:
-            raise DeprecationError(_error_message(e))
+            raise DeprecationError(_error_message(e)) from e
 
         self.service.sync_metadata(resource, response.json())
 
@@ -786,7 +786,7 @@ class BlueBrainNexus(Store):
                     self.service.synchronize_resource(
                         resource, store_metadata_response, self.search.__name__, False, False
                     )
-                    raise ValueError(e)
+                    raise ValueError(e) from e
                 finally:
                     self.service.synchronize_resource(
                         resource, store_metadata_response, self.search.__name__, True, False
@@ -868,7 +868,7 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except Exception as e:
-            raise QueryingError(e)
+            raise QueryingError(e) from e
 
         data = response.json()
         # FIXME workaround to parse a CONSTRUCT query, this fix depends on
@@ -885,7 +885,7 @@ class BlueBrainNexus(Store):
             )
             response.raise_for_status()
         except Exception as e:
-            raise QueryingError(e)
+            raise QueryingError(e) from e
 
         results = response.json()
         return [
@@ -947,7 +947,7 @@ class BlueBrainNexus(Store):
             )
             params = store_config.pop("params", {})
         except Exception as ve:
-            raise ValueError(f"Store configuration error: {ve}")
+            raise ValueError(f"Store configuration error: {ve}") from ve
 
         return Service(
             endpoint=endpoint,

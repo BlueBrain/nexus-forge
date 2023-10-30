@@ -14,7 +14,7 @@
 
 from copy import deepcopy
 
-from typing import Union, Dict, List, Tuple, Optional, Callable, Any
+from typing import Union, Dict, List, Tuple, Optional, Callable
 
 from enum import Enum
 import json
@@ -69,9 +69,9 @@ def as_jsonld(
 ) -> Union[Dict, List[Dict]]:
     try:
         valid_form = Form(form.lower())
-    except ValueError:
+    except ValueError as e:
         supported_forms = tuple(item.value for item in Form)
-        raise NotSupportedError(f"supported serialization forms are {supported_forms}")
+        raise NotSupportedError(f"supported serialization forms are {supported_forms}") from e
 
     return dispatch(
         data,
@@ -163,12 +163,12 @@ def _from_jsonld_one(data: Dict) -> Resource:
     if "@context" in data:
         try:
             resolved_context = Context(data["@context"])
-        except URLError:
-            raise ValueError("context not resolvable")
-        else:
-            return _remove_ld_keys(data, resolved_context)
-    else:
-        raise NotImplementedError("not implemented yet (expanded json-ld)")
+        except URLError as e:
+            raise ValueError("context not resolvable") from e
+
+        return _remove_ld_keys(data, resolved_context)
+
+    raise NotImplementedError("not implemented yet (expanded json-ld)")
 
 
 def _as_jsonld_many(
@@ -225,7 +225,7 @@ def _as_jsonld_one(
             resource, store_metadata, context, metadata_context
         )
     except Exception as e:
-        raise ValueError(e)
+        raise ValueError(e) from e
 
     if store_metadata is True and len(metadata_graph) > 0:
         metadata_expanded = json.loads(metadata_graph.serialize(format="json-ld"))
@@ -335,8 +335,8 @@ def _dicts_to_graph(
         metadata["@context"] = metadata_context.document["@context"]
         try:
             meta_data_graph.parse(data=json.dumps(metadata), format="json-ld")
-        except Exception:
-            raise ValueError("generated an invalid json-ld")
+        except Exception as e:
+            raise ValueError("generated an invalid json-ld") from e
     return graph, meta_data_graph
 
 
@@ -380,8 +380,8 @@ def _resource_context(
             except (HTTPError, URLError, NotSupportedError):
                 try:
                     context = Context(resource.context, iri)
-                except URLError:
-                    raise ValueError(f"{resource.context} is not resolvable")
+                except URLError as e:
+                    raise ValueError(f"{resource.context} is not resolvable") from e
     else:
         context = model_context
 
