@@ -175,6 +175,7 @@ def forge():
         },
         "Store": {
             "name": "DemoStore",
+            "model": {"name": "DemoModel"}
         },
     }
     return KnowledgeGraphForge(config)
@@ -467,6 +468,7 @@ def config(model, store, resolver):
         },
         "Store": {
             "name": store,
+            "model": {"name": model},
             "versioned_id_template": "{x.id}?_version={x._store_metadata.version}",
         },
         "Resolvers": {

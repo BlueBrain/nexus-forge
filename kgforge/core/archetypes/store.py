@@ -92,7 +92,7 @@ SPARQL_CLAUSES = [
 ]
 
 
-class Store(ABC):
+class ReadStore(ABC):
 
     # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
 
@@ -105,17 +105,18 @@ class Store(ABC):
 
     def __init__(
             self,
+            model: Optional["Model"] = None,
             endpoint: Optional[str] = None,
             bucket: Optional[str] = None,
             token: Optional[str] = None,
             versioned_id_template: Optional[str] = None,
             file_resource_mapping: Optional[str] = None,
-            model_context: Optional[Context] = None,
             searchendpoints: Optional[Dict] = None,
             **store_config,
     ) -> None:
         # file_resource_mapping: Optional[Union[Hjson, FilePath, URL]].
         # POLICY There could be data caching but it should be aware of changes made in the source.
+        self.model: Optional["Model"] = model
         self.endpoint: Optional[str] = endpoint
         self.bucket: Optional[str] = bucket
         self.token: Optional[str] = token
@@ -124,7 +125,10 @@ class Store(ABC):
             self.mapping.load(file_resource_mapping) if file_resource_mapping else None
         )
         self.file_mapping: Optional[Any] = loaded
-        self.model_context: Optional[Context] = model_context
+        if hasattr(model, 'context'):
+            self.model_context = self.model.context()
+        else:
+            self.model_context = None
         self.service: Any = self._initialize_service(
             self.endpoint, self.bucket, self.token, searchendpoints, **store_config
         )
@@ -151,67 +155,6 @@ class Store(ABC):
     def mapper(self) -> Type[Mapper]:
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         ...
-
-    # [C]RUD.
-
-    def register(
-            self, data: Union[Resource, List[Resource]], schema_id: str = None
-    ) -> None:
-        # Replace None by self._register_many to switch to optimized bulk registration.
-        run(
-            self._register_one,
-            None,
-            data,
-            required_synchronized=False,
-            execute_actions=True,
-            exception=RegistrationError,
-            monitored_status="_synchronized",
-            schema_id=schema_id,
-        )
-
-    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
-        # Bulk registration could be optimized by overriding this method in the specialization.
-        # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
-        not_supported()
-
-    @abstractmethod
-    def _register_one(self, resource: Resource, schema_id: str) -> None:
-        # POLICY Should notify of failures with exception RegistrationError including a message.
-        # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        pass
-
-    # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
-    def upload(
-            self, path: str, content_type: str, forge: Optional['KnowledgeGraphForge']
-    ) -> Union[Resource, List[Resource]]:
-        # path: Union[FilePath, DirPath].
-        if self.file_mapping is not None:
-            p = Path(path)
-            uploaded = self._upload(p, content_type)
-            return self.mapper(forge).map(uploaded, self.file_mapping, None)
-
-        raise UploadingError("no file_resource_mapping has been configured")
-
-    def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
-        # path: Union[FilePath, DirPath].
-        if path.is_dir():
-            filepaths = [
-                x for x in path.iterdir() if x.is_file() and not x.name.startswith(".")
-            ]
-            return self._upload_many(filepaths, content_type)
-
-        return self._upload_one(path, content_type)
-
-    def _upload_many(self, paths: List[Path], content_type: str) -> List[Any]:
-        # Bulk uploading could be optimized by overriding this method in the specialization.
-        # POLICY Should follow self._upload_one() policies.
-        return [self._upload_one(x, content_type) for x in paths]
-
-    def _upload_one(self, path: Path, content_type: str) -> Any:
-        # path: FilePath.
-        # POLICY Should notify of failures with exception UploadingError including a message.
-        not_supported()
 
     # C[R]UD.
 
@@ -320,6 +263,207 @@ class Store(ABC):
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()
 
+    # Querying.
+
+    def search(
+            self, resolvers: Optional[List["Resolver"]], *filters, **params
+    ) -> List[Resource]:
+
+        # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
+        # A dictionary can be provided for filters:
+        #  - {'key1': 'val', 'key2': {'key3': 'val'}} will be translated to
+        #  - [Filter(operator='__eq__', path=['key1'], value='val'), Filter(operator='__eq__', path=['key2', 'key3'], value='val')]
+        # Keyword arguments in 'params' could be:
+        #   - debug: bool,
+        #   - limit: int,
+        #   - offset: int,
+        #   - deprecated: bool,
+        #   - resolving: str, with values in ('exact', 'fuzzy'),
+        #   - lookup: str, with values in ('current', 'children').
+        # POLICY Should use sparql() when 'sparql' is chosen as value  for the param 'search_endpoint'.
+        # POLICY Should use elastic() when 'elastic' is chosen as value  for the param 'search_endpoint'.
+        # POLICY Given parameters for limit and offset override the input query.
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
+        # POLICY Resource _synchronized should be set to True.
+        # TODO These two operations might be abstracted here when other stores will be implemented.
+        not_supported()
+
+    def sparql(
+            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
+        qr = (
+            rewrite_sparql(query, self.model_context, self.service.metadata_context)
+            if self.model_context is not None and rewrite
+            else query
+        )
+        if limit:
+            qr = _replace_in_sparql(qr, "LIMIT", limit, DEFAULT_LIMIT, r" LIMIT \d+")
+        if offset:
+            qr = _replace_in_sparql(qr, "OFFSET", offset, DEFAULT_OFFSET, r" OFFSET \d+")
+        if debug:
+            self._debug_query(qr)
+        return self._sparql(qr)
+
+    def _sparql(self, query: str) -> List[Resource]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        not_supported()
+
+    def elastic(
+            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
+    ) -> List[Resource]:
+        query_dict = json.loads(query)
+        if limit:
+            query_dict["size"] = limit
+        if offset:
+            query_dict["from"] = offset
+        if debug:
+            self._debug_query(query_dict)
+        return self._elastic(json.dumps(query_dict))
+
+    def _elastic(self, query: str) -> List[Resource]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        not_supported()
+
+    # Versioning.
+
+    @abstractmethod
+    def _initialize_service(
+            self,
+            endpoint: Optional[str],
+            bucket: Optional[str],
+            token: Optional[str],
+            searchendpoints: Optional[Dict] = None,
+            **store_config,
+    ) -> Any:
+        # POLICY Should initialize the access to the store according to its configuration.
+        pass
+
+    @staticmethod
+    def _debug_query(query):
+        if isinstance(query, Dict):
+            print("Submitted query:", query)
+        else:
+            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+        print()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        """Rewrite a given uri using the store Context
+        :param uri: a URI to rewrite.
+        :param context: a Store Context object
+        :return: str
+        """
+        pass
+
+
+class Store(ReadStore):
+
+    # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
+
+    # POLICY Methods of archetypes, except __init__, should not have optional arguments.
+
+    # POLICY Implementations should be declared in kgforge/specializations/stores/__init__.py.
+    # POLICY Implementations should not add methods but private functions in the file.
+    # TODO Move from BDD to classical testing to have a more parameterizable test suite. DKE-135.
+    # POLICY Implementations should pass tests/specializations/stores/demo_store.feature tests.
+
+    def __init__(
+            self,
+            model: Optional["Model"] = None,
+            endpoint: Optional[str] = None,
+            bucket: Optional[str] = None,
+            token: Optional[str] = None,
+            versioned_id_template: Optional[str] = None,
+            file_resource_mapping: Optional[str] = None,
+            searchendpoints: Optional[Dict] = None,
+            **store_config,
+    ) -> None:
+        super().__init__(model, endpoint, bucket, token, versioned_id_template,
+                       file_resource_mapping,
+                       searchendpoints, **store_config)
+
+    def __repr__(self) -> str:
+        return repr_class(self)
+
+    @property
+    @abstractmethod
+    def mapping(self) -> Type[Mapping]:
+        """Mapping class to load file_resource_mapping."""
+        ...
+
+    @property
+    @abstractmethod
+    def mapper(self) -> Type[Mapper]:
+        """Mapper class to map file metadata to a Resource with file_resource_mapping."""
+        ...
+
+    # [C]RUD.
+
+    def register(
+            self, data: Union[Resource, List[Resource]], schema_id: str = None
+    ) -> None:
+        # Replace None by self._register_many to switch to optimized bulk registration.
+        run(
+            self._register_one,
+            None,
+            data,
+            required_synchronized=False,
+            execute_actions=True,
+            exception=RegistrationError,
+            monitored_status="_synchronized",
+            schema_id=schema_id,
+        )
+
+    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+        # Bulk registration could be optimized by overriding this method in the specialization.
+        # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
+        not_supported()
+
+    @abstractmethod
+    def _register_one(self, resource: Resource, schema_id: str) -> None:
+        # POLICY Should notify of failures with exception RegistrationError including a message.
+        # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
+        # TODO This operation might be abstracted here when other stores will be implemented.
+        pass
+
+    # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
+    def upload(
+            self, path: str, content_type: str, forge: Optional['KnowledgeGraphForge']
+    ) -> Union[Resource, List[Resource]]:
+        # path: Union[FilePath, DirPath].
+        if self.file_mapping is not None:
+            p = Path(path)
+            uploaded = self._upload(p, content_type)
+            return self.mapper(forge).map(uploaded, self.file_mapping, None)
+
+        raise UploadingError("no file_resource_mapping has been configured")
+
+    def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
+        # path: Union[FilePath, DirPath].
+        if path.is_dir():
+            filepaths = [
+                x for x in path.iterdir() if x.is_file() and not x.name.startswith(".")
+            ]
+            return self._upload_many(filepaths, content_type)
+
+        return self._upload_one(path, content_type)
+
+    def _upload_many(self, paths: List[Path], content_type: str) -> List[Any]:
+        # Bulk uploading could be optimized by overriding this method in the specialization.
+        # POLICY Should follow self._upload_one() policies.
+        return [self._upload_one(x, content_type) for x in paths]
+
+    def _upload_one(self, path: Path, content_type: str) -> Any:
+        # path: FilePath.
+        # POLICY Should notify of failures with exception UploadingError including a message.
+        not_supported()
+
     # CR[U]D.
 
     def update(
@@ -399,74 +543,6 @@ class Store(ABC):
         # TODO This operation might be abstracted here when other stores will be implemented.
         not_supported()
 
-    # Querying.
-
-    def search(
-            self, resolvers: Optional[List["Resolver"]], *filters, **params
-    ) -> List[Resource]:
-
-        # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
-        # A dictionary can be provided for filters:
-        #  - {'key1': 'val', 'key2': {'key3': 'val'}} will be translated to
-        #  - [Filter(operator='__eq__', path=['key1'], value='val'), Filter(operator='__eq__', path=['key2', 'key3'], value='val')]
-        # Keyword arguments in 'params' could be:
-        #   - debug: bool,
-        #   - limit: int,
-        #   - offset: int,
-        #   - deprecated: bool,
-        #   - resolving: str, with values in ('exact', 'fuzzy'),
-        #   - lookup: str, with values in ('current', 'children').
-        # POLICY Should use sparql() when 'sparql' is chosen as value  for the param 'search_endpoint'.
-        # POLICY Should use elastic() when 'elastic' is chosen as value  for the param 'search_endpoint'.
-        # POLICY Given parameters for limit and offset override the input query.
-        # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # POLICY Resource _synchronized should be set to True.
-        # TODO These two operations might be abstracted here when other stores will be implemented.
-        not_supported()
-
-    def sparql(
-            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
-            **params
-    ) -> List[Resource]:
-        rewrite = params.get("rewrite", True)
-        qr = (
-            rewrite_sparql(query, self.model_context, self.service.metadata_context)
-            if self.model_context is not None and rewrite
-            else query
-        )
-        if limit:
-            qr = _replace_in_sparql(qr, "LIMIT", limit, DEFAULT_LIMIT, r" LIMIT \d+")
-        if offset:
-            qr = _replace_in_sparql(qr, "OFFSET", offset, DEFAULT_OFFSET, r" OFFSET \d+")
-        if debug:
-            self._debug_query(qr)
-        return self._sparql(qr)
-
-    def _sparql(self, query: str) -> List[Resource]:
-        # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should not be set (default is None).
-        # POLICY Resource _synchronized should not be set (default is False).
-        not_supported()
-
-    def elastic(
-            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
-    ) -> List[Resource]:
-        query_dict = json.loads(query)
-        if limit:
-            query_dict["size"] = limit
-        if offset:
-            query_dict["from"] = offset
-        if debug:
-            self._debug_query(query_dict)
-        return self._elastic(json.dumps(query_dict))
-
-    def _elastic(self, query: str) -> List[Resource]:
-        # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should not be set (default is None).
-        # POLICY Resource _synchronized should not be set (default is False).
-        not_supported()
-
     # Versioning.
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
@@ -497,36 +573,6 @@ class Store(ABC):
                 self._freeze_one(v)
         if hasattr(resource, "id"):
             resource.id = self.versioned_id_template.format(x=resource)
-
-    # Utils.
-
-    @abstractmethod
-    def _initialize_service(
-            self,
-            endpoint: Optional[str],
-            bucket: Optional[str],
-            token: Optional[str],
-            searchendpoints: Optional[Dict] = None,
-            **store_config,
-    ) -> Any:
-        # POLICY Should initialize the access to the store according to its configuration.
-        pass
-
-    @staticmethod
-    def _debug_query(query):
-        if isinstance(query, Dict):
-            print("Submitted query:", query)
-        else:
-            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-        print()
-
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        """Rewrite a given uri using the store Context
-        :param uri: a URI to rewrite.
-        :param context: a Store Context object
-        :return: str
-        """
-        pass
 
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):

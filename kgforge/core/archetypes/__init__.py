@@ -16,6 +16,6 @@
 
 from .mapping import Mapping
 from .mapper import Mapper
-from .store import Store
+from .store import Store, ReadStore
 from .model import Model
 from .resolver import Resolver
