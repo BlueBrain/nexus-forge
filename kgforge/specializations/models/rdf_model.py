@@ -114,16 +114,16 @@ class RdfModel(Model):
         for resource in resources:
             conforms, graph, _ = self.service.validate(resource, type_=type_)
             if conforms:
-                resource.set_validated(True)
+                resource._validated = True
                 action = Action(self._validate_many.__name__, conforms, None)
             else:
-                resource.set_validated(False)
+                resource._validated = False
                 violations = set(" ".join(re.findall('[A-Z][^A-Z]*', as_term(o)))
                                  for o in graph.objects(None, SH.sourceConstraintComponent))
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
 
-            resource.set_last_action(action)
+            resource._last_action = action
 
     def _validate_one(self, resource: Resource, type_: str) -> None:
         conforms, _, report = self.service.validate(resource, type_)

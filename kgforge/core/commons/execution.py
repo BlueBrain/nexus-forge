@@ -155,7 +155,7 @@ def _run_one(fun: Callable, resource: Resource, exception: Type[RunException], i
         if monitored_status:
             setattr(resource, monitored_status, status)
 
-        resource.set_last_action(Action(fun.__name__, succeeded, exception))
+        resource._last_action = Action(fun.__name__, succeeded, exception)
 
         if not catch_exceptions and exception:
             raise exception

@@ -491,7 +491,7 @@ class Service:
         else:
             action = Action(action_name, succeeded, response)
 
-        resource.set_last_action(action)
+        resource._last_action = action
         resource._synchronized = synchronized
 
     def default_callback(self, fun_name: str) -> Callable:
