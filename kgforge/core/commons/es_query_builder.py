@@ -11,6 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+from abc import abstractmethod
 from typing import Tuple, List, Dict, Optional, Any
 
 import copy
@@ -19,7 +20,6 @@ import dateutil
 import elasticsearch_dsl
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
-from kgforge.core.commons.execution import not_supported
 
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.query_builder import QueryBuilder
@@ -181,8 +181,9 @@ class ESQueryBuilder(QueryBuilder):
             return _wrap_in_bool_query(es_filters, musts, must_nots, includes, excludes)
 
     @staticmethod
+    @abstractmethod
     def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
-        raise not_supported()
+        ...
 
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):

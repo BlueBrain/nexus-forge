@@ -154,18 +154,20 @@ class Resolver(ABC):
     @abstractmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
                                 **source_config) -> Any:
-        pass
+        ...
 
     @staticmethod
+    @abstractmethod
     def _service_from_web_service(endpoint: str,
                                   targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
-        raise not_supported()
+        ...
 
     @staticmethod
+    @abstractmethod
     def _service_from_store(
             store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config
     ) -> Any:
-        raise not_supported()
+        ...
 
 
 def escape_punctuation(text):

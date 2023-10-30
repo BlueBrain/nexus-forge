@@ -20,13 +20,14 @@ from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
+from kgforge.core.archetypes import Mapping
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import run
+from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -162,6 +163,19 @@ class RdfModel(Model):
             service = StoreService(default_store)
 
         return service
+
+    def _sources(self) -> List[str]:
+        raise not_supported()
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        raise not_supported()
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
 
 
 def parse_attributes(node: NodeProperties, only_required: bool,

@@ -13,7 +13,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, Type
+from pathlib import Path
+from typing import Dict, List, Optional, Union, Type, Tuple, Any
 from uuid import uuid4
 
 from kgforge.core.resource import Resource
@@ -29,7 +30,7 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
-from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.core.wrappings.dict import wrap_dict, DictWrapper
 from kgforge.core.wrappings.paths import create_filters_from_dict
 
 
@@ -145,6 +146,44 @@ class DemoStore(Store):
     ):
         return StoreLibrary()
 
+    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+        raise not_supported()
+
+    def _upload_one(self, path: Path, content_type: str) -> Any:
+        raise not_supported()
+
+    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
+        raise not_supported()
+
+    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
+                              cross_bucket: bool) -> Tuple[str, str]:
+        raise not_supported()
+
+    def _download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper],
+                      cross_bucket: bool, content_type: str, bucket: str) -> None:
+        raise not_supported()
+
+    def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
+        raise not_supported()
+
+    def _tag_many(self, resources: List[Resource], value: str) -> None:
+        raise not_supported()
+
+    def _deprecate_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
+
+    def _sparql(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def _elastic(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def _freeze_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()
+
 
 def _to_resource(record: Dict) -> Resource:
     # TODO This operation might be abstracted in core when other stores will be implemented.
@@ -256,9 +295,6 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
-
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        raise not_supported()
 
     class RecordExists(Exception):
         pass

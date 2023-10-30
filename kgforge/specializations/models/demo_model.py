@@ -15,8 +15,9 @@
 import json
 import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union, Any
 
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.model import Model
@@ -96,6 +97,27 @@ class DemoModel(Model):
     @staticmethod
     def _service_from_directory(dirpath: Path, context_iri: str, **dir_config):
         return ModelLibrary(dirpath)
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_store(store: Callable, context_config: Optional[dict],
+                            **source_config) -> Any:
+        raise not_supported()
+
+    def resolve_context(self, iri: str) -> Dict:
+        raise not_supported()
+
+    def _generate_context(self) -> Dict:
+        raise not_supported()
+
+    def schema_id(self, type: str) -> str:
+        raise not_supported()
+
+    def _validate_many(self, resources: List[Resource], type_: str) -> None:
+        raise not_supported()
 
 
 class ModelLibrary:

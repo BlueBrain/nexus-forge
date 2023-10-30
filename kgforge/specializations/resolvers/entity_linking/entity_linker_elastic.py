@@ -32,11 +32,6 @@ class EntityLinkerElastic(EntityLinker):
         return DictionaryMapper
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
-                                **source_config) -> Any:
-        raise not_supported()
-
-    @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:
         encoder = store_config.pop("encoder")
         encoder_url = encoder["source"]

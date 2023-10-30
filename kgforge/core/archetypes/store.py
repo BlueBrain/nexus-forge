@@ -35,7 +35,7 @@ from kgforge.core.commons.exceptions import (
     UploadingError,
     QueryingError,
 )
-from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.execution import run
 from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings.dict import DictWrapper
 
@@ -170,17 +170,17 @@ class Store(ABC):
             schema_id=schema_id,
         )
 
+    @abstractmethod
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
-        raise not_supported()
+        ...
 
     @abstractmethod
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         # POLICY Should notify of failures with exception RegistrationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
     # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
     def upload(
@@ -209,10 +209,11 @@ class Store(ABC):
         # POLICY Should follow self._upload_one() policies.
         return [self._upload_one(x, content_type) for x in paths]
 
+    @abstractmethod
     def _upload_one(self, path: Path, content_type: str) -> Any:
         # path: FilePath.
         # POLICY Should notify of failures with exception UploadingError including a message.
-        raise not_supported()
+        ...
 
     # C[R]UD.
 
@@ -223,13 +224,13 @@ class Store(ABC):
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
-        # TODO These two operations might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
+    @abstractmethod
     def _retrieve_filename(self, id: str) -> Tuple[str, str]:
-        # TODO This operation might be adapted if other file metadata are needed.
-        raise not_supported()
+        ...
 
+    @abstractmethod
     def _prepare_download_one(
             self,
             url: str,
@@ -237,7 +238,7 @@ class Store(ABC):
             cross_bucket: bool
     ) -> Tuple[str, str]:
         # Prepare download url and download bucket
-        raise not_supported()
+        ...
 
     def download(
             self,
@@ -308,6 +309,7 @@ class Store(ABC):
         for url, path, store_m in zip(urls, paths, store_metadata):
             self._download_one(url, path, store_m, cross_bucket, content_type)
 
+    @abstractmethod
     def _download_one(
             self,
             url: str,
@@ -319,7 +321,7 @@ class Store(ABC):
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        raise not_supported()
+        ...
 
     # CR[U]D.
 
@@ -339,17 +341,17 @@ class Store(ABC):
             schema_id=schema_id,
         )
 
+    @abstractmethod
     def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
-        raise not_supported()
+        ...
 
     @abstractmethod
     def _update_one(self, resource: Resource, schema_id: Optional[str]) -> None:
         # POLICY Should notify of failures with exception UpdatingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
@@ -364,16 +366,17 @@ class Store(ABC):
             value=value,
         )
 
+    @abstractmethod
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         # Bulk tagging could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._tag_one() and execution._run_one() behaviours.
         # POLICY If tagging modify the resource, it should be done with status='_synchronized'.
-        raise not_supported()
+        ...
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         # POLICY Should notify of failures with exception TaggingError including a message.
         # POLICY If tagging modify the resource, _store_metadata should be updated.
-        raise not_supported()
+        ...
 
     # CRU[D].
 
@@ -389,19 +392,21 @@ class Store(ABC):
             monitored_status="_synchronized",
         )
 
+    @abstractmethod
     def _deprecate_many(self, resources: List[Resource]) -> None:
         # Bulk deprecation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._deprecate_one() and execution._run_one() behaviours.
-        raise not_supported()
+        ...
 
+    @abstractmethod
     def _deprecate_one(self, resource: Resource) -> None:
         # POLICY Should notify of failures with exception DeprecationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        raise not_supported()
+        ...
 
     # Querying.
 
+    @abstractmethod
     def search(
             self, resolvers: Optional[List[Resolver]], *filters, **params
     ) -> List[Resource]:
@@ -423,8 +428,7 @@ class Store(ABC):
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
-        # TODO These two operations might be abstracted here when other stores will be implemented.
-        raise not_supported()
+        ...
 
     def sparql(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
@@ -444,11 +448,12 @@ class Store(ABC):
             self._debug_query(qr)
         return self._sparql(qr)
 
+    @abstractmethod
     def _sparql(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
-        raise not_supported()
+        ...
 
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
@@ -462,16 +467,17 @@ class Store(ABC):
             self._debug_query(query_dict)
         return self._elastic(json.dumps(query_dict))
 
+    @abstractmethod
     def _elastic(self, query: str) -> List[Resource]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
-        raise not_supported()
+        ...
 
     # Versioning.
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
-        # Replace None by self._freeze_many to switch to optimized bulk freezing.
+        # TODO Replace None by self._freeze_many to switch to optimized bulk freezing.
         run(
             self._freeze_one,
             None,
@@ -481,10 +487,11 @@ class Store(ABC):
             exception=FreezingError,
         )
 
+    @abstractmethod
     def _freeze_many(self, resources: List[Resource]) -> None:
         # Bulk freezing could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._freeze_one() and execution._run_one() behaviours.
-        raise not_supported()
+        ...
 
     def _freeze_one(self, resource: Resource) -> None:
         # Notify of failures with exception FreezingError including a message.
@@ -511,7 +518,7 @@ class Store(ABC):
             **store_config,
     ) -> Any:
         # POLICY Should initialize the access to the store according to its configuration.
-        pass
+        ...
 
     @staticmethod
     def _debug_query(query):
@@ -521,13 +528,14 @@ class Store(ABC):
             print(*["Submitted query:", *query.splitlines()], sep="\n   ")
         print()
 
+    @abstractmethod
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context
         :param uri: a URI to rewrite.
         :param context: a Store Context object
         :return: str
         """
-        pass
+        ...
 
 
 def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):

@@ -85,9 +85,15 @@ class AgentResolver(Resolver):
         return self.service.validate_target(target)
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
+        return StoreService(store, targets, **store_config)
+
+    @staticmethod
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
+                                **source_config) -> Any:
         raise not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
-        return StoreService(store, targets, **store_config)
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
+        raise not_supported()

@@ -998,6 +998,9 @@ class BlueBrainNexus(Store):
             uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
 
+    def _freeze_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
+
 
 def _create_select_query(vars_, statements, distinct, search_in_graph):
     where_clauses = (

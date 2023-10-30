@@ -95,6 +95,16 @@ class DemoResolver(Resolver):
         return {target: {"data": list(_load(dirpath, values['bucket'])),
                          "resolve_with_properties": resolve_with_properties} for target, values in targets.items()}
 
+    @staticmethod
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]],
+                            **store_config) -> Any:
+        raise not_supported()
+
 
 def _dist(x: str, y: str) -> int:
     return len(x) - len(y)
