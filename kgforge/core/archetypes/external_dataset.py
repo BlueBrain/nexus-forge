@@ -15,9 +15,9 @@
 import json
 import requests
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, List
 from kgforge.core import Resource
-from kgforge.core.archetypes import ReadStore
+from kgforge.core.archetypes.read_store import ReadStore
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
@@ -26,14 +26,8 @@ class ExternalDataset(ReadStore):
     """A class to link to external databases, query and search directly on datasets. """
 
     def __init__(self, model: Optional["Model"] = None,
-                 endpoint: Optional[str] = None,
-                 bucket: Optional[str] = None,
-                 token: Optional[str] = None,
-                 versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None,
-                 searchendpoints: Optional[Dict] = None, **store_config) -> None:
-        super().__init__(model, endpoint, bucket, token, versioned_id_template,
-                         file_resource_mapping, searchendpoints, **store_config)
+                 ) -> None:
+        super().__init__(model)
 
     def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
@@ -45,7 +39,7 @@ class ExternalDataset(ReadStore):
         :param keep_original: bool
         """
         keep_original = params.pop('keep_original', True)
-        unmapped_resources = self.service.search(resolvers, *filters, **params)
+        unmapped_resources = self._search(resolvers, *filters, **params)
         if isinstance(self.service, BlueBrainNexus) or keep_original:
             return unmapped_resources
         else:
@@ -53,14 +47,18 @@ class ExternalDataset(ReadStore):
             resource_type = type_from_filters(*filters)
             return self.map(unmapped_resources, type_=resource_type)
 
+    @abstractmethod
+    def _search(self):
+        ...
+
     def sparql(self, query: str, debug: bool = False, limit: Optional[int] = None,
-               offset: Optional[int] = None, **params):
+               offset: Optional[int] = None, **params) -> Optional[Union[List[Resource], Resource]]:
         """Use SPARQL within the database.
 
         :param keep_original: bool
         """
         keep_original = params.pop('keep_original', True)
-        unmapped_resources = self.service.sparql(query, debug, limit, offset, **params)
+        unmapped_resources = self._sparql(query, debug, limit, offset, **params)
         if keep_original:
             return unmapped_resources
         else:
