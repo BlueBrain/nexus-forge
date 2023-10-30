@@ -15,6 +15,10 @@
 
 # Forge operations.
 
+class RunException(Exception):
+    pass
+
+
 class ConfigurationError(Exception):
     pass
 
@@ -26,7 +30,7 @@ class NotSupportedError(Exception):
 # Model operations.
 
 
-class ValidationError(Exception):
+class ValidationError(RunException):
     pass
 
 
@@ -38,10 +42,6 @@ class ResolvingError(Exception):
 
 
 # Store operations.
-
-
-class RunException(Exception):
-    pass
 
 
 class RegistrationError(RunException):

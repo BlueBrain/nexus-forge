@@ -95,7 +95,9 @@ class Dataset(Resource):
                            versioned, **kwargs):
 
         if versioned and isinstance(resource, str):
-            not_supported((f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True))
+            raise not_supported(
+                (f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True)
+            )
         if isinstance(resource, str):
             reference = Resource(type=reference_type, id=resource)
         elif isinstance(resource, Resource):

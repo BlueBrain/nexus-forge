@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple, Type
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -89,7 +89,7 @@ class Resolver(ABC):
                     "When resolving a Resource, a property_to_resolve of type str or List[str] should be provided")
 
         elif property_to_resolve is not None or merge_inplace_as is not None:
-            not_supported(("property_to_resolve or merge_inplace_as", str))
+            raise not_supported(("property_to_resolve or merge_inplace_as", str))
         else:
             text_to_resolve = text
         # The resolving strategy cannot be abstracted as it should be managed by the service.
@@ -159,13 +159,13 @@ class Resolver(ABC):
     @staticmethod
     def _service_from_web_service(endpoint: str,
                                   targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
-        not_supported()
+        raise not_supported()
 
     @staticmethod
     def _service_from_store(
             store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config
     ) -> Any:
-        not_supported()
+        raise not_supported()
 
 
 def escape_punctuation(text):
@@ -196,7 +196,7 @@ def write_sparql_filters(text, properties: List, regex=False,
 
 def _build_resolving_query(text, query_template, deprecated_property, filters, strategy, _type,
                            properties_to_filter_with, resolving_context: Any,
-                           query_builder: QueryBuilder, limit: Optional[int]):
+                           query_builder: Type[QueryBuilder], limit: Optional[int]):
     first_filters = f"?id <{deprecated_property}> \"false\"^^xsd:boolean"
     if _type:
         first_filters = f"{first_filters} ; a {_type}"

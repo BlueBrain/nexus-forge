@@ -71,7 +71,7 @@ class DemoStore(Store):
     def retrieve(self, id_: str, version: Optional[Union[int, str]],
                  cross_bucket: bool, **params) -> Resource:
         if cross_bucket:
-            not_supported(("cross_bucket", True))
+            raise not_supported(("cross_bucket", True))
         try:
             record = self.service.read(id_, version)
         except StoreLibrary.RecordMissing as exc:
@@ -123,7 +123,7 @@ class DemoStore(Store):
 
         cross_bucket = params.get("cross_bucket", None)
         if cross_bucket is not None:
-            not_supported(("cross_bucket", True))
+            raise not_supported(("cross_bucket", True))
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.

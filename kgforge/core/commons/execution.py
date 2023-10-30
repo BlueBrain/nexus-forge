@@ -26,7 +26,7 @@ from kgforge.core.commons.exceptions import NotSupportedError, RunException
 # POLICY Should have only one function called 'wrapper'. See catch().
 
 
-def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
+def not_supported(arg: Optional[Tuple[str, Any]] = None) -> Exception:
     # TODO When 'arg' is specified, compare with the value in the frame to know if it applies.
     # POLICY Should be called in methods in core which could be not implemented by specializations.
     frame = inspect.currentframe().f_back
@@ -37,9 +37,9 @@ def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
         tail = f" with {arg[0]}={arg[1]}" if arg else ""
         msg = f"{class_name} is not supporting {method_name}(){tail}"
     except Exception as e:
-        raise e
+        return e
     else:
-        raise NotSupportedError(msg)
+        return NotSupportedError(msg)
     finally:
         del frame
 

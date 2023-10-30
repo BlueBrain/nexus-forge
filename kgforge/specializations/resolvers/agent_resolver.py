@@ -42,7 +42,7 @@ class AgentResolver(Resolver):
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) -> Optional[List[Dict]]:
 
         if isinstance(text, list):
-            not_supported(("text", list))
+            raise not_supported(("text", list))
 
         if target and target not in self.service.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets for the selected resolvers are: {self.service.sources.keys()}")
@@ -90,7 +90,7 @@ class AgentResolver(Resolver):
 
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config) -> Any:
-        not_supported()
+        raise not_supported()
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:

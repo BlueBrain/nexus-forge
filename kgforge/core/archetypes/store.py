@@ -173,7 +173,7 @@ class Store(ABC):
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
-        not_supported()
+        raise not_supported()
 
     @abstractmethod
     def _register_one(self, resource: Resource, schema_id: str) -> None:
@@ -212,7 +212,7 @@ class Store(ABC):
     def _upload_one(self, path: Path, content_type: str) -> Any:
         # path: FilePath.
         # POLICY Should notify of failures with exception UploadingError including a message.
-        not_supported()
+        raise not_supported()
 
     # C[R]UD.
 
@@ -228,7 +228,7 @@ class Store(ABC):
 
     def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         # TODO This operation might be adapted if other file metadata are needed.
-        not_supported()
+        raise not_supported()
 
     def _prepare_download_one(
             self,
@@ -237,7 +237,7 @@ class Store(ABC):
             cross_bucket: bool
     ) -> Tuple[str, str]:
         # Prepare download url and download bucket
-        not_supported()
+        raise not_supported()
 
     def download(
             self,
@@ -319,7 +319,7 @@ class Store(ABC):
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        not_supported()
+        raise not_supported()
 
     # CR[U]D.
 
@@ -342,7 +342,7 @@ class Store(ABC):
     def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
-        not_supported()
+        raise not_supported()
 
     @abstractmethod
     def _update_one(self, resource: Resource, schema_id: Optional[str]) -> None:
@@ -368,12 +368,12 @@ class Store(ABC):
         # Bulk tagging could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._tag_one() and execution._run_one() behaviours.
         # POLICY If tagging modify the resource, it should be done with status='_synchronized'.
-        not_supported()
+        raise not_supported()
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         # POLICY Should notify of failures with exception TaggingError including a message.
         # POLICY If tagging modify the resource, _store_metadata should be updated.
-        not_supported()
+        raise not_supported()
 
     # CRU[D].
 
@@ -392,13 +392,13 @@ class Store(ABC):
     def _deprecate_many(self, resources: List[Resource]) -> None:
         # Bulk deprecation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._deprecate_one() and execution._run_one() behaviours.
-        not_supported()
+        raise not_supported()
 
     def _deprecate_one(self, resource: Resource) -> None:
         # POLICY Should notify of failures with exception DeprecationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # TODO This operation might be abstracted here when other stores will be implemented.
-        not_supported()
+        raise not_supported()
 
     # Querying.
 
@@ -424,7 +424,7 @@ class Store(ABC):
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
         # TODO These two operations might be abstracted here when other stores will be implemented.
-        not_supported()
+        raise not_supported()
 
     def sparql(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
@@ -448,7 +448,7 @@ class Store(ABC):
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
-        not_supported()
+        raise not_supported()
 
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
@@ -466,7 +466,7 @@ class Store(ABC):
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
-        not_supported()
+        raise not_supported()
 
     # Versioning.
 
@@ -484,7 +484,7 @@ class Store(ABC):
     def _freeze_many(self, resources: List[Resource]) -> None:
         # Bulk freezing could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._freeze_one() and execution._run_one() behaviours.
-        not_supported()
+        raise not_supported()
 
     def _freeze_one(self, resource: Resource) -> None:
         # Notify of failures with exception FreezingError including a message.

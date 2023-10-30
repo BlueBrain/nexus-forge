@@ -44,7 +44,7 @@ class DemoResolver(Resolver):
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) -> Optional[List[Dict[str, str]]]:
 
         if isinstance(text, list):
-            not_supported(("text", list))
+            raise not_supported(("text", list))
 
         resolve_with_properties = None
         if target is not None:

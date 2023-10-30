@@ -38,7 +38,7 @@ class EntityLinkerElastic(EntityLinker):
     @staticmethod
     def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
                                 **source_config) -> Any:
-        not_supported()
+        raise not_supported()
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:

@@ -713,7 +713,7 @@ class BlueBrainNexus(Store):
                 "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
 
         if bucket and not cross_bucket:
-            not_supported(("bucket", True))
+            raise not_supported(("bucket", True))
 
         if filters and isinstance(filters[0], dict):
             filters = create_filters_from_dict(filters[0])
