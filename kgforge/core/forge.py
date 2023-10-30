@@ -227,6 +227,19 @@ class KnowledgeGraphForge:
         # Store.
         store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
+        store_model_config = store_config.pop("model", None)
+        if store_model_config:
+            store_model_name = store_model_config.pop("name")
+            if store_model_config:
+                if store_model_name != model_name:
+                    # Same model, different config
+                    store_model = import_class(store_model_name, "models")
+                    store_config['model'] = store_model(**store_model_config)
+                else:
+                    # Same model, same config
+                    store_config['model'] = self._model
+        else:
+            raise ValueError(f'Missing model configuration for store {store_name}')
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
         store_config.update(name=store_name)
