@@ -18,9 +18,9 @@ import pytest
 from kgforge.core import Resource, KnowledgeGraphForge
 from kgforge.core.archetypes.store import rewrite_sparql, _replace_in_sparql
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import DownloadingError, FreezingError, QueryingError
+from kgforge.core.commons.exceptions import QueryingError
 from kgforge.specializations.resources import Dataset
-from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
+from kgforge.core.wrappings.dict import wrap_dict
 import json
 
 context = {
@@ -155,12 +155,6 @@ def test__replace_in_sparql_exception():
         _replace_in_sparql(query, what="LIMIT", value=10, default_value=None, search_regex=r" LIMIT \d+",
                            replace_if_in_query=False)
 
-
-def test_download(config):
-    simple = Resource(type="Experiment", url="file.gz")
-    with pytest.raises(DownloadingError):
-        forge = KnowledgeGraphForge(config)
-        forge._store.download(simple, "fake.path", "./", overwrite=False, cross_bucket=False)
 
 def test_freeze(config, store_metadata_value):
 

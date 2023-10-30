@@ -14,10 +14,12 @@
 
 import json
 import requests
+from abc import abstractmethod
 
-from typing import Dict, Optional, Union, List
+from typing import Optional, Union, List
 from kgforge.core import Resource
 from kgforge.core.archetypes.read_store import ReadStore
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
@@ -25,7 +27,7 @@ from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 class ExternalDataset(ReadStore):
     """A class to link to external databases, query and search directly on datasets. """
 
-    def __init__(self, model: Optional["Model"] = None,
+    def __init__(self, model: Optional[Model] = None,
                  ) -> None:
         super().__init__(model)
 
@@ -42,10 +44,9 @@ class ExternalDataset(ReadStore):
         unmapped_resources = self._search(resolvers, *filters, **params)
         if isinstance(self.service, BlueBrainNexus) or keep_original:
             return unmapped_resources
-        else:
-            # Try to find the type of the resources within the filters
-            resource_type = type_from_filters(*filters)
-            return self.map(unmapped_resources, type_=resource_type)
+        # Try to find the type of the resources within the filters
+        resource_type = type_from_filters(*filters)
+        return self.map(unmapped_resources, type_=resource_type)
 
     @abstractmethod
     def _search(self):
@@ -61,8 +62,7 @@ class ExternalDataset(ReadStore):
         unmapped_resources = self._sparql(query, debug, limit, offset, **params)
         if keep_original:
             return unmapped_resources
-        else:
-            return self.map(unmapped_resources)
+        return self.map(unmapped_resources)
 
 
 def type_from_filters(*filters) -> Optional[str]:
