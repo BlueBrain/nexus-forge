@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from typing import Callable, Dict, Iterator, List, Union
+from typing import Callable, Dict, Iterator, List, Union, Type
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -79,7 +79,7 @@ class Reshaper:
 
 # TODO Use an implementation of JSONPath for Python instead to get values. DKE-147.
 def collect_values(data: Union[Resource, List[Resource]], follow: str,
-                   exception: Callable = Exception) -> List[str]:
+                   exception: Type[Exception] = Exception) -> List[str]:
     def _collect(things: List) -> Iterator[str]:
         for x in things:
             if isinstance(x, Dict):
@@ -90,11 +90,15 @@ def collect_values(data: Union[Resource, List[Resource]], follow: str,
                         yield from _collect([v])
                     else:
                         yield v
+
     try:
         r = Reshaper("")
         reshaped = dispatch(data, r._reshape_many, r._reshape_one, [follow], False)
         if reshaped is None:
-            raise Exception("Nothing to collect")
+            raise exception(
+                f"An error occur when collecting values for path to follow '{follow}': "
+                f"Nothing to collect"
+            )
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))

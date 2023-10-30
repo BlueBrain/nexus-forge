@@ -21,6 +21,7 @@ import requests
 from requests import RequestException
 
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.exceptions import MappingLoadError
 
 
 class MappingType(Enum):
@@ -61,7 +62,7 @@ class Mapping(ABC):
             e = e if e is not None else cls.load_str(source, raise_ex=False)
             if e is not None:
                 return e
-            raise Exception("Mapping loading failed")
+            raise MappingLoadError("Mapping loading failed")
 
         if mapping_type == MappingType.FILE:
             return cls.load_file(source)

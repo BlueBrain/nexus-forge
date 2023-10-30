@@ -78,3 +78,9 @@ class QueryingError(RunException):
 
 class FreezingError(RunException):
     pass
+
+# Mapping operations
+
+
+class MappingLoadError(Exception):
+    pass
