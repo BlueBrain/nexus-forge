@@ -132,10 +132,10 @@ class DemoStore(Store):
         records = self.service.find(conditions)
         return [_to_resource(x) for x in records]
 
-    def _sparql():
+    def _sparql(self):
         not_supported()
 
-    def _elastic():
+    def _elastic(self):
         not_supported()
 
     # Utils.

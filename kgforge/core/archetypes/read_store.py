@@ -144,8 +144,8 @@ class ReadStore(ABC):
         # paths: List[FilePath].
         # Bulk downloading could be optimized by overriding this method in the specialization.
         # POLICY Should follow self._download_one() policies.
-        for url, path, store_m in zip(urls, paths, store_metadata):
-            self._download_one(url, path, store_m, cross_bucket, content_type)
+        for url, path, store_m, bucket in zip(urls, paths, store_metadata, buckets):
+            self._download_one(url, path, store_m, cross_bucket, content_type, bucket)
 
     def _download_one(
             self,
@@ -188,7 +188,8 @@ class ReadStore(ABC):
         ...
 
     @abstractmethod
-    def sparql(self):
+    def sparql(self, query: str, debug: bool = False, limit: Optional[int] = None,
+               offset: Optional[int] = None, **params) -> Optional[Union[List[Resource], Resource]]:
         ...
 
     # Versioning.
@@ -206,7 +207,7 @@ class ReadStore(ABC):
         ...
 
     @staticmethod
-    def _debug_query(query):
+    def _debug_query(query) -> None:
         if isinstance(query, Dict):
             print("Submitted query:", query)
         else:

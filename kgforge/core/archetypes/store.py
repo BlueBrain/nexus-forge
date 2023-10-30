@@ -304,7 +304,7 @@ class Store(ReadStore):
         return self._sparql(qr)
 
     @abstractmethod
-    def _sparql():
+    def _sparql(self):
         ...
 
     def elastic(
