@@ -20,6 +20,7 @@ from typing import Optional, Union, List
 from kgforge.core import Resource
 from kgforge.core.archetypes.read_store import ReadStore
 from kgforge.core.archetypes.model import Model
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
