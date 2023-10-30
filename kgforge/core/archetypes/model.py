@@ -52,14 +52,15 @@ class Model(ABC):
     # Vocabulary.
 
     def prefixes(self, pretty: bool) -> Optional[Dict[str, str]]:
-        prefixes = sorted(self._prefixes().items())
+        prefixes = dict(sorted(self._prefixes().items(), key=lambda item: item[0]))
         if pretty:
             print("Used prefixes:")
             df = DataFrame(prefixes)
             formatters = {x: f"{{:<{df[x].str.len().max()}s}}".format for x in df.columns}
             print(df.to_string(header=False, index=False, formatters=formatters))
-        else:
-            return dict(prefixes)
+            return None
+
+        return dict(prefixes)
 
     def _prefixes(self) -> Dict[str, str]:
         not_supported()
@@ -68,8 +69,9 @@ class Model(ABC):
         types = sorted(self._types())
         if pretty:
             print(*["Managed entity types:", *types], sep="\n   - ")
-        else:
-            return types
+            return None
+
+        return types
 
     @abstractmethod
     def _types(self) -> List[str]:
@@ -94,12 +96,14 @@ class Model(ABC):
         schema = self._template(type, only_required)
         if output == "hjson":
             print(hjson.dumps(schema, indent=4, item_sort_key=sort_attrs))
-        elif output == "json":
+            return None
+        if output == "json":
             print(hjson.dumpsJSON(schema, indent=4, item_sort_key=sort_attrs))
-        elif output == "dict":
+            return None
+        if output == "dict":
             return json.loads(hjson.dumpsJSON(schema, item_sort_key=sort_attrs))
-        else:
-            raise ValueError("unrecognized output")
+
+        raise ValueError("unrecognized output")
 
     @abstractmethod
     def _template(self, type: str, only_required: bool) -> Dict:
@@ -114,8 +118,9 @@ class Model(ABC):
         sources = sorted(self._sources())
         if pretty:
             print(*["Data sources with managed mappings:", *sources], sep="\n   - ")
-        else:
-            return sources
+            return None
+
+        return sources
 
     def _sources(self) -> List[str]:
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
@@ -128,8 +133,9 @@ class Model(ABC):
             print("Managed mappings for the data source per entity type and mapping type:")
             for k, v in mappings.items():
                 print(*[f"   - {k}:", *v], sep="\n        * ")
-        else:
-            return mappings
+            return None
+
+        return mappings
 
     def _mappings(self, source: str) -> Dict[str, List[str]]:
         # POLICY Should raise ValueError if 'source' is not managed by the Model.
