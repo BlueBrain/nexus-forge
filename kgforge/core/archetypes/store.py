@@ -286,7 +286,7 @@ class Store(ReadOnlyStore):
     def sparql(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
             **params
-    ) -> List[Resource]:
+    ) -> Optional[Union[List[Resource], Resource]]:
         rewrite = params.get("rewrite", True)
         qr = (
             rewrite_sparql(query, self.model_context, self.service.metadata_context)
@@ -310,7 +310,7 @@ class Store(ReadOnlyStore):
 
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
-    ) -> List[Resource]:
+    ) -> Optional[Union[List[Resource], Resource]]:
         query_dict = json.loads(query)
         if limit:
             query_dict["size"] = limit
@@ -321,7 +321,7 @@ class Store(ReadOnlyStore):
         return self._elastic(json.dumps(query_dict))
 
     @abstractmethod
-    def _elastic(self, query: str) -> List[Resource]:
+    def _elastic(self, query: str) -> Optional[Union[List[Resource], Resource]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
