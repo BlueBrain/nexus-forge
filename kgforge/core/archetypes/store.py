@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List,  Optional, Union, Type, Match
 
 from kgforge.core import Resource
-from kgforge.core.archetypes.read_store import ReadStore, DEFAULT_LIMIT, DEFAULT_OFFSET
+from kgforge.core.archetypes.read_only_store import ReadOnlyStore, DEFAULT_LIMIT, DEFAULT_OFFSET
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
@@ -85,7 +85,7 @@ SPARQL_CLAUSES = [
 ]
 
 
-class Store(ReadStore):
+class Store(ReadOnlyStore):
 
     # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
 

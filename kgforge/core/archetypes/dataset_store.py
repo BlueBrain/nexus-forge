@@ -18,14 +18,14 @@ from abc import abstractmethod
 
 from typing import Optional, Union, List
 from kgforge.core import Resource
-from kgforge.core.archetypes.read_store import ReadStore
+from kgforge.core.archetypes.read_only_store import ReadOnlyStore
 from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
 
-class ExternalDataset(ReadStore):
+class DatasetStore(ReadOnlyStore):
     """A class to link to external databases, query and search directly on datasets. """
 
     def __init__(self, model: Optional[Model] = None,
