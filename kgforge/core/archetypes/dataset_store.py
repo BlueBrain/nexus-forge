@@ -64,6 +64,13 @@ class DatasetStore(ReadOnlyStore):
         if keep_original:
             return unmapped_resources
         return self.map(unmapped_resources)
+    
+    @abstractmethod
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        ...
 
 
 def type_from_filters(*filters) -> Optional[str]:
@@ -84,51 +91,3 @@ def type_from_filters(*filters) -> Optional[str]:
                 resource_type = filter.value
                 break
     return resource_type
-
-
-def resources_from_request(url, headers, **params):
-    """Perform a HTTP request
-    params:
-    -------
-        response_loc : list[str]
-            The nested location of the relevat metadata in the
-            response.
-            Example: NeuroMorpho uses response["_embedded"]["neuronResources"]
-            which should be given as: response_loc = ["_embedded", "neuronResources"]
-    """
-    response_location = params.pop('response_loc', None)
-    try:
-        response = requests.get(
-            url, params=params, headers=headers, verify=False
-        )
-        response.raise_for_status()
-    except Exception as e:
-        raise QueryingError(e)
-    else:
-        data = response.json()
-        if response_location:
-            # Get the resources directly from a location in the response
-            if isinstance(response_location, str):
-                results = data[response_location]
-            elif isinstance(response_location, (list, tuple)):
-                for inner in response_location:
-                    data = data[inner]
-                results = data
-            return [Resource(**result) for result in results]
-        else:
-            # Standard response format
-            results = data["results"]["bindings"]
-            return resources_from_results(results)
-
-
-def resources_from_results(results):
-    """Returns Resources from standard response bindings."""
-    return [
-            Resource(**{k: json.loads(str(v["value"]).lower())
-                     if v['type'] == 'literal' and ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
-                     else (int(v["value"])
-                     if v['type'] == 'literal' and ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
-                     else v["value"])
-                        for k, v in x.items()})
-            for x in results
-            ]

@@ -302,7 +302,10 @@ class Store(ReadOnlyStore):
         return self._sparql(qr)
 
     @abstractmethod
-    def _sparql(self):
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
         ...
 
     def elastic(
@@ -323,6 +326,7 @@ class Store(ReadOnlyStore):
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
         ...
+
     # Versioning.
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
