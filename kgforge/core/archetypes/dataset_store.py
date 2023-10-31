@@ -64,7 +64,7 @@ class DatasetStore(ReadOnlyStore):
         if keep_original:
             return unmapped_resources
         return self.map(unmapped_resources)
-    
+
     @abstractmethod
     def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
@@ -87,7 +87,7 @@ def type_from_filters(*filters) -> Optional[str]:
         else:
             filters = [filters]
         for filter in filters:
-            if 'type' in filter.path and filter.operator is "__eq__":
+            if 'type' in filter.path and filter.operator == "__eq__":
                 resource_type = filter.value
                 break
     return resource_type
