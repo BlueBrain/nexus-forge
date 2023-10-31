@@ -33,7 +33,7 @@ DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
 
 
-class ReadStore(ABC):
+class ReadOnlyStore(ABC):
 
     # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
 
