@@ -16,13 +16,15 @@ import json
 import requests
 from abc import abstractmethod
 
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Type
 from kgforge.core import Resource
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore
 from kgforge.core.archetypes.model import Model
-from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import QueryingError
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.mapper import Mapper
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
+from kgforge.core.commons.imports import import_class
+from kgforge.core.conversions.json import as_json, from_json
 
 
 class DatasetStore(ReadOnlyStore):
@@ -32,6 +34,51 @@ class DatasetStore(ReadOnlyStore):
                  ) -> None:
         super().__init__(model)
 
+    @property
+    @abstractmethod
+    def read_mapper(self) -> Type[Mapper]:
+        """Mapper class to map file metadata to a Resource."""
+        ...
+
+    @property
+    @abstractmethod
+    def write_mapper(self) -> Type[Mapper]:
+        """Mapper class to map a Resource to the store metadata format."""
+        ...
+
+    def map(self, resources: Union[List[Union[Resource, str]], Union[Resource, str]],
+            type_: Optional[Union[str, Mapping]] = None, read: bool = True
+            ) -> Optional[Union[Resource, List[Resource]]]:
+        mappings = self.model.mappings(self.model.source, False)
+        if not read:
+            mapper = self.write_mapper()
+        mapper = self.read_mapper()
+        mapped_resources = []
+        resources = (resources if isinstance(resources, list) else [resources])
+        for resource in resources:
+            if isinstance(resource, Resource):
+                resource_dict = as_json(resource, expanded=False, store_metadata=False,
+                                        model_context=self.model_context,
+                                        context_resolver=self.model.resolve_context)
+            else:
+                resource_dict = resource
+                resource = from_json(resource_dict, None)
+            if type_ is None:
+                try:
+                    type_ = resource.type
+                except AttributeError:
+                    mapped_resources.append(resource)
+            elif isinstance(type_, Mapping):
+                mapped_resources.append(mapper.map(resource_dict, type_))
+            elif type_ in mappings:
+                # type_ is the entity here
+                mapping_class: Type[Mapping] = import_class(mappings[type_][0], "mappings")
+                mapping = self.model.mapping(type_, self.model.source, mapping_class)
+                mapped_resources.append(mapper.map(resource_dict, mapping))
+            else:
+                mapped_resources.append(resource)
+        return mapped_resources
+
     def types(self):
         # TODO: add other datatypes used, for instance, inside the mappings
         return list(self.model.mappings(self.model.source, False).keys())
@@ -39,11 +86,11 @@ class DatasetStore(ReadOnlyStore):
     def search(self, resolvers, *filters, **params):
         """Search within the database.
 
-        :param keep_original: bool
+        :param map: bool
         """
-        keep_original = params.pop('keep_original', True)
+        map = params.pop('map', True)
         unmapped_resources = self._search(resolvers, *filters, **params)
-        if isinstance(self.service, BlueBrainNexus) or keep_original:
+        if not map:
             return unmapped_resources
         # Try to find the type of the resources within the filters
         resource_type = type_from_filters(*filters)
