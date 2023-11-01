@@ -49,6 +49,13 @@ class DatasetStore(ReadOnlyStore):
     def map(self, resources: Union[List[Union[Resource, str]], Union[Resource, str]],
             type_: Optional[Union[str, Mapping]] = None, read: bool = True
             ) -> Optional[Union[Resource, List[Resource]]]:
+        """ Use mappings to transform resources from and to the store model
+
+        :param resources: data to be transformed
+        :param type_: type (schema) of the data
+        :param read: set the directionality of the transformations, to use the read_mapper,
+                     or the write_mapper
+        """
         mappings = self.model.mappings(self.model.source, False)
         if not read:
             mapper = self.write_mapper()
@@ -80,6 +87,7 @@ class DatasetStore(ReadOnlyStore):
         return mapped_resources
 
     def types(self):
+        """Supported data types"""
         # TODO: add other datatypes used, for instance, inside the mappings
         return list(self.model.mappings(self.model.source, False).keys())
 
@@ -104,11 +112,11 @@ class DatasetStore(ReadOnlyStore):
                offset: Optional[int] = None, **params) -> Optional[Union[List[Resource], Resource]]:
         """Use SPARQL within the database.
 
-        :param keep_original: bool
+        :param map: bool
         """
-        keep_original = params.pop('keep_original', True)
+        map = params.pop('map', True)
         unmapped_resources = self._sparql(query, debug, limit, offset, **params)
-        if keep_original:
+        if not map:
             return unmapped_resources
         return self.map(unmapped_resources)
 
