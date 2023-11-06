@@ -14,8 +14,7 @@
 from typing import Dict, Optional, Union, List, Tuple
 
 import json
-
-
+from pyshacl import validate
 
 from rdflib import URIRef, Namespace, Graph
 
@@ -30,7 +29,6 @@ from kgforge.specializations.stores.nexus import Service
 from pyshacl.shape import Shape
 Shape.validate = shape_validate
 
-from pyshacl import validate
 
 class StoreService(RdfService):
 
@@ -165,5 +163,3 @@ class StoreService(RdfService):
             self._sg = ShapesGraphWrapper(self._graph)
             shape = self._sg.lookup_shape_from_node(iri)
         return shape
-
-
