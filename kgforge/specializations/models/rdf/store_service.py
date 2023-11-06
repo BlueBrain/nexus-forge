@@ -15,9 +15,11 @@ from typing import Dict, Optional, Union, List, Tuple
 
 import json
 
-from pyshacl import validate
+
+
 from rdflib import URIRef, Namespace, Graph
 
+from kgforge.specializations.models.rdf.shape_validate import shape_validate
 from kgforge.core.commons.exceptions import RetrievalError
 from kgforge.core.conversions.rdf import as_jsonld, as_graph
 from kgforge.core.archetypes import Store
@@ -25,6 +27,10 @@ from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
 from kgforge.specializations.stores.nexus import Service
 
+from pyshacl.shape import Shape
+Shape.validate = shape_validate
+
+from pyshacl import validate
 
 class StoreService(RdfService):
 
@@ -144,6 +150,7 @@ class StoreService(RdfService):
                 # this double conversion was due blank nodes were not "regenerated" with json-ld
                 temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
                 self._graph.parse(data=temp_graph.serialize(format="n3"), format="n3")
+
                 self._imported.append(resource_id)
                 if hasattr(shape, "imports"):
                     for dependency in shape.imports:
@@ -158,3 +165,5 @@ class StoreService(RdfService):
             self._sg = ShapesGraphWrapper(self._graph)
             shape = self._sg.lookup_shape_from_node(iri)
         return shape
+
+
