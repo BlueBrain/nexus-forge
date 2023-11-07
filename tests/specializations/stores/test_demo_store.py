@@ -53,7 +53,7 @@ def register(capsys, store, data, rc, err, msg):
 
 @when("I register the resource. An exception is raised. The printed report does mention an error: 'Exception: exception raised'.")
 def register_exception(monkeypatch, capsys, store, data):
-    def _register_one(_, x, schema_id): raise Exception("exception raised")
+    def _register_one(_, x, schema_id, context): raise Exception("exception raised")
     monkeypatch.setattr("kgforge.specializations.stores.demo_store.DemoStore._register_one", _register_one)
     store.register(data)
     out = capsys.readouterr().out[:-1]

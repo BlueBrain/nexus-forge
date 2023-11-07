@@ -155,7 +155,8 @@ class Store(ABC):
     # [C]RUD.
 
     def register(
-            self, data: Union[Resource, List[Resource]], schema_id: str = None
+            self, data: Union[Resource, List[Resource]], schema_id: str = None,
+            context: Optional[Context] = None
     ) -> None:
         # Replace None by self._register_many to switch to optimized bulk registration.
         run(
@@ -167,9 +168,10 @@ class Store(ABC):
             exception=RegistrationError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            context=context
         )
 
-    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+    def _register_many(self, resources: List[Resource], schema_id: str, ) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
         not_supported()
@@ -323,7 +325,8 @@ class Store(ABC):
     # CR[U]D.
 
     def update(
-            self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str],
+            context: Optional[Context] = None
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
         run(
@@ -336,15 +339,21 @@ class Store(ABC):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            context=context
         )
 
-    def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
+    def _update_many(
+            self, resources: List[Resource], schema_id: Optional[str],
+            context: Optional[Context] = None
+    ) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
         not_supported()
 
     @abstractmethod
-    def _update_one(self, resource: Resource, schema_id: Optional[str]) -> None:
+    def _update_one(
+            self, resource: Resource, schema_id: Optional[str], context: Optional[Context] = None
+    ) -> None:
         # POLICY Should notify of failures with exception UpdatingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # TODO This operation might be abstracted here when other stores will be implemented.
