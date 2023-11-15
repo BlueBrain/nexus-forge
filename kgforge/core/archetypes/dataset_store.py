@@ -36,30 +36,20 @@ class DatasetStore(ReadOnlyStore):
 
     @property
     @abstractmethod
-    def read_mapper(self) -> Type[Mapper]:
-        """Mapper class to map file metadata to a Resource."""
-        ...
-
-    @property
-    @abstractmethod
-    def write_mapper(self) -> Type[Mapper]:
+    def mapper(self) -> Type[Mapper]:
         """Mapper class to map a Resource to the store metadata format."""
         ...
 
     def map(self, resources: Union[List[Union[Resource, str]], Union[Resource, str]],
-            type_: Optional[Union[str, Mapping]] = None, read: bool = True
+            type_: Optional[Union[str, Mapping]] = None,
             ) -> Optional[Union[Resource, List[Resource]]]:
         """ Use mappings to transform resources from and to the store model
 
         :param resources: data to be transformed
         :param type_: type (schema) of the data
-        :param read: set the directionality of the transformations, to use the read_mapper,
-                     or the write_mapper
         """
         mappings = self.model.mappings(self.model.source, False)
-        if not read:
-            mapper = self.write_mapper()
-        mapper = self.read_mapper()
+        mapper = self.mapper()
         mapped_resources = []
         resources = (resources if isinstance(resources, list) else [resources])
         for resource in resources:
