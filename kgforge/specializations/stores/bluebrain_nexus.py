@@ -666,9 +666,16 @@ class BlueBrainNexus(Store):
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
-        url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}?rev={resource._store_metadata._rev}"
+
+        url, params = self.service._prepare_uri(resource)
+
         try:
             params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
+
+            if params_deprecate is not None:
+                params_deprecate.update(params)
+            else:
+                params_deprecate = params
             response = requests.delete(
                 url, headers=self.service.headers, params=params_deprecate
             )
