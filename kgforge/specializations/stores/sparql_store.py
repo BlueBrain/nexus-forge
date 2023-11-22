@@ -12,7 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
+import requests
 from typing import Dict, List, Optional, Union, Any, Type
+from rdflib.plugins.sparql.parser import Query
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
@@ -136,14 +138,14 @@ class SPARQLStore(DatasetStore):
 
     def _sparql(self, query: str) -> Optional[Union[Resource, List[Resource]]]:
         try:
-            wrapper = SPARQLWrapper(self.service.sparql_endpoint["endpoint"])
-            wrapper.setQuery(query)
-            wrapper.setReturnFormat(JSON)
-            response = wrapper.query()
+            response = requests.post(self.service.sparql_endpoint["endpoint"],
+                                     data=query,
+                                     headers=self.service.headers_sparql)
+            response.raise_for_status()
         except Exception as e:
             raise QueryingError(e) from e
 
-        data = response.convert()
+        data = response.json()
 
         context = self.model_context or self.context  # TODO self.context?
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
