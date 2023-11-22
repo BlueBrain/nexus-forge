@@ -147,7 +147,7 @@ class SPARQLStore(DatasetStore):
 
         data = response.json()
 
-        context = self.model_context or self.context  # TODO self.context?
+        context = self.model_context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _search(self):
