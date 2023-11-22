@@ -24,7 +24,7 @@ from asyncio import Semaphore, Task
 from enum import Enum
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 from requests import HTTPError
@@ -204,31 +204,27 @@ class BlueBrainNexus(Store):
             context_resolver=self.service.resolve_context
         )
 
-        try:
-            schema = quote_plus(schema_id) if schema_id else "_"
-            url_base = f"{self.service.url_resources}/{schema}"
-            params_register = copy.deepcopy(self.service.params.get("register", None))
-            identifier = resource.get_identifier()
-            if identifier:
-                url = f"{url_base}/{quote_plus(identifier)}"
-                response = requests.put(
-                    url,
-                    headers=self.service.headers,
-                    data=json.dumps(data, ensure_ascii=True),
-                    params=params_register,
-                )
-            else:
-                url = url_base
-                response = requests.post(
-                    url,
-                    headers=self.service.headers,
-                    data=json.dumps(data, ensure_ascii=True),
-                    params=params_register,
-                )
-            response.raise_for_status()
-
-        except nexus.HTTPError as e:
-            raise RegistrationError(_error_message(e))
+        schema = quote_plus(schema_id) if schema_id else "_"
+        url_base = f"{self.service.url_resources}/{schema}"
+        params_register = copy.deepcopy(self.service.params.get("register", None))
+        identifier = resource.get_identifier()
+        if identifier:
+            url = f"{url_base}/{quote_plus(identifier)}"
+            response = requests.put(
+                url,
+                headers=self.service.headers,
+                data=json.dumps(data, ensure_ascii=True),
+                params=params_register,
+            )
+        else:
+            url = url_base
+            response = requests.post(
+                url,
+                headers=self.service.headers,
+                data=json.dumps(data, ensure_ascii=True),
+                params=params_register,
+            )
+        BlueBrainNexus._catch_http_error(response, RegistrationError)
 
         response_json = response.json()
         resource.id = response_json["@id"]
@@ -290,6 +286,16 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
+    @staticmethod
+    def _catch_http_error(
+            r: requests.Response, error_to_throw: Type[BaseException],
+            error_message_formatter=_error_message
+    ):
+        try:
+            r.raise_for_status()
+        except HTTPError as e:
+            raise error_to_throw(error_message_formatter(e))
+
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Resource:
@@ -343,46 +349,45 @@ class BlueBrainNexus(Store):
         else:
             url = url_resource
         try:
-            response = requests.get(
-                url, params=query_params, headers=self.service.headers
-            )
-            response.raise_for_status()
-        except HTTPError as er:
-            if cross_bucket:
-                nexus_path = f"{self.service.endpoint}/resources/"
-            else:
-                nexus_path = self.service.url_resources
+            response = requests.get(url, params=query_params, headers=self.service.headers)
+            BlueBrainNexus._catch_http_error(response, RetrievalError)
+        except RetrievalError as er:
+
+            nexus_path = f"{self.service.endpoint}/resources/" if cross_bucket else self.service.url_resources
+
             # Try to use the id as it was given
             if id_.startswith(nexus_path):
                 url_resource = id_without_query
-                if retrieve_source and not cross_bucket:
-                    url = "/".join((id_without_query, "source"))
-                else:
-                    url = id_without_query
-                try:
-                    response = requests.get(
-                        url, params=query_params, headers=self.service.headers
-                    )
-                    response.raise_for_status()
-                except HTTPError as e:
-                    raise RetrievalError(_error_message(e))
-            else:
-                raise RetrievalError(_error_message(er))
-        finally:
-            if retrieve_source and not cross_bucket:
 
-                response_metadata = requests.get(
-                    url_resource, params=query_params, headers=self.service.headers
+                url = "/".join((id_without_query, "source")) \
+                    if retrieve_source and not cross_bucket \
+                    else id_without_query
+
+                response = requests.get(
+                    url, params=query_params, headers=self.service.headers
                 )
-                response_metadata.raise_for_status()
-            elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
-                response_metadata = requests.get(
-                    "/".join([response.json()["_self"], "source"]), params=query_params,
-                    headers=self.service.headers
-                )
-                response_metadata.raise_for_status()
+                BlueBrainNexus._catch_http_error(response, RetrievalError)
             else:
-                response_metadata = True  # when retrieve_source is False
+                raise er
+        # finally:
+        if retrieve_source and not cross_bucket:
+
+            response_metadata = requests.get(
+                url_resource, params=query_params, headers=self.service.headers
+            )
+            BlueBrainNexus._catch_http_error(response_metadata, RetrievalError)
+
+        elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
+
+            response_metadata = requests.get(
+                "/".join([response.json()["_self"], "source"]), params=query_params,
+                headers=self.service.headers
+            )
+            BlueBrainNexus._catch_http_error(response, RetrievalError)
+
+        else:
+            response_metadata = True  # when retrieve_source is False
+
         if response and response_metadata:
             try:
                 data = response.json()
@@ -408,13 +413,10 @@ class BlueBrainNexus(Store):
             return resource
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
-        try:
-            response = requests.get(id_, headers=self.service.headers)
-            response.raise_for_status()
-            metadata = response.json()
-            return metadata["_filename"], metadata["_mediaType"]
-        except HTTPError as e:
-            raise DownloadingError(_error_message(e))
+        response = requests.get(id_, headers=self.service.headers)
+        BlueBrainNexus._catch_http_error(response, DownloadingError)
+        metadata = response.json()
+        return metadata["_filename"], metadata["_mediaType"]
 
     def _download_many(
             self,
@@ -446,12 +448,12 @@ class BlueBrainNexus(Store):
             async with semaphore:
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
                 async with session.get(url, params=params_download) as response:
-                    try:
-                        response.raise_for_status()
-                    except Exception as e:
-                        raise DownloadingError(
-                            f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
-                        )
+
+                    BlueBrainNexus._catch_http_error(
+                        response, DownloadingError,
+                        error_message_formatter=lambda e:
+                        f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
+                    )
                     with open(path, "wb") as f:
                         data = await response.read()
                         f.write(data)
@@ -468,21 +470,20 @@ class BlueBrainNexus(Store):
             bucket: str
     ) -> None:
 
-        try:
-            params_download = copy.deepcopy(self.service.params.get("download", {}))
-            headers = self.service.headers_download if not content_type else update_dict(
-                self.service.headers_download, {"Accept": content_type})
+        params_download = copy.deepcopy(self.service.params.get("download", {}))
+        headers = self.service.headers_download if not content_type else update_dict(
+            self.service.headers_download, {"Accept": content_type})
 
-            response = requests.get(
-                url=url,
-                headers=headers,
-                params=params_download
-            )
-            response.raise_for_status()
-        except Exception as e:
-            raise DownloadingError(
-                f"Downloading from bucket {bucket} failed: {_error_message(e)}"
-            )
+        response = requests.get(
+            url=url,
+            headers=headers,
+            params=params_download
+        )
+        BlueBrainNexus._catch_http_error(
+            response, DownloadingError,
+            error_message_formatter=lambda e: f"Downloading from bucket {bucket} failed: "
+                                              f"{_error_message(e)}"
+        )
 
         with open(path, "wb") as f:
             for chunk in response.iter_content(chunk_size=4096):
@@ -570,17 +571,15 @@ class BlueBrainNexus(Store):
         url, params = self.service._prepare_uri(resource, schema_id)
         params_update = copy.deepcopy(self.service.params.get("update", {}))
         params_update.update(params)
-        try:
-            response = requests.put(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_update,
-            )
-            response.raise_for_status()
-        except HTTPError as e:
-            raise UpdatingError(_error_message(e))
 
+        response = requests.put(
+            url,
+            headers=self.service.headers,
+            data=json.dumps(data, ensure_ascii=True),
+            params=params_update,
+        )
+
+        BlueBrainNexus._catch_http_error(response, UpdatingError)
         self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
@@ -616,18 +615,15 @@ class BlueBrainNexus(Store):
 
     def _tag_one(self, resource: Resource, value: str) -> None:
         url, data, rev_param = self.service._prepare_tag(resource, value)
-        try:
-            params_tag = copy.deepcopy(self.service.params.get("tag", {}))
-            params_tag.update(rev_param)
-            response = requests.post(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_tag,
-            )
-            response.raise_for_status()
-        except HTTPError as e:
-            raise TaggingError(_error_message(e))
+        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
+        params_tag.update(rev_param)
+        response = requests.post(
+            url,
+            headers=self.service.headers,
+            data=json.dumps(data, ensure_ascii=True),
+            params=params_tag,
+        )
+        BlueBrainNexus._catch_http_error(response, TaggingError)
 
         self.service.sync_metadata(resource, response.json())
 
@@ -667,15 +663,12 @@ class BlueBrainNexus(Store):
 
     def _deprecate_one(self, resource: Resource) -> None:
         url = f"{self.service.url_resources}/_/{quote_plus(resource.id)}?rev={resource._store_metadata._rev}"
-        try:
-            params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
-            response = requests.delete(
-                url, headers=self.service.headers, params=params_deprecate
-            )
-            response.raise_for_status()
-        except HTTPError as e:
-            raise DeprecationError(_error_message(e))
 
+        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
+        response = requests.delete(
+            url, headers=self.service.headers, params=params_deprecate
+        )
+        BlueBrainNexus._catch_http_error(response, DeprecationError)
         self.service.sync_metadata(resource, response.json())
 
         # Querying.
@@ -860,15 +853,13 @@ class BlueBrainNexus(Store):
             )
 
     def _sparql(self, query: str) -> List[Resource]:
-        try:
-            response = requests.post(
-                self.service.sparql_endpoint["endpoint"],
-                data=query,
-                headers=self.service.headers_sparql,
-            )
-            response.raise_for_status()
-        except Exception as e:
-            raise QueryingError(e)
+
+        response = requests.post(
+            self.service.sparql_endpoint["endpoint"],
+            data=query,
+            headers=self.service.headers_sparql,
+        )
+        BlueBrainNexus._catch_http_error(response, QueryingError)
 
         data = response.json()
         # FIXME workaround to parse a CONSTRUCT query, this fix depends on
@@ -877,15 +868,13 @@ class BlueBrainNexus(Store):
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
-        try:
-            response = requests.post(
-                self.service.elastic_endpoint["endpoint"],
-                data=query,
-                headers=self.service.headers_elastic,
-            )
-            response.raise_for_status()
-        except Exception as e:
-            raise QueryingError(e)
+
+        response = requests.post(
+            self.service.elastic_endpoint["endpoint"],
+            data=query,
+            headers=self.service.headers_elastic,
+        )
+        BlueBrainNexus._catch_http_error(response, QueryingError)
 
         results = response.json()
         return [
