@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import json
-import requests
 from abc import abstractmethod
 
 from typing import Optional, Union, List, Type
@@ -25,6 +23,7 @@ from kgforge.core.archetypes.mapper import Mapper
 from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 from kgforge.core.commons.imports import import_class
 from kgforge.core.conversions.json import as_json, from_json
+from kgforge.core.commons.execution import not_supported
 
 
 class DatasetStore(ReadOnlyStore):
@@ -116,6 +115,10 @@ class DatasetStore(ReadOnlyStore):
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
         ...
+
+    def elastic(self, query: str, debug: bool, limit: int = None,
+                offset: int = None, **params) -> Optional[Union[List[Resource], Resource]]:
+        not_supported()
 
 
 def type_from_filters(*filters) -> Optional[str]:
