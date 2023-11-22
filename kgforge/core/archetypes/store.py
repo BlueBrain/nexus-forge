@@ -24,6 +24,7 @@ from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
     DeprecationError,
     FreezingError,
@@ -33,6 +34,7 @@ from kgforge.core.commons.exceptions import (
     UploadingError
 )
 from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 
 class Store(ReadOnlyStore):
@@ -233,41 +235,20 @@ class Store(ReadOnlyStore):
         # TODO This operation might be abstracted here when other stores will be implemented.
         not_supported()
 
-    def sparql(
-            self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
-            **params
-    ) -> Optional[Union[List[Resource], Resource]]:
-        rewrite = params.get("rewrite", True)
-        qr = (
-            rewrite_sparql(query, self.model_context, self.service.metadata_context)
-            if self.model_context is not None and rewrite
-            else query
-        )
-        if limit:
-            qr = _replace_in_sparql(qr, "LIMIT", limit, DEFAULT_LIMIT, r" LIMIT \d+")
-        if offset:
-            qr = _replace_in_sparql(qr, "OFFSET", offset, DEFAULT_OFFSET, r" OFFSET \d+")
-        if debug:
-            self._debug_query(qr)
-        return self._sparql(qr)
-
-    @abstractmethod
-    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
-        # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should not be set (default is None).
-        # POLICY Resource _synchronized should not be set (default is False).
-        ...
-
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
-    ) -> Optional[Union[List[Resource], Resource]]:
+    ) -> List[Resource]:
         query_dict = json.loads(query)
-        if limit:
-            query_dict["size"] = limit
-        if offset:
-            query_dict["from"] = offset
+
+        query_dict = ESQueryBuilder.apply_limit_and_offset_to_query(
+            query_dict,
+            limit=limit, default_limit=None,
+            offset=offset, default_offset=None
+        )
+
         if debug:
-            self._debug_query(query_dict)
+            ESQueryBuilder.debug_query(query_dict)
+
         return self._elastic(json.dumps(query_dict))
 
     @abstractmethod

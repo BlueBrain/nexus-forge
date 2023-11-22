@@ -13,16 +13,16 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import json
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Type
 from rdflib.plugins.sparql.parser import Query
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
+from kgforge.core.archetypes import Mapper
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.archetypes.dataset_store import DatasetStore
-from kgforge.core.commons.sparql_query_builder import _replace_in_sparql, rewrite_sparql, resources_from_construct_query
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict
@@ -49,7 +49,7 @@ class SPARQLStore(DatasetStore):
         self.service = self._initialize_service(endpoint, searchendpoints, **store_config)
 
     @property
-    def mapper(self) -> Optional[DictionaryMapper]:
+    def mapper(self) -> Optional[Type[Mapper]]:
         return DictionaryMapper
 
     def _download_one(
@@ -71,6 +71,9 @@ class SPARQLStore(DatasetStore):
 
     def _retrieve_filename(self, id: str) -> str:
         not_supported()
+
+    def get_metadata_context(self):
+        return self.service.context
 
     def search(self, resolvers: Optional[List["Resolver"]] = None, *filters, **params
                ) -> List[Resource]:
@@ -132,60 +135,23 @@ class SPARQLStore(DatasetStore):
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         return resources
 
-    def sparql(
-        self, query: str, debug: bool = False, limit: int = None, offset: int = None, **params
-    ) -> List[Resource]:
-        rewrite = params.get("rewrite", True)
-        qr = (
-            rewrite_sparql(query, self.model_context, self.service.context)
-            if self.model_context is not None and rewrite
-            else query
-        )
-        if rewrite:
-            qr = _replace_in_sparql(qr, "LIMIT", limit, 100, r" LIMIT \d+")
-            qr = _replace_in_sparql(qr, "OFFSET", offset, 0, r" OFFSET \d+")
-        if debug:
-            self._debug_query(qr)
-        return self._sparql(qr, limit, offset, **params)
-
-    def _sparql(self, query: str, limit: int, offset: int = None, **params
-                ) -> Optional[Union[Resource, List[Resource]]]:
+    def _sparql(self, query: str) -> Optional[Union[Resource, List[Resource]]]:
         try:
             wrapper = SPARQLWrapper(self.service.sparql_endpoint["endpoint"])
             wrapper.setQuery(query)
             wrapper.setReturnFormat(JSON)
             response = wrapper.query()
         except Exception as e:
-            raise QueryingError(e)
-        else:
-            data = response.convert()
-            # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-            #  https://github.com/BlueBrain/nexus/issues/1155
-            _, q_comp = Query.parseString(query)
-            if q_comp.name == "ConstructQuery":
-                context = self.model_context or self.context
-                return resources_from_construct_query(data, context)
-            else:
-                # SELECT QUERY
-                results = data["results"]["bindings"]
-                return self.resources_from_results(results)
+            raise QueryingError(e) from e
+
+        data = response.convert()
+        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
+        #  https://github.com/BlueBrain/nexus/issues/1155
+        context = self.model_context or self.context
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _search(self):
         not_supported()
-
-    @staticmethod
-    def resources_from_results(results):
-        return [
-            Resource(**{k: json.loads(str(v["value"]).lower()) if v['type'] == 'literal' and
-                     ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#boolean')
-                     else (int(v["value"]) if v['type'] == 'literal' and
-                           ('datatype' in v and v['datatype'] == 'http://www.w3.org/2001/XMLSchema#integer')
-                           else v["value"]
-                           )
-                     for k, v in x.items()}
-                     )
-            for x in results
-        ]
 
     # Utils.
 
@@ -214,11 +180,3 @@ class SPARQLStore(DatasetStore):
                                  searchendpoints=searchendpoints,
                                  content_type=content_type,
                                  accept=accept, **params)
-
-    @staticmethod
-    def _debug_query(query):
-        if isinstance(query, Dict):
-            print("Submitted query:", query)
-        else:
-            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-        print()

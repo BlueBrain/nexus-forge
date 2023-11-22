@@ -26,6 +26,7 @@ from kgforge.core.commons.exceptions import (
     DownloadingError,
 )
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings.dict import DictWrapper
 
@@ -191,9 +192,46 @@ class ReadOnlyStore(ABC):
         ...
 
     @abstractmethod
-    def sparql(self, query: str, debug: bool, limit: int = DEFAULT_LIMIT,
-               offset: int = DEFAULT_OFFSET,
-               **params) -> Optional[Union[List[Resource], Resource]]:
+    def get_metadata_context(self):
+        ...
+
+    def sparql(
+            self, query: str,
+            debug: bool,
+            limit: int = DEFAULT_LIMIT,
+            offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
+
+        qr = (
+            SPARQLQueryBuilder.rewrite_sparql(
+                query,
+                context=self.model_context,
+                metadata_context=self.get_metadata_context()
+            )
+            if self.model_context is not None and rewrite
+            else query
+        )
+
+        qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
+            qr,
+            limit=limit,
+            offset=offset,
+            default_limit=DEFAULT_LIMIT,
+            default_offset=DEFAULT_OFFSET
+        )
+
+        if debug:
+            SPARQLQueryBuilder.debug_query(qr)
+
+        return self._sparql(qr)
+
+    @abstractmethod
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
         ...
 
     # Versioning.
@@ -210,13 +248,6 @@ class ReadOnlyStore(ABC):
         # POLICY Should initialize the access to the store according to its configuration.
         ...
 
-    @staticmethod
-    def _debug_query(query) -> None:
-        if isinstance(query, Dict):
-            print("Submitted query:", query)
-        else:
-            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-        print()
 
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context

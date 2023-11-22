@@ -10,19 +10,17 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
-from kgforge.core.commons.context import Context
+import re
+import pytest
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.core.commons.sparql_query_builder import rewrite_sparql, _replace_in_sparql
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.resource import Resource
-import pytest
 
 
 context = {
     "@context": {
-        "@vocab":"http://example.org/vocab/",
+        "@vocab": "http://example.org/vocab/",
         "type": {
             "@id": "rdf:type",
             "@type": "@id"
@@ -41,16 +39,13 @@ context = {
     }
 }
 
-
 prefixes = {
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "prov": "http://www.w3.org/ns/prov#",
     "schema": "http://schema.org/",
 }
 
-
 prefixes_string = "\n".join([f"PREFIX {k}: <{v}>" for k, v in prefixes.items()])
-
 
 form_store_metadata_combinations = [
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> agent ?agent }",
@@ -67,9 +62,10 @@ form_store_metadata_combinations = [
      "\nSELECT ?x WHERE { <http://exaplpe.org/1234> <http://schema.org/description> ?x }"),
     ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext }",
      "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext }"),
-    ("SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
-     "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
-                       " schema:Person }"),
+    (
+    "SELECT ?x WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person }",
+    "\nSELECT ?x WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext,"
+    " schema:Person }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext ?x }",
      "\nSELECT ?x WHERE { ?id :propertyNotInContext ?x }"),
     ("SELECT ?x WHERE { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }",
@@ -78,16 +74,19 @@ form_store_metadata_combinations = [
      "\nSELECT DISTINCT ?x WHERE { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }"),
     ("SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}",
      "\nSELECT ?x WHERE { Graph ?g { ?id :propertyNotInContext/schema:name/:anotherPropertyNotInContext ?x }}"),
-    ("SELECT * WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person; deprecated false.}",
-     "\nSELECT * WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext, schema:Person; <https://store.net/vocabulary/deprecated> false.}")
+    (
+    "SELECT * WHERE { <http://exaplpe.org/1234> a TypeNotInContext, AnotherNotTypeInContext, Person; deprecated false.}",
+    "\nSELECT * WHERE { <http://exaplpe.org/1234> a :TypeNotInContext, :AnotherNotTypeInContext, schema:Person; <https://store.net/vocabulary/deprecated> false.}")
 ]
 
 
 @pytest.mark.parametrize("query, expected", form_store_metadata_combinations)
 def test_rewrite_sparql(query, expected, metadata_context):
-    prefixes_string_vocab = "\n".join([prefixes_string, f"PREFIX : <http://example.org/vocab/>"])
+    prefixes_string_vocab = "\n".join([prefixes_string, "PREFIX : <http://example.org/vocab/>"])
     context_object = Context(document=context)
-    result = rewrite_sparql(query, context_object, metadata_context=metadata_context)
+    result = SPARQLQueryBuilder.rewrite_sparql(
+        query, context_object, metadata_context=metadata_context
+    )
     assert result == prefixes_string_vocab + expected
 
 
@@ -96,15 +95,15 @@ def test_rewrite_sparql_unknownterm_missing_vocab(custom_context, metadata_conte
     assert not context_object.has_vocab()
     with pytest.raises(QueryingError):
         query = "SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}"
-        rewrite_sparql(query, context_object, metadata_context)
+        SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
 
 
 def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
     query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
-    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n"\
+    expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n" \
                "PREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX mba: <http://api.brain-map.org/api/v2/data/Structure/>\nPREFIX nsg: <https://neuroshapes.org/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
     context_object = Context(document=custom_context)
-    result = rewrite_sparql(query, context_object, metadata_context)
+    result = SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
     assert result == expected
 
 
@@ -128,31 +127,41 @@ replace_in_sparql_combinations = [
      "LIMIT", None, 100, r" LIMIT \d+", False,
      "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
-         "OFFSET", 1, 0, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  OFFSET 1"),
+     "OFFSET", 1, 0, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }  OFFSET 1"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }",
-         "OFFSET", None, 0, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
+     "OFFSET", None, 0, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent }"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 3",
-         "OFFSET", None, 20, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 20"),
+     "OFFSET", None, 20, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } OFFSET 20"),
     ("SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 3",
-         "OFFSET", 5, None, r" OFFSET \d+", True,
-         "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 5")
+     "OFFSET", 5, None, r" OFFSET \d+", True,
+     "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10 OFFSET 5")
 ]
 
-@pytest.mark.parametrize("query, what, value, default_value, search_regex, replace_if_in_query, expected",
-                         replace_in_sparql_combinations)
-def test__replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query, expected):
-    result = _replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query)
+
+@pytest.mark.parametrize(
+    "query, what, value, default_value, search_regex, replace_if_in_query, expected",
+    replace_in_sparql_combinations)
+def test__replace_in_sparql(query, what, value, default_value, search_regex, replace_if_in_query,
+                            expected):
+    result = SPARQLQueryBuilder._replace_in_sparql(
+        query, what, value, default_value, re.compile(search_regex, flags=re.IGNORECASE),
+        replace_if_in_query
+    )
     assert result == expected
 
 
 def test__replace_in_sparql_exception():
     with pytest.raises(QueryingError):
         query = "SELECT ?agent WHERE { <http://exaplpe.org/1234> prov:agent ?agent } LIMIT 10"
-        _replace_in_sparql(query, what="LIMIT", value=10, default_value=None, search_regex=r" LIMIT \d+",
-                           replace_if_in_query=False)
+        SPARQLQueryBuilder._replace_in_sparql(
+            query, what="LIMIT", value=10, default_value=None,
+            search_regex=re.compile(r"LIMIT \d+", flags=re.IGNORECASE),
+            replace_if_in_query=False
+        )
+
 
 class TestSPARQLQueryBuilder:
     @pytest.mark.parametrize(
@@ -267,183 +276,183 @@ class TestSPARQLQueryBuilder:
                             }
                 """),
                 ({
-    "head": {
-        "vars": [
-            "subject",
-            "predicate",
-            "object",
-            "context"
-        ]
-    },
-    "results": {
-        "bindings": [
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2002/07/owl#Class"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "literal",
-                    "value": "Isocortex"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2000/01/rdf-schema#label"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "literal",
-                    "value": "Isocortex"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2004/02/skos/core#prefLabel"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "https://neuroshapes.org/BrainRegion"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "literal",
-                    "value": "Isocortex"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://www.w3.org/2004/02/skos/core#notation"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "https://neuroshapes.org/atlasRelease"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "datatype": "http://www.w3.org/2001/XMLSchema#integer",
-                    "type": "literal",
-                    "value": "315"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://schema.org/identifier"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "http://purl.obolibrary.org/obo/UBERON_0001950"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "https://bbp.epfl.ch/ontologies/core/bmo/delineatedBy"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-                    "type": "literal",
-                    "value": "true"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            },
-            {
-                "object": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/695"
-                },
-                "predicate": {
-                    "type": "uri",
-                    "value": "http://schema.org/isPartOf"
-                },
-                "subject": {
-                    "type": "uri",
-                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
-                }
-            }
-        ]
-    }
-}),
+                    "head": {
+                        "vars": [
+                            "subject",
+                            "predicate",
+                            "object",
+                            "context"
+                        ]
+                    },
+                    "results": {
+                        "bindings": [
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2002/07/owl#Class"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "literal",
+                                    "value": "Isocortex"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2000/01/rdf-schema#label"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "literal",
+                                    "value": "Isocortex"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2004/02/skos/core#prefLabel"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "https://neuroshapes.org/BrainRegion"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2000/01/rdf-schema#subClassOf"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "literal",
+                                    "value": "Isocortex"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://www.w3.org/2004/02/skos/core#notation"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "https://neuroshapes.org/atlasRelease"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                                    "type": "literal",
+                                    "value": "315"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://schema.org/identifier"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "http://purl.obolibrary.org/obo/UBERON_0001950"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/ontologies/core/bmo/delineatedBy"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+                                    "type": "literal",
+                                    "value": "true"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            },
+                            {
+                                "object": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/695"
+                                },
+                                "predicate": {
+                                    "type": "uri",
+                                    "value": "http://schema.org/isPartOf"
+                                },
+                                "subject": {
+                                    "type": "uri",
+                                    "value": "http://api.brain-map.org/api/v2/data/Structure/315"
+                                }
+                            }
+                        ]
+                    }
+                }),
                 ({
                     "id": "http://api.brain-map.org/api/v2/data/Structure/315",
                     "type": "Class",
                     "label": "Isocortex",
                     "atlasRelease":
-                    {
-                        "id": "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
-                    },
+                        {
+                            "id": "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
+                        },
                     "delineatedBy": "obo:UBERON_0001950",
                     "identifier": 315,
                     "isDefinedBy": "http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion",
@@ -502,84 +511,84 @@ class TestSPARQLQueryBuilder:
                 ({
                     "head": {
                         "vars": [
-                        "id",
-                        "_constrainedBy",
-                        "_createdAt",
-                        "_createdBy",
-                        "_deprecated",
-                        "_incoming",
-                        "_outgoing",
-                        "_project",
-                        "_rev",
-                        "_schemaProject",
-                        "_self",
-                        "_updatedAt",
-                        "_updatedBy"
+                            "id",
+                            "_constrainedBy",
+                            "_createdAt",
+                            "_createdBy",
+                            "_deprecated",
+                            "_incoming",
+                            "_outgoing",
+                            "_project",
+                            "_rev",
+                            "_schemaProject",
+                            "_self",
+                            "_updatedAt",
+                            "_updatedBy"
                         ]
                     },
                     "results": {
                         "bindings": [
-                        {
-                            "id": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/ontologies/core/celltypes/PV_plus"
-                            },
-                            "_constrainedBy": {
-                            "type": "uri",
-                            "value": "https://neuroshapes.org/dash/ontologyentity"
-                            },
-                            "_createdAt": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#dateTime",
-                            "type": "literal",
-                            "value": "2022-08-29T12:54:15.376Z"
-                            },
-                            "_createdBy": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/sy"
-                            },
-                            "_deprecated": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-                            "type": "literal",
-                            "value": "false"
-                            },
-                            "_incoming": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus/incoming"
-                            },
-                            "_outgoing": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus/outgoing"
-                            },
-                            "_project": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/projects/neurosciencegraph/datamodels"
-                            },
-                            "_rev": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#integer",
-                            "type": "literal",
-                            "value": "36"
-                            },
-                            "_schemaProject": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/projects/neurosciencegraph/datamodels"
-                            },
-                            "_self": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus"
-                            },
-                            "_updatedAt": {
-                            "datatype": "http://www.w3.org/2001/XMLSchema#dateTime",
-                            "type": "literal",
-                            "value": "2023-09-28T10:52:04.387Z"
-                            },
-                            "_updatedBy": {
-                            "type": "uri",
-                            "value": "https://bbp.epfl.ch/nexus/v1/realms/serviceaccounts/users/service-account-brain-modeling-ontology-ci-cd"
+                            {
+                                "id": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/ontologies/core/celltypes/PV_plus"
+                                },
+                                "_constrainedBy": {
+                                    "type": "uri",
+                                    "value": "https://neuroshapes.org/dash/ontologyentity"
+                                },
+                                "_createdAt": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#dateTime",
+                                    "type": "literal",
+                                    "value": "2022-08-29T12:54:15.376Z"
+                                },
+                                "_createdBy": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/sy"
+                                },
+                                "_deprecated": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+                                    "type": "literal",
+                                    "value": "false"
+                                },
+                                "_incoming": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus/incoming"
+                                },
+                                "_outgoing": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus/outgoing"
+                                },
+                                "_project": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/projects/neurosciencegraph/datamodels"
+                                },
+                                "_rev": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                                    "type": "literal",
+                                    "value": "36"
+                                },
+                                "_schemaProject": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/projects/neurosciencegraph/datamodels"
+                                },
+                                "_self": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/https:%2F%2Fbbp.epfl.ch%2Fontologies%2Fcore%2Fcelltypes%2FPV_plus"
+                                },
+                                "_updatedAt": {
+                                    "datatype": "http://www.w3.org/2001/XMLSchema#dateTime",
+                                    "type": "literal",
+                                    "value": "2023-09-28T10:52:04.387Z"
+                                },
+                                "_updatedBy": {
+                                    "type": "uri",
+                                    "value": "https://bbp.epfl.ch/nexus/v1/realms/serviceaccounts/users/service-account-brain-modeling-ontology-ci-cd"
+                                }
                             }
-                        }
                         ]
                     }
-                    }),
+                }),
                 ({
                     "id": "https://bbp.epfl.ch/ontologies/core/celltypes/PV_plus",
                     "_constrainedBy": "https://neuroshapes.org/dash/ontologyentity",
@@ -600,17 +609,17 @@ class TestSPARQLQueryBuilder:
         ]
     )
     def test_build_resource_from_response(
-        self,
-        query,
-        response,
-        resource_json,
-        custom_context,
-        forge
+            self,
+            query,
+            response,
+            resource_json,
+            custom_context,
+            forge
     ):
         custom_context_object = Context(custom_context, "http://store.org/metadata.json")
-        results = SPARQLQueryBuilder.build_resource_from_response(query, response, custom_context_object)
+        results = SPARQLQueryBuilder.build_resource_from_response(
+            query, response, custom_context_object
+        )
         assert len(results) == 1
         assert isinstance(results[0], Resource)
         assert resource_json == forge.as_json(results[0])
-
-  
