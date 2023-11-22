@@ -14,8 +14,6 @@
 
 import requests
 from typing import Dict, List, Optional, Union, Any, Type
-from rdflib.plugins.sparql.parser import Query
-from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapper
