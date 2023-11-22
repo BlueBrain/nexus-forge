@@ -871,8 +871,7 @@ class BlueBrainNexus(Store):
         BlueBrainNexus._catch_http_error(response, QueryingError)
 
         data = response.json()
-        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-        #  https://github.com/BlueBrain/nexus/issues/1155
+
         context = self.model_context or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 

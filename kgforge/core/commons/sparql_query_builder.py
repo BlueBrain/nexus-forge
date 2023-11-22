@@ -186,7 +186,8 @@ class SPARQLQueryBuilder(QueryBuilder):
     ) -> List[Resource]:
         _, q_comp = Query.parseString(query)
         bindings = response["results"]["bindings"]
-
+        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
+        #  https://github.com/BlueBrain/nexus/issues/1155
         if q_comp.name == "ConstructQuery":
             return SPARQLQueryBuilder.build_resource_from_construct_query(bindings, context)
 

@@ -12,20 +12,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import json
 from typing import Dict, List, Optional, Union, Any, Type
-from rdflib.plugins.sparql.parser import Query
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapper
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
-from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.archetypes.dataset_store import DatasetStore
-from kgforge.core.wrappings.dict import DictWrapper
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict
+from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
@@ -60,7 +58,7 @@ class SPARQLStore(DatasetStore):
         cross_bucket: bool,
     ) -> None:
         # path: FilePath.
-        # TODO define dowloading method
+        # TODO define downloading method
         # POLICY Should notify of failures with exception DownloadingError including a message.
         not_supported()
 
@@ -75,8 +73,9 @@ class SPARQLStore(DatasetStore):
     def get_metadata_context(self):
         return self.service.context
 
-    def search(self, resolvers: Optional[List["Resolver"]] = None, *filters, **params
-               ) -> List[Resource]:
+    def search(
+            self, resolvers: Optional[List["Resolver"]] = None, *filters, **params
+    ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
         # A dictionary can be provided for filters:
         #  - {'key1': 'val', 'key2': {'key3': 'val'}} will be translated to
@@ -145,9 +144,8 @@ class SPARQLStore(DatasetStore):
             raise QueryingError(e) from e
 
         data = response.convert()
-        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-        #  https://github.com/BlueBrain/nexus/issues/1155
-        context = self.model_context or self.context
+
+        context = self.model_context or self.context  # TODO self.context?
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _search(self):
@@ -173,10 +171,12 @@ class SPARQLStore(DatasetStore):
             store_context = store_config.pop('store_context', None)
 
         except Exception as ve:
-            raise ValueError(f"Store configuration error: {ve}")
-        else:
-            return SPARQLService(endpoint=endpoint, model_context=self.model_context,
-                                 store_context=store_context, max_connection=max_connection,
-                                 searchendpoints=searchendpoints,
-                                 content_type=content_type,
-                                 accept=accept, **params)
+            raise ValueError(f"Store configuration error: {ve}") from ve
+
+        return SPARQLService(
+            endpoint=endpoint, model_context=self.model_context,
+            store_context=store_context, max_connection=max_connection,
+            searchendpoints=searchendpoints,
+            content_type=content_type,
+            accept=accept, **params
+        )
