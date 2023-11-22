@@ -248,7 +248,6 @@ class ReadOnlyStore(ABC):
         # POLICY Should initialize the access to the store according to its configuration.
         ...
 
-
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context
         :param uri: a URI to rewrite.
