@@ -52,6 +52,9 @@ class DemoStore(Store):
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
 
+    def get_metadata_context(self):
+        return None
+
     # [C]RUD.
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
