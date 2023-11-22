@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import re
 import json
 from abc import abstractmethod
 from pathlib import Path
@@ -31,58 +30,11 @@ from kgforge.core.commons.exceptions import (
     RegistrationError,
     TaggingError,
     UpdatingError,
-    UploadingError,
-    QueryingError
+    UploadingError
 )
 from kgforge.core.commons.execution import not_supported, run
 
-SPARQL_CLAUSES = [
-    "where",
-    "filter",
-    "select",
-    "union",
-    "limit",
-    "construct",
-    "optional",
-    "bind",
-    "values",
-    "offset",
-    "order by",
-    "prefix",
-    "graph",
-    "distinct",
-    "in",
-    "as",
-    "base",
-    "prefix",
-    "reduced",
-    "describe",
-    "ask",
-    "named",
-    "asc",
-    "desc",
-    "from",
-    "optional",
-    "graph",
-    "regex",
-    "union",
-    "str",
-    "lang",
-    "langmatches",
-    "datatype",
-    "bound",
-    "sameTerm",
-    "isIRI",
-    "isURI",
-    "isBLANK",
-    "isLITERAL",
-    "group",
-    "by",
-    "order",
-    "minus",
-    "not",
-    "exists"
-]
+
 
 
 class Store(ReadOnlyStore):
@@ -359,79 +311,3 @@ class Store(ReadOnlyStore):
             resource.id = self.versioned_id_template.format(x=resource)
 
 
-def _replace_in_sparql(qr, what, value, default_value, search_regex, replace_if_in_query=True):
-    is_what_in_query = bool(re.search(f"{search_regex}", qr, flags=re.IGNORECASE))
-    if is_what_in_query and value and not replace_if_in_query:
-        raise QueryingError(
-            f"Value for '{what}' is present in the provided query and set as argument: set 'replace_if_in_query' to True to replace '{what}' when present in the query.")
-    replace_value = f" {what} {value}" if value else (
-        f" {what} {default_value}" if default_value else None)
-    if is_what_in_query and replace_if_in_query and replace_value:
-        qr = re.sub(f"{search_regex}", replace_value, qr, flags=re.IGNORECASE)
-    if not is_what_in_query and replace_value:
-        qr = f"{qr} {replace_value}"
-    return qr
-
-
-def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
-    """Rewrite local property and type names from Model.template() as IRIs.
-
-    Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }} from a kgforge.core.commons.Context.
-    In the case of contexts using prefixed names, prefixes are added to the SPARQL query prologue.
-    In the case of non available contexts and vocab then the query is returned unchanged.
-    """
-    ctx = {}
-    if metadata_context and metadata_context.document:
-        ctx.update({
-            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-            for k, v in metadata_context.document["@context"].items()
-        })
-    ctx.update({
-        k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-        for k, v in context.document["@context"].items()
-    })
-    prefixes = context.prefixes
-    has_prefixes = prefixes is not None and len(prefixes.keys()) > 0
-    if ctx.get("type") == "@type":
-        if "rdf" in prefixes:
-            ctx["type"] = "rdf:type"
-        else:
-            ctx["type"] = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-
-    def replace(match: Match) -> str:
-        m4 = match.group(4)
-        if m4 is None:
-            return match.group(0)
-
-        v = (
-            ctx.get(m4, ":" + m4 if context.has_vocab() else None)
-            if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
-            else m4
-        )
-        if v is None:
-            raise QueryingError(
-                f"Failed to construct a valid SPARQL query: add '{m4}'"
-                f", define an @vocab in the configured JSON-LD context or provide a fully correct SPARQL query."
-            )
-        m5 = match.group(5)
-        if "//" in v:
-            return f"<{v}>{m5}"
-
-        return f"{v}{m5}"
-
-    g4 = r"([a-zA-Z_]+)"
-    g5 = r"([.;]?)"
-    g0 = rf"((?<=[\s,[(/|!^])((a|true|false)|{g4}){g5}(?=[\s,\])/|?*+]))"
-    g6 = r"(('[^']+')|('''[^\n\r]+''')|(\"[^\"]+\")|(\"\"\"[^\n\r]+\"\"\"))"
-    rx = rf"{g0}|{g6}|(?<=< )(.*)(?= >)"
-    qr = re.sub(rx, replace, query, flags=re.VERBOSE | re.MULTILINE)
-
-    if not has_prefixes or "prefix" in str(qr).lower():
-        return qr
-
-    pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
-
-    if context.has_vocab():
-        pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
-
-    return f"{pfx}\n{qr}"
