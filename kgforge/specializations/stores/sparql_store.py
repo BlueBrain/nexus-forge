@@ -13,27 +13,23 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import json
-from pathlib import Path
-from typing import Dict, List, Callable, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any
 from rdflib.plugins.sparql.parser import Query
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 from kgforge.core import Resource
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
+from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.core.archetypes.dataset_store import DatasetStore
-from kgforge.core.archetypes.store import _replace_in_sparql, rewrite_sparql, resources_from_construct_query
-from kgforge.core.commons.context import Context
+from kgforge.core.commons.sparql_query_builder import _replace_in_sparql, rewrite_sparql, resources_from_construct_query
 from kgforge.core.wrappings.dict import DictWrapper
-from kgforge.specializations.stores.databases import Service
+from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.specializations.stores.bluebrain_nexus import (
-    CategoryDataType,
     _create_select_query
 )
 
@@ -41,12 +37,20 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 class SPARQLStore(DatasetStore):
     """A Store specialized for SPARQL queries, supporting only Reading (searching) methods."""
 
-    def __init__(self, model: Optional[Model] = None, endpoint: Optional[str] = None, bucket: Optional[str] = None,
-                 token: Optional[str] = None, versioned_id_template: Optional[str] = None,
+    def __init__(self, model: Optional[Model] = None,
+                 endpoint: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None,
-                 searchendpoints: Optional[Dict] = None, **store_config) -> None:
+                 searchendpoints: Optional[Dict] = None,
+                 **store_config) -> None:
         super().__init__(model)
+        self.endpoint = endpoint
+        self.file_resource_mapping = file_resource_mapping
+        self.searchendpoints = searchendpoints
+        self.service = self._initialize_service(endpoint, searchendpoints, **store_config)
+
+    @property
+    def mapper(self) -> Optional[DictionaryMapper]:
+        return DictionaryMapper
 
     def _download_one(
         self,
@@ -73,7 +77,7 @@ class SPARQLStore(DatasetStore):
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
         # A dictionary can be provided for filters:
         #  - {'key1': 'val', 'key2': {'key3': 'val'}} will be translated to
-        #  - [Filter(operator='__eq__', path=['key1'], value='val'), 
+        #  - [Filter(operator='__eq__', path=['key1'], value='val'),
         #     Filter(operator='__eq__', path=['key2', 'key3'], value='val')]
         # Keyword arguments in 'params' could be:
         #   - debug: bool,
@@ -133,8 +137,8 @@ class SPARQLStore(DatasetStore):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
         qr = (
-            rewrite_sparql(query, self.context, self.service.context)
-            if self.context is not None and rewrite
+            rewrite_sparql(query, self.model_context, self.service.context)
+            if self.model_context is not None and rewrite
             else query
         )
         if rewrite:
@@ -144,7 +148,8 @@ class SPARQLStore(DatasetStore):
             self._debug_query(qr)
         return self._sparql(qr, limit, offset, **params)
 
-    def _sparql(self, query: str, limit: int, offset: int = None, **params) -> List[Resource]:
+    def _sparql(self, query: str, limit: int, offset: int = None, **params
+                ) -> Optional[Union[Resource, List[Resource]]]:
         try:
             wrapper = SPARQLWrapper(self.service.sparql_endpoint["endpoint"])
             wrapper.setQuery(query)
@@ -164,6 +169,9 @@ class SPARQLStore(DatasetStore):
                 # SELECT QUERY
                 results = data["results"]["bindings"]
                 return self.resources_from_results(results)
+
+    def _search(self):
+        not_supported()
 
     @staticmethod
     def resources_from_results(results):
@@ -201,8 +209,11 @@ class SPARQLStore(DatasetStore):
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}")
         else:
-            return Service(endpoint=endpoint, model_context=self.model_context, store_context=store_context, max_connection=max_connection,
-                           searchendpoints=searchendpoints, content_type=content_type, accept=accept, **params)
+            return SPARQLService(endpoint=endpoint, model_context=self.model_context,
+                                 store_context=store_context, max_connection=max_connection,
+                                 searchendpoints=searchendpoints,
+                                 content_type=content_type,
+                                 accept=accept, **params)
 
     @staticmethod
     def _debug_query(query):

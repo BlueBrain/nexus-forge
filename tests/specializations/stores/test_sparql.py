@@ -14,74 +14,41 @@
 
 import pytest
 
-from kgforge.core.commons.context import Context
-from kgforge.specializations.stores.sparql import SPARQLStore
+from utils import full_path_relative_to_root
+from kgforge.specializations.models.rdf_model import RdfModel
+from kgforge.specializations.stores.sparql_store import SPARQLStore
 
 
 SEARCH_ENDPOINT = {"sparql": {"endpoint": "http://dbpedia.org/sparql"}}
 
-@pytest.fixture
-def dict_context():
-    document = {
-        "@context": {
-        "owl": "http://www.w3.org/2002/07/owl#",
-        "owl2xml": "http://www.w3.org/2006/12/owl2-xml#",
-        "swrlb": "http://www.w3.org/2003/11/swrlb#",
-        "protege": "http://protege.stanford.edu/plugins/owl/protege#",
-        "swrl":  "http://www.w3.org/2003/11/swrl#",
-        "xsd":   "http://www.w3.org/2001/XMLSchema#",
-        "skos":  "http://www.w3.org/2004/02/skos/core#",
-        "rdfs":  "http://www.w3.org/2000/01/rdf-schema#",
-        "rdf":   "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-        "foaf":  "http://xmlns.com/foaf/0.1/",
-        "dbpedia2": "http://dbpedia.org/property/",
-        "dbpedia": "http://dbpedia.org/",
-        "dbo":   "http://dbpedia.org/ontology/",
-        "dbr": "http://dbpedia.org/resource/",
-        "id": {
-            "@id": "http://www.geneontology.org/formats/oboInOwl#id"
-        },
-        "MusicalArtist": {
-            "@id": "dbo:MusicalArtist"
-        },
-        "birthDate": {
-            "@id": "dbo:birthDate"
-        },
-        "birthPlace": {
-            "@id": "dbo:birthPlace"
-        },
-        "type": {
-            "@id": "rdf:type"
-        },
-        "Berlin": {
-            "@id": "dbr:Berlin"
-        },
-        "@id": "https://bbp.epfl.ch/jsonldcontext/db/dbpedia"
-    }
-    }
-    return document
 
 @pytest.fixture
-def store_context(dict_context):
-    return Context(dict_context)
+def rdfmodel():
+    model = RdfModel(origin='directory',
+                     source=full_path_relative_to_root("tests/data/dbpedia-model"),
+                     context={'iri': full_path_relative_to_root("tests/data/dbpedia-model/context.json")}
+                     )
+    return model
+
+def test_config_(rdfmodel):
+    with pytest.raises(ValueError):
+        SPARQLStore(
+            model=rdfmodel,
+            searchendpoints={"elastic": {"endpoint": "http://demoiri"}}
+        )
 
 @pytest.fixture
-def sparql_store(store_context):
+def sparqlstore(rdfmodel):
     return SPARQLStore(
-        model_context=store_context,
-        searchendpoints=SEARCH_ENDPOINT,
-        store_context=store_context
+        model=rdfmodel,
+        searchendpoints=SEARCH_ENDPOINT
     )
 
-def test_config_error():
-    with pytest.raises(ValueError):
-        SPARQLStore(endpoint="test", bucket="invalid")
+def test_config(sparqlstore, rdfmodel):
+    assert sparqlstore.model == rdfmodel
+    assert not sparqlstore.endpoint
+    assert sparqlstore.model_context == rdfmodel.context()
 
-def test_config(sparql_store, store_context):
-    assert sparql_store.bucket == None
-    assert sparql_store.endpoint == None
-    assert sparql_store.context == store_context
-
-def test_search_params(sparql_store):
+def test_search_params(sparqlstore):
     with pytest.raises(ValueError):
-        sparql_store.search(filters=[None])
+        sparqlstore.search(filters=[None])

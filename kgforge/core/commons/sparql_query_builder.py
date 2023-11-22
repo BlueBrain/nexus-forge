@@ -310,3 +310,40 @@ def rewrite_sparql(query: str, context: Context, metadata_context) -> str:
         pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
 
     return f"{pfx}\n{qr}"
+
+
+def resources_from_construct_query(data, context) -> List[Resource]:
+    """Build resources from a CONSTRUCT query."""
+    subject_triples = {}
+    for r in data["results"]["bindings"]:
+        subject = r["subject"]["value"]
+        s = f"<{r['subject']['value']}>"
+        p = f"<{r['predicate']['value']}>"
+        if r["object"]["type"] == "uri":
+            o = f"<{r['object']['value']}>"
+        else:
+            if "datatype" in r["object"]:
+                o = f"\"{r['object']['value']}\"^^{r['object']['datatype']}"
+            else:
+                o = f"\"{r['object']['value']}\""
+        if subject in subject_triples:
+            subject_triples[subject] += f"\n{s} {p} {o} . "
+        else:
+            subject_triples[subject] = f"{s} {p} {o} . "
+
+    def triples_to_resource(iri, triples):
+        graph = Graph().parse(data=triples, format="nt")
+        data_expanded = json.loads(graph.serialize(format="json-ld"))
+        data_expanded = json.loads(graph.serialize(format="json-ld"))
+        frame = {"@id": iri}
+        data_framed = jsonld.frame(data_expanded, frame)
+        compacted = jsonld.compact(data_framed, context.document)
+        resource = from_jsonld(compacted)
+        resource.context = (
+            context.iri
+            if context.is_http_iri()
+            else context.document["@context"]
+        )
+        return resource
+
+    return [triples_to_resource(s, t) for s, t in subject_triples.items()]

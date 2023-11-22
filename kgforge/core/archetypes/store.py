@@ -35,8 +35,6 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import not_supported, run
 
 
-
-
 class Store(ReadOnlyStore):
 
     # See demo_store.py in kgforge/specializations/stores/ for a reference implementation.
@@ -309,5 +307,3 @@ class Store(ReadOnlyStore):
                 self._freeze_one(v)
         if hasattr(resource, "id"):
             resource.id = self.versioned_id_template.format(x=resource)
-
-

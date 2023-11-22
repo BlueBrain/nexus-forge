@@ -20,7 +20,6 @@ from kgforge.core.archetypes.read_only_store import ReadOnlyStore
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
-from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 from kgforge.core.commons.imports import import_class
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.commons.execution import not_supported
@@ -55,6 +54,7 @@ class DatasetStore(ReadOnlyStore):
             if isinstance(resource, Resource):
                 resource_dict = as_json(resource, expanded=False, store_metadata=False,
                                         model_context=self.model_context,
+                                        metadata_context=None,
                                         context_resolver=self.model.resolve_context)
             else:
                 resource_dict = resource
