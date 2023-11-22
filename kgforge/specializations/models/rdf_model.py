@@ -21,11 +21,12 @@ from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
 from kgforge.core import Resource
+from kgforge.core.archetypes import Mapping
+from kgforge.core.commons.execution import run
 from kgforge.core.archetypes import Model, Store
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import run
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -59,6 +60,7 @@ DEFAULT_VALUE = {
     XSD.dateTime: datetime.datetime(9999, 12, 31).isoformat(),
 }
 
+
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 
 
@@ -86,6 +88,26 @@ class RdfModel(Model):
         document = self.service.generate_context()
         if document:
             return Context(document)
+
+    # Mappings.
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        dirpath = Path(source, "mappings")
+        mappings = {}
+        if dirpath.is_dir():
+            for x in dirpath.glob("*/*.hjson"):
+                mappings.setdefault(x.stem, []).append(x.parent.name)
+        else:
+            raise ValueError(f"unrecognized source {dirpath}")
+        return mappings
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        filename = f"{entity}.hjson"
+        filepath = Path(source, "mappings", type.__name__, filename)
+        if filepath.is_file():
+            return type.load(filepath)
+        else:
+            raise ValueError(f"unrecognized entity type or source file: {filepath}")
 
     # Templates.
 

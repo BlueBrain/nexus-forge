@@ -1,0 +1,51 @@
+{
+  "id": forge.format('identifier', "protocolannotations", x.expID)
+  "description": f"This resource contains experimental parameters used to measure the electrophysiological features reported in article_{x.ArticleID}"
+  "type": [
+    "Entity"
+    "Protocol"
+    "ParameterAnnotation"
+    "Annotation"
+  ]
+  "hasBody": x.AnnotationBody
+  "hasTarget": {
+    "type": "AnnotationTarget"
+    "hasSource": {
+      "id": f"https://bbp.epfl.ch/neurosciencegraph/data/scholarlyarticles/{str(x.ArticleID)}"
+      "type": "ScholarlyArticle"
+    }
+  }
+  "brainLocation": {
+    "type": "BrainLocation"
+    "atlasSpatialReferenceSystem": {
+      "id": "https://bbp.epfl.ch/neurosciencegraph/data/allen_ccfv3_spatial_reference_system"
+      "type": [
+        "AtlasSpatialReferenceSystem"
+        "BrainAtlasSpatialReferenceSystem"
+      ]
+    }
+    "brainRegion": x.resolvedBrainRegion
+  }
+  "atlasRelease": {
+    "id": "https://bbp.epfl.ch/neurosciencegraph/data/831a626a-c0ae-4691-8ce8-cfb7491345d9"
+    "type": [
+      "BrainAtlasRelease"
+      "AtlasRelease"
+    ]
+  }
+  "isRegisteredIn": {
+    "id": "https://bbp.epfl.ch/neurosciencegraph/data/allen_ccfv3_spatial_reference_system"
+    "type": [
+      "AtlasSpatialReferenceSystem"
+      "BrainAtlasSpatialReferenceSystem"
+    ]
+  }
+  "subject": {
+    "type": "Subject"
+    "species": x.resolvedSpecies
+    "strain":  x.resolvedStrain
+    "age": x.ageObject
+  }
+  "name": f"Experimental parameters from article with PubMed ID {x.Pmid}"
+  "note": x.note
+}

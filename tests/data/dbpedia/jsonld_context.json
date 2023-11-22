@@ -1,0 +1,33 @@
+{
+    "@context": {
+        "owl": "http://www.w3.org/2002/07/owl#",
+        "owl2xml": "http://www.w3.org/2006/12/owl2-xml#",
+        "swrlb": "http://www.w3.org/2003/11/swrlb#",
+        "protege": "http://protege.stanford.edu/plugins/owl/protege#",
+        "swrl":  "http://www.w3.org/2003/11/swrl#",
+        "xsd":   "http://www.w3.org/2001/XMLSchema#",
+        "skos":  "http://www.w3.org/2004/02/skos/core#",
+        "rdfs":  "http://www.w3.org/2000/01/rdf-schema#",
+        "rdf":   "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "foaf":  "http://xmlns.com/foaf/0.1/",
+        "dbpedia2": "http://dbpedia.org/property/",
+        "dbpedia": "http://dbpedia.org/",
+        "dbo":   "http://dbpedia.org/ontology/",
+        "id": {
+            "@id": "http://www.geneontology.org/formats/oboInOwl#id"
+        },
+        "MusicalArtist": {
+            "@id": "dbo:MusicalArtist"
+        },
+        "birthDate": {
+            "@id": "dbo:birthDate"
+        },
+        "birthPlace": {
+            "@id": "dbo:birthPlace"
+        },
+        "type": {
+            "@id": "rdf:type"
+        },
+        "@id": "https://bbp.epfl.ch/jsonldcontext/db/dbpedia"
+    }
+}

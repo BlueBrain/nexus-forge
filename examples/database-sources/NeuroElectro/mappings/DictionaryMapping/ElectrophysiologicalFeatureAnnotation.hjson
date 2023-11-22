@@ -1,0 +1,48 @@
+{
+  "id": forge.format('identifier', "electrophysiologicalfeatureannotations", x.bbpID)
+  "type": [
+    "Entity"
+    "Annotation"
+  ]
+  "description": f"This resource contains Electrophysiological Feature Annotations for {x.NeuronName}"
+  "hasBody": x.AnnotationBody
+  "hasTarget": {
+    "type": "AnnotationTarget"
+    "hasSelector": x.Selector
+    "hasSource": {
+      "id": f"https://bbp.epfl.ch/neurosciencegraph/data/scholarlyarticles/{str(x.ArticleID)}"
+      "type": "ScholarlyArticle"
+    }
+  }
+  "subject": {
+    "type": "Subject"
+    "species": x.resolvedSpecies
+    "strain":  x.resolvedStrain
+  }
+  "brainLocation": {
+    "type": "BrainLocation"
+    "atlasSpatialReferenceSystem": {
+      "id": "https://bbp.epfl.ch/neurosciencegraph/data/allen_ccfv3_spatial_reference_system"
+      "type": [
+        "AtlasSpatialReferenceSystem"
+        "BrainAtlasSpatialReferenceSystem"
+      ]
+    }
+    "brainRegion": x.resolvedBrainRegion
+  }
+  "atlasRelease": {
+    "id": "https://bbp.epfl.ch/neurosciencegraph/data/831a626a-c0ae-4691-8ce8-cfb7491345d9"
+    "type": [
+      "BrainAtlasRelease"
+      "AtlasRelease"
+    ]
+  }
+  "isRegisteredIn": {
+    "id": "https://bbp.epfl.ch/neurosciencegraph/data/allen_ccfv3_spatial_reference_system"
+    "type": [
+      "AtlasSpatialReferenceSystem"
+      "BrainAtlasSpatialReferenceSystem"
+    ]
+  }
+  "name": f"Annotation for {x.NeuronPrefName}"
+}

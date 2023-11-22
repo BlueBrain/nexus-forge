@@ -407,11 +407,10 @@ def _unpack_from_list(data):
     return node
 
 
-def _add_ld_keys(
-        rsc: [Resource, Dict],
-        context: Optional[Union[Dict, List, str]],
-        base: Optional[str],
-) -> Union[Dict, List[str]]:
+def _add_ld_keys(rsc: [Resource, Dict],
+                 context: Optional[Union[Dict, List, str]],
+                 base: Optional[str],
+                ) -> Union[Dict, List[str]]:
     local_attrs = {}
     local_context = None
     json_arrays = []

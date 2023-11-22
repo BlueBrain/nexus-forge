@@ -1,0 +1,32 @@
+{
+  "type": "AnnotationBody"
+  "isMeasurementOf": {
+    "id": x.ephys_id
+    "label": x.resolved_name
+  }
+  "value": 
+   { 
+      "series": [
+      {
+       "statistic": "raw"
+       "unitCode": x.units
+       "value": x.value['raw']
+      }
+      {
+       "statistic": "error"
+       "unitCode": x.units
+       "value": x.value['err']
+      }
+      {
+       "statistic": "N"
+       "unitCode": x.units
+       "value": x.value['n']
+      }
+      {
+       "statistic": "standard deviation"
+       "unitCode": x.units
+       "value": x.value['sd']
+      }
+      ]
+   }
+}

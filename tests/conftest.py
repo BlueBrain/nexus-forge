@@ -422,7 +422,9 @@ SCOPE = "terms"
 MODEL = "DemoModel"
 STORE = "DemoStore"
 RESOLVER = "DemoResolver"
-
+DATABASE = "StoreDatabase"
+DBNAME = "DBpedia"
+SPARQL_ENDPOINT = "http://dbpedia.org/sparql"
 
 @pytest.fixture(
     params=[
@@ -456,9 +458,18 @@ def store(request):
 def resolver(request):
     return request.param
 
+@pytest.fixture(
+    params=[
+        DATABASE,
+        f"{DATABASE} from kgforge.specializations.databases",
+        f"{DATABASE} from kgforge.specializations.databases.store_database",
+    ]
+)
+def database(request):
+    return request.param
 
 @pytest.fixture
-def config(model, store, resolver):
+def config(model, store, resolver, database):
     return {
         "Model": {
             "name": model,
@@ -497,6 +508,27 @@ def config(model, store, resolver):
                 },
             ],
         },
+        "Databases": {
+            DBNAME:
+                {
+                    "origin": "store",
+                    "source": "SPARQLStore",
+                    "searchendpoints":{
+                        "sparql":{
+                            "endpoint": SPARQL_ENDPOINT
+                        },
+       
+                    },
+                    "model": {
+                            "name": model,
+                            "origin": "directory",
+                            "source": "tests/data/demo-model/",
+                            "context":{
+                                "iri": "test/data/dbpedia"
+                            }
+                    },
+                },
+        }
     }
 
 

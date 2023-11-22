@@ -21,12 +21,13 @@ from pandas import DataFrame
 from rdflib import Graph
 
 from kgforge.core import Resource
+from kgforge.core.commons.context import Context
+from kgforge.core.archetypes import Mapping, Model, Resolver, Store, Database
 from kgforge.core.commons.files import load_file_as_byte
-from kgforge.core.archetypes import Mapping, Model, Resolver, Store
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
-from kgforge.core.commons.execution import catch
+from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.commons.imports import import_class
 from kgforge.core.commons.strategies import ResolvingStrategy
 from kgforge.core.commons.formatter import Formatter
@@ -43,6 +44,7 @@ from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.databases import StoreDatabase, WebServiceDatabase
 
 
 class KnowledgeGraphForge:
@@ -223,6 +225,7 @@ class KnowledgeGraphForge:
         model_name = model_config.pop("name")
         model = import_class(model_name, "models")
         self._model: Model = model(**model_config)
+        model_config.update(name=model_name)
 
         # Store.
         store_config.update(model_context=self._model.context())
@@ -519,6 +522,50 @@ class KnowledgeGraphForge:
         return self._model.sources(pretty)
 
     @catch
+    def db_sources(self, type_: Optional[List[str]] = None,
+                   pretty: bool = False) -> Optional[List[str]]:
+        """
+        Print(pretty=True) or return (pretty=False) configured data sources.
+        :param pretty: a boolean
+        :return: Optional[List[str]]
+        """
+        if type_ is None:
+            sources = self._db_sources
+        else:
+            sources = {}
+            if isinstance(type_, list):
+                for type in type_:
+                    for db in self._db_sources:
+                        try:
+                            types = self._db_sources[db].types()
+                            if type in types:
+                                sources[db] = self._db_sources[db]
+                        except ValueError:
+                            # skiping db without mappings
+                            continue
+            else:
+                for db in self._db_sources:
+                    try:
+                        types = self._db_sources[db].types()
+                        if type_ in types:
+                            sources[db] = self._db_sources[db]
+                    except ValueError:
+                            # skiping db without mappings
+                        continue
+            if not sources:
+                print("No Database sources were found for the given type(s)")
+        if pretty:
+            print(*["Available Database sources:", *sources], sep="\n")
+        else:
+            return sources
+    
+    def add_db_source(self, db_source: Database) -> None:
+        """
+        Add a DatabaseSource to the KG.
+        """
+        self._db_sources[db_source.name] = db_source
+
+    @catch
     def mappings(
         self, source: str, pretty: bool = True
     ) -> Optional[Dict[str, List[str]]]:
@@ -530,7 +577,11 @@ class KnowledgeGraphForge:
         :param pretty: a boolean
         :return: Optional[Dict[str, List[str]]]
         """
-        return self._model.mappings(source, pretty)
+        if source in self._db_sources:
+            db = self._db_sources[source] 
+            return db._model.mappings(db._model.source, pretty)
+        else:
+            return self._model.mappings(source, pretty)
 
     @catch
     def mapping(
@@ -544,7 +595,11 @@ class KnowledgeGraphForge:
         :param type: a Mapping class
         :return: Mapping
         """
-        return self._model.mapping(entity, source, type)
+        if source in self._db_sources:
+            db = self._db_sources[source]  
+            return db._model.mapping(entity, db._model.source, type)
+        else:
+            return self._model.mapping(entity, source, type)
 
     @catch
     def map(
@@ -632,7 +687,14 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, *filters, **params)
+        db_source = params.pop('db_source', None)
+        if db_source:
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].search(resolvers, *filters, **params)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
+        else:
+            return self._store.search(resolvers, *filters, **params)
 
     @catch
     def sparql(
@@ -653,7 +715,14 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters. Supported params are: rewrite (whether to rewrite the sparql query or run it as is)
         :return: List[Resource]
         """
-        return self._store.sparql(query, debug, limit, offset, **params)
+        db_source = params.pop('db_source', None)
+        if db_source:
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].sparql(query, debug, limit, offset, **params)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
+        else:
+            return self._store.sparql(query, debug, limit, offset, **params)
 
     @catch
     def elastic(
@@ -662,6 +731,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        db_source: Optional[str] = None,
     ) -> List[Resource]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
@@ -672,7 +742,13 @@ class KnowledgeGraphForge:
         :param offset: how many results to skip from the first one
         :return: List[Resource]
         """
-        return self._store.elastic(query, debug, limit, offset)
+        if db_source:
+            if db_source in self.db_sources():
+                return self._db_sources[db_source].elastic(query, debug, limit, offset)
+            else:
+                raise AttributeError('Selected database was not declared within forge.')
+        else:
+            return self._store.elastic(query, debug, limit, offset)
 
     @catch
     def download(
@@ -939,6 +1015,31 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
+    
+    def create_db_sources(self, all_config: Optional[Dict[str, Dict[str, str]]], 
+                          store_config : Optional[Dict[str, Dict[str, str]]],
+                          model_context: Context
+                          ) -> Dict[str, Database]:
+        dbs = {}
+        for name, config in all_config.items():
+            origin = config['origin']
+            source = config['source']
+            if origin == 'store':
+                # Reuse complete configuration of the store when Nexus is called
+                if source == store_config['name'] == 'BlueBrainNexus':
+                    store_copy = deepcopy(store_config)
+                    with_defaults(config, store_copy,
+                                  "source", "name",
+                                   list(store_copy.keys()))
+                    config['model_context'] = model_context
+                config['name'] = name
+                dbs[name] = StoreDatabase(self, **config)
+            elif origin == 'web_service':
+                config['name'] = name
+                dbs[name] = WebServiceDatabase(self, **config)
+            else:
+                raise NotImplementedError(f'Database from {origin} is not yet implemented.')
+        return dbs
 
 
 def prepare_resolvers(

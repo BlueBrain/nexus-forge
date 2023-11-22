@@ -1,0 +1,13 @@
+{
+  "type": [
+    "AnnotationBody"
+    "Parameter"
+  ]
+  "isMeasurementOf":
+   {
+      "label": x.parameter_label
+   }
+  "value": x.value
+  "unitCode": x.units
+  "comment": x.comment
+}

@@ -19,3 +19,4 @@ from .mapper import Mapper
 from .store import Store
 from .model import Model
 from .resolver import Resolver
+from .database import Database
