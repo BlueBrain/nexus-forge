@@ -55,7 +55,6 @@ class DemoStore(Store):
     def metadata_context(self) -> Optional[Context]:
         return None
 
-
     @property
     def mapping(self) -> Type[Mapping]:
         """Mapping class to load file_resource_mapping."""

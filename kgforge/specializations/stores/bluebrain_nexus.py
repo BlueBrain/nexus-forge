@@ -126,7 +126,7 @@ class BlueBrainNexus(Store):
         )
 
     @property
-    def context(self)  -> Optional[Context]:
+    def context(self) -> Optional[Context]:
         return self.service.context
 
     @property
