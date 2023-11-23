@@ -862,16 +862,10 @@ class BlueBrainNexus(Store):
     def reformat_contexts(model_context: Context, metadata_context: Optional[Context]):
         ctx = {}
 
-        def _context_to_dict(c: Context):
-            return {
-                k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-                for k, v in c.document["@context"].items()
-            }
-
         if metadata_context and metadata_context.document:
-            ctx.update(_context_to_dict(metadata_context))
+            ctx.update(BlueBrainNexus._context_to_dict(metadata_context))
 
-        ctx.update(_context_to_dict(model_context))
+        ctx.update(BlueBrainNexus._context_to_dict(model_context))
 
         prefixes = model_context.prefixes
 

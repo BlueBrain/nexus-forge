@@ -54,9 +54,19 @@ class ReadOnlyStore(ABC):
     def __repr__(self) -> str:
         return repr_class(self)
 
-    @abstractmethod
+    @staticmethod
+    def _context_to_dict(c: Context):
+        return {
+            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
+            for k, v in c.document["@context"].items()
+        }
+
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
-        ...
+        return (
+            ReadOnlyStore._context_to_dict(self.model.context().document),
+            self.model.context().prefixes,
+            self.model.context().vocab
+        )
 
     # C[R]UD.
 
