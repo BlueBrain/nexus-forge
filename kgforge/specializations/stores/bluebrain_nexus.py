@@ -68,6 +68,7 @@ class CategoryDataType(Enum):
     BOOLEAN = "boolean"
     LITERAL = "literal"
 
+
 type_map = {
     datetime: CategoryDataType.DATETIME,
     str: CategoryDataType.LITERAL,
@@ -99,6 +100,7 @@ elasticsearch_operator_map = {
     "__gt__": "gt",
     "__ge__": "gte",
 }
+
 
 def catch_http_error_nexus(
         r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
