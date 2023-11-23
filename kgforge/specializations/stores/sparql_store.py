@@ -90,7 +90,7 @@ class SPARQLStore(DatasetStore):
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
         # pass
-        # if self.model.context() is None:
+        # if self.model_context() is None:
         #     raise ValueError("context model missing")
         debug = params.get("debug", False)
         limit = params.get("limit", 100)
@@ -127,7 +127,7 @@ class SPARQLStore(DatasetStore):
             )
 
         query_statements, query_filters = SPARQLQueryBuilder.build(
-                schema=None, resolvers=resolvers, context=self.model.context(), filters=filters
+                schema=None, resolvers=resolvers, context=self.model_context(), filters=filters
             )
         statements = ";\n ".join(query_statements)
         _filters = (".\n".join(query_filters) + '\n') if len(filters) > 0 else ""
@@ -154,7 +154,7 @@ class SPARQLStore(DatasetStore):
 
         data = response.json()
 
-        return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model.context())
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model_context())
 
     # Utils.
 
@@ -179,7 +179,7 @@ class SPARQLStore(DatasetStore):
             raise ValueError(f"Store configuration error: {ve}") from ve
 
         return SPARQLService(
-            endpoint=endpoint, model_context=self.model.context(),
+            endpoint=endpoint, model_context=self.model_context(),
             store_context=store_context, max_connection=max_connection,
             searchendpoints=searchendpoints,
             content_type=content_type,

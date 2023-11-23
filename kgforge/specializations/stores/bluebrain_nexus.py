@@ -173,7 +173,7 @@ class BlueBrainNexus(Store):
             else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
-                    context = self.model.context() or self.context
+                    context = self.model_context() or self.context
                     result.resource.context = (
                         context.iri
                         if context.is_http_iri()
@@ -206,7 +206,7 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model.context() or self.context
+        context = self.model_context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -561,7 +561,7 @@ class BlueBrainNexus(Store):
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model.context() or self.context
+        context = self.model_context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -686,7 +686,7 @@ class BlueBrainNexus(Store):
             **params
     ) -> List[Resource]:
 
-        if self.model.context() is None:
+        if self.model_context() is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
@@ -739,7 +739,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                schema=None, resolvers=resolvers, context=self.model.context(), filters=filters
+                schema=None, resolvers=resolvers, context=self.model_context(), filters=filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -856,7 +856,7 @@ class BlueBrainNexus(Store):
             query = ESQueryBuilder.build(
                 elastic_mapping,
                 resolvers,
-                self.model.context(),
+                self.model_context(),
                 filters,
                 default_str_keyword_field=default_str_keyword_field,
                 includes=includes,
@@ -881,7 +881,7 @@ class BlueBrainNexus(Store):
         return ctx, prefixes, model_context.vocab
 
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
-        return BlueBrainNexus.reformat_contexts(self.model.context(), self.service.metadata_context)
+        return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
 
     def _sparql(self, query: str) -> List[Resource]:
 
@@ -894,7 +894,7 @@ class BlueBrainNexus(Store):
 
         data = response.json()
 
-        context = self.model.context() or self.context
+        context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
@@ -973,7 +973,7 @@ class BlueBrainNexus(Store):
             org=self.organisation,
             prj=self.project,
             token=token,
-            model_context=self.model.context(),
+            model_context=self.model_context() if self.model else None,
             max_connection=max_connection,
             searchendpoints=searchendpoints,
             store_context=nexus_context_iri,

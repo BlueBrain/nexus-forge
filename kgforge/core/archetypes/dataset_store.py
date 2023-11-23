@@ -55,7 +55,7 @@ class DatasetStore(ReadOnlyStore, ABC):
         for resource in resources:
             if isinstance(resource, Resource):
                 resource_dict = as_json(resource, expanded=False, store_metadata=False,
-                                        model_context=self.model.context(),
+                                        model_context=self.model_context(),
                                         metadata_context=None,
                                         context_resolver=self.model.resolve_context)
             else:

@@ -63,9 +63,9 @@ class ReadOnlyStore(ABC):
 
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return (
-            ReadOnlyStore._context_to_dict(self.model.context().document),
-            self.model.context().prefixes,
-            self.model.context().vocab
+            ReadOnlyStore._context_to_dict(self.model_context().document),
+            self.model_context().prefixes,
+            self.model_context().vocab
         )
 
     # C[R]UD.
@@ -211,7 +211,7 @@ class ReadOnlyStore(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        if self.model.context() is not None and rewrite:
+        if self.model_context() is not None and rewrite:
 
             context_as_dict, prefixes, vocab = self.get_context_prefix_vocab()
 
@@ -265,3 +265,6 @@ class ReadOnlyStore(ABC):
         :return: str
         """
         not_supported()
+
+    def model_context(self):
+        return self.model.context() if self.model else None
