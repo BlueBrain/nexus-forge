@@ -70,7 +70,7 @@ class SPARQLStore(DatasetStore):
     def _retrieve_filename(self, id: str) -> str:
         not_supported()
 
-    def search(
+    def _search(
             self, resolvers: Optional[List["Resolver"]] = None, *filters, **params
     ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
@@ -143,9 +143,6 @@ class SPARQLStore(DatasetStore):
         data = response.json()
 
         return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model.context())
-
-    def _search(self):
-        not_supported()
 
     # Utils.
 
