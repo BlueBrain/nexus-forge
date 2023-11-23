@@ -225,7 +225,6 @@ class KnowledgeGraphForge:
         self._model: Model = model(**model_config)
 
         # Store.
-        store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
         store_model_config = store_config.pop("model", None)
         if store_model_config:
@@ -973,7 +972,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
                 "endpoint",
                 "token",
                 "bucket",
-                "model_context",
+                # "model_context",
                 "searchendpoints",
                 "vocabulary",
             ],

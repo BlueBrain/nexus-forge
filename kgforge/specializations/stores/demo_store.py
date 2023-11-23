@@ -34,17 +34,27 @@ from kgforge.core.wrappings.paths import create_filters_from_dict
 class DemoStore(Store):
     """An example to show how to implement a Store and to demonstrate how it is used."""
 
-    def __init__(self, model: Optional[Model] = None, endpoint: Optional[str] = None,
-                 bucket: Optional[str] = None,
-                 token: Optional[str] = None, versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None) -> None:
+    def __init__(
+            self,
+            model: Optional[Model] = None,
+            endpoint: Optional[str] = None,
+            bucket: Optional[str] = None,
+            token: Optional[str] = None,
+            versioned_id_template: Optional[str] = None,
+            file_resource_mapping: Optional[str] = None,
+    ) -> None:
         super().__init__(
-            model, endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-            model_context
+            model, endpoint, bucket, token, versioned_id_template, file_resource_mapping
         )
 
-        self.metadata_context = None
+    @property
+    def context(self) -> Optional[Context]:
+        return None
+
+    @property
+    def metadata_context(self) -> Optional[Context]:
+        return None
+
 
     @property
     def mapping(self) -> Type[Mapping]:

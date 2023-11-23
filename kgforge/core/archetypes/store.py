@@ -22,6 +22,7 @@ from kgforge.core.archetypes.read_only_store import ReadOnlyStore, DEFAULT_LIMIT
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.commons import Context
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
@@ -72,6 +73,16 @@ class Store(ReadOnlyStore):
 
     def __repr__(self) -> str:
         return repr_class(self)
+
+    @property
+    @abstractmethod
+    def context(self) -> Optional[Context]:
+        ...
+
+    @property
+    @abstractmethod
+    def metadata_context(self) -> Optional[Context]:
+        ...
 
     @property
     @abstractmethod
