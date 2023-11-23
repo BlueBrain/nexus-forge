@@ -50,9 +50,6 @@ class ReadOnlyStore(ABC):
             model: Optional[Model] = None,
     ) -> None:
         self.model: Optional[Model] = model
-        self.model_context: Optional[Context] = (
-            self.model.context() if hasattr(self.model, 'context') else None
-        )
 
     def __repr__(self) -> str:
         return repr_class(self)
@@ -204,7 +201,7 @@ class ReadOnlyStore(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        if self.model_context is not None and rewrite:
+        if self.model.context() is not None and rewrite:
 
             context_as_dict, prefixes, vocab = self.get_context_prefix_vocab()
 

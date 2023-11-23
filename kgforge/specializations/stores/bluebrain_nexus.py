@@ -38,7 +38,7 @@ from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes import Store, Mapper, Mapping
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -125,13 +125,12 @@ class BlueBrainNexus(Store):
             **store_config,
         )
 
-
     @property
-    def mapping(self) -> Optional[Callable]:
+    def mapping(self) -> Type[Mapping]:
         return DictionaryMapping
 
     @property
-    def mapper(self) -> Optional[DictionaryMapper]:
+    def mapper(self) -> Type[Mapper]:
         return DictionaryMapper
 
     def register(
@@ -162,7 +161,7 @@ class BlueBrainNexus(Store):
             else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
-                    context = self.model_context or self.context
+                    context = self.model.context() or self.context
                     result.resource.context = (
                         context.iri
                         if context.is_http_iri()
@@ -195,7 +194,7 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+        context = self.model.context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -495,7 +494,7 @@ class BlueBrainNexus(Store):
             url: str,
             store_metadata: Optional[DictWrapper],
             cross_bucket: bool
-    ) -> Tuple[str, str, str]:
+    ) -> Tuple[str, str]:
         if cross_bucket:
             if store_metadata is not None:
                 project = store_metadata._project.split("/")[-1]
@@ -560,7 +559,7 @@ class BlueBrainNexus(Store):
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+        context = self.model.context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -684,7 +683,7 @@ class BlueBrainNexus(Store):
             self, resolvers: Optional[List["Resolver"]], *filters, **params
     ) -> List[Resource]:
 
-        if self.model_context is None:
+        if self.model.context() is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
@@ -731,7 +730,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model_context, *filters
+                None, resolvers, self.model.context(), *filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -848,7 +847,7 @@ class BlueBrainNexus(Store):
             query = ESQueryBuilder.build(
                 elastic_mapping,
                 resolvers,
-                self.model_context,
+                self.model.context(),
                 filters,
                 default_str_keyword_field=default_str_keyword_field,
                 includes=includes,
@@ -879,7 +878,7 @@ class BlueBrainNexus(Store):
         return ctx, prefixes, model_context.vocab
 
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
-        return BlueBrainNexus.reformat_contexts(self.model_context, self.service.metadata_context)
+        return BlueBrainNexus.reformat_contexts(self.model.context(), self.service.metadata_context)
 
     def _sparql(self, query: str) -> List[Resource]:
 
@@ -892,7 +891,7 @@ class BlueBrainNexus(Store):
 
         data = response.json()
 
-        context = self.model_context or self.context
+        context = self.model.context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
@@ -971,7 +970,7 @@ class BlueBrainNexus(Store):
             org=self.organisation,
             prj=self.project,
             token=token,
-            model_context=self.model_context,
+            model_context=self.model.context(),
             max_connection=max_connection,
             searchendpoints=searchendpoints,
             store_context=nexus_context_iri,

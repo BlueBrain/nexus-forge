@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import requests
-from typing import Dict, List, Optional, Union, Any, Type
+from typing import Dict, List, Optional, Union, Any, Type, Tuple
 
 from kgforge.core import Resource
 from kgforge.core.archetypes import Mapper
@@ -92,7 +92,7 @@ class SPARQLStore(DatasetStore):
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
         # pass
-        # if self.model_context is None:
+        # if self.model.context() is None:
         #     raise ValueError("context model missing")
         debug = params.get("debug", False)
         limit = params.get("limit", 100)
@@ -122,7 +122,7 @@ class SPARQLStore(DatasetStore):
             )
 
         query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model_context, *filters
+                None, resolvers, self.model.context(), *filters
             )
         statements = ";\n ".join(query_statements)
         _filters = ".\n".join(query_filters) + '\n'
@@ -145,8 +145,7 @@ class SPARQLStore(DatasetStore):
 
         data = response.json()
 
-        context = self.model_context
-        return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model.context())
 
     def _search(self):
         not_supported()
@@ -174,7 +173,7 @@ class SPARQLStore(DatasetStore):
             raise ValueError(f"Store configuration error: {ve}") from ve
 
         return SPARQLService(
-            endpoint=endpoint, model_context=self.model_context,
+            endpoint=endpoint, model_context=self.model.context(),
             store_context=store_context, max_connection=max_connection,
             searchendpoints=searchendpoints,
             content_type=content_type,
