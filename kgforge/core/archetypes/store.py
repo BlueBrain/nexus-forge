@@ -23,7 +23,6 @@ from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
-from kgforge.core.commons.context import Context
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -34,7 +33,6 @@ from kgforge.core.commons.exceptions import (
     UploadingError
 )
 from kgforge.core.commons.execution import not_supported, run
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 
 
 class Store(ReadOnlyStore):
@@ -70,14 +68,6 @@ class Store(ReadOnlyStore):
         self.file_mapping: Optional[Any] = loaded
         self.service: Any = self._initialize_service(
             self.endpoint, self.bucket, self.token, searchendpoints, **store_config
-        )
-        self.context: Context = (
-            self.service.context if hasattr(self.service, "context") else None
-        )
-        self.metadata_context: Context = (
-            self.service.metadata_context
-            if hasattr(self.service, "metadata_context")
-            else None
         )
 
     def __repr__(self) -> str:

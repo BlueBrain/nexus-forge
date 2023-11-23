@@ -125,6 +125,9 @@ class BlueBrainNexus(Store):
             **store_config,
         )
 
+        self.context: Context = self.service.context
+        self.metadata_context: Context = self.service.metadata_context
+
     @property
     def mapping(self) -> Type[Mapping]:
         return DictionaryMapping

@@ -39,8 +39,12 @@ class DemoStore(Store):
                  token: Optional[str] = None, versioned_id_template: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
                  model_context: Optional[Context] = None) -> None:
-        super().__init__(model, endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context)
+        super().__init__(
+            model, endpoint, bucket, token, versioned_id_template, file_resource_mapping,
+            model_context
+        )
+
+        self.metadata_context = None
 
     @property
     def mapping(self) -> Type[Mapping]:
