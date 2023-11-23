@@ -47,7 +47,7 @@ def sparqlstore(rdfmodel):
 def test_config(sparqlstore, rdfmodel):
     assert sparqlstore.model == rdfmodel
     assert not sparqlstore.endpoint
-    assert sparqlstore.model_context == rdfmodel.context()
+    assert sparqlstore.model.context() == rdfmodel.context()
 
 def test_search_params(sparqlstore):
     with pytest.raises(ValueError):
