@@ -38,7 +38,7 @@ from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
-from kgforge.core.archetypes import Store, Mapper, Mapping
+from kgforge.core.archetypes import Store, Mapper, Mapping, Resolver
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -685,7 +685,8 @@ class BlueBrainNexus(Store):
         # Querying.
 
     def search(
-            self, resolvers: Optional[List["Resolver"]], *filters, **params
+            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]],
+            **params
     ) -> List[Resource]:
 
         if self.model.context() is None:
@@ -714,14 +715,20 @@ class BlueBrainNexus(Store):
             )
         if "filters" in params:
             raise ValueError(
-                "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+                "A 'filters' key was provided as params. Filters should be provided as iterable."
+            )
 
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
 
-        if filters and isinstance(filters[0], dict):
-            filters = create_filters_from_dict(filters[0])
-        filters = list(filters) if not isinstance(filters, list) else filters
+        if filters:
+            if isinstance(filters, list) and len(filters) > 0:
+                if filters[0] is None:
+                    raise ValueError("Filters cannot be None")
+                elif isinstance(filters[0], dict):
+                    filters = create_filters_from_dict(filters[0])
+            else:
+                filters = list(filters)
 
         if search_endpoint == self.service.sparql_endpoint["type"]:
             if includes or excludes:

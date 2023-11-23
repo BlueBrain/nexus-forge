@@ -40,7 +40,7 @@ from kgforge.core.conversions.rdf import (
     Form,
 )
 from kgforge.core.reshaping import Reshaper
-from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
+from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths, Filter
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
@@ -631,7 +631,7 @@ class KnowledgeGraphForge:
         return wrap_paths(template)
 
     @catch
-    def search(self, *filters, **params) -> List[Resource]:
+    def search(self, *filters: Union[Dict, Filter], **params) -> List[Resource]:
         """
         Search for resources based on a list of filters. The search results can be controlled (e.g. number of results) by setting parameters.
         See docs for more details: https://nexus-forge.readthedocs.io/en/latest/interaction.html#querying
@@ -643,7 +643,7 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, filters, **params)
+        return self._store.search(resolvers, list(filters), **params)
 
     @catch
     def sparql(

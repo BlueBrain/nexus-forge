@@ -27,6 +27,7 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.reshaping import collect_values
+from kgforge.core.wrappings import Filter
 from kgforge.core.wrappings.dict import DictWrapper
 
 DEFAULT_LIMIT = 100
@@ -178,7 +179,7 @@ class ReadOnlyStore(ABC):
 
     @abstractmethod
     def search(
-            self, resolvers: Optional[List[Resolver]], *filters, **params
+            self, resolvers: Optional[List[Resolver]], filters: List[Union[Dict, Filter]], **params
     ) -> List[Resource]:
 
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py

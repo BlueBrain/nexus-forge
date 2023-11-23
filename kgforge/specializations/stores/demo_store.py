@@ -28,7 +28,7 @@ from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.core.wrappings.paths import create_filters_from_dict
+from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
 
 
 class DemoStore(Store):
@@ -134,7 +134,9 @@ class DemoStore(Store):
 
     # Querying.
 
-    def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
+    def search(
+            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]], **params
+    ) -> List[Resource]:
 
         cross_bucket = params.get("cross_bucket", None)
         if cross_bucket is not None:

@@ -72,7 +72,7 @@ class SPARQLStore(DatasetStore):
 
     def _search(
             self, filters: List[Union[Dict, Filter]],
-            resolvers: Optional[List[Resolver]] =  None, **params
+            resolvers: Optional[List[Resolver]] = None, **params
     ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
         # A dictionary can be provided for filters:
@@ -108,11 +108,18 @@ class SPARQLStore(DatasetStore):
                 f"The provided search_endpoint value '{search_endpoint}' is not supported, only 'sparql'"
             )
         if "filters" in params:
-            raise ValueError("A 'filters' key was provided as params. "
-                             "Filters should be provided as iterable to be unpacked.")
-        if filters and isinstance(filters[0], dict):
-            filters = create_filters_from_dict(filters[0])
-        filters = list(filters) if not isinstance(filters, list) else filters
+            raise ValueError(
+                "A 'filters' key was provided as params filters should be provided as iterable"
+            )
+
+        if filters:
+            if isinstance(filters, list) and len(filters) > 0:
+                if filters[0] is None:
+                    raise ValueError("Filters cannot be None")
+                elif isinstance(filters[0], dict):
+                    filters = create_filters_from_dict(filters[0])
+            else:
+                filters = list(filters)
 
         if includes or excludes:
             raise ValueError(
@@ -123,7 +130,7 @@ class SPARQLStore(DatasetStore):
                 None, resolvers, self.model.context(), filters
             )
         statements = ";\n ".join(query_statements)
-        _filters = ".\n".join(query_filters) + '\n'
+        _filters = (".\n".join(query_filters) + '\n') if len(filters) > 0 else ""
         _vars = ["?id"]
         query = _create_select_query(
             _vars, f"?id {statements} . \n {_filters}", distinct, False
@@ -136,9 +143,11 @@ class SPARQLStore(DatasetStore):
             self, query: str, debug, limit, offset, **params
     ) -> Optional[Union[Resource, List[Resource]]]:
         try:
-            response = requests.post(self.service.sparql_endpoint["endpoint"],
-                                     data=query,
-                                     headers=self.service.headers_sparql)
+            response = requests.post(
+                self.service.sparql_endpoint["endpoint"],
+                data=query,
+                headers=self.service.headers_sparql
+            )
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e) from e
