@@ -617,7 +617,7 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters.
         :return: Resource
         """
-        return self._store.retrieve(id, version, cross_bucket, **params)
+        return self._store.retrieve(id_=id, version=version, cross_bucket=cross_bucket, **params)
 
     @catch
     def paths(self, type: str) -> PathsWrapper:

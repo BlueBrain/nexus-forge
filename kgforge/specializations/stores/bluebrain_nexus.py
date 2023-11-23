@@ -298,9 +298,6 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
-    @staticmethod
-    
-
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Optional[Resource]:
