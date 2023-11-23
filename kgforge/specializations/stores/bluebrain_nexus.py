@@ -134,7 +134,8 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
 
     def register(
-            self, data: Union[Resource, List[Resource]], schema_id: str = None
+            self, data: Union[Resource, List[Resource]], schema_id: str = None, context:
+            Optional[Context] = None
     ) -> None:
         run(
             self._register_one,
@@ -145,9 +146,12 @@ class BlueBrainNexus(Store):
             exception=RegistrationError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            context=context
         )
 
-    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+    def _register_many(
+            self, resources: List[Resource], schema_id: str, context: Optional[Context] = None
+    ) -> None:
         def register_callback(task: Task):
             result = task.result()
             if isinstance(result.response, Exception):
@@ -161,11 +165,11 @@ class BlueBrainNexus(Store):
             else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
-                    context = self.model_context or self.context
+                    context_value = context or self.model_context or self.context
                     result.resource.context = (
-                        context.iri
-                        if context.is_http_iri()
-                        else context.document["@context"]
+                        context_value.iri
+                        if context_value.is_http_iri()
+                        else context_value.document["@context"]
                     )
                 self.service.synchronize_resource(
                     result.resource,
@@ -184,22 +188,28 @@ class BlueBrainNexus(Store):
             execute_actions=True,
         )
         params_register = copy.deepcopy(self.service.params.get("register", {}))
+
+        context_value = context or self.model_context or self.context
+
         self.service.batch_request(
             verified,
             BatchAction.CREATE,
             register_callback,
             RegistrationError,
             schema_id=schema_id,
+            context=context_value,
             params=params_register,
         )
 
-    def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+    def _register_one(
+            self, resource: Resource, schema_id: str, context: Optional[Context] = None
+    ) -> None:
+        context_value = context or self.model_context or self.context
         data = as_jsonld(
             resource,
             "compacted",
             False,
-            model_context=context,
+            model_context=context_value,
             metadata_context=None,
             context_resolver=self.service.resolve_context
         )
@@ -526,7 +536,10 @@ class BlueBrainNexus(Store):
 
     # CR[U]D.
 
-    def update(self, data: Union[Resource, List[Resource]], schema_id: str) -> None:
+    def update(
+            self, data: Union[Resource, List[Resource]], schema_id: str,
+            context: Optional[Context] = None
+    ) -> None:
         run(
             self._update_one,
             self._update_many,
@@ -537,9 +550,12 @@ class BlueBrainNexus(Store):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            context=context
         )
 
-    def _update_many(self, resources: List[Resource], schema_id: str) -> None:
+    def _update_many(
+            self, resources: List[Resource], schema_id: str, context: Optional[Context] = None
+    ) -> None:
         update_callback = self.service.default_callback(self._update_many.__name__)
         verified = self.service.verify(
             resources,
@@ -556,15 +572,18 @@ class BlueBrainNexus(Store):
             update_callback,
             UpdatingError,
             params=params_update,
+            context=context
         )
 
-    def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+    def _update_one(
+            self, resource: Resource, schema_id: str, context: Optional[Context] = None
+    ) -> None:
+        context_value = context or self.model_context or self.context
         data = as_jsonld(
             resource,
             "compacted",
             False,
-            model_context=context,
+            model_context=context_value,
             metadata_context=None,
             context_resolver=self.service.resolve_context
         )

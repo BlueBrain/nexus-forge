@@ -49,7 +49,9 @@ class DemoStore(Store):
 
     # [C]RUD.
 
-    def _register_one(self, resource: Resource, schema_id: str) -> None:
+    def _register_one(
+            self, resource: Resource, schema_id: str, context: Optional[Context] = None
+    ) -> None:
         data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
                        metadata_context=None, context_resolver=None)
         try:
@@ -75,7 +77,7 @@ class DemoStore(Store):
 
     # CR[U]D.
 
-    def _update_one(self, resource: Resource, schema_id: str) -> None:
+    def _update_one(self, resource: Resource, schema_id: str, context: Optional[Context] = None) -> None:
         data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
                        metadata_context=None, context_resolver=None)
         try:

@@ -21,6 +21,7 @@ from pandas import DataFrame
 from rdflib import Graph
 
 from kgforge.core import Resource
+from kgforge.core.commons import Context
 from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.archetypes import Mapping, Model, Resolver, Store
 from kgforge.core.commons.actions import LazyAction
@@ -701,7 +702,8 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def register(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None,
+            context: Optional[Context] = None
     ) -> None:
         """
         Store a resource or list of resources in the configured Store.
@@ -710,11 +712,12 @@ class KnowledgeGraphForge:
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
         # self._store.mapper = self._store.mapper(self)
-        self._store.register(data, schema_id)
+        self._store.register(data, schema_id, context)
 
     # No @catch because the error handling is done by execution.run().
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None,
+            context: Optional[Context] = None
     ) -> None:
         """
         Update a resource or a list of resources in the configured Store.
@@ -722,7 +725,7 @@ class KnowledgeGraphForge:
         :param data: the resources to update
         :param schema_id: an identifier of the schema the updated resources should conform to
         """
-        self._store.update(data, schema_id)
+        self._store.update(data, schema_id, context)
 
     # No @catch because the error handling is done by execution.run().
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
