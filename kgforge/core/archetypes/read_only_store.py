@@ -11,7 +11,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import re
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -73,7 +72,7 @@ class ReadOnlyStore(ABC):
     @abstractmethod
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
+    ) -> Optional[Resource]:
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.

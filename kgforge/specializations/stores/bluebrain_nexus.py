@@ -51,7 +51,7 @@ from kgforge.core.commons.exceptions import (
     UpdatingError,
     UploadingError,
 )
-from kgforge.core.commons.execution import run, not_supported
+from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld
@@ -67,7 +67,6 @@ class CategoryDataType(Enum):
     NUMBER = "number"
     BOOLEAN = "boolean"
     LITERAL = "literal"
-
 
 type_map = {
     datetime: CategoryDataType.DATETIME,
@@ -100,6 +99,11 @@ elasticsearch_operator_map = {
     "__gt__": "gt",
     "__ge__": "gte",
 }
+
+def catch_http_error_nexus(
+        r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
+):
+    return catch_http_error(r, e, error_message_formatter)
 
 
 class BlueBrainNexus(Store):
@@ -232,7 +236,7 @@ class BlueBrainNexus(Store):
                 data=json.dumps(data, ensure_ascii=True),
                 params=params_register,
             )
-        BlueBrainNexus._catch_http_error(response, RegistrationError)
+        catch_http_error_nexus(response, RegistrationError)
 
         response_json = response.json()
         resource.id = response_json["@id"]
@@ -295,18 +299,11 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     @staticmethod
-    def _catch_http_error(
-            r: requests.Response, error_to_throw: Type[BaseException],
-            error_message_formatter=_error_message
-    ):
-        try:
-            r.raise_for_status()
-        except HTTPError as e:
-            raise error_to_throw(error_message_formatter(e))
+    
 
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
+    ) -> Optional[Resource]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
@@ -358,7 +355,7 @@ class BlueBrainNexus(Store):
             url = url_resource
         try:
             response = requests.get(url, params=query_params, headers=self.service.headers)
-            BlueBrainNexus._catch_http_error(response, RetrievalError)
+            catch_http_error_nexus(response, RetrievalError)
         except RetrievalError as er:
 
             nexus_path = f"{self.service.endpoint}/resources/" if cross_bucket else self.service.url_resources
@@ -374,7 +371,7 @@ class BlueBrainNexus(Store):
                 response = requests.get(
                     url, params=query_params, headers=self.service.headers
                 )
-                BlueBrainNexus._catch_http_error(response, RetrievalError)
+                catch_http_error_nexus(response, RetrievalError)
             else:
                 raise er
         # finally:
@@ -383,7 +380,7 @@ class BlueBrainNexus(Store):
             response_metadata = requests.get(
                 url_resource, params=query_params, headers=self.service.headers
             )
-            BlueBrainNexus._catch_http_error(response_metadata, RetrievalError)
+            catch_http_error_nexus(response_metadata, RetrievalError)
 
         elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
 
@@ -391,7 +388,7 @@ class BlueBrainNexus(Store):
                 "/".join([response.json()["_self"], "source"]), params=query_params,
                 headers=self.service.headers
             )
-            BlueBrainNexus._catch_http_error(response, RetrievalError)
+            catch_http_error_nexus(response, RetrievalError)
 
         else:
             response_metadata = True  # when retrieve_source is False
@@ -422,7 +419,7 @@ class BlueBrainNexus(Store):
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers)
-        BlueBrainNexus._catch_http_error(response, DownloadingError)
+        catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
         return metadata["_filename"], metadata["_mediaType"]
 
@@ -457,7 +454,7 @@ class BlueBrainNexus(Store):
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
                 async with session.get(url, params=params_download) as response:
 
-                    BlueBrainNexus._catch_http_error(
+                    catch_http_error_nexus(
                         response, DownloadingError,
                         error_message_formatter=lambda e:
                         f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
@@ -487,7 +484,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             params=params_download
         )
-        BlueBrainNexus._catch_http_error(
+        catch_http_error_nexus(
             response, DownloadingError,
             error_message_formatter=lambda e: f"Downloading from bucket {bucket} failed: "
                                               f"{_error_message(e)}"
@@ -587,7 +584,7 @@ class BlueBrainNexus(Store):
             params=params_update,
         )
 
-        BlueBrainNexus._catch_http_error(response, UpdatingError)
+        catch_http_error_nexus(response, UpdatingError)
         self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
@@ -631,7 +628,7 @@ class BlueBrainNexus(Store):
             data=json.dumps(data, ensure_ascii=True),
             params=params_tag,
         )
-        BlueBrainNexus._catch_http_error(response, TaggingError)
+        catch_http_error_nexus(response, TaggingError)
 
         self.service.sync_metadata(resource, response.json())
 
@@ -682,7 +679,7 @@ class BlueBrainNexus(Store):
         response = requests.delete(
             url, headers=self.service.headers, params=params_deprecate
         )
-        BlueBrainNexus._catch_http_error(response, DeprecationError)
+        catch_http_error_nexus(response, DeprecationError)
         self.service.sync_metadata(resource, response.json())
 
         # Querying.
@@ -738,7 +735,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model.context(), *filters
+                None, resolvers, self.model.context(), filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -889,7 +886,7 @@ class BlueBrainNexus(Store):
             data=query,
             headers=self.service.headers_sparql,
         )
-        BlueBrainNexus._catch_http_error(response, QueryingError)
+        catch_http_error_nexus(response, QueryingError)
 
         data = response.json()
 
@@ -903,7 +900,7 @@ class BlueBrainNexus(Store):
             data=query,
             headers=self.service.headers_elastic,
         )
-        BlueBrainNexus._catch_http_error(response, QueryingError)
+        catch_http_error_nexus(response, QueryingError)
 
         results = response.json()
         return [

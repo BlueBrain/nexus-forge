@@ -22,7 +22,7 @@ from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.dataset_store import DatasetStore
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
-from kgforge.core.wrappings.paths import create_filters_from_dict
+from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
@@ -64,14 +64,15 @@ class SPARQLStore(DatasetStore):
 
     def retrieve(
         self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
+    ) -> Optional[Resource]:
         not_supported()
 
     def _retrieve_filename(self, id: str) -> str:
         not_supported()
 
     def _search(
-            self, resolvers: Optional[List["Resolver"]] = None, *filters, **params
+            self, filters: List[Union[Dict, Filter]],
+            resolvers: Optional[List[Resolver]] =  None, **params
     ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
         # A dictionary can be provided for filters:
@@ -119,7 +120,7 @@ class SPARQLStore(DatasetStore):
             )
 
         query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model.context(), *filters
+                None, resolvers, self.model.context(), filters
             )
         statements = ";\n ".join(query_statements)
         _filters = ".\n".join(query_filters) + '\n'
@@ -131,7 +132,9 @@ class SPARQLStore(DatasetStore):
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         return resources
 
-    def _sparql(self, query: str) -> Optional[Union[Resource, List[Resource]]]:
+    def _sparql(
+            self, query: str, debug, limit, offset, **params
+    ) -> Optional[Union[Resource, List[Resource]]]:
         try:
             response = requests.post(self.service.sparql_endpoint["endpoint"],
                                      data=query,
