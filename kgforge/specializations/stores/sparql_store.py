@@ -127,7 +127,7 @@ class SPARQLStore(DatasetStore):
             )
 
         query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model.context(), filters
+                schema=None, resolvers=resolvers, context=self.model.context(), filters=filters
             )
         statements = ";\n ".join(query_statements)
         _filters = (".\n".join(query_filters) + '\n') if len(filters) > 0 else ""

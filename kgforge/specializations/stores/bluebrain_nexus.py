@@ -739,7 +739,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model.context(), filters
+                schema=None, resolvers=resolvers, context=self.model.context(), filters=filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []

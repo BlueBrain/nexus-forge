@@ -643,7 +643,7 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, list(filters), **params)
+        return self._store.search(resolvers=resolvers, filters=list(filters), **params)
 
     @catch
     def sparql(
