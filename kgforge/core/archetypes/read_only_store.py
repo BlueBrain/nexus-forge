@@ -57,6 +57,10 @@ class ReadOnlyStore(ABC):
     def __repr__(self) -> str:
         return repr_class(self)
 
+    @abstractmethod
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        ...
+
     # C[R]UD.
 
     @abstractmethod
@@ -191,10 +195,6 @@ class ReadOnlyStore(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         ...
 
-    @abstractmethod
-    def get_metadata_context(self):
-        ...
-
     def sparql(
             self, query: str,
             debug: bool,
@@ -204,15 +204,18 @@ class ReadOnlyStore(ABC):
     ) -> List[Resource]:
         rewrite = params.get("rewrite", True)
 
-        qr = (
-            SPARQLQueryBuilder.rewrite_sparql(
+        if self.model_context is not None and rewrite:
+
+            context_as_dict, prefixes, vocab = self.get_context_prefix_vocab()
+
+            qr = SPARQLQueryBuilder.rewrite_sparql(
                 query,
-                context=self.model_context,
-                metadata_context=self.get_metadata_context()
+                context_as_dict=context_as_dict,
+                prefixes=prefixes,
+                vocab=vocab
             )
-            if self.model_context is not None and rewrite
-            else query
-        )
+        else:
+            qr = query
 
         qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
             qr,

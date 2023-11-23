@@ -125,8 +125,6 @@ class BlueBrainNexus(Store):
             **store_config,
         )
 
-    def get_metadata_context(self):
-        return self.service.metadata_context
 
     @property
     def mapping(self) -> Optional[Callable]:
@@ -860,6 +858,28 @@ class BlueBrainNexus(Store):
             return self.elastic(
                 json.dumps(query), debug=debug, limit=limit, offset=offset
             )
+
+    @staticmethod  # for testing
+    def reformat_contexts(model_context: Context, metadata_context: Optional[Context]):
+        ctx = {}
+
+        def _context_to_dict(c: Context):
+            return {
+                k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
+                for k, v in c.document["@context"].items()
+            }
+
+        if metadata_context and metadata_context.document:
+            ctx.update(_context_to_dict(metadata_context))
+
+        ctx.update(_context_to_dict(model_context))
+
+        prefixes = model_context.prefixes
+
+        return ctx, prefixes, model_context.vocab
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return BlueBrainNexus.reformat_contexts(self.model_context, self.service.metadata_context)
 
     def _sparql(self, query: str) -> List[Resource]:
 

@@ -70,8 +70,8 @@ class SPARQLStore(DatasetStore):
     def _retrieve_filename(self, id: str) -> str:
         not_supported()
 
-    def get_metadata_context(self):
-        return self.service.context
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        pass  # TODO implement
 
     def search(
             self, resolvers: Optional[List["Resolver"]] = None, *filters, **params

@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, Type
+from typing import Dict, List, Optional, Union, Type, Tuple
 from uuid import uuid4
 
 from kgforge.core import Resource
@@ -52,9 +52,6 @@ class DemoStore(Store):
         """Mapper class to map file metadata to a Resource with file_resource_mapping."""
         return None
 
-    def get_metadata_context(self):
-        return None
-
     # [C]RUD.
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
@@ -80,6 +77,9 @@ class DemoStore(Store):
             raise RetrievalError("resource not found")
 
         return _to_resource(record)
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return None, None, None
 
     # CR[U]D.
 

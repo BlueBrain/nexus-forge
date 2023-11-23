@@ -12,6 +12,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import re
 import pytest
+from kgforge.specializations.stores import BlueBrainNexus
+
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import QueryingError
@@ -84,26 +86,36 @@ form_store_metadata_combinations = [
 def test_rewrite_sparql(query, expected, metadata_context):
     prefixes_string_vocab = "\n".join([prefixes_string, "PREFIX : <http://example.org/vocab/>"])
     context_object = Context(document=context)
+
+    context_as_dict, context_prefixes, vocab = BlueBrainNexus.reformat_contexts(
+        context_object,  metadata_context
+    )
     result = SPARQLQueryBuilder.rewrite_sparql(
-        query, context_object, metadata_context=metadata_context
+        query, context_as_dict=context_as_dict, prefixes=context_prefixes, vocab=vocab
     )
     assert result == prefixes_string_vocab + expected
 
 
-def test_rewrite_sparql_unknownterm_missing_vocab(custom_context, metadata_context):
+def test_rewrite_sparql_unknown_term_missing_vocab(custom_context, metadata_context):
     context_object = Context(document=custom_context)
     assert not context_object.has_vocab()
     with pytest.raises(QueryingError):
         query = "SELECT ?x WHERE { Graph ?g { ?id propertyNotInContext/name/anotherPropertyNotInContext ?x }}"
-        SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
+        context_as_dict, context_prefixes, vocab = BlueBrainNexus.reformat_contexts(
+            context_object, metadata_context
+        )
+        SPARQLQueryBuilder.rewrite_sparql(query, context_as_dict, context_prefixes, vocab)
 
 
-def test_rewrite_sparql_missingvocab(custom_context, metadata_context):
+def test_rewrite_sparql_missing_vocab(custom_context, metadata_context):
     query = "SELECT ?name WHERE { <http://exaplpe.org/1234> name ?name }"
     expected = "PREFIX foaf: <http://xmlns.com/foaf/0.1/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nPREFIX schema: <http://schema.org/>\n" \
                "PREFIX owl: <http://www.w3.org/2002/07/owl#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX mba: <http://api.brain-map.org/api/v2/data/Structure/>\nPREFIX nsg: <https://neuroshapes.org/>\nPREFIX obo: <http://purl.obolibrary.org/obo/>\nSELECT ?name WHERE { <http://exaplpe.org/1234> foaf:name ?name }"
     context_object = Context(document=custom_context)
-    result = SPARQLQueryBuilder.rewrite_sparql(query, context_object, metadata_context)
+    context_as_dict, context_prefixes, vocab = BlueBrainNexus.reformat_contexts(
+        context_object, metadata_context
+    )
+    result = SPARQLQueryBuilder.rewrite_sparql(query, context_as_dict, context_prefixes, vocab)
     assert result == expected
 
 

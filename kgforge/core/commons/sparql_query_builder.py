@@ -253,7 +253,13 @@ class SPARQLQueryBuilder(QueryBuilder):
         ]
 
     @staticmethod
-    def rewrite_sparql(query: str, context: Context, metadata_context: Context) -> str:
+    def rewrite_sparql(
+            query: str,
+            # context: Context, metadata_context: Context,
+            context_as_dict: Dict,
+            prefixes: Optional[Dict],
+            vocab: Optional[str]
+    ) -> str:
         """Rewrite local property and type names from Model.template() as IRIs.
 
         Local names are mapped to IRIs by using a JSON-LD context, i.e. { "@context": { ... }}
@@ -261,26 +267,13 @@ class SPARQLQueryBuilder(QueryBuilder):
         In the case of contexts using prefixed names, prefixes are added to the SPARQL query prologue.
         In the case of non-available contexts and vocab then the query is returned unchanged.
         """
-        ctx = {}
 
-        def _context_to_dict(c: Context):
-            return {
-                k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-                for k, v in c.document["@context"].items()
-            }
-
-        if metadata_context and metadata_context.document:
-            ctx.update(_context_to_dict(metadata_context))
-
-        ctx.update(_context_to_dict(context))
-
-        prefixes = context.prefixes
         has_prefixes = prefixes is not None and len(prefixes.keys()) > 0
-        if ctx.get("type") == "@type":
-            if "rdf" in prefixes:
-                ctx["type"] = "rdf:type"
-            else:
-                ctx["type"] = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        has_vocab = vocab is not None
+
+        if context_as_dict.get("type") == "@type":
+            context_as_dict["type"] = "rdf:type" if "rdf" in prefixes \
+                else "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
         def replace(match: Match) -> str:
             m4 = match.group(4)
@@ -288,7 +281,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                 return match.group(0)
             else:
                 v = (
-                    ctx.get(m4, ":" + m4 if context.has_vocab() else None)
+                    context_as_dict.get(m4, ":" + m4 if has_vocab else None)
                     if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
                     else m4
                 )
@@ -313,10 +306,12 @@ class SPARQLQueryBuilder(QueryBuilder):
 
         if not has_prefixes or "prefix" in str(qr).lower():
             return qr
-        else:
-            pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
-        if context.has_vocab():
-            pfx = "\n".join([pfx, f"PREFIX : <{context.vocab}>"])
+
+        pfx = "\n".join(f"PREFIX {k}: <{v}>" for k, v in prefixes.items())
+
+        if has_vocab:
+            pfx = "\n".join([pfx, f"PREFIX : <{vocab}>"])
+
         return f"{pfx}\n{qr}"
 
     @staticmethod
