@@ -12,12 +12,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-# NB: Order matters to avoid broken dependencies.
+# Placeholder for the test suite for actions.
+import pytest
 
-from .mapping import Mapping
-from .mapper import Mapper
-from .store import Store
-from .read_only_store import ReadOnlyStore
-from .model import Model
-from .resolver import Resolver
-from .dataset_store import DatasetStore
+from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.commons.exceptions import DownloadingError
+
+
+def test_download(config):
+    simple = Resource(type="Experiment", url="file.gz")
+    with pytest.raises(DownloadingError):
+        forge = KnowledgeGraphForge(config)
+        forge._store.download(simple, "fake.path", "./", overwrite=False, cross_bucket=False)

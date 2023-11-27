@@ -37,11 +37,11 @@ elasticsearch_operator_range_map = {
 class ESQueryBuilder(QueryBuilder):
     @staticmethod
     def build(
-            schema: Dict,
-            resolvers: Optional[List["Resolver"]],
-            context: Context,
-            *filters,
-            **params,
+        schema: Dict,
+        resolvers: Optional[List["Resolver"]],
+        context: Context,
+        filters: List[Filter],
+        **params,
     ) -> Tuple[List, List, List]:
 
         es_filters = []
@@ -59,7 +59,7 @@ class ESQueryBuilder(QueryBuilder):
             m._update_from_dict(schema)
             dynamic = m._meta["dynamic"] if "dynamic" in m._meta else dynamic
 
-        for index, f in enumerate(*filters):
+        for index, f in enumerate(filters):
             _filter = None
             must = None
             must_not = None
@@ -185,6 +185,16 @@ class ESQueryBuilder(QueryBuilder):
     def build_resource_from_response(query: str, response: Dict, context: Context, *args,
                                      **params) -> List[Resource]:
         ...
+
+    @staticmethod
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+        # TODO should there be an elastic search default limit?
+        if limit:
+            query["size"] = limit
+        if offset:
+            query["from"] = offset
+
+        return query
 
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):
@@ -389,6 +399,7 @@ def _wrap_in_nested_query(path: str, query: Dict):
 
 # TODO: reuse kgforge.core.commons.parser._parse_type
 def _detect_mapping_type(value: Any):
+
     try:
         # integer
         if str(value).isnumeric():

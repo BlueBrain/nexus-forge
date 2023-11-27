@@ -43,7 +43,7 @@ from kgforge.core.conversions.rdf import (
     Form,
 )
 from kgforge.core.reshaping import Reshaper
-from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
+from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths, Filter
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 
@@ -228,8 +228,19 @@ class KnowledgeGraphForge:
         self._model: Model = model(**model_config)
 
         # Store.
-        store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
+        store_model_config = store_config.pop("model", None)
+        if store_model_config:
+            store_model_name = store_model_config.pop("name")
+            if store_model_name != model_name:
+                # Same model, different config
+                store_model = import_class(store_model_name, "models")
+                store_config['model'] = store_model(**store_model_config)
+            else:
+                # Same model, same config
+                store_config['model'] = self._model
+        else:
+            raise ValueError(f'Missing model configuration for store {store_name}')
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
         store_config.update(name=store_name)
@@ -609,7 +620,7 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters.
         :return: Resource
         """
-        return self._store.retrieve(id, version, cross_bucket, **params)
+        return self._store.retrieve(id_=id, version=version, cross_bucket=cross_bucket, **params)
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
@@ -623,7 +634,7 @@ class KnowledgeGraphForge:
         return wrap_paths(template)
 
     @catch
-    def search(self, *filters, **params) -> List[Resource]:
+    def search(self, *filters: Union[Dict, Filter], **params) -> List[Resource]:
         """
         Search for resources based on a list of filters. The search results can be controlled (e.g. number of results) by setting parameters.
         See docs for more details: https://nexus-forge.readthedocs.io/en/latest/interaction.html#querying
@@ -635,7 +646,7 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, *filters, **params)
+        return self._store.search(resolvers=resolvers, filters=list(filters), **params)
 
     @catch
     def sparql(
@@ -964,7 +975,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
                 "endpoint",
                 "token",
                 "bucket",
-                "model_context",
+                # "model_context",
                 "searchendpoints",
                 "vocabulary",
             ],

@@ -361,8 +361,9 @@ class Service:
                     )
 
                 if batch_action == batch_action.DEPRECATE:
-                    url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
-                    params["rev"] = resource._store_metadata._rev
+                    url, rev_param = self._prepare_uri(resource)
+                    params.update(rev_param)
+
                     prepared_request = loop.create_task(
                         queue(
                             hdrs.METH_DELETE,
@@ -443,14 +444,14 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
-    def _prepare_tag(self, resource, tag) -> Tuple[str, str, str]:
+    def _prepare_tag(self, resource, tag) -> Tuple[str, Dict, Dict]:
         url, params = self._prepare_uri(resource)
         url = "/".join((url, "tags"))
         data = {"tag": tag}
         data.update(params)
         return url, data, params
 
-    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, str, str]:
+    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
         schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
         schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
         url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))

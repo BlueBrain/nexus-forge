@@ -4,6 +4,8 @@ Model:
   source: ../../../tests/data/demo-model/
 Store:
   name: DemoStore
+  model:
+    name: DemoModel
 
 Resolvers:
   entities:

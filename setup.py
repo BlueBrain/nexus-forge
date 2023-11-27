@@ -51,7 +51,7 @@ setup(
         "nest-asyncio>=1.5.1",
         "pyparsing>=2.0.2",
         "owlrl>=5.2.3",
-        "elasticsearch_dsl==7.4.0"
+        "elasticsearch_dsl==7.4.0",
     ],
     extras_require={
         "dev": [
