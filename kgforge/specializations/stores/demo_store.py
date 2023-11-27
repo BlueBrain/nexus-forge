@@ -13,29 +13,47 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, Type
+from typing import Dict, List, Optional, Union, Type, Tuple
 from uuid import uuid4
 
 from kgforge.core import Resource
-from kgforge.core.archetypes import Resolver, Store, Mapper, Mapping
+from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
                                              RetrievalError, TaggingError, UpdatingError)
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.core.wrappings.paths import create_filters_from_dict
+from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
 
 
 class DemoStore(Store):
     """An example to show how to implement a Store and to demonstrate how it is used."""
 
-    def __init__(self, endpoint: Optional[str] = None, bucket: Optional[str] = None,
-                 token: Optional[str] = None, versioned_id_template: Optional[str] = None,
-                 file_resource_mapping: Optional[str] = None,
-                 model_context: Optional[Context] = None) -> None:
-        super().__init__(endpoint, bucket, token, versioned_id_template, file_resource_mapping,
-                         model_context)
+    def __init__(
+            self,
+            model: Optional[Model] = None,
+            endpoint: Optional[str] = None,
+            bucket: Optional[str] = None,
+            token: Optional[str] = None,
+            versioned_id_template: Optional[str] = None,
+            file_resource_mapping: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            model, endpoint, bucket, token, versioned_id_template, file_resource_mapping
+        )
+
+    @property
+    def context(self) -> Optional[Context]:
+        return None
+
+    @property
+    def metadata_context(self) -> Optional[Context]:
+        return None
 
     @property
     def mapping(self) -> Type[Mapping]:
@@ -63,7 +81,7 @@ class DemoStore(Store):
     # C[R]UD.
 
     def retrieve(self, id_: str, version: Optional[Union[int, str]],
-                 cross_bucket: bool, **params) -> Resource:
+                 cross_bucket: bool, **params) -> Optional[Resource]:
         if cross_bucket:
             not_supported(("cross_bucket", True))
         try:
@@ -72,6 +90,9 @@ class DemoStore(Store):
             raise RetrievalError("resource not found")
 
         return _to_resource(record)
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return None, None, None
 
     # CR[U]D.
 
@@ -113,7 +134,9 @@ class DemoStore(Store):
 
     # Querying.
 
-    def search(self, resolvers: Optional[List[Resolver]], *filters, **params) -> List[Resource]:
+    def search(
+            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]], **params
+    ) -> List[Resource]:
 
         cross_bucket = params.get("cross_bucket", None)
         if cross_bucket is not None:
@@ -130,6 +153,12 @@ class DemoStore(Store):
         conditions = [f"x.{'.'.join(x.path)}.{x.operator}({x.value!r})" for x in filters]
         records = self.service.find(conditions)
         return [_to_resource(x) for x in records]
+
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        not_supported()
+
+    def _elastic(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        not_supported()
 
     # Utils.
 

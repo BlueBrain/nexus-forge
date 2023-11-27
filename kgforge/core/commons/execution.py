@@ -15,7 +15,8 @@
 import inspect
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Type
+import requests
 
 from kgforge.core import Resource
 from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
@@ -95,6 +96,15 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
         return fun_one(data, *args, **params)
 
     raise TypeError("not a Resource nor a list of Resource")
+
+
+def catch_http_error(
+        r: requests.Response, error_to_throw: Type[BaseException], error_message_formatter
+):
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        raise error_to_throw(error_message_formatter(e))
 
 
 def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],

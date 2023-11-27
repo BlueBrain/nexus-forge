@@ -11,13 +11,3 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
-# NB: Order matters to avoid broken dependencies.
-
-from .mapping import Mapping
-from .mapper import Mapper
-from .store import Store
-from .read_only_store import ReadOnlyStore
-from .model import Model
-from .resolver import Resolver
-from .dataset_store import DatasetStore

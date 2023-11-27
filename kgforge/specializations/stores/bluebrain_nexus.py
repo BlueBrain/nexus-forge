@@ -38,7 +38,7 @@ from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core import Resource
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes import Store, Mapper, Mapping, Resolver
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -51,7 +51,7 @@ from kgforge.core.commons.exceptions import (
     UpdatingError,
     UploadingError,
 )
-from kgforge.core.commons.execution import run, not_supported
+from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld
@@ -102,35 +102,49 @@ elasticsearch_operator_map = {
 }
 
 
+def catch_http_error_nexus(
+        r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
+):
+    return catch_http_error(r, e, error_message_formatter)
+
+
 class BlueBrainNexus(Store):
     def __init__(
             self,
+            model: Optional["Model"] = None,
             endpoint: Optional[str] = None,
             bucket: Optional[str] = None,
             token: Optional[str] = None,
             versioned_id_template: Optional[str] = None,
             file_resource_mapping: Optional[str] = None,
-            model_context: Optional[Context] = None,
             searchendpoints: Optional[Dict] = None,
             **store_config,
     ) -> None:
         super().__init__(
+            model,
             endpoint,
             bucket,
             token,
             versioned_id_template,
             file_resource_mapping,
-            model_context,
             searchendpoints,
             **store_config,
         )
 
     @property
-    def mapping(self) -> Optional[Callable]:
+    def context(self) -> Optional[Context]:
+        return self.service.context
+
+    @property
+    def metadata_context(self) -> Optional[Context]:
+        return self.service.metadata_context
+
+    @property
+    def mapping(self) -> Type[Mapping]:
         return DictionaryMapping
 
     @property
-    def mapper(self) -> Optional[DictionaryMapper]:
+    def mapper(self) -> Type[Mapper]:
         return DictionaryMapper
 
     def register(
@@ -161,7 +175,7 @@ class BlueBrainNexus(Store):
             else:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
-                    context = self.model_context or self.context
+                    context = self.model_context() or self.context
                     result.resource.context = (
                         context.iri
                         if context.is_http_iri()
@@ -194,7 +208,7 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+        context = self.model_context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -224,7 +238,7 @@ class BlueBrainNexus(Store):
                 data=json.dumps(data, ensure_ascii=True),
                 params=params_register,
             )
-        BlueBrainNexus._catch_http_error(response, RegistrationError)
+        catch_http_error_nexus(response, RegistrationError)
 
         response_json = response.json()
         resource.id = response_json["@id"]
@@ -286,19 +300,9 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
-    @staticmethod
-    def _catch_http_error(
-            r: requests.Response, error_to_throw: Type[BaseException],
-            error_message_formatter=_error_message
-    ):
-        try:
-            r.raise_for_status()
-        except HTTPError as e:
-            raise error_to_throw(error_message_formatter(e))
-
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
+    ) -> Optional[Resource]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
@@ -350,7 +354,7 @@ class BlueBrainNexus(Store):
             url = url_resource
         try:
             response = requests.get(url, params=query_params, headers=self.service.headers)
-            BlueBrainNexus._catch_http_error(response, RetrievalError)
+            catch_http_error_nexus(response, RetrievalError)
         except RetrievalError as er:
 
             nexus_path = f"{self.service.endpoint}/resources/" if cross_bucket else self.service.url_resources
@@ -366,7 +370,7 @@ class BlueBrainNexus(Store):
                 response = requests.get(
                     url, params=query_params, headers=self.service.headers
                 )
-                BlueBrainNexus._catch_http_error(response, RetrievalError)
+                catch_http_error_nexus(response, RetrievalError)
             else:
                 raise er
         # finally:
@@ -375,7 +379,7 @@ class BlueBrainNexus(Store):
             response_metadata = requests.get(
                 url_resource, params=query_params, headers=self.service.headers
             )
-            BlueBrainNexus._catch_http_error(response_metadata, RetrievalError)
+            catch_http_error_nexus(response_metadata, RetrievalError)
 
         elif retrieve_source and cross_bucket and response and ('_self' in response.json()):
 
@@ -383,7 +387,7 @@ class BlueBrainNexus(Store):
                 "/".join([response.json()["_self"], "source"]), params=query_params,
                 headers=self.service.headers
             )
-            BlueBrainNexus._catch_http_error(response, RetrievalError)
+            catch_http_error_nexus(response, RetrievalError)
 
         else:
             response_metadata = True  # when retrieve_source is False
@@ -414,7 +418,7 @@ class BlueBrainNexus(Store):
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers)
-        BlueBrainNexus._catch_http_error(response, DownloadingError)
+        catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
         return metadata["_filename"], metadata["_mediaType"]
 
@@ -449,7 +453,7 @@ class BlueBrainNexus(Store):
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
                 async with session.get(url, params=params_download) as response:
 
-                    BlueBrainNexus._catch_http_error(
+                    catch_http_error_nexus(
                         response, DownloadingError,
                         error_message_formatter=lambda e:
                         f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
@@ -479,7 +483,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             params=params_download
         )
-        BlueBrainNexus._catch_http_error(
+        catch_http_error_nexus(
             response, DownloadingError,
             error_message_formatter=lambda e: f"Downloading from bucket {bucket} failed: "
                                               f"{_error_message(e)}"
@@ -494,7 +498,7 @@ class BlueBrainNexus(Store):
             url: str,
             store_metadata: Optional[DictWrapper],
             cross_bucket: bool
-    ) -> Tuple[str, str, str]:
+    ) -> Tuple[str, str]:
         if cross_bucket:
             if store_metadata is not None:
                 project = store_metadata._project.split("/")[-1]
@@ -559,7 +563,7 @@ class BlueBrainNexus(Store):
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context or self.context
+        context = self.model_context() or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -579,7 +583,7 @@ class BlueBrainNexus(Store):
             params=params_update,
         )
 
-        BlueBrainNexus._catch_http_error(response, UpdatingError)
+        catch_http_error_nexus(response, UpdatingError)
         self.service.sync_metadata(resource, response.json())
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
@@ -623,7 +627,7 @@ class BlueBrainNexus(Store):
             data=json.dumps(data, ensure_ascii=True),
             params=params_tag,
         )
-        BlueBrainNexus._catch_http_error(response, TaggingError)
+        catch_http_error_nexus(response, TaggingError)
 
         self.service.sync_metadata(resource, response.json())
 
@@ -674,16 +678,17 @@ class BlueBrainNexus(Store):
         response = requests.delete(
             url, headers=self.service.headers, params=params_deprecate
         )
-        BlueBrainNexus._catch_http_error(response, DeprecationError)
+        catch_http_error_nexus(response, DeprecationError)
         self.service.sync_metadata(resource, response.json())
 
         # Querying.
 
     def search(
-            self, resolvers: Optional[List["Resolver"]], *filters, **params
+            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]],
+            **params
     ) -> List[Resource]:
 
-        if self.model_context is None:
+        if self.model_context() is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
@@ -709,14 +714,20 @@ class BlueBrainNexus(Store):
             )
         if "filters" in params:
             raise ValueError(
-                "A 'filters' key was provided as params. Filters should be provided as iterable to be unpacked.")
+                "A 'filters' key was provided as params. Filters should be provided as iterable."
+            )
 
         if bucket and not cross_bucket:
             not_supported(("bucket", True))
 
-        if filters and isinstance(filters[0], dict):
-            filters = create_filters_from_dict(filters[0])
-        filters = list(filters) if not isinstance(filters, list) else filters
+        if filters:
+            if isinstance(filters, list) and len(filters) > 0:
+                if filters[0] is None:
+                    raise ValueError("Filters cannot be None")
+                elif isinstance(filters[0], dict):
+                    filters = create_filters_from_dict(filters[0])
+            else:
+                filters = list(filters)
 
         if search_endpoint == self.service.sparql_endpoint["type"]:
             if includes or excludes:
@@ -730,7 +741,7 @@ class BlueBrainNexus(Store):
                 project_filter = f"Filter (?_project = <{'/'.join([self.endpoint, 'projects', self.organisation, self.project])}>)"
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                None, resolvers, self.model_context, *filters
+                schema=None, resolvers=resolvers, context=self.model_context(), filters=filters
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -847,7 +858,7 @@ class BlueBrainNexus(Store):
             query = ESQueryBuilder.build(
                 elastic_mapping,
                 resolvers,
-                self.model_context,
+                self.model_context(),
                 filters,
                 default_str_keyword_field=default_str_keyword_field,
                 includes=includes,
@@ -858,6 +869,22 @@ class BlueBrainNexus(Store):
                 json.dumps(query), debug=debug, limit=limit, offset=offset
             )
 
+    @staticmethod  # for testing
+    def reformat_contexts(model_context: Context, metadata_context: Optional[Context]):
+        ctx = {}
+
+        if metadata_context and metadata_context.document:
+            ctx.update(BlueBrainNexus._context_to_dict(metadata_context))
+
+        ctx.update(BlueBrainNexus._context_to_dict(model_context))
+
+        prefixes = model_context.prefixes
+
+        return ctx, prefixes, model_context.vocab
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
+
     def _sparql(self, query: str) -> List[Resource]:
 
         response = requests.post(
@@ -865,12 +892,11 @@ class BlueBrainNexus(Store):
             data=query,
             headers=self.service.headers_sparql,
         )
-        BlueBrainNexus._catch_http_error(response, QueryingError)
+        catch_http_error_nexus(response, QueryingError)
 
         data = response.json()
-        # FIXME workaround to parse a CONSTRUCT query, this fix depends on
-        #  https://github.com/BlueBrain/nexus/issues/1155
-        context = self.model_context or self.context
+
+        context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(self, query: str) -> List[Resource]:
@@ -880,7 +906,7 @@ class BlueBrainNexus(Store):
             data=query,
             headers=self.service.headers_elastic,
         )
-        BlueBrainNexus._catch_http_error(response, QueryingError)
+        catch_http_error_nexus(response, QueryingError)
 
         results = response.json()
         return [
@@ -949,7 +975,7 @@ class BlueBrainNexus(Store):
             org=self.organisation,
             prj=self.project,
             token=token,
-            model_context=self.model_context,
+            model_context=self.model_context() if self.model else None,
             max_connection=max_connection,
             searchendpoints=searchendpoints,
             store_context=nexus_context_iri,
