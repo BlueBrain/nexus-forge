@@ -15,8 +15,9 @@
 import json
 import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, List, Optional, Tuple, Union, Any, Type
 
+from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
@@ -70,11 +71,11 @@ class DemoModel(Model):
             raise ValueError("unrecognized source")
         return mappings
 
-    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+    def mapping(self, entity: str, source: str, type: Type[Mapping]) -> Mapping:
         filename = f"{entity}.hjson"
         filepath = Path(self.source, "mappings", source, type.__name__, filename)
         if filepath.is_file():
-            return type.load(filepath)
+            return type.load(filepath.absolute().as_posix())
 
         raise ValueError("unrecognized entity type or source")
 
@@ -103,8 +104,9 @@ class DemoModel(Model):
         raise not_supported()
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[dict],
-                            **source_config) -> Any:
+    def _service_from_store(
+            store: Store, context_config: Optional[dict], **source_config
+    ) -> Any:
         raise not_supported()
 
     def resolve_context(self, iri: str) -> Dict:

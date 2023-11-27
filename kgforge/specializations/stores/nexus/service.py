@@ -19,7 +19,7 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union, Tuple
+from typing import Callable, Dict, List, Optional, Union, Tuple, Type
 from urllib.error import URLError
 from urllib.parse import quote_plus
 
@@ -512,7 +512,7 @@ class Service:
             self,
             resources: List[Resource],
             function_name,
-            exception: Callable,
+            exception: Type[Exception],
             id_required: bool,
             required_synchronized: bool,
             execute_actions: bool,

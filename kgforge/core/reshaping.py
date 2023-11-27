@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from typing import Callable, Dict, Iterator, List, Union, Type
+from typing import Dict, Iterator, List, Union, Type
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import repr_class

@@ -99,10 +99,6 @@ class Mapping(ABC):
                 raise e
             return None
 
-    @classmethod
-    @abstractmethod
-    def load_str(cls, source: str, raise_ex=True):
-        ...
 
     def save(self, path: str) -> None:
         # path: FilePath.
@@ -111,14 +107,19 @@ class Mapping(ABC):
         filepath.parent.mkdir(parents=True, exist_ok=True)
         filepath.write_text(normalized)
 
+    @classmethod
+    @abstractmethod
+    def load_str(cls, source: str, raise_ex=True):
+        ...
+
     @staticmethod
     @abstractmethod
     def _load_rules(mapping: str) -> Any:
         """Load the mapping rules according to there interpretation."""
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def _normalize_rules(rules: Any) -> str:
         """Normalize the representation of the rules to compare saved mappings."""
-        pass
+        ...

@@ -27,12 +27,8 @@ from kgforge.core.commons.execution import not_supported
 from kgforge.core.wrappings import Filter
 
 
-class DatasetStore(ReadOnlyStore, ABC):
+class DatasetStore(ReadOnlyStore):
     """A class to link to external databases, query and search directly on datasets. """
-
-    def __init__(self, model: Optional[Model] = None,
-                 ) -> None:
-        super().__init__(model)
 
     @property
     @abstractmethod

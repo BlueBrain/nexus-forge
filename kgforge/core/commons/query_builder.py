@@ -34,12 +34,14 @@ class QueryBuilder(ABC):
         filters: List[Filter],
         **params
     ) -> Any:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
-    def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
-        pass
+    def build_resource_from_response(
+            query: str, response: Dict, context: Context, *args, **params
+    ) -> List[Resource]:
+        ...
 
     @staticmethod
     def debug_query(query):
@@ -51,4 +53,4 @@ class QueryBuilder(ABC):
     @staticmethod
     @abstractmethod
     def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
-        pass
+        ...

@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple, Type
+from typing import Any, Dict, List, Optional, Union, Tuple, Type
 
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapper import Mapper
@@ -130,12 +130,12 @@ class Resolver(ABC):
         threshold: float
     ) -> Optional[List[Any]]:
         # POLICY Should notify of failures with exception ResolvingError including a message.
-        pass
+        ...
 
     @abstractmethod
     def _is_target_valid(self, target: str) -> Optional[bool]:
         # POLICY Should notify of failures with exception ValueError including a message.
-        pass
+        ...
 
     # Utils.
 
@@ -173,7 +173,7 @@ class Resolver(ABC):
     @staticmethod
     @abstractmethod
     def _service_from_store(
-            store: Callable, targets: Dict[str, Union[str, Dict]], **store_config
+            store: 'Store', targets: Dict[str, Union[str, Dict]], **store_config
     ) -> Any:
         ...
 
@@ -218,7 +218,7 @@ def _build_resolving_query(
         regex = False
         case_insensitive = False
         limit = 1
-    elif strategy == strategy.EXACT_CASEINSENSITIVE_MATCH:
+    elif strategy == strategy.EXACT_CASE_INSENSITIVE_MATCH:
         regex = True
         case_insensitive = True
         text = f"^{escape_punctuation(text)}$"

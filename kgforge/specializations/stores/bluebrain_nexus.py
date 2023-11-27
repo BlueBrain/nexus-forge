@@ -11,7 +11,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import datetime
 
 import asyncio
 import copy
@@ -24,7 +23,7 @@ from asyncio import Semaphore, Task
 from enum import Enum
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 from requests import HTTPError
@@ -70,7 +69,6 @@ class CategoryDataType(Enum):
     NUMBER = "number"
     BOOLEAN = "boolean"
     LITERAL = "literal"
-
 
 type_map = {
     datetime: CategoryDataType.DATETIME,

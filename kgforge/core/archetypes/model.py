@@ -15,7 +15,7 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Type
 
 import hjson
 from pandas import DataFrame
@@ -77,11 +77,11 @@ class Model(ABC):
     @abstractmethod
     def _types(self) -> List[str]:
         # POLICY Should return managed types in their compacted form (i.e. not IRI nor CURIE).
-        pass
+        ...
 
     def context(self) -> Context:
         # POLICY Should return the context of the Model.
-        pass
+        ...
 
     @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
@@ -150,7 +150,7 @@ class Model(ABC):
         ...
 
     @abstractmethod
-    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+    def mapping(self, entity: str, source: str, type: Type[Mapping]) -> Mapping:
         # POLICY Should raise ValueError if 'entity' or 'source' is not managed by the Model.
         # The selection strategy cannot be abstracted as it depends on the Model data organization.
         ...
@@ -211,6 +211,7 @@ class Model(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_store(store: Callable, context_config: Optional[dict],
-                            **source_config) -> Any:
+    def _service_from_store(
+            store: 'Store', context_config: Optional[dict], **source_config
+    ) -> Any:
         ...

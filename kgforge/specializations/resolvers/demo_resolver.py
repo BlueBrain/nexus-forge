@@ -59,7 +59,7 @@ class DemoResolver(Resolver):
                 )
             except StopIteration:
                 return None
-        elif strategy == ResolvingStrategy.EXACT_CASEINSENSITIVE_MATCH:
+        elif strategy == ResolvingStrategy.EXACT_CASE_INSENSITIVE_MATCH:
             try:
                 return next(x for x in data
                             if text and any(p in x and str(text).lower() == str(x[p]).lower() for p in resolve_with_properties))
