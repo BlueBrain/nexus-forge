@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import os
 from pathlib import Path
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 
 from pyshacl import validate
 from rdflib import Graph, URIRef
@@ -22,20 +22,13 @@ from rdflib.util import guess_format
 from kgforge.core.commons.context import Context
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
-from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper
 
 
 class RdfModelServiceFromDirectory(RdfModelService):
 
     def __init__(self, dir_path: Path, context_iri: str) -> None:
-
-        graph, shape_to_source, class_to_shape = self._build_shapes_map(dir_path=dir_path)
-        self._shapes_graph = ShapesGraphWrapper(graph)
-
-        super().__init__(
-            graph=graph, context_iri=context_iri, shape_to_source=shape_to_source,
-            class_to_shape=class_to_shape
-        )
+        self.dir_path = dir_path
+        super().__init__(context_iri=context_iri)
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._shapes_graph.lookup_shape_from_node(iri)
@@ -55,7 +48,7 @@ class RdfModelServiceFromDirectory(RdfModelService):
         try:
             context = Context(iri)
         except FileNotFoundError as e:
-            raise ValueError(e)
+            raise ValueError(e) from e
 
         self._context_cache.update({iri: context.document})
         return context.document
@@ -63,9 +56,7 @@ class RdfModelServiceFromDirectory(RdfModelService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(
-            self, dir_path: Path
-    ) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
+    def _build_shapes_map(self) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
 
         query = """
                     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -86,7 +77,7 @@ class RdfModelServiceFromDirectory(RdfModelService):
         graph = Graph()
 
         extensions = [".ttl", ".n3", ".json", ".rdf"]
-        for f in dir_path.rglob(os.path.join("*.*")):
+        for f in self.dir_path.rglob(os.path.join("*.*")):
             graph_i = Graph()
             if f.suffix in extensions:
                 file_format = guess_format(f.name)

@@ -12,16 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import json
-import types
-from io import StringIO
+from abc import abstractmethod, ABC
 from typing import List, Dict, Tuple, Set, Optional
-from abc import abstractmethod
-from typing import List, Dict, Tuple, Set, Optional
-from pyshacl.shape import Shape
-from pyshacl.shapes_graph import ShapesGraph
-from rdflib import Graph, URIRef, RDF, XSD
-from rdflib.plugins.sparql.results.jsonresults import JSONResultSerializer
 
+from rdflib import Graph, URIRef, RDF, XSD
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
@@ -30,23 +24,21 @@ from kgforge.core.conversions.rdf import as_graph
 
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.utils import as_term
+from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper
 
 
-class RdfModelService:
+class RdfModelService(ABC):
 
-    def __init__(
-            self, graph: Graph,
-            shape_to_source: Dict[URIRef, str],
-            class_to_shape:  Dict[str, URIRef],
-            context_iri: Optional[str] = None,
-    ) -> None:
+    def __init__(self, context_iri: Optional[str] = None):
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
-        self._graph = graph
+
+        self._graph, self.shape_to_source, self.class_to_shape =  self._build_shapes_map()
+        self._shapes_graph = ShapesGraphWrapper(self._graph)
+
         self._context_cache = dict()
-        self.shape_to_source = shape_to_source
-        self.class_to_shape = class_to_shape
+
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
 
@@ -92,17 +84,21 @@ class RdfModelService:
 
     @abstractmethod
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
         """For a given IRI return its resolved context recursively"""
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
     def generate_context(self) -> Dict:
         """Generates a JSON-LD context with the classes and terms present in the SHACL graph."""
-        raise NotImplementedError()
+        ...
+
+    @abstractmethod
+    def _build_shapes_map(self) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
+        ...
 
     def _build_types_to_shapes(self) -> Dict[str, URIRef]:
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering

@@ -46,13 +46,7 @@ class RdfModelServiceFromStore(RdfModelService):
 
         self._imported = []
 
-        graph, shape_to_resource, class_to_shape = self._build_shapes_map()
-        self._shapes_graph = ShapesGraphWrapper(graph)
-
-        super().__init__(
-            graph=graph, context_iri=context_iri, shape_to_source=shape_to_resource,
-            class_to_shape=class_to_shape
-        )
+        super().__init__(context_iri=context_iri)
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         shape: ShapeWrapper = self._load_and_get_type_shape(iri)
