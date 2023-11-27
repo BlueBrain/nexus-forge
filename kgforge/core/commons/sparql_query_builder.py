@@ -191,6 +191,7 @@ class SPARQLQueryBuilder(QueryBuilder):
         if q_comp.name == "ConstructQuery":
             return SPARQLQueryBuilder.build_resource_from_construct_query(bindings, context)
 
+        # SELECT QUERY
         return SPARQLQueryBuilder.build_resource_from_select_query(bindings)
 
     @staticmethod

@@ -304,7 +304,7 @@ class KnowledgeGraphForge:
 
     @catch
     def template(
-            self, type: str, only_required: bool = False, output: str = "hjson"
+        self, type: str, only_required: bool = False, output: str = "hjson"
     ) -> Optional[Dict]:
         """
         Print the schema associated with a given resource type (must be listed in forge.types(...)) in hjson (output='hjson') or JSON (output='json') format.
@@ -388,18 +388,18 @@ class KnowledgeGraphForge:
 
     @catch
     def resolve(
-            self,
-            text: Union[str, List[str], Resource],
-            scope: Optional[str] = None,
-            resolver: Optional[str] = None,
-            target: Optional[str] = None,
-            type: Optional[str] = None,
-            strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
-            resolving_context: Optional[Any] = None,
-            property_to_resolve: Optional[str] = None,
-            merge_inplace_as: Optional[str] = None,
-            limit: Optional[int] = 10,
-            threshold: Optional[float] = 0.5,
+        self,
+        text: Union[str, List[str], Resource],
+        scope: Optional[str] = None,
+        resolver: Optional[str] = None,
+        target: Optional[str] = None,
+        type: Optional[str] = None,
+        strategy: Union[ResolvingStrategy, str] = ResolvingStrategy.BEST_MATCH,
+        resolving_context: Optional[Any] = None,
+        property_to_resolve: Optional[str] = None,
+        merge_inplace_as: Optional[str] = None,
+        limit: Optional[int] = 10,
+        threshold: Optional[float] = 0.5,
     ) -> Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]:
         """
         Resolve text(s) or a resource into existing resources (from the configured Store) depending on the resolving strategy.
@@ -484,8 +484,7 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR,
-               uri: str = None, **kwargs) -> str:
+    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
@@ -543,7 +542,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mappings(
-            self, source: str, pretty: bool = True
+        self, source: str, pretty: bool = True
     ) -> Optional[Dict[str, List[str]]]:
         """
         Print(pretty=True) or return (pretty=False) configured mappings for a given source.
@@ -557,7 +556,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mapping(
-            self, entity: str, source: str, type: Callable = DictionaryMapping
+        self, entity: str, source: str, type: Callable = DictionaryMapping
     ) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -571,11 +570,11 @@ class KnowledgeGraphForge:
 
     @catch
     def map(
-            self,
-            data: Any,
-            mapping: Union[Mapping, List[Mapping]],
-            mapper: Callable = DictionaryMapper,
-            na: Union[Any, List[Any]] = None,
+        self,
+        data: Any,
+        mapping: Union[Mapping, List[Mapping]],
+        mapper: Callable = DictionaryMapper,
+        na: Union[Any, List[Any]] = None,
     ) -> Union[Resource, List[Resource]]:
         """
         Transform data to resources using transformations rules provided as mappings. The format of the data to transform
@@ -593,10 +592,10 @@ class KnowledgeGraphForge:
 
     @catch
     def reshape(
-            self,
-            data: Union[Resource, List[Resource]],
-            keep: List[str],
-            versioned: bool = False,
+        self,
+        data: Union[Resource, List[Resource]],
+        keep: List[str],
+        versioned: bool = False,
     ) -> Union[Resource, List[Resource]]:
         """
         Keep only a provided list of properties ('keep') from a resource of list of resources.
@@ -614,11 +613,11 @@ class KnowledgeGraphForge:
 
     @catch
     def retrieve(
-            self,
-            id: str,
-            version: Optional[Union[int, str]] = None,
-            cross_bucket: bool = False,
-            **params
+        self,
+        id: str,
+        version: Optional[Union[int, str]] = None,
+        cross_bucket: bool = False,
+        **params
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -659,12 +658,12 @@ class KnowledgeGraphForge:
 
     @catch
     def sparql(
-            self,
-            query: str,
-            debug: bool = False,
-            limit: Optional[int] = None,
-            offset: Optional[int] = None,
-            **params
+        self,
+        query: str,
+        debug: bool = False,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        **params
     ) -> List[Resource]:
         """
         Search for resources using a SPARQL query. See SPARQL docs: https://www.w3.org/TR/sparql11-query.
@@ -680,11 +679,11 @@ class KnowledgeGraphForge:
 
     @catch
     def elastic(
-            self,
-            query: str,
-            debug: bool = False,
-            limit: Optional[int] = None,
-            offset: Optional[int] = None,
+        self,
+        query: str,
+        debug: bool = False,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> List[Resource]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
@@ -699,13 +698,13 @@ class KnowledgeGraphForge:
 
     @catch
     def download(
-            self,
-            data: Union[Resource, List[Resource]],
-            follow: str = "distribution.contentUrl",
-            path: str = ".",
-            overwrite: bool = False,
-            cross_bucket: bool = False,
-            content_type: str = None
+        self,
+        data: Union[Resource, List[Resource]],
+        follow: str = "distribution.contentUrl",
+        path: str = ".",
+        overwrite: bool = False,
+        cross_bucket: bool = False,
+        content_type: str = None
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -724,7 +723,7 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def register(
-            self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         """
         Store a resource or list of resources in the configured Store.
@@ -737,7 +736,7 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def update(
-            self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         """
         Update a resource or a list of resources in the configured Store.
@@ -797,10 +796,10 @@ class KnowledgeGraphForge:
 
     @catch
     def as_json(
-            self,
-            data: Union[Resource, List[Resource]],
-            expanded: bool = False,
-            store_metadata: bool = False,
+        self,
+        data: Union[Resource, List[Resource]],
+        expanded: bool = False,
+        store_metadata: bool = False,
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON.
@@ -821,11 +820,11 @@ class KnowledgeGraphForge:
 
     @catch
     def as_jsonld(
-            self,
-            data: Union[Resource, List[Resource]],
-            form: str = Form.COMPACTED.value,
-            store_metadata: bool = False,
-            **params
+        self,
+        data: Union[Resource, List[Resource]],
+        form: str = Form.COMPACTED.value,
+        store_metadata: bool = False,
+        **params
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -848,7 +847,7 @@ class KnowledgeGraphForge:
 
     @catch
     def as_graph(
-            self, data: Union[Resource, List[Resource]], store_metadata: bool = False
+        self, data: Union[Resource, List[Resource]], store_metadata: bool = False
     ) -> Graph:
         """
         Convert a resource or a list of resources to a RDFLib Graph object: https://rdflib.readthedocs.io/en/stable/intro_to_graphs.html.
@@ -867,12 +866,12 @@ class KnowledgeGraphForge:
 
     @catch
     def as_dataframe(
-            self,
-            data: Union[Resource, List[Resource]],
-            na: Union[Any, List[Any]] = [None],
-            nesting: str = ".",
-            expanded: bool = False,
-            store_metadata: bool = False,
+        self,
+        data: Union[Resource, List[Resource]],
+        na: Union[Any, List[Any]] = [None],
+        nesting: str = ".",
+        expanded: bool = False,
+        store_metadata: bool = False,
     ) -> DataFrame:
         """
         Convert a resource or a list of resources to pandas.DataFrame.
@@ -897,7 +896,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_json(
-            self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
+        self, data: Union[Dict, List[Dict]], na: Union[Any, List[Any]] = None
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a JSON document or a list of JSON documents to a resource or a list of resources.
@@ -910,7 +909,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_jsonld(
-            self, data: Union[Dict, List[Dict]]
+        self, data: Union[Dict, List[Dict]]
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a JSON-LD document or a list of JSON-LD documents to a resource or a list of resources.
@@ -922,11 +921,11 @@ class KnowledgeGraphForge:
 
     @catch
     def from_graph(
-            self,
-            data: Graph,
-            type: Union[str, List[str]] = None,
-            frame: Dict = None,
-            use_model_context=False,
+        self,
+        data: Graph,
+        type: Union[str, List[str]] = None,
+        frame: Dict = None,
+        use_model_context=False,
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a RDFLib.Graph object to a resource or a list of resources. What to convert from the RDFLib.Graph can be
@@ -943,7 +942,7 @@ class KnowledgeGraphForge:
 
     @catch
     def from_dataframe(
-            self, data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
+        self, data: DataFrame, na: Union[Any, List[Any]] = np.nan, nesting: str = "."
     ) -> Union[Resource, List[Resource]]:
         """
         Convert a pandas.DataFrame to a resource or a list of resources.
@@ -965,7 +964,7 @@ class KnowledgeGraphForge:
 
 
 def prepare_resolvers(
-        config: Dict, store_config: Dict
+    config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:
     return {
         scope: dict(prepare_resolver(x, store_config) for x in configs)
