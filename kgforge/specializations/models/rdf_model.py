@@ -149,7 +149,7 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfModelService:
+    def _service_from_directory(dirpath: Path, context_iri: str) -> RdfModelService:
         return RdfModelServiceFromDirectory(dirpath, context_iri)
 
     @staticmethod

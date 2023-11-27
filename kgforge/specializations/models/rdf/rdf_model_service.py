@@ -60,7 +60,7 @@ class RdfModelService(ABC):
         Returns:
             A NodeProperty object with the collected properties
         """
-        raise NotImplementedError()
+        ...
 
     def validate(self, resource: Resource, type_: str):
 
