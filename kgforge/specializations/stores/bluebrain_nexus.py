@@ -33,7 +33,6 @@ import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
-
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
@@ -41,6 +40,7 @@ from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -113,22 +113,22 @@ def catch_http_error_nexus(
 class BlueBrainNexus(Store):
     def __init__(
             self,
+            model: Optional["Model"] = None,
             endpoint: Optional[str] = None,
             bucket: Optional[str] = None,
             token: Optional[str] = None,
             versioned_id_template: Optional[str] = None,
             file_resource_mapping: Optional[str] = None,
-            model_context: Optional[Context] = None,
             searchendpoints: Optional[Dict] = None,
             **store_config,
     ) -> None:
         super().__init__(
+            model,
             endpoint,
             bucket,
             token,
             versioned_id_template,
             file_resource_mapping,
-            model_context,
             searchendpoints,
             **store_config,
         )
