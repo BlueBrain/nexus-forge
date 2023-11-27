@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple, Type
 
 from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.exceptions import ConfigurationError, ResolvingError
 from kgforge.core.commons.execution import not_supported
@@ -42,7 +44,7 @@ class Resolver(ABC):
         # POLICY Resolver data access should be lazy, unless it takes less than a second.
         # POLICY There could be data caching but it should be aware of changes made in the source.
         self.source: str = source
-        self.targets: Dict[str, Tuple[str, Dict[str, str]]] = {}
+        self.targets: Dict[str, Union[str, Dict]] = {}
         for target in targets:
             if "filters" in target:
                 # reshape filters to match query filters
@@ -50,6 +52,7 @@ class Resolver(ABC):
             else:
                 filters = None
             self.targets[target["identifier"]] = {"bucket": target["bucket"], "filters": filters}
+
         self.result_mapping: Any = self.mapping.load(result_resource_mapping)
         self.service: Any = self._initialize_service(self.source, self.targets, **source_config)
 
@@ -58,15 +61,15 @@ class Resolver(ABC):
 
     @property
     @abstractmethod
-    def mapping(self) -> Callable:
+    def mapping(self) -> Type[Mapping]:
         """Mapping class to load result_resource_mapping."""
-        pass
+        ...
 
     @property
     @abstractmethod
-    def mapper(self) -> Callable:
+    def mapper(self) -> Type[Mapper]:
         """Mapper class to map the result data to a Resource with result_resource_mapping."""
-        pass
+        ...
 
     def resolve(self, text: Union[str, List[str], Resource], target: str, type: str,
                 strategy: ResolvingStrategy, resolving_context: Any, property_to_resolve: str,
@@ -87,7 +90,9 @@ class Resolver(ABC):
                 text_to_resolve = getattr(text, property_to_resolve)
             else:
                 raise ResolvingError(
-                    "When resolving a Resource, a property_to_resolve of type str or List[str] should be provided")
+                    "When resolving a Resource, a property_to_resolve of type str or List[str]"
+                    " should be provided"
+                )
 
         elif property_to_resolve is not None or merge_inplace_as is not None:
             raise not_supported(("property_to_resolve or merge_inplace_as", str))
@@ -134,8 +139,9 @@ class Resolver(ABC):
 
     # Utils.
 
-    def _initialize_service(self, source: str, targets: Dict[str, Dict[str, Dict[str, str]]],
-                            **source_config) -> Any:
+    def _initialize_service(
+            self, source: str, targets: Dict[str, Union[str, Dict]], **source_config
+    ) -> Any:
         # Resolver data could be accessed from a directory, a web service, or a Store.
         # Initialize the access to the resolver data according to the source type.
         # POLICY Should not use 'self'. This is not a function only for the specialization to work.
@@ -153,20 +159,21 @@ class Resolver(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Union[str, Dict]],
                                 **source_config) -> Any:
         ...
 
     @staticmethod
     @abstractmethod
-    def _service_from_web_service(endpoint: str,
-                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
+    def _service_from_web_service(
+            endpoint: str, targets: Dict[str, Union[str, Dict]]
+    ) -> Any:
         ...
 
     @staticmethod
     @abstractmethod
     def _service_from_store(
-            store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config
+            store: Callable, targets: Dict[str, Union[str, Dict]], **store_config
     ) -> Any:
         ...
 
@@ -181,25 +188,28 @@ def escape_punctuation(text):
     return text
 
 
-def write_sparql_filters(text, properties: List, regex=False,
-                         case_insensitive=False) -> List[str]:
+def write_sparql_filters(
+        text, properties: List, regex=False, case_insensitive=False
+) -> List[str]:
     if case_insensitive and not regex:
         raise ValueError('Case-insensitive option only valid when regex is True.')
     start_str = " FILTER regex(" if regex else " FILTER ("
     end_str = ", \"i\")" if case_insensitive else ")"
     filters = []
-    for property in properties:
+    for property_ in properties:
         if regex:
-            full_str = start_str + f"?{property}, \"{text}\"" + end_str
+            full_str = start_str + f"?{property_}, \"{text}\"" + end_str
         else:
-            full_str = start_str + f"?{property} = \"{text}\"" + end_str
+            full_str = start_str + f"?{property_} = \"{text}\"" + end_str
         filters.append(full_str)
     return filters
 
 
-def _build_resolving_query(text, query_template, deprecated_property, filters, strategy, _type,
-                           properties_to_filter_with, resolving_context: Any,
-                           query_builder: Type[QueryBuilder], limit: Optional[int]):
+def _build_resolving_query(
+        text, query_template, deprecated_property, filters, strategy, _type,
+        properties_to_filter_with, resolving_context: Any,
+        query_builder: Type[QueryBuilder], limit: Optional[int]
+) -> Tuple[str, int]:
     first_filters = f"?id <{deprecated_property}> \"false\"^^xsd:boolean"
     if _type:
         first_filters = f"{first_filters} ; a {_type}"

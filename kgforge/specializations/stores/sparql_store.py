@@ -20,6 +20,7 @@ from kgforge.core.archetypes import Mapper
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.dataset_store import DatasetStore
+from kgforge.core.commons import Context
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
@@ -60,15 +61,15 @@ class SPARQLStore(DatasetStore):
         # path: FilePath.
         # TODO define downloading method
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        not_supported()
+        raise not_supported()
 
     def retrieve(
         self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Optional[Resource]:
-        not_supported()
+        raise not_supported()
 
     def _retrieve_filename(self, id: str) -> str:
-        not_supported()
+        raise not_supported()
 
     def _search(
             self, filters: List[Union[Dict, Filter]],
@@ -185,3 +186,15 @@ class SPARQLStore(DatasetStore):
             content_type=content_type,
             accept=accept, **params
         )
+
+    def elastic(
+            self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        raise not_supported()
+
+    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
+                              cross_bucket: bool) -> Tuple[str, str]:
+        raise not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()

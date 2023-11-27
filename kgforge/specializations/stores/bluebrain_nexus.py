@@ -37,6 +37,7 @@ from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.resource import Resource
+from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
@@ -113,7 +114,7 @@ def catch_http_error_nexus(
 class BlueBrainNexus(Store):
     def __init__(
             self,
-            model: Optional["Model"] = None,
+            model: Optional[Model] = None,
             endpoint: Optional[str] = None,
             bucket: Optional[str] = None,
             token: Optional[str] = None,

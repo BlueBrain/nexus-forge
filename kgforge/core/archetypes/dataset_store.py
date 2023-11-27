@@ -127,12 +127,12 @@ class DatasetStore(ReadOnlyStore, ABC):
         # POLICY Resource _synchronized should not be set (default is False).
         ...
 
+    @abstractmethod
     def elastic(
             self, query: str, debug: bool, limit: int = None,
             offset: int = None, **params
     ) -> Optional[Union[List[Resource], Resource]]:
-        not_supported()
-
+        ...
 
 def type_from_filters(filters: List[Union[Filter, Dict]]) -> Optional[str]:
     """Returns the first `type` found in filters."""
