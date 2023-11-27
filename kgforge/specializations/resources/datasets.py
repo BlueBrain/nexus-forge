@@ -15,7 +15,7 @@
 from typing import List, Union
 from warnings import warn
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.execution import catch, not_supported
 from kgforge.core.forge import KnowledgeGraphForge
@@ -95,7 +95,9 @@ class Dataset(Resource):
                            versioned, **kwargs):
 
         if versioned and isinstance(resource, str):
-            not_supported((f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True))
+            raise not_supported(
+                (f"resource:str when versioned is {versioned}. Set 'versioned' to False when referencing a str", True)
+            )
         if isinstance(resource, str):
             reference = Resource(type=reference_type, id=resource)
         elif isinstance(resource, Resource):
@@ -103,10 +105,13 @@ class Dataset(Resource):
                 reference = self._forge.reshape(resource, keep, versioned)
             except AttributeError as ae:
                 if '_rev' in str(ae) and versioned:
-                    raise ValueError(f"Missing resource revision value to build a versioned ({versioned}) reference. "
-                                     f"Provide a revision number to the resource (by registering it for example) or set 'versioned' argument to False if no versioned reference is needed.")
-                else:
-                    raise ae
+                    raise ValueError(
+                        f"Missing resource revision value to build a versioned ({versioned}) reference. "
+                        f"Provide a revision number to the resource (by registering it for example) "
+                        f"or set 'versioned' argument to False if no versioned reference is needed."
+                    ) from ae
+
+                raise ae
 
         result = Resource(type=prov_type, **kwargs)
         result.__setattr__(reference_property, reference)

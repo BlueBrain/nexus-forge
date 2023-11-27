@@ -14,18 +14,20 @@
 import datetime
 import re
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Any, Union
+from typing import Dict, List, Callable, Optional, Any, Union, Tuple
 
 from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Model, Store
+from kgforge.core.archetypes import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import run
+from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.rdf_model_service_from_directory import RdfModelServiceFromDirectory
 from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
@@ -65,8 +67,12 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return (
+            Context.context_to_dict(self.context()),
+            self.context().prefixes,
+            self.context().vocab
+        )
 
     # Vocabulary.
 
@@ -109,8 +115,14 @@ class RdfModel(Model):
 
     # Validation.
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool,
-                 type_: str) -> None:
+    def schema_id(self, type: str) -> str:
+        try:
+            shape_iri = self.service.types_to_shapes[type]
+            return str(self.service.schema_source_id(shape_iri))
+        except KeyError as exc:
+            raise ValueError("type not found") from exc
+
+    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated", type_=type_)
 
@@ -126,6 +138,7 @@ class RdfModel(Model):
                                  for o in graph.objects(None, SH.sourceConstraintComponent))
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
+
             resource._last_action = action
 
     def _validate_one(self, resource: Resource, type_: str) -> None:
@@ -136,15 +149,12 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dir_path: Path, context_iri: str, **dir_config) -> RdfModelService:
-        return RdfModelServiceFromDirectory(dir_path=dir_path, context_iri=context_iri)
+    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfModelService:
+        return RdfModelServiceFromDirectory(dirpath, context_iri)
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict],
-                            **source_config) -> Any:
-        endpoint = source_config.get("endpoint")
-        token = source_config.get("token")
-        bucket = source_config["bucket"]
+    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
+
         default_store: Store = store(**source_config)
 
         if context_config:
@@ -158,8 +168,11 @@ class RdfModel(Model):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
-                context_store: Store = store(context_endpoint, context_bucket, context_token,
-                                             **source_config)
+
+                context_store: Store = store(
+                    endpoint=context_endpoint, bucket=context_bucket, token=context_token,
+                    **source_config
+                )
                 # FIXME: define a store independent StoreService
                 service = RdfModelServiceFromStore(default_store, context_iri, context_store)
             else:
@@ -168,6 +181,19 @@ class RdfModel(Model):
             service = RdfModelServiceFromStore(default_store)
 
         return service
+
+    def _sources(self) -> List[str]:
+        raise not_supported()
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        raise not_supported()
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
 
 
 def parse_attributes(node: NodeProperties, only_required: bool,

@@ -19,18 +19,17 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union, Tuple
+from typing import Callable, Dict, List, Optional, Union, Tuple, Type
 from urllib.error import URLError
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
-from numpy import nan
 from requests import HTTPError
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
     Action,
     collect_lazy_actions,
@@ -259,16 +258,16 @@ class Service:
                 response = requests.get(url, headers=self.headers)
                 response.raise_for_status()
                 resource = response.json()
-            except Exception as e:
+            except Exception as exc:
                 if not local_only:
                     try:
                         context = Context(context_to_resolve)
-                    except URLError:
-                        raise ValueError(f"{context_to_resolve} is not resolvable")
+                    except URLError as exc2:
+                        raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
 
                     document = context.document["@context"]
                 else:
-                    raise ValueError(f"{context_to_resolve} is not resolvable")
+                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc
             else:
                 # Make sure context is not deprecated
                 if '_deprecated' in resource and resource['_deprecated']:
@@ -468,9 +467,9 @@ class Service:
         return url, params
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
-
         metadata = (
-            {"id": resource.id} if hasattr(resource, "id")
+            {"id": resource.id}
+            if hasattr(resource, "id")
             else (
                 {"id": resource.__getattribute__("@id")}
                 if hasattr(resource, "@id")
@@ -481,10 +480,8 @@ class Service:
         keys.extend(["_index", "_score", "id", "@id"])
         only_meta = {k: v for k, v in result.items() if k in keys}
         metadata.update(_remove_ld_keys(only_meta, self.metadata_context, False))
-
         if not hasattr(resource, "id") and not hasattr(resource, "@id"):
             resource.id = result.get("id", result.get("@id", None))
-
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(
@@ -500,6 +497,7 @@ class Service:
             self.sync_metadata(resource, response)
         else:
             action = Action(action_name, succeeded, response)
+
         resource._last_action = action
         resource._synchronized = synchronized
 
@@ -521,7 +519,7 @@ class Service:
             self,
             resources: List[Resource],
             function_name,
-            exception: Callable,
+            exception: Type[Exception],
             id_required: bool,
             required_synchronized: bool,
             execute_actions: bool,

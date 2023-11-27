@@ -9,6 +9,8 @@ Model:
 Store:
   name: BlueBrainNexus
   endpoint: https://bbp.epfl.ch/nexus/v1
+  model:
+    name: RdfModel
   searchendpoints:
     sparql:
       endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"

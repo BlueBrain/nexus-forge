@@ -20,7 +20,7 @@ from rdflib import URIRef, Namespace, Graph
 
 from kgforge.core.commons.exceptions import RetrievalError
 from kgforge.core.conversions.rdf import as_jsonld
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.store import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper, \
     ShapeWrapper

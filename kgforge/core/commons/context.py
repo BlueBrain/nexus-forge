@@ -45,8 +45,8 @@ class Context(JSONLD_Context):
         elif isinstance(document, str):
             try:
                 self.document = source_to_json(document)
-            except Exception:
-                raise ValueError("context not resolvable")
+            except Exception as e:
+                raise ValueError("context not resolvable") from e
         elif isinstance(document, Dict):
             self.document = document if "@context" in document else {"@context": document}
         self.iri = iri
@@ -60,3 +60,10 @@ class Context(JSONLD_Context):
 
     def has_vocab(self):
         return self.vocab is not None
+
+    @staticmethod
+    def context_to_dict(context: 'Context'):
+        return {
+            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
+            for k, v in context.document["@context"].items()
+        }

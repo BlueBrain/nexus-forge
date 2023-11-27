@@ -29,7 +29,10 @@ def load_file_as_byte(source: str):
             response.raise_for_status()
             data = response.content
         except RequestException as re:
-            raise AttributeError(f"Failed to load the configuration from {source}. The provided source is not a valid file path or URL: {str(re)}")
+            raise AttributeError(
+                f"Failed to load the configuration from {source}. "
+                f"The provided source is not a valid file path or URL: {str(re)}"
+            ) from re
     return data
 
 

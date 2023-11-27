@@ -23,7 +23,7 @@ from rdflib import Graph, URIRef, RDF, XSD
 from rdflib.plugins.sparql.results.jsonresults import JSONResultSerializer
 
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.conversions.rdf import as_graph

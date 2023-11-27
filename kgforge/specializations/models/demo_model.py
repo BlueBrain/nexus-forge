@@ -15,10 +15,13 @@
 import json
 import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union, Type
+from typing import Dict, List, Optional, Tuple, Union, Any, Type
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model
+from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.execution import not_supported
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 
@@ -26,8 +29,11 @@ from kgforge.core.commons.exceptions import ValidationError
 class DemoModel(Model):
     """An example to show how to implement a Model and to demonstrate how it is used."""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
+    def _sparql(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        raise not_supported()
 
     # Vocabulary.
 
@@ -75,7 +81,7 @@ class DemoModel(Model):
         filename = f"{entity}.hjson"
         filepath = Path(self.source, "mappings", source, type.__name__, filename)
         if filepath.is_file():
-            return type.load(filepath)  # TODO should be str
+            return type.load(filepath.absolute().as_posix())
 
         raise ValueError("unrecognized entity type or source")
 
@@ -96,8 +102,30 @@ class DemoModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dir_path: Path, context_iri: Optional[str]):
-        return ModelLibrary(dir_path)
+    def _service_from_directory(dirpath: Path, context_iri: Optional[str]):
+        return ModelLibrary(dirpath)
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_store(
+            store: Store, context_config: Optional[dict], **source_config
+    ) -> Any:
+        raise not_supported()
+
+    def resolve_context(self, iri: str) -> Dict:
+        raise not_supported()
+
+    def _generate_context(self) -> Dict:
+        raise not_supported()
+
+    def schema_id(self, type: str) -> str:
+        raise not_supported()
+
+    def _validate_many(self, resources: List[Resource], type_: str) -> None:
+        raise not_supported()
 
 
 class ModelLibrary:

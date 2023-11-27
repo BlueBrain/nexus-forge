@@ -11,18 +11,16 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Any
 
-from kgforge.core.resource import Resource
+# Placeholder for the test suite for actions.
+import pytest
+
+from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.commons.exceptions import DownloadingError
 
 
-class EntityLinkingCandidate(Resource):
-
-    def __init__(self, score, candidate_context: Any = None, **properties):
-        self.score = score
-        self.candidate_context = candidate_context
-        super().__init__(**properties)
-
-    def __repr__(self):
-        attrs = (f"{k}={v!r}" for k, v in self.__dict__.items())
-        return f"Candidate({', '.join(attrs)})"
+def test_download(config):
+    simple = Resource(type="Experiment", url="file.gz")
+    with pytest.raises(DownloadingError):
+        forge = KnowledgeGraphForge(config)
+        forge._store.download(simple, "fake.path", "./", overwrite=False, cross_bucket=False)

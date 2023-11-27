@@ -29,6 +29,7 @@ from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
+from kgforge.specializations.models import DemoModel
 from kgforge.specializations.stores.bluebrain_nexus import (
     BlueBrainNexus,
     _create_select_query,
@@ -39,6 +40,8 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 from kgforge.specializations.stores.nexus import Service
 from utils import full_path_relative_to_root
 
+MODEL = DemoModel(**{"origin": "directory",
+                     "source": full_path_relative_to_root("tests/data/demo-model/")})
 BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org"
 TOKEN = "token"
@@ -121,6 +124,7 @@ def registered_person(person, store_metadata_value):
 @mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
 def nexus_store(context_project_patch, metadata_context_patch):
     return BlueBrainNexus(
+        model=MODEL,
         endpoint=NEXUS,
         bucket=BUCKET,
         token=TOKEN,
@@ -145,7 +149,7 @@ def nexus_context():
 
 def test_config_error():
     with pytest.raises(ValueError):
-        BlueBrainNexus(endpoint="test", bucket="invalid", token="")
+        BlueBrainNexus(model={}, endpoint="test", bucket="invalid", token="")
 
 
 def test_config(nexus_store):
