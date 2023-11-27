@@ -70,6 +70,7 @@ class CategoryDataType(Enum):
     BOOLEAN = "boolean"
     LITERAL = "literal"
 
+
 type_map = {
     datetime: CategoryDataType.DATETIME,
     str: CategoryDataType.LITERAL,

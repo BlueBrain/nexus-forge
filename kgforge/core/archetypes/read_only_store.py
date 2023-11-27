@@ -164,7 +164,6 @@ class ReadOnlyStore(ABC):
         for url, path, store_m, bucket in zip(urls, paths, store_metadata, buckets):
             self._download_one(url, path, store_m, cross_bucket, content_type, bucket)
 
-
     @abstractmethod
     def _download_one(
             self,

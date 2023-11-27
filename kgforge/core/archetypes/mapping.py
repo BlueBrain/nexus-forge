@@ -99,7 +99,6 @@ class Mapping(ABC):
                 raise e
             return None
 
-
     def save(self, path: str) -> None:
         # path: FilePath.
         normalized = self._normalize_rules(self.rules)
