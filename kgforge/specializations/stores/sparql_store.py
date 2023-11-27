@@ -142,9 +142,7 @@ class SPARQLStore(DatasetStore):
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         return resources
 
-    def _sparql(
-            self, query: str, debug, limit, offset, **params
-    ) -> Optional[Union[Resource, List[Resource]]]:
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
         try:
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"],
@@ -166,7 +164,7 @@ class SPARQLStore(DatasetStore):
         endpoint: Optional[str],
         searchendpoints: Optional[Dict],
         **store_config,
-    ) -> Any:
+    ) -> SPARQLService:
         try:
             max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
