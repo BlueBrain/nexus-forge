@@ -20,9 +20,12 @@ import yaml
 from pandas import DataFrame
 from rdflib import Graph
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.files import load_file_as_byte
-from kgforge.core.archetypes import Mapping, Model, Resolver, Store
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.model import Model
+from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -449,12 +452,12 @@ class KnowledgeGraphForge:
                     if isinstance(strategy, ResolvingStrategy)
                     else ResolvingStrategy[strategy]
                 )
-            except Exception:
+            except Exception as e:
                 raise AttributeError(
                     f"Invalid ResolvingStrategy value '{strategy}'. "
                     f"Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} "
                     f"and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
-                )
+                ) from e
             return rov.resolve(
                 text,
                 target,
@@ -499,7 +502,7 @@ class KnowledgeGraphForge:
                 f"Invalid Formatter value '{formatter}'. "
                 f"Allowed names are {[name for name, member in Formatter.__members__.items()]} "
                 f"and allowed members are {[member for name, member in Formatter.__members__.items()]}"
-            )
+            ) from e
 
         if formatter == Formatter.STR:
             if what is None:

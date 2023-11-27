@@ -18,37 +18,43 @@ from utils import full_path_relative_to_root
 from kgforge.specializations.models.rdf_model import RdfModel
 from kgforge.specializations.stores.sparql_store import SPARQLStore
 
-
 SEARCH_ENDPOINT = {"sparql": {"endpoint": "http://dbpedia.org/sparql"}}
 
 
 @pytest.fixture
-def rdfmodel():
-    model = RdfModel(origin='directory',
-                     source=full_path_relative_to_root("tests/data/dbpedia-model"),
-                     context={'iri': full_path_relative_to_root("tests/data/dbpedia-model/context.json")}
-                     )
+def rdf_model():
+    model = RdfModel(
+        origin='directory',
+         source=full_path_relative_to_root("tests/data/dbpedia-model"),
+         context={
+             'iri': full_path_relative_to_root("tests/data/dbpedia-model/context.json")
+         }
+    )
     return model
 
-def test_config_(rdfmodel):
+
+def test_config_(rdf_model):
     with pytest.raises(ValueError):
         SPARQLStore(
-            model=rdfmodel,
+            model=rdf_model,
             searchendpoints={"elastic": {"endpoint": "http://demoiri"}}
         )
 
+
 @pytest.fixture
-def sparqlstore(rdfmodel):
+def sparql_store(rdf_model):
     return SPARQLStore(
-        model=rdfmodel,
+        model=rdf_model,
         searchendpoints=SEARCH_ENDPOINT
     )
 
-def test_config(sparqlstore, rdfmodel):
-    assert sparqlstore.model == rdfmodel
-    assert not sparqlstore.endpoint
-    assert sparqlstore.model.context() == rdfmodel.context()
 
-def test_search_params(sparqlstore):
+def test_config(sparql_store, rdf_model):
+    assert sparql_store.model == rdf_model
+    assert not sparql_store.endpoint
+    assert sparql_store.model.context() == rdf_model.context()
+
+
+def test_search_params(sparql_store):
     with pytest.raises(ValueError):
-        sparqlstore.search(resolvers=[None], filters=[None])
+        sparql_store.search(resolvers=[None], filters=[None])

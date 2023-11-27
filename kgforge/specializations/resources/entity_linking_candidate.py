@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from typing import Any
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 
 
 class EntityLinkingCandidate(Resource):

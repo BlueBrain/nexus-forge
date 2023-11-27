@@ -11,7 +11,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import datetime
 
 import asyncio
 import copy
@@ -24,7 +23,7 @@ from asyncio import Semaphore, Task
 from enum import Enum
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 from requests import HTTPError
@@ -33,12 +32,15 @@ import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
-
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.core import Resource
-from kgforge.core.archetypes import Store, Mapper, Mapping, Resolver
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.model import Model
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -111,7 +113,7 @@ def catch_http_error_nexus(
 class BlueBrainNexus(Store):
     def __init__(
             self,
-            model: Optional["Model"] = None,
+            model: Optional[Model] = None,
             endpoint: Optional[str] = None,
             bucket: Optional[str] = None,
             token: Optional[str] = None,
@@ -294,7 +296,7 @@ class BlueBrainNexus(Store):
                 self.organisation, self.project, file, content_type=mime_type
             )
         except HTTPError as e:
-            raise UploadingError(_error_message(e))
+            raise UploadingError(_error_message(e)) from e
 
         return response
 
@@ -397,7 +399,7 @@ class BlueBrainNexus(Store):
                 data = response.json()
                 resource = self.service.to_resource(data)
             except Exception as e:
-                raise ValueError(e)
+                raise ValueError(e) from e
 
             try:
                 if retrieve_source and not cross_bucket:
@@ -408,7 +410,7 @@ class BlueBrainNexus(Store):
                 self.service.synchronize_resource(
                     resource, data, self.retrieve.__name__, False, False
                 )
-                raise ValueError(e)
+                raise ValueError(e) from e
 
             finally:
                 self.service.synchronize_resource(
@@ -718,7 +720,7 @@ class BlueBrainNexus(Store):
             )
 
         if bucket and not cross_bucket:
-            not_supported(("bucket", True))
+            raise not_supported(("bucket", True))
 
         if filters:
             if isinstance(filters, list) and len(filters) > 0:
@@ -796,7 +798,7 @@ class BlueBrainNexus(Store):
                     self.service.synchronize_resource(
                         resource, store_metadata_response, self.search.__name__, False, False
                     )
-                    raise ValueError(e)
+                    raise ValueError(e) from e
                 finally:
                     self.service.synchronize_resource(
                         resource, store_metadata_response, self.search.__name__, True, False
@@ -968,14 +970,14 @@ class BlueBrainNexus(Store):
             )
             params = store_config.pop("params", {})
         except Exception as ve:
-            raise ValueError(f"Store configuration error: {ve}")
+            raise ValueError(f"Store configuration error: {ve}") from ve
 
         return Service(
             endpoint=endpoint,
             org=self.organisation,
             prj=self.project,
             token=token,
-            model_context=self.model_context() if self.model else None,
+            model_context=self.model_context(),
             max_connection=max_connection,
             searchendpoints=searchendpoints,
             store_context=nexus_context_iri,
@@ -1039,6 +1041,9 @@ class BlueBrainNexus(Store):
         else:
             uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
+
+    def _freeze_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
 
 
 def _create_select_query(vars_, statements, distinct, search_in_graph):

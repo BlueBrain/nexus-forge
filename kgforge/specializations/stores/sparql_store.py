@@ -20,6 +20,7 @@ from kgforge.core.archetypes import Mapper
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.dataset_store import DatasetStore
+from kgforge.core.commons import Context
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
@@ -51,24 +52,26 @@ class SPARQLStore(DatasetStore):
         return DictionaryMapper
 
     def _download_one(
-        self,
-        url: str,
-        path: str,
-        store_metadata: Optional[DictWrapper],
-        cross_bucket: bool,
+            self,
+            url: str,
+            path: str,
+            store_metadata: Optional[DictWrapper],
+            cross_bucket: bool,
+            content_type: str,
+            bucket: str
     ) -> None:
         # path: FilePath.
         # TODO define downloading method
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        not_supported()
+        raise not_supported()
 
     def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
-        not_supported()
+        raise not_supported()
 
     def _retrieve_filename(self, id: str) -> str:
-        not_supported()
+        raise not_supported()
 
     def _search(
             self, filters: List[Union[Dict, Filter]],
@@ -139,9 +142,7 @@ class SPARQLStore(DatasetStore):
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         return resources
 
-    def _sparql(
-            self, query: str, debug, limit, offset, **params
-    ) -> Optional[Union[Resource, List[Resource]]]:
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
         try:
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"],
@@ -163,7 +164,7 @@ class SPARQLStore(DatasetStore):
         endpoint: Optional[str],
         searchendpoints: Optional[Dict],
         **store_config,
-    ) -> Any:
+    ) -> SPARQLService:
         try:
             max_connection = store_config.pop("max_connection", 50)
             if max_connection <= 0:
@@ -185,3 +186,15 @@ class SPARQLStore(DatasetStore):
             content_type=content_type,
             accept=accept, **params
         )
+
+    def elastic(
+            self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        raise not_supported()
+
+    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
+                              cross_bucket: bool) -> Tuple[str, str]:
+        raise not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()

@@ -11,18 +11,17 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
 import json
 from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List,  Optional, Union, Type, Match
 
-from kgforge.core import Resource
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore, DEFAULT_LIMIT, DEFAULT_OFFSET
 from kgforge.core.archetypes.model import Model
+from kgforge.core.commons import Context
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
-from kgforge.core.commons import Context
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
@@ -63,10 +62,9 @@ class Store(ReadOnlyStore):
         self.bucket: Optional[str] = bucket
         self.token: Optional[str] = token
         self.versioned_id_template: Optional[str] = versioned_id_template
-        loaded = (
-            self.mapping.load(file_resource_mapping) if file_resource_mapping else None
-        )
-        self.file_mapping: Optional[Any] = loaded
+        self.file_mapping: Optional[Any] = self.mapping.load(file_resource_mapping) \
+            if file_resource_mapping else None
+
         self.service: Any = self._initialize_service(
             self.endpoint, self.bucket, self.token, searchendpoints, **store_config
         )
@@ -113,17 +111,17 @@ class Store(ReadOnlyStore):
             schema_id=schema_id,
         )
 
+    @abstractmethod
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
         # Bulk registration could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._register_one() and execution._run_one() behaviours.
-        not_supported()
+        ...
 
     @abstractmethod
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         # POLICY Should notify of failures with exception RegistrationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
     # This expected that '@catch' is not used here. This is for actions.execute_lazy_actions().
     def upload(
@@ -152,10 +150,11 @@ class Store(ReadOnlyStore):
         # POLICY Should follow self._upload_one() policies.
         return [self._upload_one(x, content_type) for x in paths]
 
+    @abstractmethod
     def _upload_one(self, path: Path, content_type: str) -> Any:
         # path: FilePath.
         # POLICY Should notify of failures with exception UploadingError including a message.
-        not_supported()
+        ...
 
     # CR[U]D.
 
@@ -175,17 +174,17 @@ class Store(ReadOnlyStore):
             schema_id=schema_id,
         )
 
+    @abstractmethod
     def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
-        not_supported()
+        ...
 
     @abstractmethod
     def _update_one(self, resource: Resource, schema_id: Optional[str]) -> None:
         # POLICY Should notify of failures with exception UpdatingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         # Replace None by self._tag_many to switch to optimized bulk tagging.
@@ -200,16 +199,18 @@ class Store(ReadOnlyStore):
             value=value,
         )
 
+    @abstractmethod
     def _tag_many(self, resources: List[Resource], value: str) -> None:
         # Bulk tagging could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._tag_one() and execution._run_one() behaviours.
         # POLICY If tagging modify the resource, it should be done with status='_synchronized'.
-        not_supported()
+        ...
 
+    @abstractmethod
     def _tag_one(self, resource: Resource, value: str) -> None:
         # POLICY Should notify of failures with exception TaggingError including a message.
         # POLICY If tagging modify the resource, _store_metadata should be updated.
-        not_supported()
+        ...
 
     # CRU[D].
 
@@ -225,16 +226,17 @@ class Store(ReadOnlyStore):
             monitored_status="_synchronized",
         )
 
+    @abstractmethod
     def _deprecate_many(self, resources: List[Resource]) -> None:
         # Bulk deprecation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._deprecate_one() and execution._run_one() behaviours.
-        not_supported()
+        ...
 
+    @abstractmethod
     def _deprecate_one(self, resource: Resource) -> None:
         # POLICY Should notify of failures with exception DeprecationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
-        # TODO This operation might be abstracted here when other stores will be implemented.
-        not_supported()
+        ...
 
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET
@@ -262,7 +264,7 @@ class Store(ReadOnlyStore):
     # Versioning.
 
     def freeze(self, data: Union[Resource, List[Resource]]) -> None:
-        # Replace None by self._freeze_many to switch to optimized bulk freezing.
+        # TODO Replace None by self._freeze_many to switch to optimized bulk freezing.
         run(
             self._freeze_one,
             None,
@@ -272,10 +274,11 @@ class Store(ReadOnlyStore):
             exception=FreezingError,
         )
 
+    @abstractmethod
     def _freeze_many(self, resources: List[Resource]) -> None:
         # Bulk freezing could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._freeze_one() and execution._run_one() behaviours.
-        not_supported()
+        ...
 
     def _freeze_one(self, resource: Resource) -> None:
         # Notify of failures with exception FreezingError including a message.

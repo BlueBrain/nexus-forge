@@ -78,12 +78,14 @@ class ReadOnlyStore(ABC):
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
         # TODO These two operations might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
+    @abstractmethod
     def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         # TODO This operation might be adapted if other file metadata are needed.
-        not_supported()
+        ...
 
+    @abstractmethod
     def _prepare_download_one(
             self,
             url: str,
@@ -91,7 +93,7 @@ class ReadOnlyStore(ABC):
             cross_bucket: bool
     ) -> Tuple[str, str]:
         # Prepare download url and download bucket
-        not_supported()
+        ...
 
     def download(
             self,
@@ -162,6 +164,7 @@ class ReadOnlyStore(ABC):
         for url, path, store_m, bucket in zip(urls, paths, store_metadata, buckets):
             self._download_one(url, path, store_m, cross_bucket, content_type, bucket)
 
+    @abstractmethod
     def _download_one(
             self,
             url: str,
@@ -173,7 +176,7 @@ class ReadOnlyStore(ABC):
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        not_supported()
+        ...
 
     # Querying.
 
@@ -244,6 +247,13 @@ class ReadOnlyStore(ABC):
         # POLICY Resource _synchronized should not be set (default is False).
         ...
 
+    @abstractmethod
+    def elastic(
+            self, query: str, debug: bool, limit: int = None,
+            offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        ...
+
     # Versioning.
 
     @abstractmethod
@@ -258,13 +268,14 @@ class ReadOnlyStore(ABC):
         # POLICY Should initialize the access to the store according to its configuration.
         ...
 
+    @abstractmethod
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context
         :param uri: a URI to rewrite.
         :param context: a Store Context object
         :return: str
         """
-        not_supported()
+        ...
 
     def model_context(self):
         return self.model.context() if self.model else None

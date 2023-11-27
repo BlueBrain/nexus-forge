@@ -13,9 +13,9 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Dict, List, Optional, Union, Type, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Union, Type, Tuple, Any
 from uuid import uuid4
-
 from kgforge.core import Resource
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.store import Store
@@ -23,11 +23,13 @@ from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.exceptions import (DeprecationError, RegistrationError,
-                                             RetrievalError, TaggingError, UpdatingError)
+from kgforge.core.commons.exceptions import (
+    DeprecationError, RegistrationError,
+    RetrievalError, TaggingError, UpdatingError
+)
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.conversions.json import as_json, from_json
-from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.core.wrappings.dict import wrap_dict, DictWrapper
 from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
 
 
@@ -72,8 +74,8 @@ class DemoStore(Store):
                        metadata_context=None, context_resolver=None)
         try:
             record = self.service.create(data)
-        except StoreLibrary.RecordExists:
-            raise RegistrationError("resource already exists")
+        except StoreLibrary.RecordExists as exc:
+            raise RegistrationError("resource already exists") from exc
 
         resource.id = record["data"]["id"]
         resource._store_metadata = wrap_dict(record["metadata"])
@@ -83,11 +85,11 @@ class DemoStore(Store):
     def retrieve(self, id_: str, version: Optional[Union[int, str]],
                  cross_bucket: bool, **params) -> Optional[Resource]:
         if cross_bucket:
-            not_supported(("cross_bucket", True))
+            raise not_supported(("cross_bucket", True))
         try:
             record = self.service.read(id_, version)
-        except StoreLibrary.RecordMissing:
-            raise RetrievalError("resource not found")
+        except StoreLibrary.RecordMissing as exc:
+            raise RetrievalError("resource not found") from exc
 
         return _to_resource(record)
 
@@ -101,10 +103,10 @@ class DemoStore(Store):
                        metadata_context=None, context_resolver=None)
         try:
             record = self.service.update(data)
-        except StoreLibrary.RecordMissing:
-            raise UpdatingError("resource not found")
-        except StoreLibrary.RecordDeprecated:
-            raise UpdatingError("resource is deprecated")
+        except StoreLibrary.RecordMissing as exc1:
+            raise UpdatingError("resource not found") from exc1
+        except StoreLibrary.RecordDeprecated as exc2:
+            raise UpdatingError("resource is deprecated") from exc2
 
         resource._store_metadata = wrap_dict(record["metadata"])
 
@@ -114,10 +116,10 @@ class DemoStore(Store):
         version = resource._store_metadata.version
         try:
             self.service.tag(rid, version, value)
-        except StoreLibrary.TagExists:
-            raise TaggingError("resource version already tagged")
-        except StoreLibrary.RecordMissing:
-            raise TaggingError("resource not found")
+        except StoreLibrary.TagExists as exc1:
+            raise TaggingError("resource version already tagged") from exc1
+        except StoreLibrary.RecordMissing as exc2:
+            raise TaggingError("resource not found") from exc2
 
     # CRU[D].
 
@@ -125,10 +127,10 @@ class DemoStore(Store):
         rid = resource.id
         try:
             record = self.service.deprecate(rid)
-        except StoreLibrary.RecordMissing:
-            raise DeprecationError("resource not found")
-        except StoreLibrary.RecordDeprecated:
-            raise DeprecationError("resource already deprecated")
+        except StoreLibrary.RecordMissing as exc1:
+            raise DeprecationError("resource not found") from exc1
+        except StoreLibrary.RecordDeprecated as exc2:
+            raise DeprecationError("resource already deprecated") from exc2
 
         resource._store_metadata = wrap_dict(record["metadata"])
 
@@ -140,7 +142,7 @@ class DemoStore(Store):
 
         cross_bucket = params.get("cross_bucket", None)
         if cross_bucket is not None:
-            not_supported(("cross_bucket", True))
+            raise not_supported(("cross_bucket", True))
         # TODO DKE-145.
         print("<info> DemoStore does not support handling of errors with QueryingError for now.")
         # TODO DKE-145.
@@ -167,6 +169,44 @@ class DemoStore(Store):
             token: Optional[str], searchendpoints: Optional[Dict] = None, **store_config,
     ):
         return StoreLibrary()
+
+    def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+        raise not_supported()
+
+    def _upload_one(self, path: Path, content_type: str) -> Any:
+        raise not_supported()
+
+    def _retrieve_filename(self, id: str) -> Tuple[str, str]:
+        raise not_supported()
+
+    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
+                              cross_bucket: bool) -> Tuple[str, str]:
+        raise not_supported()
+
+    def _download_one(self, url: str, path: str, store_metadata: Optional[DictWrapper],
+                      cross_bucket: bool, content_type: str, bucket: str) -> None:
+        raise not_supported()
+
+    def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
+        raise not_supported()
+
+    def _tag_many(self, resources: List[Resource], value: str) -> None:
+        raise not_supported()
+
+    def _deprecate_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
+
+    def _sparql(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def _elastic(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def _freeze_many(self, resources: List[Resource]) -> None:
+        raise not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()
 
 
 def _to_resource(record: Dict) -> Resource:
@@ -203,8 +243,8 @@ class StoreLibrary:
                 record = self.archives[akey]
             else:
                 record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         return record
 
@@ -212,8 +252,8 @@ class StoreLibrary:
         rid = data.get("id", None)
         try:
             record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         metadata = record["metadata"]
         if metadata["deprecated"]:
@@ -228,8 +268,8 @@ class StoreLibrary:
     def deprecate(self, rid: str) -> Dict:
         try:
             record = self.records[rid]
-        except KeyError:
-            raise self.RecordMissing
+        except KeyError as exc:
+            raise self.RecordMissing from exc
 
         metadata = record["metadata"]
         if metadata["deprecated"]:
@@ -279,9 +319,6 @@ class StoreLibrary:
     @staticmethod
     def _tag_id(rid: str, tag: str) -> str:
         return f"{rid}_tag={tag}"
-
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        raise not_supported()
 
     class RecordExists(Exception):
         pass

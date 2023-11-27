@@ -15,7 +15,7 @@
 from collections import Counter
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Union
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import eq_class, repr_class
 
 
