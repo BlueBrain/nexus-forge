@@ -248,6 +248,13 @@ class ReadOnlyStore(ABC):
         # POLICY Resource _synchronized should not be set (default is False).
         ...
 
+    @abstractmethod
+    def elastic(
+            self, query: str, debug: bool, limit: int = None,
+            offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        ...
+
     # Versioning.
 
     @abstractmethod

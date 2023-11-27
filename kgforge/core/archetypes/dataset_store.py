@@ -89,9 +89,9 @@ class DatasetStore(ReadOnlyStore, ABC):
         """Search within the database.
         :param map: bool
         """
-        map = params.pop('map', True)
         unmapped_resources = self._search(filters, resolvers, **params)
-        if not map:
+
+        if not params.pop('map', True):
             return unmapped_resources
         # Try to find the type of the resources within the filters
         resource_type = type_from_filters(filters)
@@ -109,30 +109,17 @@ class DatasetStore(ReadOnlyStore, ABC):
             offset: Optional[int] = None, **params
     ) -> Optional[Union[List[Resource], Resource]]:
         """Use SPARQL within the database.
-
         :param map: bool
         """
-        map = params.pop('map', True)
-        unmapped_resources = self._sparql(query, debug, limit, offset, **params)
-        if not map:
+        unmapped_resources = super(ReadOnlyStore, self).sparql(
+            query, debug, limit, offset, **params
+        )
+
+        if not params.pop('map', True):
             return unmapped_resources
+
         return self.map(unmapped_resources)
 
-    @abstractmethod
-    def _sparql(
-            self, query: str, debug, limit, offset, **params
-    ) -> Optional[Union[List[Resource], Resource]]:  # TODO WRONG DEF
-        # POLICY Should notify of failures with exception QueryingError including a message.
-        # POLICY Resource _store_metadata should not be set (default is None).
-        # POLICY Resource _synchronized should not be set (default is False).
-        ...
-
-    @abstractmethod
-    def elastic(
-            self, query: str, debug: bool, limit: int = None,
-            offset: int = None, **params
-    ) -> Optional[Union[List[Resource], Resource]]:
-        ...
 
 def type_from_filters(filters: List[Union[Filter, Dict]]) -> Optional[str]:
     """Returns the first `type` found in filters."""

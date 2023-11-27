@@ -104,7 +104,7 @@ def catch_http_error(
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
-        raise error_to_throw(error_message_formatter(e))
+        raise error_to_throw(error_message_formatter(e)) from e
 
 
 def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],

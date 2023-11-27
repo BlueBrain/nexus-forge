@@ -52,11 +52,13 @@ class SPARQLStore(DatasetStore):
         return DictionaryMapper
 
     def _download_one(
-        self,
-        url: str,
-        path: str,
-        store_metadata: Optional[DictWrapper],
-        cross_bucket: bool,
+            self,
+            url: str,
+            path: str,
+            store_metadata: Optional[DictWrapper],
+            cross_bucket: bool,
+            content_type: str,
+            bucket: str
     ) -> None:
         # path: FilePath.
         # TODO define downloading method
@@ -64,7 +66,7 @@ class SPARQLStore(DatasetStore):
         raise not_supported()
 
     def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
         raise not_supported()
 

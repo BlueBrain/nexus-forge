@@ -62,10 +62,9 @@ class Store(ReadOnlyStore):
         self.bucket: Optional[str] = bucket
         self.token: Optional[str] = token
         self.versioned_id_template: Optional[str] = versioned_id_template
-        loaded = (
-            self.mapping.load(file_resource_mapping) if file_resource_mapping else None
-        )
-        self.file_mapping: Optional[Any] = loaded
+        self.file_mapping: Optional[Any] = self.mapping.load(file_resource_mapping) \
+            if file_resource_mapping else None
+
         self.service: Any = self._initialize_service(
             self.endpoint, self.bucket, self.token, searchendpoints, **store_config
         )
