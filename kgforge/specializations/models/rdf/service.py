@@ -235,7 +235,7 @@ class RdfService:
                                     term_obj.update({"@type": "@id"})
                                 else:
                                     try:
-                                        px, ns, n = self.graph.compute_qname(obj_type)
+                                        px, ns, n = self._graph.compute_qname(obj_type)
                                         l_prefixes.update({px: str(ns)})
                                         if str(ns) == str(XSD):
                                             term_obj.update({"@type": ":".join((px, n))})
