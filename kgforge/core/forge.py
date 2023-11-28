@@ -13,13 +13,14 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 
 import numpy as np
 import yaml
 from pandas import DataFrame
 from rdflib import Graph
 
+from kgforge.core.archetypes import Mapper
 from kgforge.core.resource import Resource
 from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.archetypes.mapping import Mapping
@@ -44,8 +45,6 @@ from kgforge.core.conversions.rdf import (
 )
 from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths, Filter
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
 
 
 class KnowledgeGraphForge:
@@ -548,7 +547,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mapping(
-        self, entity: str, source: str, type: Callable = DictionaryMapping
+        self, entity: str, source: str, type: Type[Mapping] = "DictionaryMapping"
     ) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -565,7 +564,7 @@ class KnowledgeGraphForge:
         self,
         data: Any,
         mapping: Union[Mapping, List[Mapping]],
-        mapper: Callable = DictionaryMapper,
+        mapper: Type[Mapper] = "DictionaryMapper",
         na: Union[Any, List[Any]] = None,
     ) -> Union[Resource, List[Resource]]:
         """
