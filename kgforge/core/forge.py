@@ -45,6 +45,8 @@ from kgforge.core.conversions.rdf import (
 )
 from kgforge.core.reshaping import Reshaper
 from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths, Filter
+from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.specializations.mappings import DictionaryMapping
 
 
 class KnowledgeGraphForge:
@@ -547,7 +549,7 @@ class KnowledgeGraphForge:
 
     @catch
     def mapping(
-        self, entity: str, source: str, type: Type[Mapping] = "DictionaryMapping"
+        self, entity: str, source: str, type: Type[Mapping] = DictionaryMapping
     ) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -564,7 +566,7 @@ class KnowledgeGraphForge:
         self,
         data: Any,
         mapping: Union[Mapping, List[Mapping]],
-        mapper: Type[Mapper] = "DictionaryMapper",
+        mapper: Type[Mapper] = DictionaryMapper,
         na: Union[Any, List[Any]] = None,
     ) -> Union[Resource, List[Resource]]:
         """
