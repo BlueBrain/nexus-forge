@@ -93,8 +93,8 @@ class RdfModelServiceFromStore(RdfModelService):
         limit = 100
         offset = 0
         count = limit
-        class_to_shape: Dict[str, URIRef] = dict()
-        shape_to_resource: Dict[URIRef, str] = dict()
+        class_to_shape: Dict[str, URIRef] = {}
+        shape_to_resource: Dict[URIRef, str] = {}
 
         while count == limit:
             resources = self.context_store.sparql(query, debug=False, limit=limit, offset=offset)

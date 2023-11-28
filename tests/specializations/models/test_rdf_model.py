@@ -13,8 +13,6 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import json
 import pytest
-from rdflib import URIRef
-from rdflib.plugins.sparql import prepareQuery
 
 from kgforge.core import Resource
 from kgforge.core.commons.exceptions import ValidationError
@@ -158,5 +156,5 @@ class TestValidation:
         res3 = rdf_model.sparql(q_template % "owl:Class", debug=True)
 
         assert len(res1) == 1
-        assert len(res2) == 5
-        assert len(res3) == 7
+        assert len(res2) == 9
+        assert len(res3) == 8

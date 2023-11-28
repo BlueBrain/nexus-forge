@@ -72,8 +72,8 @@ class RdfModelServiceFromDirectory(RdfModelService):
                     } ORDER BY ?type
                 """
 
-        class_to_shape: Dict[str, URIRef] = dict()
-        shape_to_file: Dict[URIRef, str] = dict()
+        class_to_shape: Dict[str, URIRef] = {}
+        shape_to_file: Dict[URIRef, str] = {}
         graph = Graph()
 
         extensions = [".ttl", ".n3", ".json", ".rdf"]

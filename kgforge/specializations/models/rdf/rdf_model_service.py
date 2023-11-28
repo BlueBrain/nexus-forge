@@ -37,7 +37,7 @@ class RdfModelService(ABC):
         self._graph, self.shape_to_source, self.class_to_shape = self._build_shapes_map()
         self._shapes_graph = ShapesGraphWrapper(self._graph)
 
-        self._context_cache = dict()
+        self._context_cache = {}
 
         self.context = Context(self.resolve_context(context_iri), context_iri)
         self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()

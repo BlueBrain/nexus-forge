@@ -79,8 +79,7 @@ class DatasetStore(ReadOnlyStore):
         return list(self.model.mappings(self.model.source, False).keys())
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]] = None,
-            **params
+            self, resolvers: Optional[List[Resolver]], filters: List[Union[Dict, Filter]], **params
     ) -> Optional[List[Resource]]:
         """Search within the database.
         :param map: bool

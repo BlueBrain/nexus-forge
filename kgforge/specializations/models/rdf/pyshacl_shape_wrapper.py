@@ -38,8 +38,8 @@ class ShapeWrapper(Shape):
         """
 
         parameters = self.parameters()
-        properties = list()
-        attributes = dict()
+        properties = []
+        attributes = {}
         done_collectors = set()
         for param in iter(parameters):
             if param in ALL_COLLECTORS_MAP:
