@@ -24,7 +24,7 @@ import pytest
 from rdflib import Graph, BNode, term
 from rdflib.namespace import RDF, Namespace
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import NotSupportedError
 from kgforge.core.conversions.rdf import _merge_jsonld, _resolve_iri, from_jsonld, as_jsonld, Form, as_graph, from_graph, LD_KEYS
 

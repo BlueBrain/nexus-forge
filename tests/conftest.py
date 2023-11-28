@@ -18,7 +18,8 @@ from utils import full_path_relative_to_root
 import pytest
 from pytest_bdd import given, parsers, then, when
 
-from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld, Form

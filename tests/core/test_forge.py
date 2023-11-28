@@ -16,7 +16,7 @@
 
 import pytest
 
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core.forge import KnowledgeGraphForge
 
 SCOPE = "terms"
 MODEL = "DemoModel"

@@ -13,8 +13,8 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from typing import Callable, Dict, Optional
 
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
 from kgforge.specializations.resolvers.entity_linking.service.entity_linking_elastic_service import EntityLinkerElasticService
 

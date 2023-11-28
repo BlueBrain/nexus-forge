@@ -59,8 +59,8 @@ from kgforge.core.conversions.json import as_json
 from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
 
 

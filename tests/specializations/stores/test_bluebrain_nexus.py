@@ -22,8 +22,8 @@ import nexussdk
 import pytest
 from typing import Callable, Union, List
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Store
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict
