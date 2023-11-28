@@ -247,7 +247,6 @@ class KnowledgeGraphForge:
 
         # Resolvers.
         resolvers_config = config.pop("Resolvers", None)
-        store_config['model_context'] = self._model.context()
         # Format: Optional[Dict[scope_name, Dict[resolver_name, Resolver]]].
         self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = (
             prepare_resolvers(resolvers_config, store_config)
