@@ -34,7 +34,7 @@ class RdfModelService(ABC):
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
 
-        self._graph, self.shape_to_source, self.class_to_shape =  self._build_shapes_map()
+        self._graph, self.shape_to_source, self.class_to_shape = self._build_shapes_map()
         self._shapes_graph = ShapesGraphWrapper(self._graph)
 
         self._context_cache = dict()
