@@ -152,6 +152,11 @@ class TestValidation:
 
     def test_query_model(self, rdf_model: RdfModel):
 
-        q = "SELECT ?id ?label WHERE { ?id a owl:Class ; rdfs:label ?label }"
-        res = rdf_model.sparql(q, debug=True)
-        # TODO assertion
+        q_template = "SELECT ?id WHERE { ?id a %s }"
+        res1 = rdf_model.sparql(q_template % "owl:Ontology", debug=True)
+        res2 = rdf_model.sparql(q_template % "owl:AnnotationProperty", debug=True)
+        res3 = rdf_model.sparql(q_template % "owl:Class", debug=True)
+
+        assert len(res1) == 1
+        assert len(res2) == 5
+        assert len(res3) == 7
