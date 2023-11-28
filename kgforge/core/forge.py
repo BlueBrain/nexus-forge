@@ -247,7 +247,7 @@ class KnowledgeGraphForge:
 
         # Resolvers.
         resolvers_config = config.pop("Resolvers", None)
-        store_config['model_resolver'] = self._model.context()
+        store_config['model_context'] = self._model.context()
         # Format: Optional[Dict[scope_name, Dict[resolver_name, Resolver]]].
         self._resolvers: Optional[Dict[str, Dict[str, Resolver]]] = (
             prepare_resolvers(resolvers_config, store_config)
@@ -976,7 +976,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
                 "endpoint",
                 "token",
                 "bucket",
-                "model_context",
+                "model",
                 "searchendpoints",
                 "vocabulary",
             ],
