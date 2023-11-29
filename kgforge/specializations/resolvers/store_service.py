@@ -66,7 +66,7 @@ class StoreService:
 
     def get_context(self, resolving_context, target, filters):
         if not resolving_context:
-            context = self.sources[target].model_context if target in self.sources else None
+            context = self.sources[target].model_context() if target in self.sources else None
         if not context and filters:
             raise ValueError("No JSONLD context were provided. When resolving filters are set, a JSONLD context is needed.")
 

@@ -975,7 +975,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
                 "endpoint",
                 "token",
                 "bucket",
-                # "model_context",
+                "model",
                 "searchendpoints",
                 "vocabulary",
             ],
