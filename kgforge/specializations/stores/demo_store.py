@@ -16,7 +16,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Optional, Union, Type, Tuple, Any
 from uuid import uuid4
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapper import Mapper

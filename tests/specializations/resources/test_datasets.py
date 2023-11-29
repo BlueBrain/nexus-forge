@@ -15,7 +15,8 @@
 # Placeholder for the generic parameterizable test suite for resources.
 from typing import List
 
-from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.specializations.resources import Dataset
 
 

@@ -20,7 +20,7 @@ from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
-from kgforge.core.archetypes import Mapping
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.model import Model

@@ -15,8 +15,9 @@ from pathlib import Path
 from typing import Callable, Dict, Optional, Union, Any
 
 from kgforge.core.commons.execution import not_supported
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
+
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
 from kgforge.specializations.resolvers.entity_linking.service.entity_linking_elastic_service import EntityLinkerElasticService
 
