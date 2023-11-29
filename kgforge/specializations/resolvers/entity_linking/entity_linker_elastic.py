@@ -11,8 +11,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Callable, Dict, Optional
+from pathlib import Path
+from typing import Callable, Dict, Optional, Union, Any
 
+from kgforge.core.commons.execution import not_supported
 from kgforge.specializations.mappers import DictionaryMapper
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
@@ -20,6 +22,15 @@ from kgforge.specializations.resolvers.entity_linking.service.entity_linking_ela
 
 
 class EntityLinkerElastic(EntityLinker):
+
+    @staticmethod
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Union[str, Dict]],
+                                **source_config) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str, targets: Dict[str, Union[str, Dict]]) -> Any:
+        raise not_supported()
 
     @property
     def mapping(self) -> Callable:
