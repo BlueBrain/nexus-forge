@@ -15,6 +15,10 @@
 
 # Forge operations.
 
+class RunException(Exception):
+    pass
+
+
 class ConfigurationError(Exception):
     pass
 
@@ -26,7 +30,7 @@ class NotSupportedError(Exception):
 # Model operations.
 
 
-class ValidationError(Exception):
+class ValidationError(RunException):
     pass
 
 
@@ -40,37 +44,43 @@ class ResolvingError(Exception):
 # Store operations.
 
 
-class RegistrationError(Exception):
+class RegistrationError(RunException):
     pass
 
 
-class UploadingError(Exception):
+class UploadingError(RunException):
     pass
 
 
-class RetrievalError(Exception):
+class RetrievalError(RunException):
     pass
 
 
-class DownloadingError(Exception):
+class DownloadingError(RunException):
     pass
 
 
-class UpdatingError(Exception):
+class UpdatingError(RunException):
     pass
 
 
-class TaggingError(Exception):
+class TaggingError(RunException):
     pass
 
 
-class DeprecationError(Exception):
+class DeprecationError(RunException):
     pass
 
 
-class QueryingError(Exception):
+class QueryingError(RunException):
     pass
 
 
-class FreezingError(Exception):
+class FreezingError(RunException):
+    pass
+
+# Mapping operations
+
+
+class MappingLoadError(Exception):
     pass

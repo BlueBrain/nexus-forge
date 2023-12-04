@@ -15,17 +15,17 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Type
 
 import hjson
 from pandas import DataFrame
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import repr_class, sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
-from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.execution import run
 from kgforge.core.commons.imports import import_class
 
 
@@ -62,8 +62,9 @@ class Model(ABC):
 
         return dict(prefixes)
 
+    @abstractmethod
     def _prefixes(self) -> Dict[str, str]:
-        not_supported()
+        ...
 
     def types(self, pretty: bool) -> Optional[List[str]]:
         types = sorted(self._types())
@@ -76,19 +77,21 @@ class Model(ABC):
     @abstractmethod
     def _types(self) -> List[str]:
         # POLICY Should return managed types in their compacted form (i.e. not IRI nor CURIE).
-        pass
+        ...
 
     def context(self) -> Context:
         # POLICY Should return the context of the Model.
-        pass
+        ...
 
+    @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
         # POLICY Should retrieve the resolved context as dictionary
-        not_supported()
+        ...
 
+    @abstractmethod
     def _generate_context(self) -> Dict:
         # POLICY Should generate the Context from the Model data.
-        not_supported()
+        ...
 
     # Templates.
 
@@ -110,7 +113,7 @@ class Model(ABC):
         # POLICY Should raise ValueError if 'type' is not managed by the Model.
         # POLICY Each nested typed resource should have its template included.
         # POLICY The value of 'type' and properties should be compacted (i.e. not IRI nor CURIE).
-        pass
+        ...
 
     # Mappings.
 
@@ -122,9 +125,10 @@ class Model(ABC):
 
         return sources
 
+    @abstractmethod
     def _sources(self) -> List[str]:
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        ...
 
     def mappings(self, source: str, pretty: bool) -> Optional[Dict[str, List[str]]]:
         mappings = {k: sorted(v) for k, v in
@@ -137,23 +141,26 @@ class Model(ABC):
 
         return mappings
 
+    @abstractmethod
     def _mappings(self, source: str) -> Dict[str, List[str]]:
         # POLICY Should raise ValueError if 'source' is not managed by the Model.
         # POLICY Keys should be managed resource types with mappings for the given data source.
         # POLICY Values should be available mapping types for the resource type.
         # The discovery strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        ...
 
-    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+    @abstractmethod
+    def mapping(self, entity: str, source: str, type: Type[Mapping]) -> Mapping:
         # POLICY Should raise ValueError if 'entity' or 'source' is not managed by the Model.
         # The selection strategy cannot be abstracted as it depends on the Model data organization.
-        not_supported()
+        ...
 
     # Validation.
 
+    @abstractmethod
     def schema_id(self, type: str) -> str:
         # POLICY Should retrieve the schema id of the given type.
-        not_supported()
+        ...
 
     def validate(self, data: Union[Resource, List[Resource]],
                  execute_actions_before: bool, type_: str) -> None:
@@ -161,15 +168,16 @@ class Model(ABC):
         run(self._validate_one, None, data, execute_actions=execute_actions_before,
             exception=ValidationError, monitored_status="_validated", type_=type_)
 
+    @abstractmethod
     def _validate_many(self, resources: List[Resource], type_: str) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
-        not_supported()
+        ...
 
     @abstractmethod
     def _validate_one(self, resource: Resource, type_: str) -> None:
         # POLICY Should notify of failures with exception ValidationError including a message.
-        pass
+        ...
 
     # Utils.
 
@@ -194,13 +202,16 @@ class Model(ABC):
     @staticmethod
     @abstractmethod
     def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
-        pass
+        ...
 
     @staticmethod
+    @abstractmethod
     def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
-        raise NotImplementedError()
+        ...
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[dict],
-                            **source_config) -> Any:
-        raise NotImplementedError()
+    @abstractmethod
+    def _service_from_store(
+            store: 'Store', context_config: Optional[dict], **source_config
+    ) -> Any:
+        ...

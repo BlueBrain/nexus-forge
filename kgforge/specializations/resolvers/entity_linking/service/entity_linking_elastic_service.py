@@ -18,12 +18,12 @@ import itertools
 
 import requests
 
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.store import Store
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking.service.entity_linking_service import (
     EntityLinkerService,
 )

@@ -21,6 +21,7 @@ import requests
 from requests import RequestException
 
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.exceptions import MappingLoadError
 
 
 class MappingType(Enum):
@@ -50,11 +51,6 @@ class Mapping(ABC):
     def __str__(self):
         return self._normalize_rules(self.rules)
 
-    def __eq__(self, other: object) -> bool:
-        # FIXME To properly work the loading of rules should normalize them. DKE-184.
-        # return eq_class(self, other)
-        raise NotImplementedError
-
     @classmethod
     def load(cls, source: str, mapping_type: MappingType = None):
         # source: Union[str, FilePath, URL].
@@ -66,7 +62,7 @@ class Mapping(ABC):
             e = e if e is not None else cls.load_str(source, raise_ex=False)
             if e is not None:
                 return e
-            raise Exception("Mapping loading failed")
+            raise MappingLoadError("Mapping loading failed")
 
         if mapping_type == MappingType.FILE:
             return cls.load_file(source)
@@ -87,9 +83,9 @@ class Mapping(ABC):
 
             raise OSError
 
-        except OSError:
+        except OSError as e:
             if raise_ex:
-                raise FileNotFoundError
+                raise FileNotFoundError from e
             return None
 
     @classmethod
@@ -103,11 +99,6 @@ class Mapping(ABC):
                 raise e
             return None
 
-    @classmethod
-    @abstractmethod
-    def load_str(cls, source: str, raise_ex=True):
-        ...
-
     def save(self, path: str) -> None:
         # path: FilePath.
         normalized = self._normalize_rules(self.rules)
@@ -115,14 +106,19 @@ class Mapping(ABC):
         filepath.parent.mkdir(parents=True, exist_ok=True)
         filepath.write_text(normalized)
 
+    @classmethod
+    @abstractmethod
+    def load_str(cls, source: str, raise_ex=True):
+        ...
+
     @staticmethod
     @abstractmethod
     def _load_rules(mapping: str) -> Any:
         """Load the mapping rules according to there interpretation."""
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def _normalize_rules(rules: Any) -> str:
         """Normalize the representation of the rules to compare saved mappings."""
-        pass
+        ...

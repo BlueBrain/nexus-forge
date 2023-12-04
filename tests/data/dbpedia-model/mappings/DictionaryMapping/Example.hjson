@@ -1,0 +1,9 @@
+{
+  id: forge.format('identifier', "examples", x.id.split('/')[-1])
+  type: [
+    Entity
+    ]
+  name: x.name
+  label: x.label
+  subject: forge.resolve(x.subject, scope='ontology') if forge.resolve(x.subject, scope='ontology') is not None else {"label": x.subject}
+}

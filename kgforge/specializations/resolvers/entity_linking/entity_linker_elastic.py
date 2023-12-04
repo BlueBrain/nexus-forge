@@ -12,20 +12,26 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import Callable, Dict, List, Any, Optional
+from typing import Callable, Dict, Optional, Union, Any
 
 from kgforge.core.commons.execution import not_supported
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
+
 from kgforge.specializations.resolvers.entity_linking import EntityLinker
 from kgforge.specializations.resolvers.entity_linking.service.entity_linking_elastic_service import EntityLinkerElasticService
 
 
 class EntityLinkerElastic(EntityLinker):
 
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
+    @staticmethod
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Union[str, Dict]],
+                                **source_config) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str, targets: Dict[str, Union[str, Dict]]) -> Any:
+        raise not_supported()
 
     @property
     def mapping(self) -> Callable:
@@ -34,11 +40,6 @@ class EntityLinkerElastic(EntityLinker):
     @property
     def mapper(self) -> Callable:
         return DictionaryMapper
-
-    @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
-                                **source_config) -> Any:
-        not_supported()
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> EntityLinkerElasticService:

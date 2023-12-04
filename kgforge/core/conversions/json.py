@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Union, Optional, Callable
 
 import hjson
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import as_jsonld

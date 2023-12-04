@@ -14,10 +14,11 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapper, Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.conversions.json import from_json
 from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 
@@ -27,11 +28,9 @@ from kgforge.core.wrappings.dict import DictWrapper, wrap_dict
 
 class DictionaryMapper(Mapper):
 
-    def __init__(self, forge: Optional["KnowledgeGraphForge"] = None) -> None:
-        super().__init__(forge)
-
-    def _map_one(self, data: Union[Path, Dict], mappings: List[Mapping], nas: List[Any]
-                 ) -> List[Resource]:
+    def _map_one(
+            self, data: Union[Path, Dict], mappings: List[Mapping], nas: List[Any]
+    ) -> List[Resource]:
         variables = {
             "forge": self.forge,
             "x": self._load_one(data),

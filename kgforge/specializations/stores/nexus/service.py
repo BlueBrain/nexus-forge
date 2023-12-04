@@ -19,18 +19,17 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union, Tuple
+from typing import Callable, Dict, List, Optional, Union, Tuple, Type
 from urllib.error import URLError
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 
 import nest_asyncio
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
-from numpy import nan
 from requests import HTTPError
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
     Action,
     collect_lazy_actions,
@@ -257,16 +256,16 @@ class Service:
             response = requests.get(url, headers=self.headers)
             response.raise_for_status()
             resource = response.json()
-        except Exception:
+        except Exception as exc:
             if not local_only:
                 try:
                     context = Context(context_to_resolve)
-                except URLError:
-                    raise ValueError(f"{context_to_resolve} is not resolvable")
+                except URLError as exc2:
+                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
 
                 document = context.document["@context"]
             else:
-                raise ValueError(f"{context_to_resolve} is not resolvable")
+                raise ValueError(f"{context_to_resolve} is not resolvable") from exc
         else:
             # Make sure context is not deprecated
             if '_deprecated' in resource and resource['_deprecated']:
@@ -362,8 +361,9 @@ class Service:
                     )
 
                 if batch_action == batch_action.DEPRECATE:
-                    url = "/".join((self.url_resources, "_", quote_plus(resource.id)))
-                    params["rev"] = resource._store_metadata._rev
+                    url, rev_param = self._prepare_uri(resource)
+                    params.update(rev_param)
+
                     prepared_request = loop.create_task(
                         queue(
                             hdrs.METH_DELETE,
@@ -444,14 +444,14 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
-    def _prepare_tag(self, resource, tag) -> Tuple[str, str, str]:
+    def _prepare_tag(self, resource, tag) -> Tuple[str, Dict, Dict]:
         url, params = self._prepare_uri(resource)
         url = "/".join((url, "tags"))
         data = {"tag": tag}
         data.update(params)
         return url, data, params
 
-    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, str, str]:
+    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
         schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
         schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
         url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
@@ -490,6 +490,7 @@ class Service:
             self.sync_metadata(resource, response)
         else:
             action = Action(action_name, succeeded, response)
+
         resource._last_action = action
         resource._synchronized = synchronized
 
@@ -511,7 +512,7 @@ class Service:
             self,
             resources: List[Resource],
             function_name,
-            exception: Callable,
+            exception: Type[Exception],
             id_required: bool,
             required_synchronized: bool,
             execute_actions: bool,

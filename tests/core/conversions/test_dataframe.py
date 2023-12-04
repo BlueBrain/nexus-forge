@@ -19,7 +19,7 @@ from pandas import DataFrame
 
 # Test suite for conversion of resource to / from Pandas DataFrame.
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@
 
 # Placeholder for the test suite for actions.
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import LazyAction, collect_lazy_actions, execute_lazy_actions
 
 

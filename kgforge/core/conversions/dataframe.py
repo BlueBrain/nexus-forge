@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 from pandas import DataFrame, Series
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.json import as_json, from_json
 

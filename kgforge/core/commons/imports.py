@@ -32,9 +32,10 @@ def import_class(configuration: str, forge_module_name: str) -> Callable:
             class_name, module_import = matched.groups(default=forge_module_import)
             module = import_module(module_import)
             return getattr(module, class_name)
-        except ModuleNotFoundError:
-            raise ConfigurationError(f"{archetype} module not found for '{configuration}'")
-        except AttributeError:
-            raise ConfigurationError(f"{archetype} class not found for '{configuration}'")
+        except ModuleNotFoundError as exc1:
+            raise ConfigurationError(f"{archetype} module not found for '{configuration}'") from \
+                exc1
+        except AttributeError as exc2:
+            raise ConfigurationError(f"{archetype} class not found for '{configuration}'") from exc2
     else:
         raise ConfigurationError(f"incorrect {archetype} configuration for '{configuration}'")

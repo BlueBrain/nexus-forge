@@ -18,6 +18,7 @@ from abc import abstractmethod, ABC
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
 from kgforge.core.resource import Resource
+from kgforge.core.wrappings import Filter
 
 
 class QueryBuilder(ABC):
@@ -30,12 +31,26 @@ class QueryBuilder(ABC):
         schema: Any,
         resolvers: Optional[List["Resolver"]],
         context: Context,
-        *filters,
+        filters: List[Filter],
         **params
     ) -> Any:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
-    def build_resource_from_response(query: str, response: Dict, context: Context, *args, **params) -> List[Resource]:
-        pass
+    def build_resource_from_response(
+            query: str, response: Dict, context: Context, *args, **params
+    ) -> List[Resource]:
+        ...
+
+    @staticmethod
+    def debug_query(query):
+        if isinstance(query, Dict):
+            print("Submitted query:", query)
+        else:
+            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+
+    @staticmethod
+    @abstractmethod
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+        ...

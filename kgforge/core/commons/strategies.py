@@ -21,6 +21,6 @@ class ResolvingStrategy(Enum):
     # POLICY Return a unique result, the closest match.
     BEST_MATCH = auto()
     # POLICY Return a unique result, the case-insensitive exact match.
-    EXACT_CASEINSENSITIVE_MATCH = auto()
+    EXACT_CASE_INSENSITIVE_MATCH = auto()
     # POLICY Return a unique result, the exact match.
     EXACT_MATCH = auto()

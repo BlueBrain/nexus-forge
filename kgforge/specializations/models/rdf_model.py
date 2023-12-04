@@ -20,12 +20,14 @@ from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Model, Store
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import run
+from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -65,9 +67,6 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
-
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:
@@ -92,8 +91,8 @@ class RdfModel(Model):
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
             uri = self.service.types_to_shapes[type]
-        except KeyError:
-            raise ValueError("type '" + type + "' not found in " + self.source)
+        except KeyError as exc:
+            raise ValueError("type '" + type + "' not found in " + self.source) from exc
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
@@ -104,8 +103,8 @@ class RdfModel(Model):
         try:
             shape_iri = self.service.types_to_shapes[type]
             return str(self.service.schema_source_id(shape_iri))
-        except KeyError:
-            raise ValueError("type not found")
+        except KeyError as exc:
+            raise ValueError("type not found") from exc
 
     def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
         run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
@@ -123,6 +122,7 @@ class RdfModel(Model):
                                  for o in graph.objects(None, SH.sourceConstraintComponent))
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
                 action = Action(self._validate_many.__name__, conforms, ValidationError(message))
+
             resource._last_action = action
 
     def _validate_one(self, resource: Resource, type_: str) -> None:
@@ -138,9 +138,7 @@ class RdfModel(Model):
 
     @staticmethod
     def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
-        endpoint = source_config.get("endpoint")
-        token = source_config.get("token")
-        bucket = source_config["bucket"]
+
         default_store: Store = store(**source_config)
 
         if context_config:
@@ -154,7 +152,10 @@ class RdfModel(Model):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
-                context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
+                context_store: Store = store(
+                    endpoint=context_endpoint, bucket=context_bucket, token=context_token,
+                    **source_config
+                )
                 # FIXME: define a store independent StoreService
                 service = StoreService(default_store, context_iri, context_store)
             else:
@@ -163,6 +164,19 @@ class RdfModel(Model):
             service = StoreService(default_store)
 
         return service
+
+    def _sources(self) -> List[str]:
+        raise not_supported()
+
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        raise not_supported()
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
 
 
 def parse_attributes(node: NodeProperties, only_required: bool,
