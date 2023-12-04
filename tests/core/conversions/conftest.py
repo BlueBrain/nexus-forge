@@ -18,7 +18,8 @@ from uuid import uuid4
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 
-from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
 from kgforge.core.wrappings.dict import wrap_dict

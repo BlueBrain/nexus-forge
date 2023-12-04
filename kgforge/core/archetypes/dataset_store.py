@@ -15,15 +15,13 @@
 from abc import abstractmethod, ABC
 
 from typing import Optional, Union, List, Type, Dict
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore
 from kgforge.core.archetypes.resolver import Resolver
-from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.imports import import_class
 from kgforge.core.conversions.json import as_json, from_json
-from kgforge.core.commons.execution import not_supported
 from kgforge.core.wrappings import Filter
 
 

@@ -15,7 +15,8 @@
 # Placeholder for the test suite for actions.
 import pytest
 
-from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.specializations.resources import Dataset
 from kgforge.core.wrappings.dict import wrap_dict
 import json

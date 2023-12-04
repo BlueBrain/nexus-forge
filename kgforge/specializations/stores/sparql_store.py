@@ -15,13 +15,13 @@
 import requests
 from typing import Dict, List, Optional, Union, Any, Type, Tuple
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapper
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.dataset_store import DatasetStore
 from kgforge.core.commons import Context
-from kgforge.specializations.mappers import DictionaryMapper
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.stores.sparql.sparql_service import SPARQLService
 from kgforge.core.wrappings.paths import create_filters_from_dict, Filter
 from kgforge.core.wrappings.dict import DictWrapper

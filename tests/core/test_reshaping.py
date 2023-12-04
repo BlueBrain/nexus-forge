@@ -14,7 +14,8 @@
 
 # Placeholder for the test suite for reshaping.
 import pytest
-from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.reshaping import collect_values, Reshaper
 
 

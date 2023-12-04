@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.attributes import repr_class

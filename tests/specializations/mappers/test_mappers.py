@@ -17,9 +17,10 @@
 import pytest
 from contextlib import nullcontext as does_not_raise
 
-from kgforge.core import KnowledgeGraphForge, Resource
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@
 import json
 import pytest
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.specializations.models import RdfModel
 from tests.specializations.models.data import *

@@ -15,7 +15,7 @@
 import copy
 from typing import Dict, List, Optional, Union, Tuple
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.wrappings.dict import wrap_dict
 
