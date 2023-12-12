@@ -77,13 +77,14 @@ class DatasetStore(ReadOnlyStore):
         return list(self.model.mappings(self.model.source, False).keys())
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]] = None,
+            self, resolvers: Optional[List[Resolver]],
+            filters: List[Union[Dict, Filter]],
             **params
     ) -> Optional[List[Resource]]:
         """Search within the database.
         :param map: bool
         """
-        unmapped_resources = self._search(filters, resolvers, **params)
+        unmapped_resources = self._search(resolvers, filters, **params)
 
         if not params.pop('map', True):
             return unmapped_resources

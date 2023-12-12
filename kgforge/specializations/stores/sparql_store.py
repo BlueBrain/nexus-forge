@@ -51,28 +51,6 @@ class SPARQLStore(DatasetStore):
     def mapper(self) -> Optional[Type[Mapper]]:
         return DictionaryMapper
 
-    def _download_one(
-            self,
-            url: str,
-            path: str,
-            store_metadata: Optional[DictWrapper],
-            cross_bucket: bool,
-            content_type: str,
-            bucket: str
-    ) -> None:
-        # path: FilePath.
-        # TODO define downloading method
-        # POLICY Should notify of failures with exception DownloadingError including a message.
-        raise not_supported()
-
-    def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
-    ) -> Optional[Resource]:
-        raise not_supported()
-
-    def _retrieve_filename(self, id: str) -> str:
-        raise not_supported()
-
     def _search(
             self, filters: List[Union[Dict, Filter]],
             resolvers: Optional[List[Resolver]] = None, **params
@@ -130,7 +108,7 @@ class SPARQLStore(DatasetStore):
             )
 
         query_statements, query_filters = SPARQLQueryBuilder.build(
-                schema=None, resolvers=resolvers, context=self.model_context(), filters=filters
+                schema=None, resolvers=resolvers, context=self.model_context, filters=filters
             )
         statements = ";\n ".join(query_statements)
         _filters = (".\n".join(query_filters) + '\n') if len(filters) > 0 else ""
@@ -155,7 +133,7 @@ class SPARQLStore(DatasetStore):
 
         data = response.json()
 
-        return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model_context())
+        return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model_context)
 
     # Utils.
 
@@ -180,7 +158,7 @@ class SPARQLStore(DatasetStore):
             raise ValueError(f"Store configuration error: {ve}") from ve
 
         return SPARQLService(
-            endpoint=endpoint, model_context=self.model_context(),
+            endpoint=endpoint, model_context=self.model_context,
             store_context=store_context, max_connection=max_connection,
             searchendpoints=searchendpoints,
             content_type=content_type,
