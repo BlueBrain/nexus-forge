@@ -11,13 +11,12 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.attributes import repr_class
@@ -26,7 +25,9 @@ from kgforge.core.commons.exceptions import (
     DownloadingError,
 )
 from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.reshaping import collect_values
+from kgforge.core.wrappings import Filter
 from kgforge.core.wrappings.dict import DictWrapper
 
 DEFAULT_LIMIT = 100
@@ -49,29 +50,42 @@ class ReadOnlyStore(ABC):
             model: Optional[Model] = None,
     ) -> None:
         self.model: Optional[Model] = model
-        self.model_context: Optional[Context] = (
-            self.model.context() if hasattr(self.model, 'context') else None
-        )
 
     def __repr__(self) -> str:
         return repr_class(self)
+
+    @staticmethod
+    def _context_to_dict(context: Context):
+        return {
+            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
+            for k, v in context.document["@context"].items()
+        }
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return (
+            ReadOnlyStore._context_to_dict(self.model_context()),
+            self.model_context().prefixes,
+            self.model_context().vocab
+        )
 
     # C[R]UD.
 
     @abstractmethod
     def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
+    ) -> Optional[Resource]:
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         # POLICY Resource _synchronized should be set to True.
         # TODO These two operations might be abstracted here when other stores will be implemented.
-        pass
+        ...
 
+    @abstractmethod
     def _retrieve_filename(self, id: str) -> Tuple[str, str]:
         # TODO This operation might be adapted if other file metadata are needed.
-        not_supported()
+        ...
 
+    @abstractmethod
     def _prepare_download_one(
             self,
             url: str,
@@ -79,7 +93,7 @@ class ReadOnlyStore(ABC):
             cross_bucket: bool
     ) -> Tuple[str, str]:
         # Prepare download url and download bucket
-        not_supported()
+        ...
 
     def download(
             self,
@@ -150,6 +164,7 @@ class ReadOnlyStore(ABC):
         for url, path, store_m, bucket in zip(urls, paths, store_metadata, buckets):
             self._download_one(url, path, store_m, cross_bucket, content_type, bucket)
 
+    @abstractmethod
     def _download_one(
             self,
             url: str,
@@ -161,15 +176,13 @@ class ReadOnlyStore(ABC):
     ) -> None:
         # path: FilePath.
         # POLICY Should notify of failures with exception DownloadingError including a message.
-        not_supported()
+        ...
 
     # Querying.
 
     @abstractmethod
     def search(
-            self, resolvers: Optional[List[Resolver]] = None,
-            *filters,
-            **params
+            self, resolvers: Optional[List[Resolver]], filters: List[Union[Dict, Filter]], **params
     ) -> List[Resource]:
 
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
@@ -192,10 +205,53 @@ class ReadOnlyStore(ABC):
         # TODO These two operations might be abstracted here when other stores will be implemented.
         ...
 
+    def sparql(
+            self, query: str,
+            debug: bool,
+            limit: int = DEFAULT_LIMIT,
+            offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
+
+        if self.model_context() is not None and rewrite:
+
+            context_as_dict, prefixes, vocab = self.get_context_prefix_vocab()
+
+            qr = SPARQLQueryBuilder.rewrite_sparql(
+                query,
+                context_as_dict=context_as_dict,
+                prefixes=prefixes,
+                vocab=vocab
+            )
+        else:
+            qr = query
+
+        qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
+            qr,
+            limit=limit,
+            offset=offset,
+            default_limit=DEFAULT_LIMIT,
+            default_offset=DEFAULT_OFFSET
+        )
+
+        if debug:
+            SPARQLQueryBuilder.debug_query(qr)
+
+        return self._sparql(qr)
+
     @abstractmethod
-    def sparql(self, query: str, debug: bool, limit: int = DEFAULT_LIMIT,
-               offset: int = DEFAULT_OFFSET,
-               **params) -> Optional[Union[List[Resource], Resource]]:
+    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        ...
+
+    @abstractmethod
+    def elastic(
+            self, query: str, debug: bool, limit: int = None,
+            offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
         ...
 
     # Versioning.
@@ -204,7 +260,6 @@ class ReadOnlyStore(ABC):
     def _initialize_service(
             self,
             endpoint: Optional[str],
-            bucket: Optional[str],
             token: Optional[str],
             searchendpoints: Optional[Dict] = None,
             **store_config,
@@ -212,18 +267,14 @@ class ReadOnlyStore(ABC):
         # POLICY Should initialize the access to the store according to its configuration.
         ...
 
-    @staticmethod
-    def _debug_query(query) -> None:
-        if isinstance(query, Dict):
-            print("Submitted query:", query)
-        else:
-            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
-        print()
-
+    @abstractmethod
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
         """Rewrite a given uri using the store Context
         :param uri: a URI to rewrite.
         :param context: a Store Context object
         :return: str
         """
-        not_supported()
+        ...
+
+    def model_context(self):
+        return self.model.context() if self.model else None

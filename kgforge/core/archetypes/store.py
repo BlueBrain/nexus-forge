@@ -67,7 +67,7 @@ class Store(ReadOnlyStore):
             if file_resource_mapping else None
 
         self.service: Any = self._initialize_service(
-            self.endpoint, self.bucket, self.token, searchendpoints, **store_config
+            self.endpoint, self.token, searchendpoints, **store_config
         )
 
     def __repr__(self) -> str:

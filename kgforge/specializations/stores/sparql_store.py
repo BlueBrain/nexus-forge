@@ -51,6 +51,17 @@ class SPARQLStore(DatasetStore):
     def mapper(self) -> Optional[Type[Mapper]]:
         return DictionaryMapper
 
+    def _download_one(
+            self,
+            url: str,
+            path: str,
+            store_metadata: Optional[DictWrapper],
+            cross_bucket: bool,
+            content_type: str,
+            bucket: str
+    ) -> None:
+        raise not_supported()
+
     def _search(
             self, filters: List[Union[Dict, Filter]],
             resolvers: Optional[List[Resolver]] = None, **params
@@ -135,6 +146,26 @@ class SPARQLStore(DatasetStore):
 
         return SPARQLQueryBuilder.build_resource_from_response(query, data, self.model_context)
 
+    def elastic(
+            self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        raise not_supported()
+
+    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
+                              cross_bucket: bool) -> Tuple[str, str]:
+        raise not_supported()
+
+    def retrieve(
+        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+    ) -> Resource:
+        not_supported()
+
+    def _retrieve_filename(self, id: str) -> str:
+        not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()
+
     # Utils.
 
     def _initialize_service(
@@ -164,15 +195,3 @@ class SPARQLStore(DatasetStore):
             content_type=content_type,
             accept=accept, **params
         )
-
-    def elastic(
-            self, query: str, debug: bool, limit: int = None, offset: int = None, **params
-    ) -> Optional[Union[List[Resource], Resource]]:
-        raise not_supported()
-
-    def _prepare_download_one(self, url: str, store_metadata: Optional[DictWrapper],
-                              cross_bucket: bool) -> Tuple[str, str]:
-        raise not_supported()
-
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        raise not_supported()

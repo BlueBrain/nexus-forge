@@ -11,9 +11,9 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+from typing import Dict, Optional
 import copy
 import requests
-from typing import Dict, Optional
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.parser import _process_types
@@ -26,38 +26,46 @@ class WebService:
         self,
         endpoint: str,
         content_type: str,
-        accept: str,
-        response_location : Optional[str] = None,
+        accept: str = "*/*",
+        response_location: Optional[str] = None,
         files_download: Optional[Dict] = None,
-        searchendpoints : Optional[Dict] = None,
-        health_endpoint: Optional[str] = None,
+        searchendpoints: Optional[Dict] = None,
         **params,
     ):
         """A Web service"""
         self.endpoint = endpoint
-        self.context_cache: Dict = dict()
+        self.content_type = content_type
+        self.accept = accept
+        self.context_cache: Dict = []
         self.response_location = response_location
         self.files_download = files_download
-        self.health_endpoint = health_endpoint
         self.searchendpoints = searchendpoints
         if self.searchendpoints:
+            if not isinstance(self.searchendpoints, dict):
+                raise ConfigurationError("searchendpoints must be a dict")
             for endpoint in self.searchendpoints:
-                if not 'endpoint' in self.searchendpoints[endpoint]:
-                    raise ConfigurationError(f"Missing endpoint searchenpoints")
+                if not isinstance(endpoint, dict):
+                    raise ConfigurationError("endpoint configuration must be a dict")
+                if 'endpoint' not in self.searchendpoints[endpoint]:
+                    raise ConfigurationError("Missing endpoint searchenpoints")
+        self.max_connection = params.pop('max_connection', None)
         self.params = copy.deepcopy(params)
 
         self.headers = {"Content-Type": content_type, "Accept": accept}
-
+        if files_download:
+            if 'Content-Type' not in files_download:
+                raise ConfigurationError("Files download configuration misses the `Content-Type` value")
+            if 'Accept' not in files_download:
+                raise ConfigurationError("Files download configuration misses the `Accept` value")
+            file_content_type = files_download['Content-Type']
+            file_accept = files_download['Accept']
+        else:
+            file_content_type = file_accept = "text/plain"
         self.headers_download = {
-            "Content-Type": self.files_download["Content-Type"]
-            if self.files_download and "Content-Type" in self.files_download
-            else "text/plain",
-            "Accept": self.files_download["Accept"]
-            if self.files_download and "Accept" in self.files_download
-            else "text/plain",
+            "Content-Type": file_content_type,
+            "Accept": file_accept
         }
-        self.max_connection = params.pop('max_connection', None)
-        
+
     @staticmethod
     def resources_from_request(url: str,
                                headers: Dict,

@@ -690,7 +690,7 @@ class BlueBrainNexus(Store):
             **params
     ) -> List[Resource]:
 
-        if self.model_context is None:
+        if self.model_context() is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
@@ -929,7 +929,6 @@ class BlueBrainNexus(Store):
     def _initialize_service(
             self,
             endpoint: Optional[str],
-            bucket: Optional[str],
             token: Optional[str],
             searchendpoints: Optional[Dict] = None,
             **store_config,

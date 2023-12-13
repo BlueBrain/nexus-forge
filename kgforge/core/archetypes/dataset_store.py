@@ -15,6 +15,7 @@
 from abc import abstractmethod, ABC
 
 from typing import Optional, Union, List, Type, Dict
+from kgforge.core.archetypes.model import Model
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore
 from kgforge.core.archetypes.resolver import Resolver
@@ -27,6 +28,9 @@ from kgforge.core.wrappings import Filter
 
 class DatasetStore(ReadOnlyStore):
     """A class to link to external databases, query and search directly on datasets. """
+
+    def __init__(self, model: Optional[Model] = None) -> None:
+        super().__init__(model)
 
     @property
     @abstractmethod
@@ -106,7 +110,7 @@ class DatasetStore(ReadOnlyStore):
         """Use SPARQL within the database.
         :param map: bool
         """
-        unmapped_resources = super(ReadOnlyStore, self).sparql(
+        unmapped_resources = super().sparql(
             query, debug, limit, offset, **params
         )
 
