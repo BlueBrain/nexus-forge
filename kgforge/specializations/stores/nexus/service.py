@@ -37,6 +37,7 @@ from kgforge.core.commons.actions import (
     LazyAction,
 )
 from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.execution import error_message, format_message
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -597,10 +598,8 @@ class Service:
 
 
 def _error_message(error: Union[HTTPError, Dict]) -> str:
-    def format_message(msg):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
-
     try:
+        # Error from Nexus
         error_json = error.response.json() if isinstance(error, HTTPError) else error
         messages = []
         reason = error_json.get("reason", None)
@@ -612,9 +611,5 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
         messages = messages if reason or details else [str(error)]
         return ". ".join(messages)
     except Exception:
-        pass
-    try:
-        error_text = error.response.text() if isinstance(error, HTTPError) else str(error)
-        return format_message(error_text)
-    except Exception:
-        return format_message(str(error))
+        # Return general HTTPError
+        return error_message(error)

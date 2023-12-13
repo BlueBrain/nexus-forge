@@ -28,7 +28,7 @@ from kgforge.core.conversions.rdf import from_jsonld
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
-from kgforge.core.commons.parser import _parse_type
+from kgforge.core.commons.parser import _parse_type, _process_types
 from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.wrappings.paths import Filter
 
@@ -232,23 +232,8 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build_resource_from_select_query(results: List) -> List[Resource]:
-
-        def process_v(v):
-            if v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
-                    'http://www.w3.org/2001/XMLSchema#boolean':
-
-                return json.loads(str(v["value"]).lower())
-
-            elif v['type'] == 'literal' and 'datatype' in v and v['datatype'] == \
-                    'http://www.w3.org/2001/XMLSchema#integer':
-
-                return int(v["value"])
-
-            else:
-                return v["value"]
-
         return [
-            Resource(**{k: process_v(v) for k, v in x.items()})
+            Resource(**{k: _process_types(v) for k, v in x.items()})
             for x in results
         ]
 

@@ -12,11 +12,13 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
+from typing import Any
 import pytest
 
 from utils import full_path_relative_to_root
 from kgforge.specializations.models.rdf_model import RdfModel
 from kgforge.specializations.stores.sparql_store import SPARQLStore
+from kgforge.core.commons.exceptions import NotSupportedError
 
 SEARCH_ENDPOINT = {"sparql": {"endpoint": "http://dbpedia.org/sparql"}}
 
@@ -58,3 +60,8 @@ def test_config(sparql_store, rdf_model):
 def test_search_params(sparql_store):
     with pytest.raises(ValueError):
         sparql_store.search(resolvers=[None], filters=[None])
+
+
+def test_elastic_not_supported(sparql_store: Any):
+    with pytest.raises(NotSupportedError):
+        sparql_store.elastic(query=None, debug=False)
