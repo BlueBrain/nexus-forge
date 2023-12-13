@@ -72,9 +72,8 @@ class WebService:
         :param request_params: Any other parameter for the request
         """
         try:
-            response = requests.get(
-                url, params=request_params, headers=headers, verify=False
-            )
+            response = requests.get(url, params=request_params,
+                                    headers=headers, verify=False)
             response.raise_for_status()
         except Exception as e:
             raise QueryingError(e)

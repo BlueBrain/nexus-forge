@@ -25,6 +25,7 @@ from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.core.archetypes.dataset_store import DatasetStore
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError, DownloadingError
+from kgforge.core.commons.execution import catch_http_error, error_message
 
 
 from kgforge.core.wrappings.paths import Filter
@@ -120,37 +121,33 @@ class WebServiceStore(DatasetStore):
             async with semaphore:
                 params_download = copy.deepcopy(self.service.params.get('download', {}))
                 async with session.get(url, params=params_download) as response:
-                    try:
-                        response.raise_for_status()
-                    except Exception as e:
-                        raise DownloadingError(
-                            f"Downloading:{_error_message(e)}"
+                    catch_http_error(
+                            response, DownloadingError,
+                            error_message_formatter=lambda e:
+                            f"Downloading url {url} failed: {error_message(e)}"
                         )
-                    else:
-                        with open(path, "wb") as f:
-                            data = await response.read()
-                            f.write(data)
+                    with open(path, "wb") as f:
+                        data = await response.read()
+                        f.write(data)
 
         return asyncio.run(_bulk())
 
     def _download_one(self, url: str, path: str) -> None:
-        try:
-            params_download = copy.deepcopy(self.service.params.get('download', {}))
-            response = requests.get(
-                url=url,
-                headers=self.service.headers_download,
-                params=params_download,
-                verify=False
-            )
-            response.raise_for_status()
-        except Exception as e:
-            raise DownloadingError(
-                f"Downloading from failed :{_error_message(e)}"
-            )
-        else:
-            with open(path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=4096):
-                    f.write(chunk)
+        params_download = copy.deepcopy(self.service.params.get('download', {}))
+        response = requests.get(
+            url=url,
+            headers=self.service.headers_download,
+            params=params_download,
+            verify=False
+        )
+        catch_http_error(
+            response, DownloadingError,
+            error_message_formatter=lambda e: f"Downloading failed: "
+                                              f"{error_message(e)}"
+        )
+        with open(path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=4096):
+                f.write(chunk)
 
     def health(self) -> Callable:
         if self.health_endpoint:

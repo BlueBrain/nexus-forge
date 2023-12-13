@@ -690,7 +690,7 @@ class BlueBrainNexus(Store):
             **params
     ) -> List[Resource]:
 
-        if self.model_context() is None:
+        if self.model_context is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
