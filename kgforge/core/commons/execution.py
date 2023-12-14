@@ -15,7 +15,7 @@
 import inspect
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple, Union, Type
+from typing import Any, Callable, List, Optional, Tuple, Union, Type, Dict
 import requests
 
 from kgforge.core.resource import Resource
@@ -105,6 +105,18 @@ def catch_http_error(
         r.raise_for_status()
     except requests.HTTPError as e:
         raise error_to_throw(error_message_formatter(e)) from e
+
+
+def format_message(msg):
+    return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+
+
+def error_message(error: Union[requests.HTTPError, Dict]) -> str:
+    try:
+        error_text = error.response.text() if isinstance(error, requests.HTTPError) else str(error)
+        return format_message(error_text)
+    except Exception:
+        return format_message(str(error))
 
 
 def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],

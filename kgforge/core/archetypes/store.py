@@ -14,13 +14,14 @@
 import json
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List,  Optional, Union, Type, Match
+from typing import Any, Dict, List,  Optional, Union, Type
 
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore, DEFAULT_LIMIT, DEFAULT_OFFSET
 from kgforge.core.archetypes.model import Model
 from kgforge.core.commons import Context
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
@@ -32,7 +33,7 @@ from kgforge.core.commons.exceptions import (
     UpdatingError,
     UploadingError
 )
-from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.execution import run
 
 
 class Store(ReadOnlyStore):
@@ -66,7 +67,7 @@ class Store(ReadOnlyStore):
             if file_resource_mapping else None
 
         self.service: Any = self._initialize_service(
-            self.endpoint, self.bucket, self.token, searchendpoints, **store_config
+            self.endpoint, self.token, searchendpoints, **store_config
         )
 
     def __repr__(self) -> str:
@@ -237,6 +238,8 @@ class Store(ReadOnlyStore):
         # POLICY Should notify of failures with exception DeprecationError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         ...
+
+    # Querying
 
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET

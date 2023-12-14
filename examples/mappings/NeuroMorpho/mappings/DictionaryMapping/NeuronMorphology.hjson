@@ -4,7 +4,6 @@
         NeuronMorphology
         Entity
     ]
-    id: forge.format('identifier', 'neuronmorphologies/neuromorpho', f'{x.bbpID}')
     brainLocation: {
         type: BrainLocation
         brainRegion: forge.resolve(x.brain_region[0], scope='ontology', strategy='EXACT_CASE_INSENSITIVE_MATCH')

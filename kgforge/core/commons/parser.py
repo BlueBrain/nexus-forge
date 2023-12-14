@@ -14,6 +14,7 @@
 from typing import Any
 
 import datetime
+import json
 
 
 def _parse_type(value: Any, parse_str: bool = False):
@@ -42,3 +43,19 @@ def _parse_type(value: Any, parse_str: bool = False):
         return _type, value
     except Exception:
         return _type, value
+
+
+def _process_types(values):
+    """Assign correct data type to values from a request response"""
+    if values['type'] == 'literal' and 'datatype' in values and values['datatype'] == \
+            'http://www.w3.org/2001/XMLSchema#boolean':
+
+        return json.loads(str(values["value"]).lower())
+
+    elif values['type'] == 'literal' and 'datatype' in values and values['datatype'] == \
+            'http://www.w3.org/2001/XMLSchema#integer':
+
+        return int(values["value"])
+
+    else:
+        return values["value"]
