@@ -36,6 +36,8 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 class SPARQLStore(DatasetStore):
     """A Store specialized for SPARQL queries, supporting only Reading (searching) methods."""
 
+    REQUEST_TIMEOUT = 60
+
     def __init__(self, model: Optional[Model] = None,
                  endpoint: Optional[str] = None,
                  file_resource_mapping: Optional[str] = None,
@@ -143,7 +145,8 @@ class SPARQLStore(DatasetStore):
             response = requests.post(
                 self.service.sparql_endpoint["endpoint"] if endpoint is None else endpoint,
                 data=query,
-                headers=self.service.headers_sparql
+                headers=self.service.headers_sparql,
+                timeout=SPARQLStore.REQUEST_TIMEOUT
             )
             response.raise_for_status()
         except Exception as e:

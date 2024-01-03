@@ -62,6 +62,9 @@ from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
 
 
+REQUEST_TIMEOUT = 60
+
+
 def catch_http_error_nexus(
         r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
 ):
@@ -168,6 +171,7 @@ class BlueBrainNexus(Store):
                 headers=self.service.headers,
                 data=json.dumps(data, ensure_ascii=True),
                 params=params_register,
+                timeout=REQUEST_TIMEOUT
             )
         else:
             url = url_base
@@ -176,6 +180,7 @@ class BlueBrainNexus(Store):
                 headers=self.service.headers,
                 data=json.dumps(data, ensure_ascii=True),
                 params=params_register,
+                timeout=REQUEST_TIMEOUT
             )
         catch_http_error_nexus(response, RegistrationError)
 
@@ -292,7 +297,10 @@ class BlueBrainNexus(Store):
         else:
             url = url_resource
         try:
-            response = requests.get(url, params=query_params, headers=self.service.headers)
+            response = requests.get(
+                url, params=query_params, headers=self.service.headers,
+                timeout=REQUEST_TIMEOUT
+            )
             catch_http_error_nexus(response, RetrievalError)
         except RetrievalError as er:
 
@@ -307,7 +315,8 @@ class BlueBrainNexus(Store):
                     else id_without_query
 
                 response = requests.get(
-                    url, params=query_params, headers=self.service.headers
+                    url, params=query_params, headers=self.service.headers,
+                    timeout=REQUEST_TIMEOUT
                 )
                 catch_http_error_nexus(response, RetrievalError)
             else:
@@ -316,7 +325,8 @@ class BlueBrainNexus(Store):
         if retrieve_source and not cross_bucket:
 
             response_metadata = requests.get(
-                url_resource, params=query_params, headers=self.service.headers
+                url_resource, params=query_params, headers=self.service.headers,
+                timeout=REQUEST_TIMEOUT
             )
             catch_http_error_nexus(response_metadata, RetrievalError)
 
@@ -324,7 +334,7 @@ class BlueBrainNexus(Store):
 
             response_metadata = requests.get(
                 "/".join([response.json()["_self"], "source"]), params=query_params,
-                headers=self.service.headers
+                headers=self.service.headers, timeout=REQUEST_TIMEOUT
             )
             catch_http_error_nexus(response, RetrievalError)
 
@@ -356,7 +366,7 @@ class BlueBrainNexus(Store):
             return resource
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
-        response = requests.get(id_, headers=self.service.headers)
+        response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
         return metadata["_filename"], metadata["_mediaType"]
@@ -420,7 +430,8 @@ class BlueBrainNexus(Store):
         response = requests.get(
             url=url,
             headers=headers,
-            params=params_download
+            params=params_download,
+            timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(
             response, DownloadingError,
@@ -520,6 +531,7 @@ class BlueBrainNexus(Store):
             headers=self.service.headers,
             data=json.dumps(data, ensure_ascii=True),
             params=params_update,
+            timeout=REQUEST_TIMEOUT
         )
 
         catch_http_error_nexus(response, UpdatingError)
@@ -565,6 +577,7 @@ class BlueBrainNexus(Store):
             headers=self.service.headers,
             data=json.dumps(data, ensure_ascii=True),
             params=params_tag,
+            timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, TaggingError)
 
@@ -615,7 +628,7 @@ class BlueBrainNexus(Store):
             params_deprecate = params
 
         response = requests.delete(
-            url, headers=self.service.headers, params=params_deprecate
+            url, headers=self.service.headers, params=params_deprecate, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, DeprecationError)
         self.service.sync_metadata(resource, response.json())
@@ -835,6 +848,7 @@ class BlueBrainNexus(Store):
             endpoint,
             data=query,
             headers=self.service.headers_sparql,
+            timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, QueryingError)
 
@@ -853,6 +867,7 @@ class BlueBrainNexus(Store):
             endpoint,
             data=query,
             headers=self.service.headers_elastic,
+            timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, QueryingError)
 

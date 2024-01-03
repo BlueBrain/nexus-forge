@@ -62,6 +62,7 @@ BatchResults = List[BatchResult]
 
 
 class Service:
+    REQUEST_TIMEOUT = 60
     NEXUS_NAMESPACE_FALLBACK = "https://bluebrain.github.io/nexus/vocabulary/"
     NEXUS_CONTEXT_FALLBACK = "https://bluebrain.github.io/nexus/contexts/resource.json"
     NEXUS_CONTEXT_SOURCE_FALLBACK = (
@@ -258,7 +259,7 @@ class Service:
                 self.store_local_context if iri == self.store_context else iri
             )
             url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT)
             response.raise_for_status()
             resource = response.json()
         except Exception as exc:

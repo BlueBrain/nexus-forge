@@ -32,6 +32,8 @@ class MappingType(Enum):
 
 class Mapping(ABC):
 
+    REQUEST_TIMEOUT = 60
+
     # See dictionaries.py in kgforge/specializations/mappings/ for a reference implementation.
 
     # POLICY Exceptions should not be catched so that the KnowledgeGraphForge initialization fails.
@@ -91,7 +93,7 @@ class Mapping(ABC):
     @classmethod
     def load_url(cls, url, raise_ex=True):
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=Mapping.REQUEST_TIMEOUT)
             response.raise_for_status()
             return cls(response.text)
         except RequestException as e:
