@@ -195,8 +195,9 @@ def test_freeze_nested(nexus_store: Store, nested_registered_resource):
     do_recursive(assert_frozen_id, nested_registered_resource)
 
 
-def test_to_resource(nexus_store, registered_building, building_jsonld):
-    context = _merge_jsonld(registered_building.context, Service.NEXUS_CONTEXT_FALLBACK)
+def test_to_resource(nexus_store, registered_building, building_jsonld, store_config):
+    context_path = store_config["vocabulary"]["metadata"]["iri"]
+    context = _merge_jsonld(registered_building.context, context_path)
     payload = building_jsonld(registered_building, "compacted", True, None)
     payload["@context"] = context
     result = nexus_store.service.to_resource(payload)
