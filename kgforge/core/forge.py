@@ -19,13 +19,13 @@ import numpy as np
 from pandas import DataFrame
 from rdflib import Graph
 
-from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
