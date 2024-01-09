@@ -15,7 +15,14 @@ from builtins import all
 from urllib.parse import urlparse
 from pathlib import Path
 import requests
+import yaml
 from requests import RequestException
+
+
+def load_yaml_from_file(filepath: str):
+    config_data = load_file_as_byte(filepath)
+    config_data = config_data.decode("utf-8")
+    return yaml.safe_load(config_data)
 
 
 def load_file_as_byte(source: str):

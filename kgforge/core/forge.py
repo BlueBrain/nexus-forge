@@ -16,17 +16,16 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 
 import numpy as np
-import yaml
 from pandas import DataFrame
 from rdflib import Graph
 
+from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.store import Store
-from kgforge.core.commons.files import load_file_as_byte
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -199,9 +198,7 @@ class KnowledgeGraphForge:
         """
 
         if isinstance(configuration, str):
-            config_data = load_file_as_byte(configuration)
-            config_data = config_data.decode("utf-8")
-            config = yaml.safe_load(config_data)
+            config = load_yaml_from_file(configuration)
         else:
             config = deepcopy(configuration)
 

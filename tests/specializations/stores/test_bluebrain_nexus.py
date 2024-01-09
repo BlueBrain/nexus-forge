@@ -22,6 +22,7 @@ import nexussdk
 import pytest
 from typing import Callable, Union, List
 
+from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.context import Context
@@ -120,15 +121,28 @@ def registered_person(person, store_metadata_value):
 
 
 @pytest.fixture
+def production_configuration():
+    return load_yaml_from_file(
+        full_path_relative_to_root("./examples/notebooks/use-cases/prod-forge-nexus.yml")
+    )
+
+
+@pytest.fixture
+def store_config(production_configuration):
+    return production_configuration["Store"]
+
+
+@pytest.fixture
 @mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
 @mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
-def nexus_store(context_project_patch, metadata_context_patch):
+def nexus_store(context_project_patch, metadata_context_patch, store_config):
     return BlueBrainNexus(
         model=MODEL,
         endpoint=NEXUS,
         bucket=BUCKET,
         token=TOKEN,
         file_resource_mapping=FILE_RESOURCE_MAPPING,
+        **store_config
     )
 
 
