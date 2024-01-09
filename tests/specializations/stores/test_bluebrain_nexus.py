@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
+import copy
 import os
 from unittest import mock
 from urllib.parse import quote_plus, urljoin
@@ -136,13 +136,22 @@ def store_config(production_configuration):
 @mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
 @mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
 def nexus_store(context_project_patch, metadata_context_patch, store_config):
+
+    store_config_cp = copy.deepcopy(store_config)
+
+    for key in ["endpoint", "model", "bucket", "file_resource_mapping", "token"]:
+        if key in store_config_cp:
+            store_config_cp.pop(key)
+
+    store_config.pop("endpoint")
+
     return BlueBrainNexus(
         model=MODEL,
         endpoint=NEXUS,
         bucket=BUCKET,
         token=TOKEN,
         file_resource_mapping=FILE_RESOURCE_MAPPING,
-        **store_config
+        **store_config_cp
     )
 
 
