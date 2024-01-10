@@ -143,8 +143,6 @@ def nexus_store(context_project_patch, metadata_context_patch, store_config):
         if key in store_config_cp:
             store_config_cp.pop(key)
 
-    store_config.pop("endpoint")
-
     return BlueBrainNexus(
         model=MODEL,
         endpoint=NEXUS,
