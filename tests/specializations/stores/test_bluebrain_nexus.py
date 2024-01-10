@@ -11,7 +11,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-
+import copy
 import os
 from unittest import mock
 from urllib.parse import quote_plus, urljoin
@@ -22,6 +22,7 @@ import nexussdk
 import pytest
 from typing import Callable, Union, List
 
+from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.context import Context
@@ -120,16 +121,30 @@ def registered_person(person, store_metadata_value):
 
 
 @pytest.fixture
+def production_configuration():
+    return load_yaml_from_file(
+        full_path_relative_to_root("./examples/notebooks/use-cases/prod-forge-nexus.yml")
+    )
+
+
+@pytest.fixture
+def store_config(production_configuration):
+    return production_configuration["Store"]
+
+
+@pytest.fixture
 @mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
 @mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
-def nexus_store(context_project_patch, metadata_context_patch):
-    return BlueBrainNexus(
-        model=MODEL,
-        endpoint=NEXUS,
-        bucket=BUCKET,
-        token=TOKEN,
-        file_resource_mapping=FILE_RESOURCE_MAPPING,
-    )
+def nexus_store(context_project_patch, metadata_context_patch, store_config):
+
+    store_config_cp = copy.deepcopy(store_config)
+    store_config_cp["endpoint"] = NEXUS
+    store_config_cp["bucket"] = BUCKET
+    store_config_cp["file_resource_mapping"] = FILE_RESOURCE_MAPPING
+    store_config_cp["model"] = MODEL
+    store_config_cp["token"] = TOKEN
+
+    return BlueBrainNexus(**store_config_cp)
 
 
 @pytest.fixture
@@ -172,8 +187,9 @@ def test_freeze_nested(nexus_store: Store, nested_registered_resource):
     do_recursive(assert_frozen_id, nested_registered_resource)
 
 
-def test_to_resource(nexus_store, registered_building, building_jsonld):
-    context = _merge_jsonld(registered_building.context, Service.NEXUS_CONTEXT_FALLBACK)
+def test_to_resource(nexus_store, registered_building, building_jsonld, store_config):
+    context_path = store_config["vocabulary"]["metadata"]["iri"]
+    context = _merge_jsonld(registered_building.context, context_path)
     payload = building_jsonld(registered_building, "compacted", True, None)
     payload["@context"] = context
     result = nexus_store.service.to_resource(payload)
