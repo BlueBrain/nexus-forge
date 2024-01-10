@@ -138,19 +138,13 @@ def store_config(production_configuration):
 def nexus_store(context_project_patch, metadata_context_patch, store_config):
 
     store_config_cp = copy.deepcopy(store_config)
+    store_config_cp["endpoint"] = NEXUS
+    store_config_cp["bucket"] = BUCKET
+    store_config_cp["file_resource_mapping"] = FILE_RESOURCE_MAPPING
+    store_config_cp["model"] = MODEL
+    store_config_cp["token"] = TOKEN
 
-    for key in ["endpoint", "model", "bucket", "file_resource_mapping", "token"]:
-        if key in store_config_cp:
-            store_config_cp.pop(key)
-
-    return BlueBrainNexus(
-        model=MODEL,
-        endpoint=NEXUS,
-        bucket=BUCKET,
-        token=TOKEN,
-        file_resource_mapping=FILE_RESOURCE_MAPPING,
-        **store_config_cp
-    )
+    return BlueBrainNexus(**store_config_cp)
 
 
 @pytest.fixture
