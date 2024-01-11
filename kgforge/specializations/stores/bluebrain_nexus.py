@@ -30,6 +30,7 @@ import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder, format_type, \
@@ -62,7 +63,7 @@ from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
 
 
-REQUEST_TIMEOUT = 60
+REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
 
 def catch_http_error_nexus(

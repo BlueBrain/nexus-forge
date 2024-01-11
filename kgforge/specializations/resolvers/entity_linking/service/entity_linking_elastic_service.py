@@ -19,6 +19,7 @@ import itertools
 import requests
 
 from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
@@ -33,7 +34,7 @@ from kgforge.specializations.resources.entity_linking_candidate import (
 
 
 class EntityLinkerElasticService(EntityLinkerService):
-    REQUEST_TIMEOUT = 60
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
     def __init__(
         self,

@@ -18,8 +18,9 @@ import requests
 import yaml
 from requests import RequestException
 
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 
-REQUEST_TIMEOUT = 60
+REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
 
 def load_yaml_from_file(filepath: str):

@@ -29,6 +29,7 @@ import requests
 from aiohttp import ClientSession, hdrs
 from requests import HTTPError
 
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
     Action,
@@ -62,7 +63,7 @@ BatchResults = List[BatchResult]
 
 
 class Service:
-    REQUEST_TIMEOUT = 60
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
     NEXUS_NAMESPACE_FALLBACK = "https://bluebrain.github.io/nexus/vocabulary/"
     NEXUS_CONTEXT_FALLBACK = "https://bluebrain.github.io/nexus/contexts/resource.json"
     NEXUS_CONTEXT_SOURCE_FALLBACK = (

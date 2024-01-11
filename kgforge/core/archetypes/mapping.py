@@ -21,6 +21,7 @@ import requests
 from requests import RequestException
 
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.commons.exceptions import MappingLoadError
 
 
@@ -32,7 +33,7 @@ class MappingType(Enum):
 
 class Mapping(ABC):
 
-    REQUEST_TIMEOUT = 60
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
     # See dictionaries.py in kgforge/specializations/mappings/ for a reference implementation.
 
