@@ -196,7 +196,7 @@ class Service:
         }
 
         self.elastic_endpoint = {
-            "endpoint": self.make_endpoint(elastic_view, "search")
+            "endpoint": self.make_endpoint(elastic_view, "_search")
         }
 
         self.elastic_endpoint["view"] = LazyAction(
