@@ -676,6 +676,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        **params
     ) -> List[Resource]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
@@ -686,7 +687,7 @@ class KnowledgeGraphForge:
         :param offset: how many results to skip from the first one
         :return: List[Resource]
         """
-        return self._store.elastic(query, debug, limit, offset)
+        return self._store.elastic(query, debug, limit, offset, **params)
 
     @catch
     def download(
