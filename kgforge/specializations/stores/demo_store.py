@@ -156,10 +156,10 @@ class DemoStore(Store):
         records = self.service.find(conditions)
         return [_to_resource(x) for x in records]
 
-    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+    def _sparql(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
         not_supported()
 
-    def _elastic(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+    def _elastic(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
         not_supported()
 
     # Utils.

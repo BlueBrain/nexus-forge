@@ -73,6 +73,9 @@ class Service:
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
     UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
 
+    SPARQL_ENDPOINT_TYPE = "sparql"
+    ELASTIC_ENDPOINT_TYPE = "elastic"
+
     def __init__(
             self,
             endpoint: str,
@@ -117,16 +120,8 @@ class Service:
 
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
-        sparql_config = (
-            searchendpoints["sparql"]
-            if searchendpoints and "sparql" in searchendpoints
-            else None
-        )
-        elastic_config = (
-            searchendpoints["elastic"]
-            if searchendpoints and "elastic" in searchendpoints
-            else None
-        )
+        sparql_config = searchendpoints.get("sparql", None) if searchendpoints else None
+        elastic_config = searchendpoints.get("elastic", None) if searchendpoints else None
 
         self.headers_sparql = {
             "Content-Type": sparql_config["Content-Type"]
@@ -196,38 +191,30 @@ class Service:
             else None
         )
 
-        self.sparql_endpoint = {}
-        self.elastic_endpoint = {}
-        self.sparql_endpoint["endpoint"] = "/".join(
-            (
-                self.endpoint,
-                "views",
-                quote_plus(org),
-                quote_plus(prj),
-                quote_plus(sparql_view),
-                "sparql",
+        def make_endpoint(view, endpoint_type):
+            return "/".join(
+                (
+                    self.endpoint,
+                    "views",
+                    quote_plus(org),
+                    quote_plus(prj),
+                    quote_plus(view),
+                    endpoint_type,
+                )
             )
-        )
-        self.sparql_endpoint["type"] = "sparql"
+        self.sparql_endpoint = {
+            "endpoint": make_endpoint(sparql_view, "sparql")
+        }
 
-        self.elastic_endpoint["endpoint"] = "/".join(
-            (
-                self.endpoint,
-                "views",
-                quote_plus(org),
-                quote_plus(prj),
-                quote_plus(elastic_view),
-                "_search",
-            )
-        )
-        self.elastic_endpoint["type"] = "elastic"
+        self.elastic_endpoint = {
+            "endpoint": make_endpoint(elastic_view, "search")
+        }
+
         self.elastic_endpoint["view"] = LazyAction(
             nexus.views.fetch,
             quote_plus(org),
             quote_plus(prj),
-            es_mapping
-            if es_mapping
-            else elastic_view,  # Todo consider using Dict for es_mapping
+            es_mapping if es_mapping else elastic_view,  # Todo consider using Dict for es_mapping
         )
         self.elastic_endpoint["default_str_keyword_field"] = default_str_keyword_field
 

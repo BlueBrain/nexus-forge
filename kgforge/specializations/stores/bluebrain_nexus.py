@@ -704,16 +704,18 @@ class BlueBrainNexus(Store):
         includes = params.get("includes", None)
         excludes = params.get("excludes", None)
         search_endpoint = params.get(
-            "search_endpoint", self.service.sparql_endpoint["type"]
+            "search_endpoint",  Service.SPARQL_ENDPOINT_TYPE  # default search endpoint is sparql
         )
-        if search_endpoint not in [
-            self.service.sparql_endpoint["type"],
-            self.service.elastic_endpoint["type"],
-        ]:
+        valid_endpoints = [
+            Service.SPARQL_ENDPOINT_TYPE, Service.ELASTIC_ENDPOINT_TYPE,
+        ]
+
+        if search_endpoint not in valid_endpoints:
             raise ValueError(
-                f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
-                f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
+                f"The provided search_endpoint value '{search_endpoint}' is not supported. "
+                f"Supported search_endpoint values are: {valid_endpoints}"
             )
+
         if "filters" in params:
             raise ValueError(
                 "A 'filters' key was provided as params. Filters should be provided as iterable."
@@ -731,7 +733,7 @@ class BlueBrainNexus(Store):
             else:
                 filters = list(filters)
 
-        if search_endpoint == self.service.sparql_endpoint["type"]:
+        if search_endpoint == self.service.SPARQL_ENDPOINT_TYPE:
             if includes or excludes:
                 raise ValueError(
                     "Field inclusion and exclusion are not supported when using SPARQL"
@@ -887,10 +889,10 @@ class BlueBrainNexus(Store):
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
 
-    def _sparql(self, query: str) -> List[Resource]:
+    def _sparql(self, query: str, endpoint: str) -> List[Resource]:
 
         response = requests.post(
-            self.service.sparql_endpoint["endpoint"],
+            endpoint,
             data=query,
             headers=self.service.headers_sparql,
         )
@@ -901,10 +903,10 @@ class BlueBrainNexus(Store):
         context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
-    def _elastic(self, query: str) -> List[Resource]:
+    def _elastic(self, query: str, endpoint: Optional[str]) -> List[Resource]:
 
         response = requests.post(
-            self.service.elastic_endpoint["endpoint"],
+            self.service.elastic_endpoint["endpoint"] if endpoint is None else endpoint,
             data=query,
             headers=self.service.headers_elastic,
         )

@@ -238,10 +238,10 @@ class ReadOnlyStore(ABC):
         if debug:
             SPARQLQueryBuilder.debug_query(qr)
 
-        return self._sparql(qr)
+        return self._sparql(qr, endpoint=params.get("endpoint", None))
 
     @abstractmethod
-    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+    def _sparql(self, query: str, endpoint: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
