@@ -28,7 +28,7 @@ class QueryBuilder(ABC):
     @staticmethod
     @abstractmethod
     def build(
-        schema: Any,
+        schema: Optional[Dict],
         resolvers: Optional[List["Resolver"]],
         context: Context,
         filters: List[Filter],

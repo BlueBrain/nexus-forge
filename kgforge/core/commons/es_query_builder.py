@@ -37,7 +37,7 @@ elasticsearch_operator_range_map = {
 class ESQueryBuilder(QueryBuilder):
     @staticmethod
     def build(
-        schema: Dict,
+        schema: Optional[Dict],
         resolvers: Optional[List["Resolver"]],
         context: Context,
         filters: List[Filter],

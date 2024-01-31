@@ -120,7 +120,7 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build(
-            schema: Dict,
+            schema: Optional[Dict],
             resolvers: Optional[List[Resolver]],
             context: Context,
             filters: List[Filter],

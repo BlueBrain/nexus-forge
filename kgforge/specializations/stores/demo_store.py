@@ -82,8 +82,10 @@ class DemoStore(Store):
 
     # C[R]UD.
 
-    def retrieve(self, id_: str, version: Optional[Union[int, str]],
-                 cross_bucket: bool, **params) -> Optional[Resource]:
+    def retrieve(
+            self, id_: str, version: Optional[Union[int, str]],
+            cross_bucket: bool = False, **params
+    ) -> Optional[Resource]:
         if cross_bucket:
             raise not_supported(("cross_bucket", True))
         try:
@@ -157,10 +159,10 @@ class DemoStore(Store):
         return [_to_resource(x) for x in records]
 
     def _sparql(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
-        not_supported()
+        raise not_supported()
 
     def _elastic(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
-        not_supported()
+        raise not_supported()
 
     # Utils.
 
@@ -196,10 +198,10 @@ class DemoStore(Store):
     def _deprecate_many(self, resources: List[Resource]) -> None:
         raise not_supported()
 
-    def _sparql(self, query: str) -> List[Resource]:
+    def _sparql(self, query: str, endpoint: Optional[str]) -> List[Resource]:
         raise not_supported()
 
-    def _elastic(self, query: str) -> List[Resource]:
+    def _elastic(self, query: str, endpoint: Optional[str]) -> List[Resource]:
         raise not_supported()
 
     def _freeze_many(self, resources: List[Resource]) -> None:
