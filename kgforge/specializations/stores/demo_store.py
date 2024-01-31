@@ -198,10 +198,10 @@ class DemoStore(Store):
     def _deprecate_many(self, resources: List[Resource]) -> None:
         raise not_supported()
 
-    def _sparql(self, query: str, endpoint: Optional[str]) -> List[Resource]:
+    def _sparql(self, query: str, view: Optional[str]) -> List[Resource]:
         raise not_supported()
 
-    def _elastic(self, query: str, endpoint: Optional[str]) -> List[Resource]:
+    def _elastic(self, query: str, view: Optional[str]) -> List[Resource]:
         raise not_supported()
 
     def _freeze_many(self, resources: List[Resource]) -> None:
