@@ -238,7 +238,7 @@ class ReadOnlyStore(ABC):
         if debug:
             SPARQLQueryBuilder.debug_query(qr)
 
-        return self._sparql(qr, endpoint=params.get("endpoint", None))
+        return self._sparql(qr, view=params.get("view", None))
 
     @abstractmethod
     def _sparql(self, query: str, endpoint: Optional[str]) -> Optional[Union[List[Resource], Resource]]:

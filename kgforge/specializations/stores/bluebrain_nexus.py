@@ -707,7 +707,7 @@ class BlueBrainNexus(Store):
             )
             # support @id and @type
             resources = self.sparql(
-                query, debug=debug, limit=limit, offset=offset, endpoint=params.get("endpoint", None)
+                query, debug=debug, limit=limit, offset=offset, view=params.get("view", None)
             )
             params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
             params_retrieve['retrieve_source'] = retrieve_source
@@ -801,7 +801,7 @@ class BlueBrainNexus(Store):
 
             return self.elastic(
                 json.dumps(query), debug=debug, limit=limit, offset=offset,
-                endpoint=params.get("endpoint", None)
+                view=params.get("view", None)
             )
 
     @staticmethod  # for testing

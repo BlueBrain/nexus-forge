@@ -253,7 +253,7 @@ class Store(ReadOnlyStore):
         if debug:
             ESQueryBuilder.debug_query(query_dict)
 
-        return self._elastic(json.dumps(query_dict), endpoint=params.get("endpoint", None))
+        return self._elastic(json.dumps(query_dict), view=params.get("view", None))
 
     @abstractmethod
     def _elastic(self, query: str, endpoint: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
