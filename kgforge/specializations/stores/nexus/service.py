@@ -192,11 +192,11 @@ class Service:
         )
 
         self.sparql_endpoint = {
-            "endpoint": self.make_endpoint(sparql_view, "sparql")
+            "endpoint": self.make_endpoint(sparql_view, Service.SPARQL_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint = {
-            "endpoint": self.make_endpoint(elastic_view, "_search")
+            "endpoint": self.make_endpoint(elastic_view, Service.ELASTIC_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint["view"] = LazyAction(
@@ -214,16 +214,33 @@ class Service:
         except RuntimeError:
             pass
 
-    def make_endpoint(self, view, endpoint_type, organisation=None, project=None):
+    @staticmethod
+    def make_query_endpoint(base, view, endpoint_type, organisation, project) -> str:
+
+        if endpoint_type == Service.SPARQL_ENDPOINT_TYPE:
+            last_url_component = "sparql"
+        elif endpoint_type == Service.ELASTIC_ENDPOINT_TYPE:
+            last_url_component = "_search"
+        else:
+            raise ValueError(f"Unknown endpoint type {endpoint_type}")
+
         return "/".join(
             (
-                self.endpoint,
+                base,
                 "views",
-                quote_plus(organisation or self.organisation),
-                quote_plus(project or self.project),
+                quote_plus(organisation),
+                quote_plus(project),
                 quote_plus(view),
-                endpoint_type,
-            )git
+                last_url_component,
+            )
+        )
+
+    def make_endpoint(self, view: str, endpoint_type: str):
+        return Service.make_query_endpoint(
+            base=self.endpoint, view=view,
+            endpoint_type=endpoint_type,
+            organisation=self.organisation,
+            project=self.project
         )
 
     def get_project_context(self) -> Dict:
