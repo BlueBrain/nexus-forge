@@ -214,16 +214,16 @@ class Service:
         except RuntimeError:
             pass
 
-    def make_endpoint(self, view, endpoint_type):
+    def make_endpoint(self, view, endpoint_type, organisation=None, project=None):
         return "/".join(
             (
                 self.endpoint,
                 "views",
-                quote_plus(self.organisation),
-                quote_plus(self.project),
+                quote_plus(organisation or self.organisation),
+                quote_plus(project or self.project),
                 quote_plus(view),
                 endpoint_type,
-            )
+            )git
         )
 
     def get_project_context(self) -> Dict:
