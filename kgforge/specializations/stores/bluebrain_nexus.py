@@ -820,7 +820,11 @@ class BlueBrainNexus(Store):
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
 
-    def _sparql(self, query: str, endpoint: str) -> List[Resource]:
+    def _sparql(self, query: str, view: str) -> List[Resource]:
+
+        endpoint = self.service.sparql_endpoint["endpoint"] \
+            if view is None \
+            else self.service.make_endpoint(view, endpoint_type="sparql")
 
         response = requests.post(
             endpoint,
@@ -834,10 +838,14 @@ class BlueBrainNexus(Store):
         context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
-    def _elastic(self, query: str, endpoint: Optional[str]) -> List[Resource]:
+    def _elastic(self, query: str, view: Optional[str]) -> List[Resource]:
+
+        endpoint = self.service.elastic_endpoint["endpoint"] \
+            if view is None \
+            else self.service.make_endpoint(view, endpoint_type="elastic")
 
         response = requests.post(
-            self.service.elastic_endpoint["endpoint"] if endpoint is None else endpoint,
+            endpoint,
             data=query,
             headers=self.service.headers_elastic,
         )

@@ -191,23 +191,12 @@ class Service:
             else None
         )
 
-        def make_endpoint(view, endpoint_type):
-            return "/".join(
-                (
-                    self.endpoint,
-                    "views",
-                    quote_plus(org),
-                    quote_plus(prj),
-                    quote_plus(view),
-                    endpoint_type,
-                )
-            )
         self.sparql_endpoint = {
-            "endpoint": make_endpoint(sparql_view, "sparql")
+            "endpoint": self.make_endpoint(sparql_view, "sparql")
         }
 
         self.elastic_endpoint = {
-            "endpoint": make_endpoint(elastic_view, "search")
+            "endpoint": self.make_endpoint(elastic_view, "search")
         }
 
         self.elastic_endpoint["view"] = LazyAction(
@@ -224,6 +213,18 @@ class Service:
             nest_asyncio.apply()
         except RuntimeError:
             pass
+
+    def make_endpoint(self, view, endpoint_type):
+        return "/".join(
+            (
+                self.endpoint,
+                "views",
+                quote_plus(self.organisation),
+                quote_plus(self.project),
+                quote_plus(view),
+                endpoint_type,
+            )
+        )
 
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
