@@ -256,7 +256,7 @@ class Store(ReadOnlyStore):
         return self._elastic(json.dumps(query_dict), view=params.get("view", None))
 
     @abstractmethod
-    def _elastic(self, query: str, endpoint: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
+    def _elastic(self, query: str, view: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
