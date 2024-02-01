@@ -106,8 +106,8 @@ class Service:
         self.namespace = namespace
         self.project_property = project_property
         self.store_metadata_keys = [
-            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
-            "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming",
+            "_outgoing", "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
         ]
 
         self.deprecated_property = deprecated_property
@@ -246,38 +246,45 @@ class Service:
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
-        if iri in self.context_cache:
-            return self.context_cache[iri]
-        try:
-            context_to_resolve = (
-                self.store_local_context if iri == self.store_context else iri
-            )
-            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
-            response = requests.get(url, headers=self.headers)
-            response.raise_for_status()
-            resource = response.json()
-        except Exception as exc:
-            if not local_only:
-                try:
-                    context = Context(context_to_resolve)
-                except URLError as exc2:
-                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
+        context_to_resolve = (
+            self.store_local_context if iri == self.store_context else iri
+        )
 
-                document = context.document["@context"]
+        if context_to_resolve not in self.context_cache:
+
+            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
+
+            try:
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()
+                resource = response.json()
+            except Exception as exc:
+                if not local_only:
+                    try:
+                        context = Context(context_to_resolve)
+                    except URLError as exc2:
+                        raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
+
+                    document = context.document["@context"]
+                else:
+                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc
             else:
-                raise ValueError(f"{context_to_resolve} is not resolvable") from exc
-        else:
-            # Make sure context is not deprecated
-            if '_deprecated' in resource and resource['_deprecated']:
-                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
-            document = json.loads(json.dumps(resource["@context"]))
-        if isinstance(document, list):
-            if self.store_context in document:
-                document.remove(self.store_context)
-            if self.store_local_context in document:
-                document.remove(self.store_local_context)
-        self.context_cache.update({context_to_resolve: document})
-        return document
+                # Make sure context is not deprecated
+                if '_deprecated' in resource and resource['_deprecated']:
+                    raise ConfigurationError(
+                        f"Context {context_to_resolve} exists but was deprecated"
+                    )
+                document = json.loads(json.dumps(resource["@context"]))
+
+            if isinstance(document, list):
+                if self.store_context in document:
+                    document.remove(self.store_context)
+                if self.store_local_context in document:
+                    document.remove(self.store_local_context)
+
+            self.context_cache[context_to_resolve] = document
+
+        return self.context_cache[context_to_resolve]
 
     def batch_request(
             self,

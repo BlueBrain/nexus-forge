@@ -253,6 +253,14 @@ class KnowledgeGraphForge:
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
 
+    def get_model(self) -> Model:
+        """Exposes the model."""
+        return self._model
+
+    def get_store(self) -> Store:
+        """Exposes the store."""
+        return self._store
+
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
         """

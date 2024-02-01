@@ -18,11 +18,11 @@ from typing import Any, Dict, List,  Optional, Union, Type, Match
 
 from kgforge.core.archetypes.read_only_store import ReadOnlyStore, DEFAULT_LIMIT, DEFAULT_OFFSET
 from kgforge.core.archetypes.model import Model
-from kgforge.core.commons import Context
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
+from kgforge.core.commons.context import Context
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -32,7 +32,7 @@ from kgforge.core.commons.exceptions import (
     UpdatingError,
     UploadingError
 )
-from kgforge.core.commons.execution import not_supported, run
+from kgforge.core.commons.execution import run
 
 
 class Store(ReadOnlyStore):
@@ -292,3 +292,25 @@ class Store(ReadOnlyStore):
                 self._freeze_one(v)
         if hasattr(resource, "id"):
             resource.id = self.versioned_id_template.format(x=resource)
+
+    # Utils.
+
+    @abstractmethod
+    def _initialize_service(
+            self,
+            endpoint: Optional[str],
+            bucket: Optional[str],
+            token: Optional[str],
+            searchendpoints: Optional[Dict] = None,
+            **store_config,
+    ) -> Any:
+        # POLICY Should initialize the access to the store according to its configuration.
+        pass
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        """Rewrite a given uri using the store Context
+        :param uri: a URI to rewrite.
+        :param context: a Store Context object
+        :return: str
+        """
+        pass

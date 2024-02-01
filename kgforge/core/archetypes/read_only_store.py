@@ -24,7 +24,6 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DownloadingError,
 )
-from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.reshaping import collect_values
 from kgforge.core.wrappings import Filter
@@ -54,16 +53,9 @@ class ReadOnlyStore(ABC):
     def __repr__(self) -> str:
         return repr_class(self)
 
-    @staticmethod
-    def _context_to_dict(context: Context):
-        return {
-            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
-            for k, v in context.document["@context"].items()
-        }
-
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return (
-            ReadOnlyStore._context_to_dict(self.model_context().document),
+            Context.context_to_dict(self.model_context()),
             self.model_context().prefixes,
             self.model_context().vocab
         )

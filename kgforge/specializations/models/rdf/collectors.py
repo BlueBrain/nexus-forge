@@ -47,7 +47,7 @@ class Collector(ABC):
     @abstractmethod
     def constraint(cls) -> URIRef:
         """Returns the Shacl constraint URI of the collector"""
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
     def collect(
@@ -64,7 +64,7 @@ class Collector(ABC):
             properties, attributes: Tuple(list,dict), the collected properties and attributes
                 respectively
         """
-        raise NotImplementedError()
+        ...
 
     def get_shape_target_classes(self) -> List:
         """Returns a list of target and implicit classes if any of the shape
@@ -488,3 +488,19 @@ def get_node_path(node: NodeProperties, path: URIRef, field: str):
                     else:
                         result.append(values)
     return result
+
+
+ALL_COLLECTORS = [
+    AndCollector,
+    OrCollector,
+    PropertyCollector,
+    NodeCollector,
+    PropertyCollector,
+    MinCountCollector,
+    DatatypeCollector,
+    InCollector,
+    ClassCollector,
+    NodeKindCollector,
+    XoneCollector,
+    HasValueCollector
+]

@@ -32,15 +32,16 @@ import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
-from kgforge.core.commons.dictionaries import update_dict
-from kgforge.core.commons.es_query_builder import ESQueryBuilder
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.store import DEFAULT_LIMIT
+from kgforge.core.commons.dictionaries import update_dict
+from kgforge.core.commons.es_query_builder import ESQueryBuilder
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
@@ -565,7 +566,7 @@ class BlueBrainNexus(Store):
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
+        context = self.model_context or self.context
         data = as_jsonld(
             resource,
             "compacted",
@@ -686,15 +687,14 @@ class BlueBrainNexus(Store):
         # Querying.
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]],
-            **params
+            self, resolvers: Optional[List[Resolver]], filters: List[Union[Dict, Filter]], **params
     ) -> List[Resource]:
 
         if self.model_context() is None:
             raise ValueError("context model missing")
 
         debug = params.get("debug", False)
-        limit = params.get("limit", 100)
+        limit = params.get("limit", DEFAULT_LIMIT)
         offset = params.get("offset", None)
         deprecated = params.get("deprecated", False)
         cross_bucket = params.get("cross_bucket", False)
@@ -706,13 +706,14 @@ class BlueBrainNexus(Store):
         search_endpoint = params.get(
             "search_endpoint", self.service.sparql_endpoint["type"]
         )
-        if search_endpoint not in [
-            self.service.sparql_endpoint["type"],
-            self.service.elastic_endpoint["type"],
-        ]:
+
+        supported_search_endpoints = [
+            self.service.sparql_endpoint["type"], self.service.elastic_endpoint["type"],
+        ]
+        if search_endpoint not in supported_search_endpoints:
             raise ValueError(
-                f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
-                f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
+                f"The provided search_endpoint value '{search_endpoint}' is not supported. "
+                f"Supported search_endpoint values are: {supported_search_endpoints}"
             )
         if "filters" in params:
             raise ValueError(
@@ -876,9 +877,9 @@ class BlueBrainNexus(Store):
         ctx = {}
 
         if metadata_context and metadata_context.document:
-            ctx.update(BlueBrainNexus._context_to_dict(metadata_context))
+            ctx.update(Context.context_to_dict(metadata_context))
 
-        ctx.update(BlueBrainNexus._context_to_dict(model_context))
+        ctx.update(Context.context_to_dict(model_context))
 
         prefixes = model_context.prefixes
 
@@ -1046,7 +1047,7 @@ class BlueBrainNexus(Store):
         raise not_supported()
 
 
-def _create_select_query(vars_, statements, distinct, search_in_graph):
+def _create_select_query(vars_, statements, distinct: bool, search_in_graph: bool):
     where_clauses = (
         f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else f"{{{statements}}}"
     )

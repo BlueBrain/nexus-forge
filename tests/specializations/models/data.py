@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from copy import deepcopy
 
+from utils import full_path_relative_to_root
 
 ORGANIZATION = {
     "id": "",
@@ -134,4 +135,14 @@ TYPES_SCHEMAS_MAP = {
     "Organization": "http://www.example.com/OrganizationShape",
     "Person": "http://www.example.com/PersonShape",
     "PostalAddress": "http://schema.org/PostalAddress",
+}
+
+SCHEMA_SOURCE_MAP = {
+    "Activity": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-2.json'),
+    "Association": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-1.json'),
+    "Building": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-3.json'),
+    "Employee": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-1.json'),
+    "Organization": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-1.json'),
+    "Person": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-1.json'),
+    "PostalAddress": full_path_relative_to_root('tests/data/shacl-model/commons/shapes-1.json'),
 }

@@ -1,0 +1,84 @@
+@prefix bmo: <https://bbp.epfl.ch/ontologies/core/bmo/> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix nsg: <https://neuroshapes.org/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix parms: <https://bbp.epfl.ch/ontologies/core/parameters/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+schema:name a owl:AnnotationProperty ;
+    rdfs:label "name"@en ;
+    skos:altLabel "name"@en .
+
+schema:unitCode a owl:AnnotationProperty ;
+    rdfs:label "unitCode"@en ;
+    skos:altLabel "units"@en .
+
+owl:equivalentClass a owl:AnnotationProperty ;
+    rdfs:label "equivalentClass"@en .
+
+skos:altLabel a owl:AnnotationProperty ;
+    skos:altLabel "altLabel"@en .
+
+skos:definition a owl:AnnotationProperty ;
+    rdfs:label "definition"@en .
+
+skos:example a owl:AnnotationProperty .
+
+skos:notation a owl:AnnotationProperty .
+
+skos:note a owl:AnnotationProperty .
+
+skos:prefLabel a owl:AnnotationProperty ;
+    rdfs:label "prefLabel"@en .
+
+bmo:AtlasDistanceToLayer a owl:Class ;
+    rdfs:label "AtlasDistanceToLayer"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:AtlasETypeRatio a owl:Class ;
+    rdfs:label "AtlasETypeRatio"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:altLabel "Atlas e-type ratio"@en ;
+    skos:prefLabel "Atlas EType Ratio"@en .
+
+bmo:BrainVolumeParameter a owl:Class ;
+    rdfs:label "Model Brain Volume Parameter"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:ConductanceDensity a owl:Class ;
+    rdfs:label "Conductance Density"@en ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty bmo:compartment ;
+            owl:someValuesFrom bmo:NeuronPart ],
+        [ a owl:Restriction ;
+            owl:onProperty nsg:ion ;
+            owl:someValuesFrom bmo:Ion ],
+        bmo:EModelParameter,
+        bmo:NeuronPartFeature .
+
+bmo:ConnectivityModelCoefficient a owl:Class ;
+    rdfs:label "Connectivity Model Coefficient"@en ;
+    rdfs:subClassOf bmo:ModelConnectivityParameter .
+
+bmo:DendriteSynapseDensity a owl:Class ;
+    rdfs:label "DendriteSynapseDensity"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter .
+
+bmo:EModelParameterConstraint a owl:Class ;
+    rdfs:label "EModel Parameter Constraint"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameterConstraint .
+
+bmo:METypeRatio a owl:Class ;
+    rdfs:label "ME-Type Ratio"@en ;
+    rdfs:subClassOf bmo:ModelBrainParameter ;
+    skos:prefLabel "ME-Type Ratio"^^xsd:string .
+
+<https://bbp.epfl.ch/ontologies/core/parameters> a owl:Ontology ;
+    rdfs:label "Brain Modeling Parameter Ontology"^^xsd:string ;
+    vann:preferredNamespacePrefix "parms"^^xsd:string ;
+    schema:title "Brain Modeling Parameter Ontology"^^xsd:string ;
+    owl:versionInfo "R4"^^xsd:string .

@@ -60,3 +60,10 @@ class Context(JSONLD_Context):
 
     def has_vocab(self):
         return self.vocab is not None
+
+    @staticmethod
+    def context_to_dict(context: 'Context'):
+        return {
+            k: v["@id"] if isinstance(v, Dict) and "@id" in v else v
+            for k, v in context.document["@context"].items()
+        }

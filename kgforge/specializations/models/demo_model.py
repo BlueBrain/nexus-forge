@@ -29,6 +29,12 @@ from kgforge.core.commons.exceptions import ValidationError
 class DemoModel(Model):
     """An example to show how to implement a Model and to demonstrate how it is used."""
 
+    def _sparql(self, query: str) -> List[Resource]:
+        raise not_supported()
+
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        raise not_supported()
+
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:
@@ -96,7 +102,7 @@ class DemoModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config):
+    def _service_from_directory(dirpath: Path, context_iri: Optional[str]):
         return ModelLibrary(dirpath)
 
     @staticmethod

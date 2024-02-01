@@ -15,10 +15,11 @@
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Type
+from typing import Any, Dict, List, Optional, Union, Type, Tuple
 
 import hjson
 from pandas import DataFrame
+
 
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
@@ -27,6 +28,10 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError, ValidationError
 from kgforge.core.commons.execution import run
 from kgforge.core.commons.imports import import_class
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
+
+DEFAULT_LIMIT = 100
+DEFAULT_OFFSET = 0
 
 
 class Model(ABC):
@@ -117,6 +122,48 @@ class Model(ABC):
 
     # Mappings.
 
+    def sparql(
+            self, query: str,
+            debug: bool,
+            limit: int = DEFAULT_LIMIT,
+            offset: int = DEFAULT_OFFSET,
+            **params
+    ) -> List[Resource]:
+        rewrite = params.get("rewrite", True)
+
+        context_as_dict, prefixes, vocab = self.get_context_prefix_vocab()
+
+        qr = (
+            SPARQLQueryBuilder.rewrite_sparql(
+                query,
+                context_as_dict=context_as_dict,
+                prefixes=prefixes,
+                vocab=vocab
+            )
+            if self.context() is not None and rewrite
+            else query
+        )
+
+        qr = SPARQLQueryBuilder.apply_limit_and_offset_to_query(
+            query=qr,
+            limit=limit,
+            offset=offset,
+            default_limit=DEFAULT_LIMIT,
+            default_offset=DEFAULT_OFFSET
+        )
+
+        if debug:
+            SPARQLQueryBuilder.debug_query(qr)
+
+        return self._sparql(qr)
+
+    @abstractmethod
+    def _sparql(self, query: str) -> List[Resource]:
+        # POLICY Should notify of failures with exception QueryingError including a message.
+        # POLICY Resource _store_metadata should not be set (default is None).
+        # POLICY Resource _synchronized should not be set (default is False).
+        ...
+
     def sources(self, pretty: bool) -> Optional[List[str]]:
         sources = sorted(self._sources())
         if pretty:
@@ -189,8 +236,7 @@ class Model(ABC):
         context_config = source_config.pop("context", {})
         context_iri = context_config.get("iri", None)
         if origin == "directory":
-            dirpath = Path(source)
-            return self._service_from_directory(dirpath, context_iri)
+            return self._service_from_directory(Path(source), context_iri)
         if origin == "url":
             return self._service_from_url(source, context_iri)
         if origin == "store":
@@ -214,4 +260,8 @@ class Model(ABC):
     def _service_from_store(
             store: 'Store', context_config: Optional[dict], **source_config
     ) -> Any:
+        ...
+
+    @abstractmethod
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         ...

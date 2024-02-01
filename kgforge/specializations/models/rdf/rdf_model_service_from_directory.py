@@ -21,22 +21,17 @@ from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
 
 
-class DirectoryService(RdfService):
+class RdfModelServiceFromDirectory(RdfModelService):
 
-    def __init__(self, dirpath: Path, context_iri: str) -> None:
-        self._graph = load_rdf_files(dirpath)
-        self._sg = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
-
-    def schema_source_id(self, schema_iri: str) -> str:
-        # FIXME should return the file path where the schema is in
-        return schema_iri
+    def __init__(self, dir_path: Path, context_iri: str) -> None:
+        self.dir_path = dir_path
+        super().__init__(context_iri=context_iri)
 
     def materialize(self, iri: URIRef) -> NodeProperties:
-        sh = self._sg.lookup_shape_from_node(iri)
+        sh = self._shapes_graph.lookup_shape_from_node(iri)
         predecessors = set()
         props, attrs = sh.traverse(predecessors)
         if props:
@@ -61,25 +56,54 @@ class DirectoryService(RdfService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Dict:
+    def _build_shapes_map(self) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
+
         query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?type ?shape WHERE {
-                { ?shape sh:targetClass ?type .}
-                UNION {
-                    SELECT (?shape as ?type) ?shape WHERE {
-                        ?shape a sh:NodeShape .
-                        ?shape a rdfs:Class
-                    }
-                }
-            } ORDER BY ?type"""
-        res = self._graph.query(query)
-        return {row["type"]: row["shape"] for row in res}
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX sh: <http://www.w3.org/ns/shacl#>
+                    SELECT ?type ?shape WHERE {
+                        { ?shape sh:targetClass ?type .}
+                        UNION {
+                            SELECT (?shape as ?type) ?shape WHERE {
+                                ?shape a sh:NodeShape .
+                                ?shape a rdfs:Class
+                            }
+                        }
+                    } ORDER BY ?type
+                """
+
+        class_to_shape: Dict[str, URIRef] = {}
+        shape_to_file: Dict[URIRef, str] = {}
+        graph = Graph()
+
+        extensions = [".ttl", ".n3", ".json", ".rdf"]
+        for f in self.dir_path.rglob(os.path.join("*.*")):
+            graph_i = Graph()
+            if f.suffix in extensions:
+                file_format = guess_format(f.name)
+                if file_format is None:
+                    file_format = "json-ld"
+                graph_i.parse(f.as_posix(), format=file_format)
+
+            res = graph_i.query(query)
+
+            class_to_shape_i = dict(
+                (row["type"], URIRef(row["shape"]))
+                for row in res
+            )
+            class_to_shape.update(class_to_shape_i)
+
+            shape_to_file.update(dict(
+                (e, f.as_posix())
+                for e in class_to_shape_i.values()
+            ))
+
+            graph += graph_i
+
+        return graph, shape_to_file, class_to_shape
 
 
-def load_rdf_files(path: Path) -> Graph:
-    memory_graph = Graph()
+def load_rdf_files_into_graph(path: Path, memory_graph: Graph) -> Graph:
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
@@ -87,4 +111,5 @@ def load_rdf_files(path: Path) -> Graph:
             if file_format is None:
                 file_format = "json-ld"
             memory_graph.parse(f.as_posix(), format=file_format)
+
     return memory_graph

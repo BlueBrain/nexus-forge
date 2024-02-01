@@ -11,137 +11,44 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import types
+import json
+from abc import abstractmethod, ABC
 from typing import List, Dict, Tuple, Set, Optional
-from abc import abstractmethod
-from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
-from pyshacl.shape import Shape
-from pyshacl.shapes_graph import ShapesGraph
-from rdflib import Graph, URIRef, RDF, XSD
 
+from rdflib import Graph, URIRef, RDF, XSD
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.conversions.rdf import as_graph
-from kgforge.specializations.models.rdf.collectors import (AndCollector, NodeCollector,
-                                                           PropertyCollector, MinCountCollector,
-                                                           DatatypeCollector, InCollector,
-                                                           ClassCollector, NodeKindCollector,
-                                                           OrCollector, XoneCollector,
-                                                           HasValueCollector)
+
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.utils import as_term
-
-ALL_COLLECTORS = [
-    AndCollector,
-    OrCollector,
-    PropertyCollector,
-    NodeCollector,
-    PropertyCollector,
-    MinCountCollector,
-    DatatypeCollector,
-    InCollector,
-    ClassCollector,
-    NodeKindCollector,
-    XoneCollector,
-    HasValueCollector
-]
-ALL_COLLECTORS_MAP = {c.constraint(): c for c in ALL_COLLECTORS}
+from kgforge.specializations.models.rdf.pyshacl_shape_wrapper import ShapesGraphWrapper
 
 
-def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
-    """ traverses the Shape SACL properties to collect constrained properties
+class RdfModelService(ABC):
 
-    This function is injected to pyshacl Shape object in order to traverse the Shacl graph.
-    It will call a specific collector depending on the SHACL property present in the NodeShape
-
-    Args:
-        predecessors: list of nodes that have being traversed, used to break circular
-            recursion
-
-    Returns:
-        properties, attributes: Tuple(list,dict), the collected properties and attributes
-            respectively gathered from the collectors
-    """
-
-    parameters = self.parameters()
-    properties = []
-    attributes = {}
-    done_collectors = set()
-    for param in iter(parameters):
-        if param in ALL_COLLECTORS_MAP:
-            constraint_collector = ALL_COLLECTORS_MAP[param]
-            if constraint_collector not in done_collectors:
-                c = constraint_collector(self)
-                predecessors.add(self.node)
-                props, attrs = c.collect(predecessors)
-                if attrs:
-                    attributes.update(attrs)
-                if props:
-                    properties.extend(props)
-                done_collectors.add(constraint_collector)
-                if predecessors:
-                    predecessors.remove(self.node)
-        else:
-            # FIXME: there are some SHACL constrains that are not implemented
-            # raise IndexError(f"{param} not implemented!")
-            pass
-
-    return properties, attributes
-
-
-class ShapeWrapper(Shape):
-    __slots__ = ('__dict__',)
-
-    def __init__(self, shape: Shape) -> None:
-        super().__init__(shape.sg, shape.node, shape._p, shape._path, shape.logger)
-
-    def parameters(self):
-        return (p for p, v in self.sg.predicate_objects(self.node)
-                if p in ALL_CONSTRAINT_PARAMETERS)
-
-
-class ShapesGraphWrapper(ShapesGraph):
-
-    def __init__(self, graph: Graph) -> None:
-        super().__init__(graph)
-        # the following line triggers the shape loading
-        self._shapes = self.shapes
-
-    def lookup_shape_from_node(self, node: URIRef) -> Shape:
-        """ Overwrite function to inject the transverse function for only to requested nodes.
-
-        Args:
-            node (URIRef): The node to look up.
-
-        Returns:
-            Shape: The Shacl shape of the requested node.
-        """
-        shape = self._node_shape_cache[node]
-        if shape:
-            shape_wrapper = ShapeWrapper(self._node_shape_cache[node])
-            if not hasattr(shape_wrapper, "traverse"):
-                shape_wrapper.traverse = types.MethodType(traverse, shape_wrapper)
-            return shape_wrapper
-        return shape
-
-
-class RdfService:
-
-    def __init__(self, graph: Graph, context_iri: Optional[str] = None) -> None:
+    def __init__(self, context_iri: Optional[str] = None):
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
-        self._graph = graph
-        self._context_cache = {}
-        self.classes_to_shapes = self._build_shapes_map()
-        resolved_context = self.resolve_context(context_iri)
-        self.context = Context(resolved_context, context_iri)
-        self.types_to_shapes: Dict = self._build_types_to_shapes()
 
-    def schema_source_id(self, schema_iri: str) -> str:
-        # POLICY Should return the id of the resource containing the schema
-        raise NotImplementedError()
+        self._graph, self.shape_to_source, self.class_to_shape = self._build_shapes_map()
+        self._shapes_graph = ShapesGraphWrapper(self._graph)
+
+        self._context_cache = {}
+
+        self.context = Context(self.resolve_context(context_iri), context_iri)
+        self.types_to_shapes: Dict[str, URIRef] = self._build_types_to_shapes()
+
+    def get_shape_source(self, schema_iri: URIRef) -> str:
+        return self.shape_to_source[schema_iri]
+
+    def sparql(self, query: str) -> List[Resource]:
+        e = self._graph.query(query)
+        results = json.loads(e.serialize(format="json"))
+        return SPARQLQueryBuilder.build_resource_from_select_query(results["results"]["bindings"])
 
     @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:
@@ -153,56 +60,60 @@ class RdfService:
         Returns:
             A NodeProperty object with the collected properties
         """
-        raise NotImplementedError()
+        ...
 
     def validate(self, resource: Resource, type_: str):
-        try:
-            if isinstance(resource.type, list) and type_ is None:
-                raise ValueError(
-                    "Resource has list of types as attribute and type_ parameter is not specified. "
-                    "Please provide a type_ parameter to validate against it."
-                )
-            if type_ is None:
-                shape_iri = self.types_to_shapes[resource.type]
-            else:
-                shape_iri = self.types_to_shapes[type_]
-        except AttributeError as exc:
-            raise TypeError("Resource requires a type attribute") from exc
+
+        if "type" not in resource.__dict__:
+            raise TypeError("Resource requires a type attribute")
+
+        if isinstance(resource.type, list) and type_ is None:
+            raise ValueError(
+                "Resource has list of types as attribute and type_ parameter is not specified. "
+                "Please provide a type_ parameter to validate against it."
+            )
+
+        shape_iri = self.types_to_shapes.get(resource.type if type_ is None else type_, None)
+
+        if shape_iri is None:
+            raise ValueError(f"Unknown type {type_}")
 
         data_graph = as_graph(resource, False, self.context, None, None)
+
         return self._validate(shape_iri, data_graph)
 
     @abstractmethod
     def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
         """For a given IRI return its resolved context recursively"""
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
     def generate_context(self) -> Dict:
         """Generates a JSON-LD context with the classes and terms present in the SHACL graph."""
-        raise NotImplementedError()
+        ...
 
     @abstractmethod
-    def _build_shapes_map(self) -> Dict:
-        """Queries the source and returns a map of owl:Class to sh:NodeShape"""
-        raise NotImplementedError()
+    def _build_shapes_map(self) -> Tuple[Graph, Dict[URIRef, str], Dict[str, URIRef]]:
+        ...
 
-    def _build_types_to_shapes(self):
+    def _build_types_to_shapes(self) -> Dict[str, URIRef]:
         """Iterates the classes_to_shapes dictionary to create a term to shape dictionary filtering
          the terms available in the context """
         types_to_shapes: Dict = {}
-        for k, v in self.classes_to_shapes.items():
+        for k, v in self.class_to_shape.items():
             term = self.context.find_term(str(k))
             if term:
-                key = term.name
                 if term.name not in types_to_shapes:
                     types_to_shapes[term.name] = v
                 else:
-                    print("WARN: duplicated term", key, k, [key], v)
+                    print("WARN: duplicated term", term.name, k, [term.name], v)
+            else:
+                print(f"WARN: missing term: {str(k)} in context")
+
         return types_to_shapes
 
     def _generate_context(self) -> Dict:
@@ -249,7 +160,7 @@ class RdfService:
             return l_prefixes, l_terms
 
         target_classes = []
-        for k in self.classes_to_shapes.keys():
+        for k in self.class_to_shape.keys():
             key = as_term(k)
             if key not in target_classes:
                 target_classes.append(key)
@@ -257,7 +168,7 @@ class RdfService:
                 # TODO: should this raise an error?
                 print("duplicated term", key, k)
 
-        for type_, shape in self.classes_to_shapes.items():
+        for type_, shape in self.class_to_shape.items():
             t_prefix, t_namespace, t_name = self._graph.compute_qname(type_)
             prefixes.update({t_prefix: str(t_namespace)})
             types_.update({t_name: {"@id": ":".join((t_prefix, t_name))}})

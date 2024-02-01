@@ -14,7 +14,7 @@
 import datetime
 import re
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Any, Union
+from typing import Dict, List, Callable, Optional, Any, Union, Tuple
 
 from pyshacl.consts import SH
 from rdflib import URIRef, Literal
@@ -29,9 +29,9 @@ from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
-from kgforge.specializations.models.rdf.directory_service import DirectoryService
-from kgforge.specializations.models.rdf.service import RdfService
-from kgforge.specializations.models.rdf.store_service import StoreService
+from kgforge.specializations.models.rdf.rdf_model_service_from_directory import RdfModelServiceFromDirectory
+from kgforge.specializations.models.rdf.rdf_model_service import RdfModelService
+from kgforge.specializations.models.rdf.rdf_model_service_from_store import RdfModelServiceFromStore
 from kgforge.specializations.models.rdf.utils import as_term
 
 DEFAULT_VALUE = {
@@ -67,6 +67,13 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
+    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return (
+            Context.context_to_dict(self.context()),
+            self.context().prefixes,
+            self.context().vocab
+        )
+
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:
@@ -86,16 +93,25 @@ class RdfModel(Model):
         if document:
             return Context(document)
 
+    def _sparql(self, query) -> List[Resource]:
+        return self.service.sparql(query)
+
     # Templates.
 
     def _template(self, type: str, only_required: bool) -> Dict:
-        try:
-            uri = self.service.types_to_shapes[type]
-        except KeyError as exc:
-            raise ValueError("type '" + type + "' not found in " + self.source) from exc
+        uri = self.get_shape_from_type(type)
         node_properties = self.service.materialize(uri)
         dictionary = parse_attributes(node_properties, only_required, None)
         return dictionary
+
+    def get_shape_from_type(self, type: str) -> URIRef:
+        if type not in self.service.types_to_shapes:
+            raise ValueError(f"Type {type} not found")
+        return self.service.types_to_shapes[type]
+
+    def schema_source(self, type: str) -> str:
+        shape_iri: URIRef = self.get_shape_from_type(type)
+        return self.service.get_shape_source(shape_iri)
 
     # Validation.
 
@@ -133,8 +149,8 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
-        return DirectoryService(dirpath, context_iri)
+    def _service_from_directory(dirpath: Path, context_iri: str) -> RdfModelService:
+        return RdfModelServiceFromDirectory(dirpath, context_iri)
 
     @staticmethod
     def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
@@ -152,16 +168,17 @@ class RdfModel(Model):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
+
                 context_store: Store = store(
                     endpoint=context_endpoint, bucket=context_bucket, token=context_token,
                     **source_config
                 )
                 # FIXME: define a store independent StoreService
-                service = StoreService(default_store, context_iri, context_store)
+                service = RdfModelServiceFromStore(default_store, context_iri, context_store)
             else:
-                service = StoreService(default_store, context_iri, None)
+                service = RdfModelServiceFromStore(default_store, context_iri, None)
         else:
-            service = StoreService(default_store)
+            service = RdfModelServiceFromStore(default_store)
 
         return service
 
@@ -198,7 +215,8 @@ def parse_attributes(node: NodeProperties, only_required: bool,
     return attributes
 
 
-def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
+def parse_properties(items: List[NodeProperties], only_required: bool,
+                     inherited_constraint: str) -> Dict:
     props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
