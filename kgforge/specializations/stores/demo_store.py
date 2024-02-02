@@ -100,7 +100,7 @@ class DemoStore(Store):
 
     # CR[U]D.
 
-    def _update_one(self, resource: Resource, schema_id: str) -> None:
+    def _update_one(self, resource: Resource, schema_id: str, update_schema: bool) -> None:
         data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
                        metadata_context=None, context_resolver=None)
         try:
@@ -189,7 +189,7 @@ class DemoStore(Store):
                       cross_bucket: bool, content_type: str, bucket: str) -> None:
         raise not_supported()
 
-    def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
+    def _update_many(self, resources: List[Resource], schema_id: Optional[str], update_schema: bool) -> None:
         raise not_supported()
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
