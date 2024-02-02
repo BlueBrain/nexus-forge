@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
-from requests import HTTPError
 import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
@@ -238,7 +237,7 @@ class BlueBrainNexus(Store):
             response = nexus.files.create(
                 self.organisation, self.project, file, content_type=mime_type
             )
-        except HTTPError as e:
+        except requests.HTTPError as e:
             raise UploadingError(_error_message(e)) from e
 
         return response
