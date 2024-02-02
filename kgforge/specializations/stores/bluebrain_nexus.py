@@ -662,7 +662,7 @@ class BlueBrainNexus(Store):
             raise not_supported(("bucket", True))
 
         if filters:
-            if isinstance(filters, list) and len(filters) > 0:
+            if isinstance(filters, (list, tuple)) and len(filters) > 0:
                 if filters[0] is None:
                     raise ValueError("Filters cannot be None")
                 elif isinstance(filters[0], dict):
