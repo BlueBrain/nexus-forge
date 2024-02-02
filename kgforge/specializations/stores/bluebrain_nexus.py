@@ -49,7 +49,7 @@ from kgforge.core.commons.exceptions import (
     RetrievalError,
     TaggingError,
     UpdatingError,
-    UploadingError,
+    UploadingError, SchemaUpdateError,
 )
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
@@ -511,6 +511,7 @@ class BlueBrainNexus(Store):
             update_callback,
             UpdatingError,
             params=params_update,
+            update_schema=update_schema
         )
 
     def _update_one(self, resource: Resource, schema_id: str, update_schema: bool) -> None:
@@ -537,6 +538,15 @@ class BlueBrainNexus(Store):
 
         catch_http_error_nexus(response, UpdatingError)
         self.service.sync_metadata(resource, response.json())
+
+        if update_schema:
+            response_2 = requests.put(
+                url=f"{url}/change-schema",
+                headers=self.service.headers
+            )
+            catch_http_error_nexus(response_2, SchemaUpdateError)
+            self.service.sync_metadata(resource, response_2.json())
+
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(
