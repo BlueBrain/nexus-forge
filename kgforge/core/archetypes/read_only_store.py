@@ -182,7 +182,7 @@ class ReadOnlyStore(ABC):
 
     @abstractmethod
     def search(
-            self, resolvers: Optional[List[Resolver]], filters: List[Union[Dict, Filter]], **params
+            self, resolvers: Optional[List[Resolver]], *filters: Union[Dict, Filter], **params
     ) -> List[Resource]:
 
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py
@@ -238,10 +238,10 @@ class ReadOnlyStore(ABC):
         if debug:
             SPARQLQueryBuilder.debug_query(qr)
 
-        return self._sparql(qr)
+        return self._sparql(qr, view=params.get("view", None))
 
     @abstractmethod
-    def _sparql(self, query: str) -> Optional[Union[List[Resource], Resource]]:
+    def _sparql(self, query: str, view: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
