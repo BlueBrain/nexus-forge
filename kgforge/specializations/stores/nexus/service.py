@@ -57,6 +57,7 @@ class BatchAction(Enum):
     TAG = "tag"
     UPLOAD = "upload"
     DOWNLOAD = "download"
+    UPDATE_SCHEMA = "update_schema"
 
 
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
@@ -311,7 +312,8 @@ class Service:
                 batch_action.UPDATE: BatchRequestHandler.prepare_batch_update,
                 batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
                 batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
-                batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch
+                batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch,
+                batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema
             }
 
             futures = []
@@ -556,6 +558,7 @@ class BatchRequestHandler:
             context_resolver=service.resolve_context
         )
         url = f"{service.url_resources}/{schema_id}"
+
         return loop.create_task(
             BatchRequestHandler.queue(
                 hdrs.METH_POST,
@@ -621,8 +624,8 @@ class BatchRequestHandler:
             **kwargs
     ):
         url, payload, rev_param = service._prepare_tag(resource, kwargs.get("tag"))
-
         params.update(rev_param)
+
         return loop.create_task(
             BatchRequestHandler.queue(
                 hdrs.METH_POST,
@@ -702,6 +705,39 @@ class BatchRequestHandler:
                 error,
                 headers=service.headers,
                 params=params
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_update_schema(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ):
+
+        schema_id = kwargs.get("schema_id")
+        # TODO _ vs unconstrained.json ?
+        schema_id = "_" if schema_id is None else quote_plus(schema_id)
+
+        url, _ = service._prepare_uri(resource, schema_id)
+        url = f"{url}/change-schema"
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_PUT,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=None,
+                params=None
             )
         )
 
