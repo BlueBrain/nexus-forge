@@ -63,6 +63,8 @@ class DownloadingError(RunException):
 class UpdatingError(RunException):
     pass
 
+class SchemaUpdateError(RunException):
+    pass
 
 class TaggingError(RunException):
     pass
