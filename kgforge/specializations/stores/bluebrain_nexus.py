@@ -547,7 +547,6 @@ class BlueBrainNexus(Store):
             catch_http_error_nexus(response_2, SchemaUpdateError)
             self.service.sync_metadata(resource, response_2.json())
 
-
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(
             self._tag_one,
