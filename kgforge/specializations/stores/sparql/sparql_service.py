@@ -13,14 +13,14 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 import copy
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict
 
-from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
-from kgforge.core.wrappings.dict import wrap_dict
 
 
 class SPARQLService:
+
+    SPARQL_ENDPOINT_TYPE = "sparql"
 
     def __init__(
         self,
@@ -36,7 +36,7 @@ class SPARQLService:
 
         self.endpoint = endpoint
         self.model_context = model_context
-        self.context_cache: Dict = dict()
+        self.context_cache: Dict = {}
         self.context = store_context
         self.max_connection = max_connection
         self.params = copy.deepcopy(params)
@@ -44,7 +44,8 @@ class SPARQLService:
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
         try:
-            sparql_config = searchendpoints["sparql"]
+            sparql_config = searchendpoints.get("sparql", None)
+
             self.headers_sparql = {
                 "Content-Type": sparql_config["Content-Type"]
                 if sparql_config and "Content-Type" in sparql_config
@@ -54,8 +55,9 @@ class SPARQLService:
                 else "application/sparql-results+json",
             }
 
-            self.sparql_endpoint = dict()
-            self.sparql_endpoint["endpoint"] = searchendpoints["sparql"]["endpoint"]
-            self.sparql_endpoint["type"] = "sparql"
-        except Exception:
-            raise ValueError(f"Store configuration error: sparql searchendpoint missing")
+            self.sparql_endpoint = {
+                "endpoint": searchendpoints["sparql"]["endpoint"]
+            }
+
+        except Exception as e:
+            raise ValueError("Store configuration error: sparql searchendpoint missing") from e

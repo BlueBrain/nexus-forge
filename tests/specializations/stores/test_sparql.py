@@ -58,7 +58,7 @@ def test_config(sparql_store, rdf_model):
 
 
 def test_search_params(sparql_store):
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         sparql_store.search(resolvers=[None], filters=[None])
 
 

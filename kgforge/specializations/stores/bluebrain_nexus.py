@@ -18,9 +18,7 @@ import copy
 import json
 import mimetypes
 import re
-from datetime import datetime
 from asyncio import Semaphore, Task
-from enum import Enum
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
@@ -34,9 +32,9 @@ from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
+from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder, format_type, \
+    CategoryDataType
 from kgforge.core.resource import Resource
-from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
@@ -64,46 +62,6 @@ from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
 
 
-class CategoryDataType(Enum):
-    DATETIME = "datetime"
-    NUMBER = "number"
-    BOOLEAN = "boolean"
-    LITERAL = "literal"
-
-
-type_map = {
-    datetime: CategoryDataType.DATETIME,
-    str: CategoryDataType.LITERAL,
-    bool: CategoryDataType.BOOLEAN,
-    int: CategoryDataType.NUMBER,
-    float: CategoryDataType.NUMBER,
-    complex: CategoryDataType.NUMBER,
-}
-
-format_type = {
-    CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
-    CategoryDataType.NUMBER: lambda x: x,
-    CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean",
-}
-
-sparql_operator_map = {
-    "__lt__": "<",
-    "__le__": "<=",
-    "__eq__": "=",
-    "__ne__": "!=",
-    "__gt__": ">",
-    "__ge__": ">=",
-}
-
-elasticsearch_operator_map = {
-    "__lt__": "lt",
-    "__le__": "lte",
-    "__gt__": "gt",
-    "__ge__": "gte",
-}
-
-
 def catch_http_error_nexus(
         r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
 ):
@@ -111,27 +69,6 @@ def catch_http_error_nexus(
 
 
 class BlueBrainNexus(Store):
-    def __init__(
-            self,
-            model: Optional[Model] = None,
-            endpoint: Optional[str] = None,
-            bucket: Optional[str] = None,
-            token: Optional[str] = None,
-            versioned_id_template: Optional[str] = None,
-            file_resource_mapping: Optional[str] = None,
-            searchendpoints: Optional[Dict] = None,
-            **store_config,
-    ) -> None:
-        super().__init__(
-            model,
-            endpoint,
-            bucket,
-            token,
-            versioned_id_template,
-            file_resource_mapping,
-            searchendpoints,
-            **store_config,
-        )
 
     @property
     def context(self) -> Optional[Context]:
@@ -303,7 +240,7 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -686,9 +623,14 @@ class BlueBrainNexus(Store):
         # Querying.
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]],
+            self, *filters: Union[Dict, Filter], resolvers: Optional[List[Resolver]],
             **params
     ) -> List[Resource]:
+
+        if "filters" in params:
+            raise ValueError(
+                "A 'filters' key was provided as params. Filters should be provided as iterable."
+            )
 
         if self.model_context() is None:
             raise ValueError("context model missing")
@@ -704,19 +646,16 @@ class BlueBrainNexus(Store):
         includes = params.get("includes", None)
         excludes = params.get("excludes", None)
         search_endpoint = params.get(
-            "search_endpoint", self.service.sparql_endpoint["type"]
+            "search_endpoint",  Service.SPARQL_ENDPOINT_TYPE  # default search endpoint is sparql
         )
-        if search_endpoint not in [
-            self.service.sparql_endpoint["type"],
-            self.service.elastic_endpoint["type"],
-        ]:
+        valid_endpoints = [
+            Service.SPARQL_ENDPOINT_TYPE, Service.ELASTIC_ENDPOINT_TYPE,
+        ]
+
+        if search_endpoint not in valid_endpoints:
             raise ValueError(
-                f"The provided search_endpoint value '{search_endpoint}' is not supported. Supported "
-                f"search_endpoint values are: '{self.service.sparql_endpoint['type'], self.service.elastic_endpoint['type']}'"
-            )
-        if "filters" in params:
-            raise ValueError(
-                "A 'filters' key was provided as params. Filters should be provided as iterable."
+                f"The provided search_endpoint value '{search_endpoint}' is not supported. "
+                f"Supported search_endpoint values are: {valid_endpoints}"
             )
 
         if bucket and not cross_bucket:
@@ -731,7 +670,7 @@ class BlueBrainNexus(Store):
             else:
                 filters = list(filters)
 
-        if search_endpoint == self.service.sparql_endpoint["type"]:
+        if search_endpoint == Service.SPARQL_ENDPOINT_TYPE:
             if includes or excludes:
                 raise ValueError(
                     "Field inclusion and exclusion are not supported when using SPARQL"
@@ -772,7 +711,9 @@ class BlueBrainNexus(Store):
                 search_in_graph
             )
             # support @id and @type
-            resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
+            resources = self.sparql(
+                query, debug=debug, limit=limit, offset=offset, view=params.get("view", None)
+            )
             params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
             params_retrieve['retrieve_source'] = retrieve_source
             results = self.service.batch_request(
@@ -807,15 +748,11 @@ class BlueBrainNexus(Store):
             return resources
         else:
             if isinstance(self.service.elastic_endpoint["view"], LazyAction):
-                self.service.elastic_endpoint["view"] = self.service.elastic_endpoint[
-                    "view"
-                ].execute()
+                self.service.elastic_endpoint["view"] = \
+                    self.service.elastic_endpoint["view"].execute()
 
-            elastic_mapping = (
-                self.service.elastic_endpoint["view"]["mapping"]
-                if "mapping" in self.service.elastic_endpoint["view"]
-                else None
-            )
+            elastic_mapping = self.service.elastic_endpoint["view"].get("mapping", None)
+
             default_str_keyword_field = self.service.elastic_endpoint[
                 "default_str_keyword_field"
             ]
@@ -868,7 +805,8 @@ class BlueBrainNexus(Store):
             )
 
             return self.elastic(
-                json.dumps(query), debug=debug, limit=limit, offset=offset
+                json.dumps(query), debug=debug, limit=limit, offset=offset,
+                view=params.get("view", None)
             )
 
     @staticmethod  # for testing
@@ -887,10 +825,14 @@ class BlueBrainNexus(Store):
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
 
-    def _sparql(self, query: str) -> List[Resource]:
+    def _sparql(self, query: str, view: str) -> List[Resource]:
+
+        endpoint = self.service.sparql_endpoint["endpoint"] \
+            if view is None \
+            else self.service.make_endpoint(view, endpoint_type="sparql")
 
         response = requests.post(
-            self.service.sparql_endpoint["endpoint"],
+            endpoint,
             data=query,
             headers=self.service.headers_sparql,
         )
@@ -901,10 +843,14 @@ class BlueBrainNexus(Store):
         context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
-    def _elastic(self, query: str) -> List[Resource]:
+    def _elastic(self, query: str, view: Optional[str]) -> List[Resource]:
+
+        endpoint = self.service.elastic_endpoint["endpoint"] \
+            if view is None \
+            else self.service.make_endpoint(view, endpoint_type="elastic")
 
         response = requests.post(
-            self.service.elastic_endpoint["endpoint"],
+            endpoint,
             data=query,
             headers=self.service.headers_elastic,
         )

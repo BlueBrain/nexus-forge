@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
 from typing import Optional, Union, List, Type, Dict
 from kgforge.core.archetypes.model import Model
@@ -27,7 +27,7 @@ from kgforge.core.wrappings import Filter
 
 
 class DatasetStore(ReadOnlyStore):
-    """A class to link to external databases, query and search directly on datasets. """
+    """A class to link to external databases, query and search directly on datasets."""
 
     def __init__(self, model: Optional[Model] = None) -> None:
         super().__init__(model)
@@ -38,10 +38,12 @@ class DatasetStore(ReadOnlyStore):
         """Mapper class to map a Resource to the store metadata format."""
         ...
 
-    def map(self, resources: Union[List[Union[Resource, str]], Union[Resource, str]],
-            type_: Optional[Union[str, Mapping]] = None,
-            ) -> Optional[Union[Resource, List[Resource]]]:
-        """ Use mappings to transform resources from and to the store model
+    def map(
+        self,
+        resources: Union[List[Union[Resource, str]], Union[Resource, str]],
+        type_: Optional[Union[str, Mapping]] = None,
+    ) -> Optional[Union[Resource, List[Resource]]]:
+        """Use mappings to transform resources from and to the store model
 
         :param resources: data to be transformed
         :param type_: type (schema) of the data
@@ -49,13 +51,17 @@ class DatasetStore(ReadOnlyStore):
         mappings = self.model.mappings(self.model.source, False)
         mapper = self.mapper()
         mapped_resources = []
-        resources = (resources if isinstance(resources, list) else [resources])
+        resources = resources if isinstance(resources, list) else [resources]
         for resource in resources:
             if isinstance(resource, Resource):
-                resource_dict = as_json(resource, expanded=False, store_metadata=False,
-                                        model_context=self.model_context(),
-                                        metadata_context=None,
-                                        context_resolver=self.model.resolve_context)
+                resource_dict = as_json(
+                    resource,
+                    expanded=False,
+                    store_metadata=False,
+                    model_context=self.model_context(),
+                    metadata_context=None,
+                    context_resolver=self.model.resolve_context,
+                )
             else:
                 resource_dict = resource
                 resource = from_json(resource_dict, None)
@@ -68,7 +74,9 @@ class DatasetStore(ReadOnlyStore):
                 mapped_resources.append(mapper.map(resource_dict, type_))
             elif type_ in mappings:
                 # type_ is the entity here
-                mapping_class: Type[Mapping] = import_class(mappings[type_][0], "mappings")
+                mapping_class: Type[Mapping] = import_class(
+                    mappings[type_][0], "mappings"
+                )
                 mapping = self.model.mapping(type_, self.model.source, mapping_class)
                 mapped_resources.append(mapper.map(resource_dict, mapping))
             else:
@@ -81,16 +89,17 @@ class DatasetStore(ReadOnlyStore):
         return list(self.model.mappings(self.model.source, False).keys())
 
     def search(
-            self, resolvers: Optional[List[Resolver]],
-            filters: List[Union[Dict, Filter]],
-            **params
+        self,
+        *filters: Union[Dict, Filter],
+        resolvers: Optional[List[Resolver]] = None,
+        **params
     ) -> Optional[List[Resource]]:
-        """Search within the database.
-        :param map: bool
+        """
+        Search within the database.
         """
         unmapped_resources = self._search(resolvers, filters, **params)
 
-        if not params.pop('map', True):
+        if not params.pop("map", True):
             return unmapped_resources
         # Try to find the type of the resources within the filters
         resource_type = type_from_filters(filters)
@@ -98,23 +107,26 @@ class DatasetStore(ReadOnlyStore):
 
     @abstractmethod
     def _search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]] = None,
-            **params
-    ) -> Optional[List[Resource]]:
-        ...
+        self,
+        filters: List[Union[Dict, Filter]],
+        resolvers: Optional[List[Resolver]] = None,
+        **params
+    ) -> Optional[List[Resource]]: ...
 
     def sparql(
-            self, query: str, debug: bool = False, limit: Optional[int] = None,
-            offset: Optional[int] = None, **params
+        self,
+        query: str,
+        debug: bool = False,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        **params
     ) -> Optional[Union[List[Resource], Resource]]:
-        """Use SPARQL within the database.
-        :param map: bool
         """
-        unmapped_resources = super().sparql(
-            query, debug, limit, offset, **params
-        )
+        Use SPARQL within the database.
+        """
+        unmapped_resources = super().sparql(query, debug, limit, offset, **params)
 
-        if not params.pop('map', True):
+        if not params.pop("map", True):
             return unmapped_resources
 
         return self.map(unmapped_resources)
@@ -127,10 +139,10 @@ def type_from_filters(filters: List[Union[Filter, Dict]]) -> Optional[str]:
 
     for f in filters:
         if isinstance(f, dict):
-            if 'type' in f:
-                return f['type']
+            if "type" in f:
+                return f["type"]
         elif isinstance(f, Filter):
-            if 'type' in f.path and f.operator == "__eq__":
+            if "type" in f.path and f.operator == "__eq__":
                 return f.value
         else:
             raise ValueError("Invalid filter type: Can only be a Dict or Filter")
