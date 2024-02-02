@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from abc import abstractmethod, ABC
+from abc import abstractmethod
 
 from typing import Optional, Union, List, Type, Dict
 from kgforge.core.resource import Resource
@@ -77,12 +77,14 @@ class DatasetStore(ReadOnlyStore):
         return list(self.model.mappings(self.model.source, False).keys())
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]] = None,
+            self, *filters: Union[Dict, Filter],
+            resolvers: Optional[List[Resolver]] = None,
             **params
     ) -> Optional[List[Resource]]:
-        """Search within the database.
-        :param map: bool
         """
+        Search within the database.
+        """
+        filters = list(filters)
         unmapped_resources = self._search(filters, resolvers, **params)
 
         if not params.pop('map', True):
@@ -102,12 +104,10 @@ class DatasetStore(ReadOnlyStore):
             self, query: str, debug: bool = False, limit: Optional[int] = None,
             offset: Optional[int] = None, **params
     ) -> Optional[Union[List[Resource], Resource]]:
-        """Use SPARQL within the database.
-        :param map: bool
         """
-        unmapped_resources = super(ReadOnlyStore, self).sparql(
-            query, debug, limit, offset, **params
-        )
+        Use SPARQL within the database.
+        """
+        unmapped_resources = super().sparql(query, debug, limit, offset, **params)
 
         if not params.pop('map', True):
             return unmapped_resources

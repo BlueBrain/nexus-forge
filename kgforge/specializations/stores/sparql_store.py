@@ -74,7 +74,7 @@ class SPARQLStore(DatasetStore):
         raise not_supported()
 
     def _search(
-            self, filters: List[Union[Dict, Filter]],
+            self, *filters: Union[Dict, Filter],
             resolvers: Optional[List[Resolver]] = None, **params
     ) -> List[Resource]:
         # Positional arguments in 'filters' are instances of type Filter from wrappings/paths.py

@@ -139,7 +139,7 @@ class DemoStore(Store):
     # Querying.
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]], **params
+            self, *filters: Union[Dict, Filter], resolvers: Optional[List[Resolver]], **params
     ) -> List[Resource]:
 
         cross_bucket = params.get("cross_bucket", None)

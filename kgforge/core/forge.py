@@ -644,11 +644,6 @@ class KnowledgeGraphForge:
         :return: List[Resource]
         """
 
-        if "filters" in params:
-            raise ValueError(
-                "A 'filters' key was provided as params. Filters should be provided as iterable."
-            )
-
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )

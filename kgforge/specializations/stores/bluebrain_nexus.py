@@ -623,9 +623,14 @@ class BlueBrainNexus(Store):
         # Querying.
 
     def search(
-            self, filters: List[Union[Dict, Filter]], resolvers: Optional[List[Resolver]],
+            self, *filters: Union[Dict, Filter], resolvers: Optional[List[Resolver]],
             **params
     ) -> List[Resource]:
+
+        if "filters" in params:
+            raise ValueError(
+                "A 'filters' key was provided as params. Filters should be provided as iterable."
+            )
 
         if self.model_context() is None:
             raise ValueError("context model missing")
