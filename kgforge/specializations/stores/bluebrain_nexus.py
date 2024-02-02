@@ -480,7 +480,7 @@ class BlueBrainNexus(Store):
 
     # CR[U]D.
 
-    def update(self, data: Union[Resource, List[Resource]], schema_id: str) -> None:
+    def update(self, data: Union[Resource, List[Resource]], schema_id: str, update_schema: bool) -> None:
         run(
             self._update_one,
             self._update_many,
@@ -491,9 +491,10 @@ class BlueBrainNexus(Store):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            update_schema=update_schema
         )
 
-    def _update_many(self, resources: List[Resource], schema_id: str) -> None:
+    def _update_many(self, resources: List[Resource], schema_id: str, update_schema: bool) -> None:
         update_callback = self.service.default_callback(self._update_many.__name__)
         verified = self.service.verify(
             resources,
@@ -512,7 +513,7 @@ class BlueBrainNexus(Store):
             params=params_update,
         )
 
-    def _update_one(self, resource: Resource, schema_id: str) -> None:
+    def _update_one(self, resource: Resource, schema_id: str, update_schema: bool) -> None:
         context = self.model_context() or self.context
         data = as_jsonld(
             resource,

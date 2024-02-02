@@ -159,7 +159,8 @@ class Store(ReadOnlyStore):
     # CR[U]D.
 
     def update(
-            self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str],
+            update_schema: bool
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
         run(
@@ -175,13 +176,13 @@ class Store(ReadOnlyStore):
         )
 
     @abstractmethod
-    def _update_many(self, resources: List[Resource], schema_id: Optional[str]) -> None:
+    def _update_many(self, resources: List[Resource], schema_id: Optional[str], update_schema: bool) -> None:
         # Bulk update could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._update_one() and execution._run_one() behaviours.
         ...
 
     @abstractmethod
-    def _update_one(self, resource: Resource, schema_id: Optional[str]) -> None:
+    def _update_one(self, resource: Resource, schema_id: Optional[str], update_schema: bool) -> None:
         # POLICY Should notify of failures with exception UpdatingError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
         ...
