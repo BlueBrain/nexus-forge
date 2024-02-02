@@ -29,6 +29,7 @@ import requests
 from aiohttp import ClientSession, hdrs
 from requests import HTTPError
 
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
@@ -37,7 +38,7 @@ from kgforge.core.commons.actions import (
     execute_lazy_actions,
     LazyAction,
 )
-from kgforge.core.commons.exceptions import ConfigurationError
+from kgforge.core.commons.exceptions import ConfigurationError, RunException
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -291,154 +292,55 @@ class Service:
             resources: List[Resource],
             action: BatchAction,
             callback: Callable,
-            error_type: Callable,
+            error_type: RunException,
             **kwargs,
     ) -> Tuple[BatchResults, BatchResults]:
+
         def create_tasks(
-                semaphore, session, loop, data, batch_action, f_callback, error
-        ):
+                semaphore:  asyncio.Semaphore,
+                session: ClientSession,
+                loop,
+                data: List,
+                batch_action: BatchAction,
+                f_callback: Callable,
+                error: RunException
+        ) -> List[Task]:
+
+            prepare_function_map = {
+                batch_action.CREATE: BatchRequestHandler.prepare_batch_create,
+                batch_action.UPDATE: BatchRequestHandler.prepare_batch_update,
+                batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
+                batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
+                batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch
+            }
+
             futures = []
-            schema_id = kwargs.get("schema_id")
-            schema_id = "_" if schema_id is None else quote_plus(schema_id)
+
             for resource in data:
                 params = deepcopy(kwargs.get("params", {}))
-                if batch_action == batch_action.CREATE:
-                    context = self.model_context or self.context
-                    payload = as_jsonld(
-                        resource,
-                        "compacted",
-                        False,
-                        model_context=context,
-                        metadata_context=None,
-                        context_resolver=self.resolve_context
-                    )
-                    url = f"{self.url_resources}/{schema_id}"
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_POST,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
 
-                if batch_action == batch_action.UPDATE:
-                    url, params_from_resource = self._prepare_uri(resource, schema_id)
-                    params.update(params_from_resource)
+                prepare_function = prepare_function_map.get(batch_action, None)
 
-                    payload = as_jsonld(
-                        resource,
-                        "compacted",
-                        False,
-                        model_context=self.model_context,
-                        metadata_context=None,
-                        context_resolver=self.resolve_context
-                    )
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_PUT,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
+                if prepare_function is None:
+                    raise not_supported()
 
-                if batch_action == batch_action.TAG:
-                    url, payload, rev_param = self._prepare_tag(resource, kwargs.get("tag"))
-                    params.update(rev_param)
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_POST,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
-
-                if batch_action == batch_action.DEPRECATE:
-                    url, rev_param = self._prepare_uri(resource)
-                    params.update(rev_param)
-
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_DELETE,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            params=params,
-                        )
-                    )
-
-                if batch_action == BatchAction.FETCH:
-                    resource_org, resource_prj = resource._project.split("/")[-2:]
-                    resource_url = "/".join(
-                        (
-                            self.endpoint,
-                            "resources",
-                            quote_plus(resource_org),
-                            quote_plus(resource_prj),
-                        )
-                    )
-                    url = "/".join((resource_url, "_", quote_plus(resource.id)))
-                    if hasattr(resource, "_rev"):
-                        params["rev"] = resource._rev
-                    retrieve_source = params.get("retrieve_source", False)
-                    if retrieve_source:
-                        url = "/".join((url, "source"))
-                    params.pop("retrieve_source")
-                    prepared_request = loop.create_task(
-                        queue(hdrs.METH_GET, semaphore, session, url, resource, error,
-                              params=params)
-                    )
+                prepared_request = prepare_function(
+                    service=self,
+                    resource=resource,
+                    semaphore=semaphore,
+                    session=session,
+                    loop=loop,
+                    params=params,
+                    error=error,
+                    **kwargs
+                )
 
                 if f_callback:
                     prepared_request.add_done_callback(f_callback)
+
                 futures.append(prepared_request)
+
             return futures
-
-        async def queue(
-                method,
-                semaphore,
-                session,
-                url,
-                resource,
-                exception,
-                payload=None,
-                params=None,
-        ):
-            async with semaphore:
-                return await request(
-                    method, session, url, resource, payload, params, exception
-                )
-
-        async def request(method, session, url, resource, payload, params, exception):
-            async with session.request(
-                    method,
-                    url,
-                    headers=self.headers,
-                    data=json.dumps(payload),
-                    params=params,
-            ) as response:
-                content = await response.json()
-                if response.status < 400:
-                    return BatchResult(resource, content)
-
-                error = exception(_error_message(content))
-                return BatchResult(resource, error)
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connection)
@@ -625,3 +527,213 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
         return format_message(error_text)
     except Exception:
         return format_message(str(error))
+
+
+class BatchRequestHandler:
+
+    @staticmethod
+    def prepare_batch_create(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ) -> Task:
+
+        schema_id = kwargs.get("schema_id")
+        schema_id = "_" if schema_id is None else quote_plus(schema_id)
+
+        context = service.model_context or service.context
+        payload = as_jsonld(
+            resource,
+            "compacted",
+            False,
+            model_context=context,
+            metadata_context=None,
+            context_resolver=service.resolve_context
+        )
+        url = f"{service.url_resources}/{schema_id}"
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_POST,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_update(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ):
+        schema_id = kwargs.get("schema_id")
+        schema_id = "_" if schema_id is None else quote_plus(schema_id)
+
+        url, params_from_resource = service._prepare_uri(resource, schema_id)
+        params.update(params_from_resource)
+
+        payload = as_jsonld(
+            resource,
+            "compacted",
+            False,
+            model_context=service.model_context,
+            metadata_context=None,
+            context_resolver=service.resolve_context
+        )
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_PUT,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_tag(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ):
+        url, payload, rev_param = service._prepare_tag(resource, kwargs.get("tag"))
+
+        params.update(rev_param)
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_POST,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_deprecate(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ):
+        url, rev_param = service._prepare_uri(resource)
+        params.update(rev_param)
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_DELETE,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                params=params
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_fetch(
+            service: Service,
+            resource: Resource,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ):
+        resource_org, resource_prj = resource._project.split("/")[-2:]
+        resource_url = "/".join(
+            (
+                service.endpoint,
+                "resources",
+                quote_plus(resource_org),
+                quote_plus(resource_prj),
+            )
+        )
+        url = "/".join((resource_url, "_", quote_plus(resource.id)))
+        if hasattr(resource, "_rev"):
+            params["rev"] = resource._rev
+        retrieve_source = params.get("retrieve_source", False)
+        if retrieve_source:
+            url = "/".join((url, "source"))
+        params.pop("retrieve_source")
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_GET,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                params=params
+            )
+        )
+
+    @staticmethod
+    async def queue(
+            method,
+            semaphore,
+            session,
+            url,
+            resource,
+            exception,
+            headers,
+            payload=None,
+            params=None,
+    ):
+        async with semaphore:
+            return await BatchRequestHandler.request(
+                method, session, url, resource, payload, params, exception, headers
+            )
+
+    @staticmethod
+    async def request(method, session, url, resource, payload, params, exception, headers):
+        async with session.request(
+                method,
+                url,
+                headers=headers,
+                data=json.dumps(payload),
+                params=params,
+        ) as response:
+            content = await response.json()
+            if response.status < 400:
+                return BatchResult(resource, content)
+
+            error = exception(_error_message(content))
+            return BatchResult(resource, error)
