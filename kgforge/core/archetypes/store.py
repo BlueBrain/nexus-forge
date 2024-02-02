@@ -173,6 +173,7 @@ class Store(ReadOnlyStore):
             exception=UpdatingError,
             monitored_status="_synchronized",
             schema_id=schema_id,
+            update_schema=update_schema
         )
 
     @abstractmethod
