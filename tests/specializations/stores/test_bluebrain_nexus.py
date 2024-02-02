@@ -17,6 +17,7 @@ from unittest import mock
 from urllib.parse import quote_plus, urljoin
 from urllib.request import pathname2url
 from uuid import uuid4
+from contextlib import nullcontext as does_not_raise
 
 import nexussdk
 import pytest
@@ -595,6 +596,28 @@ class TestQuerying:
 
 
 # Helpers
+
+
+@pytest.mark.parametrize(
+    "view, endpoint_type, expected_endpoint, exception",
+    [
+        (
+                Service.DEFAULT_SPARQL_INDEX_FALLBACK, Service.SPARQL_ENDPOINT_TYPE,
+                "https://nexus-instance.org/views/test/kgforge/https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fvocabulary%2FdefaultSparqlIndex/sparql", does_not_raise()
+        ),
+        (
+                Service.DEFAULT_ES_INDEX_FALLBACK, Service.ELASTIC_ENDPOINT_TYPE,
+                "https://nexus-instance.org/views/test/kgforge/https%3A%2F%2Fbluebrain.github.io%2Fnexus%2Fvocabulary%2FdefaultElasticSearchIndex/_search", does_not_raise()
+        ),
+        (
+                "any_view_id", "unknown_type", None, pytest.raises(ValueError)
+        )
+    ],
+)
+def test_make_search_endpoint(nexus_store, view, endpoint_type, expected_endpoint, exception):
+    with exception:
+        endpoint = nexus_store.service.make_endpoint(view, endpoint_type=endpoint_type)
+        assert endpoint == expected_endpoint
 
 
 def assert_frozen_id(resource: Resource):
