@@ -364,7 +364,7 @@ class Service:
 
     def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
         schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
-        schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
+        schema_id = "_" if schema_id == Service.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
         url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
         rev = resource._store_metadata._rev
         params = {"rev": rev}
@@ -720,10 +720,10 @@ class BatchRequestHandler:
     ):
 
         schema_id = kwargs.get("schema_id")
-        # TODO _ vs unconstrained.json ?
-        schema_id = "_" if schema_id is None else quote_plus(schema_id)
 
         url, _ = service._prepare_uri(resource, schema_id)
+        # TODO change if "_" should not be provided instead of unconstrained
+
         url = f"{url}/change-schema"
 
         return loop.create_task(
