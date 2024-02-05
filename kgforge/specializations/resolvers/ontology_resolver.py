@@ -61,6 +61,7 @@ class OntologyResolver(Resolver):
             delineatedBy ?delineatedBy ;
             hasLayerLocationPhenotype ?hasLayerLocationPhenotype ;
             representedInAnnotation ?representedInAnnotation ;
+            hasLeafRegionPart ?hasLeafRegionPart ;
             isPartOf ?isPartOf ;
             isLayerPartOf ?isLayerPartOf .
         }} WHERE {{
@@ -102,6 +103,9 @@ class OntologyResolver(Resolver):
                 }}
                 OPTIONAL {{
                 ?id representedInAnnotation ?representedInAnnotation .
+                }}
+                OPTIONAL {{
+                ?id hasLeafRegionPart ?hasLeafRegionPart .
                 }}
                 OPTIONAL {{
                 ?id isPartOf ?isPartOf .
