@@ -49,7 +49,8 @@ from kgforge.core.commons.exceptions import (
     RetrievalError,
     TaggingError,
     UpdatingError,
-    UploadingError, SchemaUpdateError,
+    UploadingError,
+    SchemaUpdateError,
 )
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
@@ -133,8 +134,8 @@ class BlueBrainNexus(Store):
 
         verified = self.service.verify(
             resources,
-            self._register_many.__name__,
-            RegistrationError,
+            function_name=self._register_many.__name__,
+            exception=RegistrationError,
             id_required=False,
             required_synchronized=False,
             execute_actions=True,
@@ -499,8 +500,8 @@ class BlueBrainNexus(Store):
         update_callback = self.service.default_callback(self._update_many.__name__)
         verified = self.service.verify(
             resources,
-            self._update_many.__name__,
-            UpdatingError,
+            function_name=self._update_many.__name__,
+            exception=UpdatingError,
             id_required=True,
             required_synchronized=False,
             execute_actions=True,
@@ -545,15 +546,16 @@ class BlueBrainNexus(Store):
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
 
-        url, params = self.service._prepare_uri(resource, schema_id)
+        url, _ = self.service._prepare_uri(resource, schema_id)
+        # TODO change if "_" should not be provided instead of unconstrained
 
-        response_2 = requests.put(
+        response = requests.put(
             url=f"{url}/change-schema",
             headers=self.service.headers
         )
-        catch_http_error_nexus(response_2, SchemaUpdateError)
-        self.service.sync_metadata(resource, response_2.json())
 
+        catch_http_error_nexus(response, SchemaUpdateError)
+        self.service.sync_metadata(resource, response.json())
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
 
@@ -561,8 +563,8 @@ class BlueBrainNexus(Store):
 
         verified = self.service.verify(
             resources,
-            self._update_schema_many.__name__,
-            SchemaUpdateError,
+            function_name=self._update_schema_many.__name__,
+            exception=SchemaUpdateError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False
@@ -577,6 +579,9 @@ class BlueBrainNexus(Store):
         )
 
     def update_schema(self, data: Union[Resource, List[Resource]], schema_id: str):
+
+        # TODO schema id "_" vs "unconstrained" ? validation
+
         run(
             self._update_schema_one,
             self._update_schema_many,
@@ -602,8 +607,8 @@ class BlueBrainNexus(Store):
         tag_callback = self.service.default_callback(self._tag_many.__name__)
         verified = self.service.verify(
             resources,
-            self._tag_many.__name__,
-            TaggingError,
+            function_name=self._tag_many.__name__,
+            exception=TaggingError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
@@ -652,8 +657,8 @@ class BlueBrainNexus(Store):
         )
         verified = self.service.verify(
             resources,
-            self._deprecate_many.__name__,
-            DeprecationError,
+            function_name=self._deprecate_many.__name__,
+            exception=DeprecationError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,

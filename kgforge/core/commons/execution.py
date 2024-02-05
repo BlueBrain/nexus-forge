@@ -143,9 +143,18 @@ def _run_many(fun: Callable, resources: List[Resource], *args, **kwargs) -> None
         _run_one(fun, x, *args, **kwargs)
 
 
-def _run_one(fun: Callable, resource: Resource, exception: Type[RunException], id_required: bool,
-             required_synchronized: Optional[bool], execute_actions: bool,
-             monitored_status: Optional[str], catch_exceptions: bool, **kwargs) -> None:
+def _run_one(
+        fun: Callable,
+        resource: Resource,
+        exception: Type[RunException],
+        id_required: bool,
+        required_synchronized: Optional[bool],
+        execute_actions: bool,
+        monitored_status: Optional[str],
+        catch_exceptions: bool,
+        **kwargs
+) -> None:
+
     try:
         if id_required and not hasattr(resource, "id"):
             raise exception("resource should have an id")
