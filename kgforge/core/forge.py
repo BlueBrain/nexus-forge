@@ -730,8 +730,7 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None,
-            update_schema: bool = False
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
     ) -> None:
         """
         Update a resource or a list of resources in the configured Store.
@@ -740,11 +739,7 @@ class KnowledgeGraphForge:
         :param schema_id: an identifier of the schema the updated resources should conform to
         :param update_schema: whether the resource(s)' schemas should be updated to the schema_id value
         """
-        if schema_id and not update_schema:
-            print(f"Warning: The data schema(s) will not be updated to value {schema_id} "
-                  f"unless the flag update_schema is set to True")
-
-        self._store.update(data, schema_id, update_schema)
+        self._store.update(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
     def deprecate(self, data: Union[Resource, List[Resource]]) -> None:
