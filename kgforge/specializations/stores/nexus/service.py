@@ -334,7 +334,7 @@ class Service:
             futures = []
 
             for resource in data:
-                params = deepcopy(kwargs.get("params", {}))
+                params = deepcopy(kwargs.pop("params", {}))
 
                 prepare_function = prepare_function_map.get(batch_action, None)
 
@@ -528,22 +528,27 @@ class Service:
 
 
 def _error_message(error: Union[HTTPError, Dict]) -> str:
-    def format_message(msg):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+    def format_message(msg: str):
+        return "".join(
+            [msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""]
+        )
 
     try:
         error_json = error.response.json() if isinstance(error, HTTPError) else error
         messages = []
         reason = error_json.get("reason", None)
         details = error_json.get("details", None)
-        if reason:
+
+        if reason and isinstance(reason, str):
             messages.append(format_message(reason))
-        if details:
+        if details and isinstance(details, str):
             messages.append(format_message(details))
-        messages = messages if reason or details else [str(error)]
+
+        messages = messages if len(messages) > 0 else [str(error)]
         return ". ".join(messages)
     except Exception:
         pass
+
     try:
         error_text = error.response.text() if isinstance(error, HTTPError) else str(error)
         return format_message(error_text)

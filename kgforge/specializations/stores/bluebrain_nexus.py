@@ -562,13 +562,11 @@ class BlueBrainNexus(Store):
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
 
-        url = self.service._prepare_url(resource, schema_id)
+        url, _ = self.service._prepare_uri(resource, schema_id)
 
-        response = requests.put(
-            url=f"{url}/change-schema",
-            headers=self.service.headers
-        )
-
+        url = f"{url}/update-schema"
+        print(url)
+        response = requests.put(url=url, headers=self.service.headers)
         catch_http_error_nexus(response, SchemaUpdateError)
         self.service.sync_metadata(resource, response.json())
 
@@ -831,7 +829,7 @@ class BlueBrainNexus(Store):
                     raise ValueError(e) from e
                 finally:
                     self.service.synchronize_resource(
-                        resource, store_metadata_response, self.search.__name__, True, False
+                        resource, store_metadata_response, self.search.__name__, True, True
                     )
                 resources.append(resource)
             return resources
