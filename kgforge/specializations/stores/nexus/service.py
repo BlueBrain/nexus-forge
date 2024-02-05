@@ -157,16 +157,13 @@ class Service:
             self.headers_download["Authorization"] = "Bearer " + token
         self.context = Context(self.get_project_context())
 
-        self.url_base_files = "/".join((self.endpoint, "files"))
-        self.url_files = "/".join(
-            (self.url_base_files, quote_plus(org), quote_plus(prj))
-        )
-        self.url_resources = "/".join(
-            (self.endpoint, "resources", quote_plus(org), quote_plus(prj))
-        )
-        self.url_resolver = "/".join(
-            (self.endpoint, "resolvers", quote_plus(org), quote_plus(prj))
-        )
+        # self.url_base_files = "/".join((self.endpoint, "files"))
+
+
+        self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
+        self.url_resources = Service.make_endpoint(self.endpoint, "resources", org, prj)
+        self.url_resolver = Service.make_endpoint(self.endpoint, "resolvers", org, prj)
+
         self.metadata_context = Context(
             recursive_resolve(
                 self.store_context, self.resolve_context, already_loaded=[]
@@ -219,7 +216,26 @@ class Service:
             pass
 
     @staticmethod
-    def make_query_endpoint(base, view, endpoint_type, organisation, project) -> str:
+    def make_endpoint(endpoint: str, endpoint_type: str, organisation: str, project: str):
+        return "/".join(
+            (endpoint, endpoint_type, quote_plus(organisation), quote_plus(project))
+        )
+
+    @staticmethod
+    def add_schema_and_id_to_endpoint(
+            endpoint: str, schema_id: Optional[str], resource_id: Optional[str]
+    ):
+        schema = quote_plus(schema_id) if schema_id else "_"
+
+        to_join = [endpoint, schema]
+
+        if resource_id:
+            to_join.append(quote_plus(resource_id))
+
+        return "/".join(to_join)
+
+    @staticmethod
+    def make_query_endpoint(endpoint, view, endpoint_type, organisation, project) -> str:
 
         if endpoint_type == Service.SPARQL_ENDPOINT_TYPE:
             last_url_component = "sparql"
@@ -228,20 +244,13 @@ class Service:
         else:
             raise ValueError(f"Unknown endpoint type {endpoint_type}")
 
-        return "/".join(
-            (
-                base,
-                "views",
-                quote_plus(organisation),
-                quote_plus(project),
-                quote_plus(view),
-                last_url_component,
-            )
-        )
+        view_base = Service.make_endpoint(endpoint, "views", organisation, project)
 
-    def make_endpoint(self, view: str, endpoint_type: str):
+        return "/".join((view_base, quote_plus(view), last_url_component))
+
+    def make_query_endpoint_self(self, view: str, endpoint_type: str):
         return Service.make_query_endpoint(
-            base=self.endpoint, view=view,
+            endpoint=self.endpoint, view=view,
             endpoint_type=endpoint_type,
             organisation=self.organisation,
             project=self.project
@@ -261,7 +270,13 @@ class Service:
             context_to_resolve = (
                 self.store_local_context if iri == self.store_context else iri
             )
-            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
+
+            url = Service.add_schema_and_id_to_endpoint(
+                endpoint=self.url_resolver,
+                schema_id=None,
+                resource_id=context_to_resolve
+            )
+
             response = requests.get(url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT)
             response.raise_for_status()
             resource = response.json()
@@ -357,15 +372,21 @@ class Service:
 
     def _prepare_tag(self, resource, tag) -> Tuple[str, Dict, Dict]:
         url, params = self._prepare_uri(resource)
-        url = "/".join((url, "tags"))
+        url = f"{url}/tags"
         data = {"tag": tag}
         data.update(params)
         return url, data, params
 
     def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
-        schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
-        schema_id = "_" if schema_id == Service.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
-        url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
+        schema_id = schema_uri or resource._store_metadata._constrainedBy
+
+        if schema_id == self.UNCONSTRAINED_SCHEMA:
+            schema_id = None
+
+        url = Service.add_schema_and_id_to_endpoint(
+            self.url_resources, schema_id, resource_id=resource.id
+        )
+
         rev = resource._store_metadata._rev
         params = {"rev": rev}
         return url, params
@@ -545,7 +566,9 @@ class BatchRequestHandler:
     ) -> Task:
 
         schema_id = kwargs.get("schema_id")
-        schema_id = "_" if schema_id is None else quote_plus(schema_id)
+        url = Service.add_schema_and_id_to_endpoint(
+            service.url_resources, schema_id=schema_id, resource_id=None
+        )
 
         context = service.model_context or service.context
         payload = as_jsonld(
@@ -556,7 +579,6 @@ class BatchRequestHandler:
             metadata_context=None,
             context_resolver=service.resolve_context
         )
-        url = f"{service.url_resources}/{schema_id}"
 
         return loop.create_task(
             BatchRequestHandler.queue(
@@ -583,10 +605,10 @@ class BatchRequestHandler:
             error: RunException,
             **kwargs
     ):
-        schema_id = kwargs.get("schema_id")
-        schema_id = "_" if schema_id is None else quote_plus(schema_id)
 
-        url, params_from_resource = service._prepare_uri(resource, schema_id)
+        url, params_from_resource = service._prepare_uri(
+            resource, schema_uri=kwargs.get("schema_id")
+        )
         params.update(params_from_resource)
 
         payload = as_jsonld(
@@ -678,23 +700,19 @@ class BatchRequestHandler:
             **kwargs
     ):
         resource_org, resource_prj = resource._project.split("/")[-2:]
-        resource_url = "/".join(
-            (
-                service.endpoint,
-                "resources",
-                quote_plus(resource_org),
-                quote_plus(resource_prj),
-            )
-        )
-        url = "/".join((resource_url, "_", quote_plus(resource.id)))
+        endpoint = Service.make_endpoint(service.endpoint, "resources", resource_org, resource_prj)
+        url = Service.add_schema_and_id_to_endpoint(endpoint=endpoint, schema_id=None, resource_id=resource.id)
+
         if hasattr(resource, "_rev"):
             params["rev"] = resource._rev
-        retrieve_source = params.get("retrieve_source", False)
+
+        retrieve_source = params.pop("retrieve_source", False)
+
         if retrieve_source:
             url = "/".join((url, "source"))
-        params.pop("retrieve_source")
 
         return loop.create_task(
+
             BatchRequestHandler.queue(
                 hdrs.METH_GET,
                 semaphore,
@@ -721,8 +739,9 @@ class BatchRequestHandler:
 
         schema_id = kwargs.get("schema_id")
 
-        url, _ = service._prepare_uri(resource, schema_id)
-        # TODO change if "_" should not be provided instead of unconstrained
+        url = Service.add_schema_and_id_to_endpoint(
+            endpoint=service.url_resources, schema_id=schema_id, resource_id=resource.id
+        )
 
         url = f"{url}/change-schema"
 
