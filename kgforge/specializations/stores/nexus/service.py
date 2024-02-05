@@ -408,14 +408,13 @@ class Service:
     def default_callback(self, fun_name: str) -> Callable:
         def callback(task: Task):
             result = task.result()
-            if isinstance(result.response, Exception):
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, False, False
-                )
-            else:
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, True, True
-                )
+
+            succeeded = not isinstance(result.response, Exception)
+
+            self.synchronize_resource(
+                resource=result.resource, response=result.response, action_name=fun_name,
+                succeeded=succeeded, synchronized=succeeded
+            )
 
         return callback
 
