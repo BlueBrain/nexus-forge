@@ -36,7 +36,7 @@ def load_file_as_byte(source: str):
         data = filepath.read_bytes()
     else:
         try:
-            response = requests.get(source, timeout=3600)
+            response = requests.get(source, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             data = response.content
         except RequestException as re:
