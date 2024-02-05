@@ -193,11 +193,11 @@ class Service:
         )
 
         self.sparql_endpoint = {
-            "endpoint": self.make_endpoint(sparql_view, Service.SPARQL_ENDPOINT_TYPE)
+            "endpoint": self.make_query_endpoint_self(sparql_view, Service.SPARQL_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint = {
-            "endpoint": self.make_endpoint(elastic_view, Service.ELASTIC_ENDPOINT_TYPE)
+            "endpoint": self.make_query_endpoint_self(elastic_view, Service.ELASTIC_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint["view"] = LazyAction(
