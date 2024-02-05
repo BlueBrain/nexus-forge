@@ -140,11 +140,12 @@ class BlueBrainNexus(Store):
             execute_actions=True,
         )
         params_register = copy.deepcopy(self.service.params.get("register", {}))
+
         self.service.batch_request(
-            verified,
-            BatchAction.CREATE,
-            register_callback,
-            RegistrationError,
+            resources=verified,
+            action=BatchAction.CREATE,
+            callback=register_callback,
+            error_type=RegistrationError,
             schema_id=schema_id,
             params=params_register,
         )
@@ -506,10 +507,10 @@ class BlueBrainNexus(Store):
         )
         params_update = copy.deepcopy(self.service.params.get("update", {}))
         self.service.batch_request(
-            verified,
-            BatchAction.UPDATE,
-            update_callback,
-            UpdatingError,
+            resources=verified,
+            action=BatchAction.UPDATE,
+            callback=update_callback,
+            error_type=UpdatingError,
             params=params_update,
             update_schema=update_schema
         )
@@ -540,12 +541,51 @@ class BlueBrainNexus(Store):
         self.service.sync_metadata(resource, response.json())
 
         if update_schema:
-            response_2 = requests.put(
-                url=f"{url}/change-schema",
-                headers=self.service.headers
-            )
-            catch_http_error_nexus(response_2, SchemaUpdateError)
-            self.service.sync_metadata(resource, response_2.json())
+            self._update_schema_one(resource, schema_id)
+
+    def _update_schema_one(self, resource: Resource, schema_id: str):
+
+        url, params = self.service._prepare_uri(resource, schema_id)
+
+        response_2 = requests.put(
+            url=f"{url}/change-schema",
+            headers=self.service.headers
+        )
+        catch_http_error_nexus(response_2, SchemaUpdateError)
+        self.service.sync_metadata(resource, response_2.json())
+
+
+    def _update_schema_many(self, resources: List[Resource], schema_id: str):
+
+        update_schema_callback = self.service.default_callback(self._update_schema_many.__name__)
+
+        verified = self.service.verify(
+            resources,
+            self._update_schema_many.__name__,
+            SchemaUpdateError,
+            id_required=True,
+            required_synchronized=True,
+            execute_actions=False
+        )
+
+        self.service.batch_request(
+            resources=verified,
+            action=BatchAction.UPDATE_SCHEMA,
+            callback=update_schema_callback,
+            error_type=SchemaUpdateError,
+            schema_id=schema_id,
+        )
+
+    def update_schema(self, data: Union[Resource, List[Resource]], schema_id: str):
+        run(
+            self._update_schema_one,
+            self._update_schema_many,
+            data,
+            id_required=True,
+            required_synchronized=True,
+            exception=SchemaUpdateError,
+            schema_id=schema_id,
+        )
 
     def tag(self, data: Union[Resource, List[Resource]], value: str) -> None:
         run(
@@ -570,10 +610,10 @@ class BlueBrainNexus(Store):
         )
         params_tag = copy.deepcopy(self.service.params.get("tag", {}))
         self.service.batch_request(
-            verified,
-            BatchAction.TAG,
-            tag_callback,
-            TaggingError,
+            resources=verified,
+            action=BatchAction.TAG,
+            callback=tag_callback,
+            error_type=TaggingError,
             tag=value,
             params=params_tag,
         )
@@ -620,10 +660,10 @@ class BlueBrainNexus(Store):
         )
         params_deprecate = copy.deepcopy(self.service.params.get("deprecate", {}))
         self.service.batch_request(
-            verified,
-            BatchAction.DEPRECATE,
-            deprecate_callback,
-            DeprecationError,
+            resources=verified,
+            action=BatchAction.DEPRECATE,
+            callback=deprecate_callback,
+            error_type=DeprecationError,
             params=params_deprecate,
         )
 
@@ -740,7 +780,11 @@ class BlueBrainNexus(Store):
             params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
             params_retrieve['retrieve_source'] = retrieve_source
             results = self.service.batch_request(
-                resources, BatchAction.FETCH, None, QueryingError, params=params_retrieve
+                resources=resources,
+                action=BatchAction.FETCH,
+                callback=None,
+                error_type=QueryingError,
+                params=params_retrieve
             )
             resources = []
             for result in results:

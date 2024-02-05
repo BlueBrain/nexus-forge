@@ -107,10 +107,19 @@ def catch_http_error(
         raise error_to_throw(error_message_formatter(e)) from e
 
 
-def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],
-        exception: Type[RunException], id_required: bool = False,
-        required_synchronized: Optional[bool] = None, execute_actions: bool = False,
-        monitored_status: Optional[str] = None, catch_exceptions: bool = True, **kwargs) -> None:
+def run(
+        fun_one: Callable,
+        fun_many: Optional[Callable],
+        data: Union[Resource, List[Resource]],
+        exception: Type[RunException],
+        id_required: bool = False,
+        required_synchronized: Optional[bool] = None,
+        execute_actions: bool = False,
+        monitored_status: Optional[str] = None,
+        catch_exceptions: bool = True,
+        **kwargs
+) -> None:
+
     # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:
