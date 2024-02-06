@@ -254,10 +254,11 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     @staticmethod
-    def _local_parse(id_value, version_params):
+    def _local_parse(id_value, version_params) -> Tuple[str, Dict]:
         parsed_id = urlparse(id_value)
         fragment = None
-        query_params = None
+        query_params = {}
+
         # urlparse is not separating fragment and query params when the latter are put after a fragment
         if parsed_id.fragment is not None and "?" in str(parsed_id.fragment):
             fragment_parts = urlparse(parsed_id.fragment)
@@ -269,11 +270,10 @@ class BlueBrainNexus(Store):
             query_params = parse_qs(parsed_id.query)
 
         if version_params is not None:
-            if not isinstance(query_params, dict):
-                query_params = {}
             query_params.update(version_params)
 
-        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{'#' + fragment if fragment is not None else ''}"
+        formatted_fragment = '#' + fragment if fragment is not None else ''
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
 
         return id_without_query, query_params
 
@@ -306,6 +306,7 @@ class BlueBrainNexus(Store):
             id_value=id_, version_params=version_params
         )
 
+        query_params.update({"annotate": True})
         url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
 
         retrieve_source = params.get('retrieve_source', True)
@@ -331,8 +332,6 @@ class BlueBrainNexus(Store):
             if not id_.startswith(nexus_path):
                 raise er
 
-            url_resource = id_without_query
-
             url = f"{id_without_query}/source" if retrieve_source and not cross_bucket \
                 else id_without_query
 
@@ -341,47 +340,12 @@ class BlueBrainNexus(Store):
             )
             catch_http_error_nexus(response, RetrievalError)
 
-        if not retrieve_source:
-            response_metadata = True  # when retrieve_source is False
-        else:
-            if not cross_bucket:
-                u = url_resource
-            else:
-                if response and ('_self' in response.json()):
-                    res_self = response.json()["_self"]
-                    u = f"{res_self}/source"
-                else:
-                    print("TODO uncovered case")
-
-            response_metadata = requests.get(
-                u, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
-            )
-            catch_http_error_nexus(response, RetrievalError)
-
-        if response and response_metadata:
+        if response:
             try:
                 data = response.json()
-                resource = self.service.to_resource(data)
+                return self.service.to_resource(data)
             except Exception as e:
                 raise ValueError(e) from e
-
-            try:
-                if retrieve_source and not cross_bucket:
-                    data = response_metadata.json()
-                if retrieve_source and cross_bucket:
-                    resource = self.service.to_resource(response_metadata.json())
-            except Exception as e:
-                self.service.synchronize_resource(
-                    resource, data, self.retrieve.__name__, False, False
-                )
-                raise ValueError(e) from e
-
-            finally:
-                self.service.synchronize_resource(
-                    resource, data, self.retrieve.__name__, True, True
-                )
-            return resource
-
         return None
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
