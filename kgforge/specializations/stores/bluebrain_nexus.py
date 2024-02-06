@@ -562,10 +562,11 @@ class BlueBrainNexus(Store):
         return self.update_schema(resource, schema_id=Service.UNCONSTRAINED_SCHEMA)
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
-        url, _ = self.service._prepare_uri(resource, schema_id)
 
-        url = f"{url}/update-schema"
-        response = requests.put(url=url, headers=self.service.headers)
+        url = Service.add_schema_and_id_to_endpoint(
+            endpoint=self.service.url_resources, schema_id=schema_id, resource_id=resource.id
+        )
+        response = requests.put(url=f"{url}/update-schema", headers=self.service.headers)
         catch_http_error_nexus(response, SchemaUpdateError)
         self.service.sync_metadata(resource, response.json())
 

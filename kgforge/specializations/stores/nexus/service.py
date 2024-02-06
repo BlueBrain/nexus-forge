@@ -744,21 +744,18 @@ class BatchRequestHandler:
     ):
 
         schema_id = kwargs.get("schema_id")
-
         url = Service.add_schema_and_id_to_endpoint(
             endpoint=service.url_resources, schema_id=schema_id, resource_id=resource.id
         )
-
-        url = f"{url}/update-schema"
 
         return loop.create_task(
             BatchRequestHandler.queue(
                 hdrs.METH_PUT,
                 semaphore,
                 session,
-                url,
-                resource,
-                error,
+                url=f"{url}/update-schema",
+                resource=resource,
+                exception=error,
                 headers=service.headers,
                 payload=None,
                 params=None
