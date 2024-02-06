@@ -500,7 +500,7 @@ class BlueBrainNexus(Store):
 
     # CR[U]D.
 
-    def update(self, data: Union[Resource, List[Resource]], schema_id: str) -> None:
+    def update(self, data: Union[Resource, List[Resource]], schema_id: str = None) -> None:
         run(
             self._update_one,
             self._update_many,

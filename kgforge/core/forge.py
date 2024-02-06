@@ -730,7 +730,7 @@ class KnowledgeGraphForge:
 
     # No @catch because the error handling is done by execution.run().
     def update(
-        self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+        self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         """
         Update a resource or a list of resources in the configured Store.
