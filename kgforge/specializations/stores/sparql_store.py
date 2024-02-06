@@ -15,6 +15,7 @@
 import requests
 from typing import Dict, List, Optional, Union, Any, Type, Tuple
 
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.resolver import Resolver
@@ -33,6 +34,8 @@ from kgforge.specializations.stores.bluebrain_nexus import _create_select_query
 
 class SPARQLStore(DatasetStore):
     """A Store specialized for SPARQL queries, supporting only Reading (searching) methods."""
+
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
     def __init__(
         self,
@@ -149,6 +152,7 @@ class SPARQLStore(DatasetStore):
                 ),
                 data=query,
                 headers=self.service.headers_sparql,
+                timeout=SPARQLStore.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
         except Exception as e:
