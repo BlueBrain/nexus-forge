@@ -529,7 +529,8 @@ class BlueBrainNexus(Store):
             action=BatchAction.UPDATE,
             callback=update_callback,
             error_type=UpdatingError,
-            params=params_update
+            params=params_update,
+            schema_id=schema_id
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
@@ -561,11 +562,9 @@ class BlueBrainNexus(Store):
         return self.update_schema(resource, schema_id=Service.UNCONSTRAINED_SCHEMA)
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
-
         url, _ = self.service._prepare_uri(resource, schema_id)
 
         url = f"{url}/update-schema"
-        print(url)
         response = requests.put(url=url, headers=self.service.headers)
         catch_http_error_nexus(response, SchemaUpdateError)
         self.service.sync_metadata(resource, response.json())

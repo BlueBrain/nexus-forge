@@ -380,8 +380,8 @@ class Service:
     def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
         schema_id = schema_uri or resource._store_metadata._constrainedBy
 
-        if schema_id == self.UNCONSTRAINED_SCHEMA:
-            schema_id = None
+        # if schema_id == self.UNCONSTRAINED_SCHEMA:
+        #     schema_id = None
 
         url = Service.add_schema_and_id_to_endpoint(
             self.url_resources, schema_id, resource_id=resource.id
@@ -614,6 +614,7 @@ class BatchRequestHandler:
         url, params_from_resource = service._prepare_uri(
             resource, schema_uri=kwargs.get("schema_id")
         )
+
         params.update(params_from_resource)
 
         payload = as_jsonld(
