@@ -19,6 +19,7 @@ import itertools
 import requests
 
 from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
@@ -33,6 +34,8 @@ from kgforge.specializations.resources.entity_linking_candidate import (
 
 
 class EntityLinkerElasticService(EntityLinkerService):
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
+
     def __init__(
         self,
         store: Callable,
@@ -70,7 +73,9 @@ class EntityLinkerElasticService(EntityLinkerService):
         resources, scores = [], []
         for mention in mentions_labels:
             call_url = self.encoder.format(x=mention)
-            embedding_object = requests.get(url=call_url)
+            embedding_object = requests.get(
+                url=call_url, timeout=EntityLinkerElasticService.REQUEST_TIMEOUT
+            )
             embedding = self.mapper().map(
                 embedding_object.json(), self.result_mapping, None
             )

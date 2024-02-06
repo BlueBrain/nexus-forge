@@ -18,6 +18,10 @@ import requests
 import yaml
 from requests import RequestException
 
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
+
+REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
+
 
 def load_yaml_from_file(filepath: str):
     config_data = load_file_as_byte(filepath)
@@ -32,7 +36,7 @@ def load_file_as_byte(source: str):
         data = filepath.read_bytes()
     else:
         try:
-            response = requests.get(source)
+            response = requests.get(source, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
             data = response.content
         except RequestException as re:
