@@ -543,7 +543,7 @@ class BlueBrainNexus(Store):
             metadata_context=None,
             context_resolver=self.service.resolve_context
         )
-        url, params = self.service._prepare_uri(resource, schema_id)
+        url, params = self.service._prepare_uri(resource, schema_id, keep_unconstrained=True)
         params_update = copy.deepcopy(self.service.params.get("update", {}))
         params_update.update(params)
 
