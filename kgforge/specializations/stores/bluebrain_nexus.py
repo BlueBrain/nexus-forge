@@ -566,7 +566,9 @@ class BlueBrainNexus(Store):
         url = Service.add_schema_and_id_to_endpoint(
             endpoint=self.service.url_resources, schema_id=schema_id, resource_id=resource.id
         )
-        response = requests.put(url=f"{url}/update-schema", headers=self.service.headers)
+        response = requests.put(
+            url=f"{url}/update-schema", headers=self.service.headers, timeout=REQUEST_TIMEOUT
+        )
         catch_http_error_nexus(response, SchemaUpdateError)
         self.service.sync_metadata(resource, response.json())
 
