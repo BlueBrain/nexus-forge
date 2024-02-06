@@ -346,7 +346,7 @@ class BlueBrainNexus(Store):
                 data = response.json()
                 return self.service.to_resource(data)
             except Exception as e:
-                raise ValueError(e) from e
+                raise RetrievalError(e) from e
         return None
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
