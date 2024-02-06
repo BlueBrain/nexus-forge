@@ -748,7 +748,7 @@ class BatchRequestHandler:
             endpoint=service.url_resources, schema_id=schema_id, resource_id=resource.id
         )
 
-        url = f"{url}/change-schema"
+        url = f"{url}/update-schema"
 
         return loop.create_task(
             BatchRequestHandler.queue(
