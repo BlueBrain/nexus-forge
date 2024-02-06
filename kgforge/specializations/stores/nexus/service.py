@@ -157,9 +157,6 @@ class Service:
             self.headers_download["Authorization"] = "Bearer " + token
         self.context = Context(self.get_project_context())
 
-        # self.url_base_files = "/".join((self.endpoint, "files"))
-
-
         self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
         self.url_resources = Service.make_endpoint(self.endpoint, "resources", org, prj)
         self.url_resolver = Service.make_endpoint(self.endpoint, "resolvers", org, prj)
