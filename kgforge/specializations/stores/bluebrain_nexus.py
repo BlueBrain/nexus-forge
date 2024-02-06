@@ -305,11 +305,12 @@ class BlueBrainNexus(Store):
         id_without_query, query_params = BlueBrainNexus._local_url_parse(
             id_value=id_, version_params=version_params
         )
-
-        query_params.update({"annotate": True})
-        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
-
         retrieve_source = params.get('retrieve_source', True)
+
+        if retrieve_source:
+            query_params.update({"annotate": True})
+
+        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
 
         url_resource = Service.add_schema_and_id_to_endpoint(
             url_base, schema_id=None, resource_id=id_without_query
