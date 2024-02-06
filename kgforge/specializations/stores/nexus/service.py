@@ -367,18 +367,21 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
-    def _prepare_tag(self, resource, tag) -> Tuple[str, Dict, Dict]:
+    def _prepare_tag(self, resource: Resource, tag: str) -> Tuple[str, Dict, Dict]:
         url, params = self._prepare_uri(resource)
         url = f"{url}/tags"
         data = {"tag": tag}
         data.update(params)
         return url, data, params
 
-    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
+    def _prepare_uri(
+            self, resource: Resource, schema_uri: Optional[str] = None,
+            keep_unconstrained: bool = False
+    ) -> Tuple[str, Dict]:
         schema_id = schema_uri or resource._store_metadata._constrainedBy
 
-        # if schema_id == self.UNCONSTRAINED_SCHEMA:
-        #     schema_id = None
+        if schema_id == self.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
+            schema_id = None
 
         url = Service.add_schema_and_id_to_endpoint(
             self.url_resources, schema_id, resource_id=resource.id
@@ -609,7 +612,7 @@ class BatchRequestHandler:
     ):
 
         url, params_from_resource = service._prepare_uri(
-            resource, schema_uri=kwargs.get("schema_id")
+            resource, schema_uri=kwargs.get("schema_id"), keep_unconstrained=True
         )
 
         params.update(params_from_resource)
