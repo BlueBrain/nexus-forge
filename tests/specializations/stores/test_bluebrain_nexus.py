@@ -616,7 +616,7 @@ class TestQuerying:
 )
 def test_make_search_endpoint(nexus_store, view, endpoint_type, expected_endpoint, exception):
     with exception:
-        endpoint = nexus_store.service.make_endpoint(view, endpoint_type=endpoint_type)
+        endpoint = nexus_store.service.make_query_endpoint_self(view, endpoint_type=endpoint_type)
         assert endpoint == expected_endpoint
 
 
