@@ -360,12 +360,13 @@ class BlueBrainNexus(Store):
             return resource
 
         # Retrieving with resolvers and /source doesn't support annotate=True
-        if response and ('_self' in response.json()):
-            res_self = response.json()["_self"]
-            u = f"{res_self}/source"
 
+        _self = data.get("_self", None)
+
+        if _self:
             response_metadata = requests.get(
-                u, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+                url=f"{_self}/source",
+                params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
             )
             catch_http_error_nexus(response, RetrievalError)
             return self.service.to_resource(response_metadata.json())
