@@ -277,6 +277,73 @@ class BlueBrainNexus(Store):
 
         return id_without_query, query_params
 
+    def _retrieve_id(
+            self,  id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
+    ):
+
+        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
+
+        url_resource = Service.add_schema_and_id_to_endpoint(
+            url_base, schema_id=None, resource_id=id_
+        )
+        # and not cross_bucket: if cross_bucket, no support for /source and metadata.
+        # So this will fetch the right metadata. The source data will be fetched later
+        url = f"{url_resource}/source" if retrieve_source and not cross_bucket else url_resource
+
+        response = requests.get(
+            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+        )
+        catch_http_error_nexus(response, RetrievalError)
+
+        try:
+            data = response.json()
+            resource = self.service.to_resource(data)
+        except Exception as e:
+            raise RetrievalError(e) from e
+
+        # retrieve_source = False = metadata in payload
+        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
+        #       Used to be a call without /source, and then synchronize_resource
+        # retrieve_source = True, and cross_bucket = True: no metadata. To fetch separately.
+        #       Used to be a call to the _self/source and then service.to_resource
+
+        # specific case that requires additional fetching of data without source
+        if not (retrieve_source and cross_bucket):
+            return resource
+
+        _self = data.get("_self", None)
+
+        if _self:
+            response_source = requests.get(
+                url=f"{_self}/source",
+                params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+            )
+            catch_http_error_nexus(response, RetrievalError)
+            resource = self.service.to_resource(response_source.json())
+            self.service.synchronize_resource(
+                resource, data, self.retrieve.__name__, True, True
+            )
+            return resource
+
+        raise RetrievalError("Cannot find metadata in payload")
+
+
+    def _retrieve_self(
+            self, self_, retrieve_source: bool, query_params: Dict
+    ) -> Resource:
+        url = f"{self_}/source" if retrieve_source else self_
+
+        response = requests.get(
+            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+        )
+        catch_http_error_nexus(response, RetrievalError)
+
+        try:
+            data = response.json()
+            return self.service.to_resource(data)
+        except Exception as e:
+            raise RetrievalError(e) from e
+
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
@@ -311,67 +378,31 @@ class BlueBrainNexus(Store):
         if retrieve_source:
             query_params.update({"annotate": True})
 
-        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
-
-        url_resource = Service.add_schema_and_id_to_endpoint(
-            url_base, schema_id=None, resource_id=id_without_query
-        )
-
-        url = f"{url_resource}/source" if retrieve_source else url_resource
-
         try:
-            response = requests.get(
-                url, params=query_params, headers=self.service.headers,
-                timeout=REQUEST_TIMEOUT
-            )
-            catch_http_error_nexus(response, RetrievalError)
+            return self._retrieve_id(
+                id_=id_without_query, retrieve_source=retrieve_source,
+                cross_bucket=cross_bucket, query_params=query_params
+            )  # either for data or metadata. Metadata if cross_bucket and retrieve_source
         except RetrievalError as er:
 
             # without org and proj, vs with
-            nexus_path = f"{self.service.endpoint}/resources/" if cross_bucket else self.service.url_resources
+            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
+            nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
 
-            # Try to use the id as it was given
-            if not id_without_query.startswith(nexus_path):
+            if not id_without_query.startswith(nexus_path_no_bucket):
                 raise er
 
-            url = f"{id_without_query}/source" if retrieve_source else id_without_query
+            if not id_without_query.startswith(nexus_path):
+                raise RetrievalError(
+                    "Provided resource identifier is not inside the current bucket, "
+                    "use cross_bucket=True to be able to retrieve it"
+                )
 
-            response = requests.get(
-                url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+            # Try to use the id as it was given
+            return self._retrieve_self(
+                self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
             )
-            catch_http_error_nexus(response, RetrievalError)
 
-        if not response:
-            return None
-
-        try:
-            data = response.json()
-            resource = self.service.to_resource(data)
-        except Exception as e:
-            raise RetrievalError(e) from e
-
-        # retrieve_source = False = metadata in payload
-        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
-        #       Used to be a call without /source, and then synchronize_resource
-        # retrieve_source = True, and cross_bucket = True: no metadata. To fetch separately.
-        #       Used to be a call to the _self/source and then service.to_resource
-
-        if not (retrieve_source and cross_bucket):
-            return resource
-
-        # Retrieving with resolvers and /source doesn't support annotate=True
-
-        _self = data.get("_self", None)
-
-        if _self:
-            response_metadata = requests.get(
-                url=f"{_self}/source",
-                params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
-            )
-            catch_http_error_nexus(response, RetrievalError)
-            return self.service.to_resource(response_metadata.json())
-
-        return None
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
