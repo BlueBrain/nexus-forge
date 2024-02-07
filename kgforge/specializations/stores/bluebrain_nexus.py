@@ -340,13 +340,22 @@ class BlueBrainNexus(Store):
             )
             catch_http_error_nexus(response, RetrievalError)
 
-        if response:
-            try:
-                data = response.json()
-                return self.service.to_resource(data)
-            except Exception as e:
-                raise RetrievalError(e) from e
-        return None
+        if not response:
+            return None
+
+        try:
+            data = response.json()
+            resource = self.service.to_resource(data)
+        except Exception as e:
+            raise RetrievalError(e) from e
+
+        if not (retrieve_source and cross_bucket):
+            return resource
+
+        # TODO retrieve metadata
+        # Retrieving with resolvers and /source doesn't support annotate=True
+        pass
+
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
