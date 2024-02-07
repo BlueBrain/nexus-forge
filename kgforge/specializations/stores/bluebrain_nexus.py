@@ -343,20 +343,36 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
-    def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
-    ) -> Optional[Resource]:
-        """
-        Retrieve a resource by its identifier from the configured store and possibly at a given version.
+    def _retrieve_many(
+            self, id_: List[str],
+            version: Optional[List[Union[str, int]]],
+            cross_bucket: bool = False,
+            **params
+    ) -> List[Optional[Resource]]:
 
-        :param id_: the resource identifier to retrieve
-        :param version: a version of the resource to retrieve
-        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
-        :param params: a dictionary of parameters. Supported parameters are:
-              [retrieve_source] whether to retrieve the resource payload as registered in the last update
-              (default: True)
-        :return: Resource
-        """
+        if not all(isinstance(i, str) for i in id_):
+            raise RetrievalError("If a list is provided, all values in it must be strings")
+
+        if version is not None:
+            if len(id_) != len(version):
+                raise RetrievalError("As many versions as ids must be provided")
+        else:
+            version = [None] * len(id_)
+
+        resources = []
+        # TODO change, obviously
+        for id_i, version_i in zip(id_, version):
+            res: Resource = self._retrieve_one(id_i, version_i, cross_bucket, **params)
+            resources.append(res)
+
+        return resources
+
+    def _retrieve_one(
+            self, id_: str,
+            version: Optional[Union[int, str]],
+            cross_bucket: bool = False,
+            **params
+    ) -> Optional[Resource]:
 
         if version is not None:
             if isinstance(version, int):
@@ -401,6 +417,29 @@ class BlueBrainNexus(Store):
             return self._retrieve_self(
                 self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
             )
+
+    def retrieve(
+            self, id_: Union[str, List[str]],
+            version: Optional[List[Union[str, int]]],
+            cross_bucket: bool = False,
+            **params
+    ) -> Union[Optional[Resource], List[Optional[Resource]]]:
+        """
+        Retrieve a resource by its identifier from the configured store and possibly at a given version.
+
+        :param id_: the resource identifier to retrieve
+        :param version: a version of the resource to retrieve
+        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [retrieve_source] whether to retrieve the resource payload as registered in the last update
+              (default: True)
+        :return: Resource
+        """
+
+        if isinstance(id_, list):
+            return self._retrieve_many(id_, version, cross_bucket, **params)
+
+        return self._retrieve_one(id_, version, cross_bucket, **params)
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
