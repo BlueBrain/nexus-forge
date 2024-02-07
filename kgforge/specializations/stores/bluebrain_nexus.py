@@ -327,7 +327,6 @@ class BlueBrainNexus(Store):
 
         raise RetrievalError("Cannot find metadata in payload")
 
-
     def _retrieve_self(
             self, self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
@@ -386,15 +385,18 @@ class BlueBrainNexus(Store):
         except RetrievalError as er:
 
             # without org and proj, vs with
-            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
-            nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
+            # TODO do we want this check
+            dep = "https://bbp.epfl.ch/nexus/v1"
+            nexus_path_no_bucket = f"{dep}/resources/"
+            nexus_path = nexus_path_no_bucket if cross_bucket else \
+                Service.make_endpoint(dep, "resources", self.service.organisation, self.service.project)
 
             if not id_without_query.startswith(nexus_path_no_bucket):
                 raise er
 
             if not id_without_query.startswith(nexus_path):
                 raise RetrievalError(
-                    "Provided resource identifier is not inside the current bucket, "
+                    f"Provided resource identifier {id_} is not inside the current bucket, "
                     "use cross_bucket=True to be able to retrieve it"
                 )
 
@@ -402,7 +404,6 @@ class BlueBrainNexus(Store):
             return self._retrieve_self(
                 self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
             )
-
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
