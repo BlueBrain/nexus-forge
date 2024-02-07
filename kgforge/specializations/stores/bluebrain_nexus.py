@@ -371,6 +371,7 @@ class BlueBrainNexus(Store):
         id_without_query, query_params = BlueBrainNexus._local_url_parse(
             id_value=id_, version_params=version_params
         )
+
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source:
