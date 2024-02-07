@@ -305,6 +305,7 @@ class BlueBrainNexus(Store):
         id_without_query, query_params = BlueBrainNexus._local_parse(
             id_value=id_, version_params=version_params
         )
+
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source:
@@ -330,7 +331,7 @@ class BlueBrainNexus(Store):
             nexus_path = f"{self.service.endpoint}/resources/" if cross_bucket else self.service.url_resources
 
             # Try to use the id as it was given
-            if not id_.startswith(nexus_path):
+            if not id_without_query.startswith(nexus_path):
                 raise er
 
             url = f"{id_without_query}/source" if retrieve_source else id_without_query
@@ -349,13 +350,27 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
+        # retrieve_source = False = metadata in payload
+        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
+        #       Used to be a call without /source, and then synchronize_resource
+        # retrieve_source = True, and cross_bucket = True: no metadata. To fetch separately.
+        #       Used to be a call to the _self/source and then service.to_resource
+
         if not (retrieve_source and cross_bucket):
             return resource
 
-        # TODO retrieve metadata
         # Retrieving with resolvers and /source doesn't support annotate=True
-        pass
+        if response and ('_self' in response.json()):
+            res_self = response.json()["_self"]
+            u = f"{res_self}/source"
 
+            response_metadata = requests.get(
+                u, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+            )
+            catch_http_error_nexus(response, RetrievalError)
+            return self.service.to_resource(response_metadata.json())
+
+        return None
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
