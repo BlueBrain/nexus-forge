@@ -22,7 +22,7 @@ from asyncio import Semaphore, Task
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
-from urllib.parse import quote_plus, unquote, urlparse, parse_qs
+from urllib.parse import quote_plus, unquote
 
 import nexussdk as nexus
 import requests
@@ -50,7 +50,7 @@ from kgforge.core.commons.exceptions import (
     TaggingError,
     UpdatingError,
     UploadingError,
-    SchemaUpdateError,
+    SchemaUpdateError, RunException,
 )
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
@@ -253,30 +253,6 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
-    @staticmethod
-    def _local_parse(id_value, version_params) -> Tuple[str, Dict]:
-        parsed_id = urlparse(id_value)
-        fragment = None
-        query_params = {}
-
-        # urlparse is not separating fragment and query params when the latter are put after a fragment
-        if parsed_id.fragment is not None and "?" in str(parsed_id.fragment):
-            fragment_parts = urlparse(parsed_id.fragment)
-            query_params = parse_qs(fragment_parts.query)
-            fragment = fragment_parts.path
-        elif parsed_id.fragment is not None and parsed_id.fragment != "":
-            fragment = parsed_id.fragment
-        elif parsed_id.query is not None and parsed_id.query != "":
-            query_params = parse_qs(parsed_id.query)
-
-        if version_params is not None:
-            query_params.update(version_params)
-
-        formatted_fragment = '#' + fragment if fragment is not None else ''
-        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
-
-        return id_without_query, query_params
-
     def _retrieve_id(
             self,  id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
     ):
@@ -356,14 +332,29 @@ class BlueBrainNexus(Store):
         if version is not None:
             if len(id_) != len(version):
                 raise RetrievalError("As many versions as ids must be provided")
+
         else:
             version = [None] * len(id_)
 
-        resources = []
-        # TODO change, obviously
-        for id_i, version_i in zip(id_, version):
-            res: Resource = self._retrieve_one(id_i, version_i, cross_bucket, **params)
-            resources.append(res)
+        def retrieve_callback(task: Task):
+            result = task.result()
+            # TODO define callback
+
+        resources = self.service.batch_request(
+            resources=id_,
+            action=BatchAction.RETRIEVE,
+            callback=retrieve_callback,
+            error_type=RetrievalError,
+            params={},
+            cross_bucket=cross_bucket,
+            versions=version,
+            **params
+        )
+
+        # resources = []
+        # for id_i, version_i in zip(id_, version):
+        #     res: Resource = self._retrieve_one(id_i, version_i, cross_bucket, **params)
+        #     resources.append(res)
 
         return resources
 
@@ -374,17 +365,11 @@ class BlueBrainNexus(Store):
             **params
     ) -> Optional[Resource]:
 
-        if version is not None:
-            if isinstance(version, int):
-                version_params = {"rev": version}
-            elif isinstance(version, str):
-                version_params = {"tag": version}
-            else:
-                raise RetrievalError("incorrect 'version'")
-        else:
-            version_params = None
+        version_params = Service._format_version(
+            version=version, error_to_throw=RetrievalError
+        )
 
-        id_without_query, query_params = BlueBrainNexus._local_parse(
+        id_without_query, query_params = Service._local_parse(
             id_value=id_, version_params=version_params
         )
 

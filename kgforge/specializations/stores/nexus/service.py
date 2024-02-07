@@ -19,10 +19,9 @@ from asyncio import Task
 from collections import namedtuple
 from copy import deepcopy
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Union, Tuple, Type
+from typing import Callable, Dict, List, Optional, Union, Tuple, Type, Any
 from urllib.error import URLError
-from urllib.parse import quote_plus
-
+from urllib.parse import quote_plus, urlparse, parse_qs
 import nest_asyncio
 import nexussdk as nexus
 import requests
@@ -38,7 +37,7 @@ from kgforge.core.commons.actions import (
     execute_lazy_actions,
     LazyAction,
 )
-from kgforge.core.commons.exceptions import ConfigurationError, RunException
+from kgforge.core.commons.exceptions import ConfigurationError, RunException, RetrievalError
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -58,6 +57,7 @@ class BatchAction(Enum):
     UPLOAD = "upload"
     DOWNLOAD = "download"
     UPDATE_SCHEMA = "update_schema"
+    RETRIEVE = "retrieve"
 
 
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
@@ -232,6 +232,20 @@ class Service:
         return "/".join(to_join)
 
     @staticmethod
+    def _format_version(version: Any, error_to_throw: Type[RunException]) -> Optional[Dict]:
+        if version is not None:
+            if isinstance(version, int):
+                version_params = {"rev": version}
+            elif isinstance(version, str):
+                version_params = {"tag": version}
+            else:
+                raise error_to_throw("incorrect 'version'")
+        else:
+            version_params = None
+
+        return version_params
+
+    @staticmethod
     def make_query_endpoint(endpoint, view, endpoint_type, organisation, project) -> str:
 
         if endpoint_type == Service.SPARQL_ENDPOINT_TYPE:
@@ -302,7 +316,7 @@ class Service:
 
     def batch_request(
             self,
-            resources: List[Resource],
+            resources: List[Union[Resource, str]],
             action: BatchAction,
             callback: Callable,
             error_type: RunException,
@@ -325,12 +339,13 @@ class Service:
                 batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
                 batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
                 batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch,
-                batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema
+                batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema,
+                batch_action.RETRIEVE: BatchRequestHandler.prepare_batch_retrieve
             }
 
             futures = []
 
-            for resource in data:
+            for i, resource in enumerate(data):
                 params = deepcopy(kwargs.pop("params", {}))
 
                 prepare_function = prepare_function_map.get(batch_action, None)
@@ -346,6 +361,7 @@ class Service:
                     loop=loop,
                     params=params,
                     error=error,
+                    i=i,
                     **kwargs
                 )
 
@@ -390,6 +406,30 @@ class Service:
         rev = resource._store_metadata._rev
         params = {"rev": rev}
         return url, params
+
+    @staticmethod
+    def _local_parse(id_value, version_params) -> Tuple[str, Dict]:
+        parsed_id = urlparse(id_value)
+        fragment = None
+        query_params = {}
+
+        # urlparse is not separating fragment and query params when the latter are put after a fragment
+        if parsed_id.fragment is not None and "?" in str(parsed_id.fragment):
+            fragment_parts = urlparse(parsed_id.fragment)
+            query_params = parse_qs(fragment_parts.query)
+            fragment = fragment_parts.path
+        elif parsed_id.fragment is not None and parsed_id.fragment != "":
+            fragment = parsed_id.fragment
+        elif parsed_id.query is not None and parsed_id.query != "":
+            query_params = parse_qs(parsed_id.query)
+
+        if version_params is not None:
+            query_params.update(version_params)
+
+        formatted_fragment = '#' + fragment if fragment is not None else ''
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
+
+        return id_without_query, query_params
 
     def sync_metadata(self, resource: Resource, result: Dict) -> None:
         metadata = (
@@ -557,6 +597,58 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
 
 
 class BatchRequestHandler:
+
+    @staticmethod
+    def prepare_batch_retrieve(
+            service: Service,
+            id_: str,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            params: Dict,
+            error: RunException,
+            **kwargs
+    ) -> Task:
+
+        versions = kwargs["version"]
+        i = kwargs["i"]
+        cross_bucket = kwargs['cross_bucket']
+
+        version_params = Service._format_version(
+            version=versions[i], error_to_throw=RetrievalError
+        )
+
+        id_without_query, query_params = Service._local_parse(
+            id_value=id_, version_params=version_params
+        )
+
+        retrieve_source = kwargs.get('retrieve_source', True)
+
+        if retrieve_source:
+            query_params.update({"annotate": True})
+
+        url_base = service.url_resolver if cross_bucket else service.url_resources
+
+        url_resource = Service.add_schema_and_id_to_endpoint(
+            url_base, schema_id=None, resource_id=id_without_query
+        )
+        # and not cross_bucket: if cross_bucket, no support for /source and metadata.
+        # So this will fetch the right metadata. The source data will be fetched later
+        url = f"{url_resource}/source" if retrieve_source and not cross_bucket else url_resource
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_GET,
+                semaphore,
+                session,
+                url,
+                resource=None,
+                exception=error,
+                headers=service.headers,
+                payload=None,
+                params=query_params
+            )
+        )
 
     @staticmethod
     def prepare_batch_create(
