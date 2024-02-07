@@ -381,15 +381,12 @@ class BlueBrainNexus(Store):
             return self._retrieve_id(
                 id_=id_without_query, retrieve_source=retrieve_source,
                 cross_bucket=cross_bucket, query_params=query_params
-            )  # either for data or metadata. Metadata if cross_bucket and retrieve_source
+            )
         except RetrievalError as er:
 
             # without org and proj, vs with
-            # TODO do we want this check
-            dep = "https://bbp.epfl.ch/nexus/v1"
-            nexus_path_no_bucket = f"{dep}/resources/"
-            nexus_path = nexus_path_no_bucket if cross_bucket else \
-                Service.make_endpoint(dep, "resources", self.service.organisation, self.service.project)
+            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
+            nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
 
             if not id_without_query.startswith(nexus_path_no_bucket):
                 raise er
