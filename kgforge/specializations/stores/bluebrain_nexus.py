@@ -316,7 +316,7 @@ class BlueBrainNexus(Store):
             url_base, schema_id=None, resource_id=id_without_query
         )
 
-        url = f"{url_resource}/source" if retrieve_source and not cross_bucket else url_resource
+        url = f"{url_resource}/source" if retrieve_source else url_resource
 
         try:
             response = requests.get(
@@ -333,8 +333,7 @@ class BlueBrainNexus(Store):
             if not id_.startswith(nexus_path):
                 raise er
 
-            url = f"{id_without_query}/source" if retrieve_source and not cross_bucket \
-                else id_without_query
+            url = f"{id_without_query}/source" if retrieve_source else id_without_query
 
             response = requests.get(
                 url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
