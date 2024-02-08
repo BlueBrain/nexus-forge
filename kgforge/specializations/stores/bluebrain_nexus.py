@@ -22,7 +22,7 @@ from asyncio import Semaphore, Task
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
-from urllib.parse import quote_plus, unquote
+from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 import nexussdk as nexus
 import requests
@@ -55,7 +55,6 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.json import as_json
-from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
