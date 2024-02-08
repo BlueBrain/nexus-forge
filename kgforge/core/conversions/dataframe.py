@@ -63,26 +63,32 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
     data = deflatten(items, nesting)
     return from_json(data, None)
 
-
 def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
     d = {}
-    i = 0
-    while i < len(items):
-        k, v = items[i]
-        if sep not in k:
-            d[k] = v
-            i += 1
+    split = []
+    for n1, t1_ in enumerate(items):
+        if n1 in split:
+            continue
+        k1, v1 = t1_
+        if isinstance(k1, str) and sep in k1:
+            pre, _ = k1.split(sep, maxsplit=1)
+            if pre in d:
+                raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
+            l = []
+            for n2, t2_ in enumerate(items):
+                try:
+                    k2, v2 = t2_
+                except:
+                    print(n2,t2_)
+                    return 0
+                if isinstance(k2, str) and k2.startswith(f'{pre}{sep}'):
+                    _, post = k2.split(sep, maxsplit=1)
+                    l.append((post, v2))
+                    split.append(n2)
+            d[pre] = deflatten(l, sep)
         else:
-            pk, _, ck = k.partition(sep)
-            pitems = list(take_while(items[i:], f"{pk}{sep}"))
-            d[pk] = deflatten(pitems, sep)
-            i += len(pitems)
+            if k1 in d:
+                print('b',d)
+                raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
+            d[k1] = v1
     return d
-
-
-def take_while(items: List[Tuple[str, Any]], start: str) -> Iterator[Tuple[str, Any]]:
-    for k, v in items:
-        if k.startswith(start):
-            yield k.replace(start, "", 1), v
-        else:
-            break

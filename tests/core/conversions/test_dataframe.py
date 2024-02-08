@@ -20,6 +20,7 @@ from pandas import DataFrame
 # Test suite for conversion of resource to / from Pandas DataFrame.
 
 from kgforge.core.resource import Resource
+from kgforge.core.conversions.dataframe import deflatten
 
 
 @pytest.fixture
@@ -64,7 +65,7 @@ def ndf():
 
 
 class TestConversionToDataFrame:
-
+    
     def test_as_dataframe_basic(self, forge, df, df_from_one_resource, r1, r2):
         assert(isinstance(r1, Resource))
         x = forge.as_dataframe(r1)
@@ -215,7 +216,7 @@ class TestConversionFromDataFrame:
         del r2.p1
         rcs = [r1, r2]
         assert x == rcs
-
+        
     def test_from_dataframe_nesting_default_depth_1(self, ndf, forge, r3, r4):
         x = forge.from_dataframe(ndf)
         rcs = [r3, r4]
@@ -225,6 +226,17 @@ class TestConversionFromDataFrame:
         ndf.drop("p4.p2", axis=1, inplace=True)
         ndf["p4.p2.p5"] = ["v5e", np.nan]
         ndf["p4.p2.p6"] = ["v6e", np.nan]
+        x = forge.from_dataframe(ndf)
+        r1.p2 = r5
+        del r2.p2
+        rcs = [r3, r4]
+        assert x == rcs
+        
+    def test_from_dataframe_nesting_default_depth_2_not_ordered(self, forge, ndf, r1, r2, r3, r4, r5):
+        ndf.drop("p4.p2", axis=1, inplace=True)
+        ndf["p4.p2.p5"] = ["v5e", np.nan]
+        ndf["p4.p2.p6"] = ["v6e", np.nan]
+        ndf = ndf.reindex(columns=['p4.p2.p6', 'p4.id', 'id', 'type', 'p4.p2.p5', 'p3',  'p4.type', 'p4.p1', 'p4.p2'])
         x = forge.from_dataframe(ndf)
         r1.p2 = r5
         del r2.p2
@@ -264,3 +276,9 @@ class TestConversionFromDataFrame:
         del r2.p1
         rcs = [r3, r4]
         assert x == rcs
+
+def test_deflatten_raises():
+    with pytest.raises(ValueError) as exc:
+        deflatten([('a','A'), ('a.p', 'Q')], '.')
+    msg = str(exc.value)
+    assert 'Mix of' in msg and 'Cannot be processed'
