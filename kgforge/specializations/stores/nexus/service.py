@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from typing_extensions import Unpack
 from typing import Callable, Dict, List, Optional, Union, Tuple, Type, Any
 import asyncio
 import copy
@@ -291,13 +290,6 @@ class Service:
                 document.remove(self.store_local_context)
         self.context_cache.update({context_to_resolve: document})
         return document
-
-    def _prepare_tag(self, resource: Resource, tag: str) -> Tuple[str, Dict, Dict]:
-        url, params = self._prepare_uri(resource)
-        url = f"{url}/tags"
-        data = {"tag": tag}
-        data.update(params)
-        return url, data, params
 
     def _prepare_uri(
             self, resource: Resource, schema_uri: Optional[str] = None,

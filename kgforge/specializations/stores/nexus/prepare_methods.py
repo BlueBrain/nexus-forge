@@ -13,6 +13,10 @@ prepare_return: TypeAlias = Tuple[
     # method, url, resource, exception to throw, headers, params, payload
 ]
 
+# TODO maybe params as a separate arg is not necessary.
+#  Used to be only service parameters being propagated,
+#  but since the service is available, the param can be retrieved here
+
 
 def prepare_create(
         service: Service,
@@ -26,7 +30,12 @@ def prepare_create(
         service.url_resources, schema_id=schema_id, resource_id=None
     )
 
+    params_register = copy.deepcopy(service.params.get("register", None))
+
+    identifier = resource.get_identifier()
+
     context = service.model_context or service.context
+
     payload = as_jsonld(
         resource,
         "compacted",
@@ -36,11 +45,11 @@ def prepare_create(
         context_resolver=service.resolve_context
     )
 
-    method = hdrs.METH_POST
+    method = hdrs.METH_PUT if identifier else hdrs.METH_POST
     exception = run_exceptions.RegistrationError
     headers = service.headers
 
-    return method, url, resource, exception, headers, params, payload
+    return method, url, resource, exception, headers, params_register, payload
 
 
 def prepare_update(
@@ -71,6 +80,14 @@ def prepare_update(
     return method, url, resource, exception, headers, params_update, payload
 
 
+def _prepare_tag(service: Service, resource: Resource, tag: str) -> Tuple[str, Dict, Dict]:
+    url, params = service._prepare_uri(resource)
+    url = f"{url}/tags"
+    data = {"tag": tag}
+    data.update(params)
+    return url, data, params
+
+
 def prepare_tag(
         service: Service,
         resource: Resource,
@@ -79,7 +96,8 @@ def prepare_tag(
 ) -> prepare_return:
 
     provided_tag = kwargs.get("tag")
-    url, payload, rev_param = service._prepare_tag(resource, provided_tag)
+
+    url, payload, rev_param = _prepare_tag(service, resource, provided_tag)
 
     params_tag = copy.deepcopy(service.params.get("tag", {}))
     params_tag.update(rev_param)
@@ -114,7 +132,7 @@ def prepare_fetch(
         service: Service,
         resource: Resource,
         params: Dict,
-        # **kwargs
+        **kwargs
 ) -> prepare_return:
 
     resource_org, resource_prj = resource._project.split("/")[-2:]

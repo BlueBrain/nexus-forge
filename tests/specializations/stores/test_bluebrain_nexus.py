@@ -39,7 +39,7 @@ from kgforge.specializations.stores.bluebrain_nexus import (
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
-from kgforge.specializations.stores.nexus import Service
+from kgforge.specializations.stores.nexus import Service, prepare_methods
 from utils import full_path_relative_to_root
 
 MODEL = DemoModel(**{"origin": "directory",
@@ -252,7 +252,7 @@ def test_prepare_tag_uri(nexus_store, registered_building, _constrainedBy, schem
     assert url == expected_url
 
     tagValue = "aTag"
-    url, data, params = nexus_store.service._prepare_tag(registered_building, tagValue)
+    url, data, params = prepare_methods._prepare_tag(nexus_store.service, registered_building, tagValue)
     expected_url_tag = expected_url_tag_template.format(quote_plus(registered_building.id))
     expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
    

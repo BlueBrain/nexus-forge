@@ -153,49 +153,25 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
-        data = as_jsonld(
-            resource,
-            "compacted",
-            False,
-            model_context=context,
-            metadata_context=None,
-            context_resolver=self.service.resolve_context
+
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_create(
+            service=self.service, resource=resource, params={}
         )
 
-        params_register = copy.deepcopy(self.service.params.get("register", None))
-        identifier = resource.get_identifier()
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
+            timeout=REQUEST_TIMEOUT
+        )
 
-        if identifier:
+        catch_http_error_nexus(response, exception_)
 
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=identifier
-            )
+        data = payload
 
-            response = requests.request(
-                method=hdrs.METH_PUT,
-                url=url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT
-            )
-        else:
-
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=None
-            )
-
-            response = requests.request(
-                method=hdrs.METH_POST,
-                url=url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT
-            )
-        catch_http_error_nexus(response, RegistrationError)
-
+        # TODO see register callback in _register_many, align post-processing
         response_json = response.json()
         resource.id = response_json["@id"]
         # If resource had no context, update it with the one provided by the store.
