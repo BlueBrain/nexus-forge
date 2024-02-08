@@ -254,7 +254,7 @@ class BlueBrainNexus(Store):
     # C[R]UD.
 
     @staticmethod
-    def _local_parse(id_value, version_params):
+    def _local_url_parse(id_value, version_params):
         parsed_id = urlparse(id_value)
         fragment = None
         query_params = None
@@ -302,7 +302,7 @@ class BlueBrainNexus(Store):
         else:
             version_params = None
 
-        id_without_query, query_params = BlueBrainNexus._local_parse(
+        id_without_query, query_params = BlueBrainNexus._local_url_parse(
             id_value=id_, version_params=version_params
         )
 
