@@ -232,6 +232,30 @@ class BlueBrainNexus(Store):
 
     # C[R]UD.
 
+    @staticmethod
+    def _local_url_parse(id_value, version_params) -> Tuple[str, Dict]:
+        parsed_id = urlparse(id_value)
+        fragment = None
+        query_params = {}
+
+        # urlparse is not separating fragment and query params when the latter are put after a fragment
+        if parsed_id.fragment is not None and "?" in str(parsed_id.fragment):
+            fragment_parts = urlparse(parsed_id.fragment)
+            query_params = parse_qs(fragment_parts.query)
+            fragment = fragment_parts.path
+        elif parsed_id.fragment is not None and parsed_id.fragment != "":
+            fragment = parsed_id.fragment
+        elif parsed_id.query is not None and parsed_id.query != "":
+            query_params = parse_qs(parsed_id.query)
+
+        if version_params is not None:
+            query_params.update(version_params)
+
+        formatted_fragment = '#' + fragment if fragment is not None else ''
+        id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
+
+        return id_without_query, query_params
+
     def _retrieve_id(
             self,  id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
     ):
@@ -273,12 +297,9 @@ class BlueBrainNexus(Store):
         _self = data.get("_self", None)
 
         if _self:
-            response_source = requests.request(
-                method=hdrs.METH_GET,
+            response_source = requests.get(
                 url=f"{_self}/source",
-                params=query_params,
-                headers=self.service.headers,
-                timeout=REQUEST_TIMEOUT
+                params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
             )
             catch_http_error_nexus(response_source, RetrievalError)
             resource = self.service.to_resource(response_source.json())
@@ -309,48 +330,39 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
-    def _retrieve_many(
-            self, id_: List[str],
-            version: Optional[List[Union[str, int]]],
-            cross_bucket: bool = False,
-            **params
-    ) -> List[Optional[Resource]]:
-
-        if not all(isinstance(i, str) for i in id_):
-            raise RetrievalError("If a list is provided, all values in it must be strings")
-
-        versions = version or [None] * len(id_)
-
-        if len(id_) != len(versions):
-            raise RetrievalError("As many versions as ids must be provided")
-
-        resources = []
-        for id_i, version_i in zip(id_, version):
-            res: Resource = self._retrieve_one(id_i, version_i, cross_bucket, **params)
-            resources.append(res)
-
-        return resources
-
-    def _retrieve_one(
-            self, id_: str,
-            version: Optional[Union[int, str]],
-            cross_bucket: bool = False,
-            **params
+    def retrieve(
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
+        """
+        Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
-        version_params = Service._format_version(
-            version=version, error_to_throw=RetrievalError
-        )
+        :param id_: the resource identifier to retrieve
+        :param version: a version of the resource to retrieve
+        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [retrieve_source] whether to retrieve the resource payload as registered in the last update
+              (default: True)
+        :return: Resource
+        """
 
-        id_without_query, query_params = Service._local_parse(
+        if version is not None:
+            if isinstance(version, int):
+                version_params = {"rev": version}
+            elif isinstance(version, str):
+                version_params = {"tag": version}
+            else:
+                raise RetrievalError("incorrect 'version'")
+        else:
+            version_params = None
+
+        id_without_query, query_params = BlueBrainNexus._local_url_parse(
             id_value=id_, version_params=version_params
         )
 
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source:
-            # https://github.com/aio-libs/yarl?tab=readme-ov-file#why-isnt-boolean-supported-by-the-url-query-api
-            query_params.update({"annotate": 'true'})
+            query_params.update({"annotate": True})
 
         try:
             return self._retrieve_id(
@@ -376,29 +388,6 @@ class BlueBrainNexus(Store):
             return self._retrieve_self(
                 self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
             )
-
-    def retrieve(
-            self, id_: Union[str, List[str]],
-            version: Optional[List[Union[str, int]]],
-            cross_bucket: bool = False,
-            **params
-    ) -> Union[Optional[Resource], List[Optional[Resource]]]:
-        """
-        Retrieve a resource by its identifier from the configured store and possibly at a given version.
-
-        :param id_: the resource identifier to retrieve
-        :param version: a version of the resource to retrieve
-        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
-        :param params: a dictionary of parameters. Supported parameters are:
-              [retrieve_source] whether to retrieve the resource payload as registered in the last update
-              (default: True)
-        :return: Resource
-        """
-
-        if isinstance(id_, list):
-            return self._retrieve_many(id_, version, cross_bucket, **params)
-
-        return self._retrieve_one(id_, version, cross_bucket, **params)
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.request(
@@ -592,6 +581,7 @@ class BlueBrainNexus(Store):
 
         catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
+
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
 

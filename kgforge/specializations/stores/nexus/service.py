@@ -24,6 +24,8 @@ import nest_asyncio
 import nexussdk as nexus
 import requests
 
+from kgforge.core.commons.execution import not_supported
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.resource import Resource
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
