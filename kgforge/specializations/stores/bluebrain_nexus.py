@@ -318,7 +318,7 @@ class BlueBrainNexus(Store):
                 url=f"{_self}/source",
                 params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
             )
-            catch_http_error_nexus(response, RetrievalError)
+            catch_http_error_nexus(response_source, RetrievalError)
             resource = self.service.to_resource(response_source.json())
             self.service.synchronize_resource(
                 resource, data, self.retrieve.__name__, True, True
