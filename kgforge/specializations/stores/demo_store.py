@@ -73,7 +73,7 @@ class DemoStore(Store):
         data = as_json(resource, expanded=False, store_metadata=False, model_context=None,
                        metadata_context=None, context_resolver=None)
         try:
-            record = self.service.create(data)
+            record = self.service.prepare_create(data)
         except StoreLibrary.RecordExists as exc:
             raise RegistrationError("resource already exists") from exc
 
