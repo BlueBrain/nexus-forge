@@ -338,6 +338,7 @@ class BlueBrainNexus(Store):
 
         def retrieve_callback(task: Task):
             result = task.result()
+            print(result)
             # TODO define callback
 
         resources = self.service.batch_request(
@@ -376,7 +377,8 @@ class BlueBrainNexus(Store):
         retrieve_source = params.get('retrieve_source', True)
 
         if retrieve_source:
-            query_params.update({"annotate": True})
+            # https://github.com/aio-libs/yarl?tab=readme-ov-file#why-isnt-boolean-supported-by-the-url-query-api
+            query_params.update({"annotate": 'true'})
 
         try:
             return self._retrieve_id(

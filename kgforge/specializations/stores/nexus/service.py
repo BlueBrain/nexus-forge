@@ -323,61 +323,20 @@ class Service:
             **kwargs,
     ) -> Tuple[BatchResults, BatchResults]:
 
-        def create_tasks(
-                semaphore:  asyncio.Semaphore,
-                session: ClientSession,
-                loop,
-                data: List,
-                batch_action: BatchAction,
-                f_callback: Callable,
-                error: RunException
-        ) -> List[Task]:
-
-            prepare_function_map = {
-                batch_action.CREATE: BatchRequestHandler.prepare_batch_create,
-                batch_action.UPDATE: BatchRequestHandler.prepare_batch_update,
-                batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
-                batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
-                batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch,
-                batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema,
-                batch_action.RETRIEVE: BatchRequestHandler.prepare_batch_retrieve
-            }
-
-            futures = []
-
-            for i, resource in enumerate(data):
-                params = deepcopy(kwargs.pop("params", {}))
-
-                prepare_function = prepare_function_map.get(batch_action, None)
-
-                if prepare_function is None:
-                    raise not_supported()
-
-                prepared_request = prepare_function(
-                    service=self,
-                    resource=resource,
-                    semaphore=semaphore,
-                    session=session,
-                    loop=loop,
-                    params=params,
-                    error=error,
-                    i=i,
-                    **kwargs
-                )
-
-                if f_callback:
-                    prepared_request.add_done_callback(f_callback)
-
-                futures.append(prepared_request)
-
-            return futures
-
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connection)
             loop = asyncio.get_event_loop()
             async with ClientSession() as session:
-                tasks = create_tasks(
-                    semaphore, session, loop, resources, action, callback, error_type
+                tasks = BatchRequestHandler.create_tasks(
+                    service=self,
+                    semaphore=semaphore,
+                    session=session,
+                    loop=loop,
+                    data=resources,
+                    batch_action=action,
+                    f_callback=callback,
+                    error=error_type,
+                    **kwargs
                 )
                 return await asyncio.gather(*tasks)
 
@@ -599,6 +558,59 @@ def _error_message(error: Union[HTTPError, Dict]) -> str:
 class BatchRequestHandler:
 
     @staticmethod
+    def create_tasks(
+            service: Service,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            data: List[Union[Resource, str]],
+            batch_action: BatchAction,
+            f_callback: Callable,
+            error: RunException,
+            **kwargs
+    ) -> List[Task]:
+
+        prepare_function_map = {
+            batch_action.CREATE: BatchRequestHandler.prepare_batch_create,
+            batch_action.UPDATE: BatchRequestHandler.prepare_batch_update,
+            batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
+            batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
+            batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch,
+            batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema,
+            batch_action.RETRIEVE: BatchRequestHandler.prepare_batch_retrieve
+        }
+
+        futures = []
+
+        for i, resource in enumerate(data):
+            params = deepcopy(kwargs.pop("params", {}))
+
+            prepare_function = prepare_function_map.get(batch_action, None)
+
+            if prepare_function is None:
+                raise not_supported()
+
+            prepared_request = prepare_function(
+                service=service,
+                resource=resource,  # TODO
+                id_=resource,  # TODO
+                semaphore=semaphore,
+                session=session,
+                loop=loop,
+                params=params,
+                error=error,
+                i=i,
+                **kwargs
+            )
+
+            if f_callback:
+                prepared_request.add_done_callback(f_callback)
+
+            futures.append(prepared_request)
+
+        return futures
+
+    @staticmethod
     def prepare_batch_retrieve(
             service: Service,
             id_: str,
@@ -610,7 +622,7 @@ class BatchRequestHandler:
             **kwargs
     ) -> Task:
 
-        versions = kwargs["version"]
+        versions = kwargs["versions"]
         i = kwargs["i"]
         cross_bucket = kwargs['cross_bucket']
 
@@ -625,7 +637,8 @@ class BatchRequestHandler:
         retrieve_source = kwargs.get('retrieve_source', True)
 
         if retrieve_source:
-            query_params.update({"annotate": True})
+            # https://github.com/aio-libs/yarl?tab=readme-ov-file#why-isnt-boolean-supported-by-the-url-query-api
+            query_params.update({"annotate": 'true'})
 
         url_base = service.url_resolver if cross_bucket else service.url_resources
 
