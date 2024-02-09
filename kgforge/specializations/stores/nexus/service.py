@@ -376,11 +376,11 @@ class Service:
 
     def _prepare_uri(
             self, resource: Resource, schema_uri: Optional[str] = None,
-            keep_unconstrained: bool = False
+            use_unconstrained_id: bool = False
     ) -> Tuple[str, Dict]:
         schema_id = schema_uri or resource._store_metadata._constrainedBy
 
-        if schema_id == self.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
+        if schema_id == self.UNCONSTRAINED_SCHEMA and not use_unconstrained_id:
             schema_id = None
 
         url = Service.add_schema_and_id_to_endpoint(
@@ -612,7 +612,7 @@ class BatchRequestHandler:
     ):
 
         url, params_from_resource = service._prepare_uri(
-            resource, schema_uri=kwargs.get("schema_id"), keep_unconstrained=True
+            resource, schema_uri=kwargs.get("schema_id"), use_unconstrained_id=True
         )
 
         params.update(params_from_resource)
