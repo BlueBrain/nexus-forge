@@ -63,6 +63,7 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
     data = deflatten(items, nesting)
     return from_json(data, None)
 
+
 def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
     d = {}
     split = []
@@ -74,21 +75,16 @@ def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
             pre, _ = k1.split(sep, maxsplit=1)
             if pre in d:
                 raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
-            l = []
+            pitems = []
             for n2, t2_ in enumerate(items):
-                try:
-                    k2, v2 = t2_
-                except:
-                    print(n2,t2_)
-                    return 0
+                k2, v2 = t2_
                 if isinstance(k2, str) and k2.startswith(f'{pre}{sep}'):
                     _, post = k2.split(sep, maxsplit=1)
-                    l.append((post, v2))
+                    pitems.append((post, v2))
                     split.append(n2)
-            d[pre] = deflatten(l, sep)
+            d[pre] = deflatten(pitems, sep)
         else:
             if k1 in d:
-                print('b',d)
                 raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
             d[k1] = v1
     return d
