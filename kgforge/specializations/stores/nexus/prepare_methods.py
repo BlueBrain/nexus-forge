@@ -21,7 +21,6 @@ prepare_return: TypeAlias = Tuple[
 def prepare_create(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 
@@ -30,7 +29,7 @@ def prepare_create(
         service.url_resources, schema_id=schema_id, resource_id=None
     )
 
-    params_register = copy.deepcopy(service.params.get("register", None))
+    params_register = copy.deepcopy(service.params.get("register", {}))
 
     identifier = resource.get_identifier()
 
@@ -55,7 +54,6 @@ def prepare_create(
 def prepare_update(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 
@@ -91,7 +89,6 @@ def _prepare_tag(service: Service, resource: Resource, tag: str) -> Tuple[str, D
 def prepare_tag(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 
@@ -112,7 +109,6 @@ def prepare_tag(
 def prepare_deprecate(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 
@@ -131,7 +127,6 @@ def prepare_deprecate(
 def prepare_fetch(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 
@@ -140,10 +135,14 @@ def prepare_fetch(
     url = Service.add_schema_and_id_to_endpoint(endpoint=endpoint, schema_id=None,
                                                 resource_id=resource.id)
 
-    if hasattr(resource, "_rev"):
-        params["rev"] = resource._rev
 
-    retrieve_source = params.pop("retrieve_source", False)
+    fetch_params = {}
+
+    if hasattr(resource, "_rev"):
+        fetch_params["rev"] = resource._rev
+
+
+    retrieve_source = kwargs.pop("retrieve_source", False)
 
     if retrieve_source:
         url = "/".join((url, "source"))
@@ -153,13 +152,12 @@ def prepare_fetch(
     headers = service.headers
     payload = None
 
-    return method, url, resource, exception, headers, params, payload
+    return method, url, resource, exception, headers, fetch_params, payload
 
 
 def prepare_update_schema(
         service: Service,
         resource: Resource,
-        params: Dict,
         **kwargs
 ) -> prepare_return:
 

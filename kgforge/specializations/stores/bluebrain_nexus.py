@@ -105,17 +105,12 @@ class BlueBrainNexus(Store):
         )
 
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+
         def register_callback(task: Task):
             result = task.result()
-            if isinstance(result.response, Exception):
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    False,
-                    False,
-                )
-            else:
+            succeeded = not isinstance(result.response, Exception)
+
+            if succeeded:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
                     context = self.model_context() or self.context
@@ -124,13 +119,14 @@ class BlueBrainNexus(Store):
                         if context.is_http_iri()
                         else context.document["@context"]
                     )
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    True,
-                    True,
-                )
+
+            self.service.synchronize_resource(
+                result.resource,
+                result.response,
+                self._register_many.__name__,
+                succeeded,
+                succeeded,
+            )
 
         verified = self.service.verify(
             resources,
@@ -140,7 +136,6 @@ class BlueBrainNexus(Store):
             required_synchronized=False,
             execute_actions=True,
         )
-        params_register = copy.deepcopy(self.service.params.get("register", {}))
 
         BatchRequestHandler.batch_request(
             service=self.service,
@@ -148,7 +143,6 @@ class BlueBrainNexus(Store):
             callback=register_callback,
             prepare_function=prepare_methods.prepare_create,
             schema_id=schema_id,
-            params=params_register,
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
@@ -170,12 +164,12 @@ class BlueBrainNexus(Store):
 
         data = payload
 
-        # TODO see register callback in _register_many, align post-processing
         response_json = response.json()
         resource.id = response_json["@id"]
         # If resource had no context, update it with the one provided by the store.
         if not hasattr(resource, "context"):
             resource.context = data["@context"]
+
         self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
@@ -539,14 +533,14 @@ class BlueBrainNexus(Store):
             resources=verified,
             callback=update_callback,
             prepare_function=prepare_methods.prepare_update,
-            params={},
             schema_id=schema_id
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
 
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update(
-            service=self.service, resource=resource, params={}
+            service=self.service,
+            resource=resource
         )
 
         response = requests.request(
@@ -567,7 +561,7 @@ class BlueBrainNexus(Store):
     def _update_schema_one(self, resource: Resource, schema_id: str):
 
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update_schema(
-            service=self.service, resource=resource, params={}
+            service=self.service, resource=resource, schema_id=schema_id
         )
         response = requests.request(
             method=method,
@@ -580,7 +574,6 @@ class BlueBrainNexus(Store):
 
         catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
-
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
 
@@ -644,8 +637,7 @@ class BlueBrainNexus(Store):
             resources=verified,
             prepare_function=prepare_methods.prepare_tag,
             callback=tag_callback,
-            tag=value,
-            params={},
+            tag=value
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
@@ -696,8 +688,7 @@ class BlueBrainNexus(Store):
             service=self.service,
             resources=verified,
             prepare_function=prepare_methods.prepare_deprecate,
-            callback=deprecate_callback,
-            params={},
+            callback=deprecate_callback
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
@@ -813,15 +804,12 @@ class BlueBrainNexus(Store):
             resources = self.sparql(
                 query, debug=debug, limit=limit, offset=offset, view=params.get("view", None)
             )
-            params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
-            params_retrieve['retrieve_source'] = retrieve_source
-
             results = BatchRequestHandler.batch_request(
                 service=self.service,
                 resources=resources,
                 prepare_function=prepare_methods.prepare_fetch,
                 callback=None,
-                params=params_retrieve
+                retrieve_source=retrieve_source
             )
             resources = []
             for result in results:

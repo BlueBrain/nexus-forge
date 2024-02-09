@@ -25,7 +25,6 @@ class BatchRequestHandler:
                 Tuple[str, str, Resource, Type[RunException], Dict, Optional[Dict], Optional[Dict]]
             ],
             callback: Callable,
-            params: Optional[Dict],
             **kwargs,
     ) -> Tuple[BatchResults, BatchResults]:
 
@@ -35,7 +34,6 @@ class BatchRequestHandler:
                 data=resources,
                 prepare_function=prepare_function,
                 f_callback=callback,
-                params=params,
                 **kwargs
             )
         )
@@ -52,14 +50,13 @@ class BatchRequestHandler:
                 Tuple[str, str, Resource, Type[RunException], Dict, Optional[Dict], Optional[Dict]]
             ],
             f_callback: Callable,
-            params: Optional[Dict],
             **kwargs
     ) -> List[asyncio.Task]:
 
         def init_task(res: Resource):
             # the action specific part
             method, url, resource, exception, headers, params_, payload = prepare_function(
-                service, res, params, **kwargs
+                service, res, **kwargs
             )
 
             prepared_request = loop.create_task(
@@ -92,7 +89,6 @@ class BatchRequestHandler:
                 Tuple[str, str, Resource, Type[RunException], Dict, Optional[Dict], Optional[Dict]]
             ],
             f_callback: Callable,
-            params: Optional[Dict],
             **kwargs
     ):
         semaphore = asyncio.Semaphore(service.max_connection)
@@ -106,7 +102,6 @@ class BatchRequestHandler:
                 data=data,
                 prepare_function=prepare_function,
                 f_callback=f_callback,
-                params=params,
                 **kwargs
             )
             return await asyncio.gather(*tasks)
