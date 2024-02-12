@@ -160,7 +160,7 @@ class Store(ReadOnlyStore):
     # CR[U]D.
 
     def update(
-            self, data: Union[Resource, List[Resource]], schema_id: Optional[str]
+            self, data: Union[Resource, List[Resource]], schema_id: Optional[str] = None
     ) -> None:
         # Replace None by self._update_many to switch to optimized bulk update.
         run(

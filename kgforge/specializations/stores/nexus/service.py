@@ -29,6 +29,7 @@ import requests
 from aiohttp import ClientSession, hdrs
 from requests import HTTPError
 
+from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (
@@ -37,8 +38,7 @@ from kgforge.core.commons.actions import (
     execute_lazy_actions,
     LazyAction,
 )
-from kgforge.core.commons.exceptions import ConfigurationError
-from kgforge.core.commons.execution import error_message, format_message
+from kgforge.core.commons.exceptions import ConfigurationError, RunException
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import (
     _from_jsonld_one,
@@ -57,6 +57,7 @@ class BatchAction(Enum):
     TAG = "tag"
     UPLOAD = "upload"
     DOWNLOAD = "download"
+    UPDATE_SCHEMA = "update_schema"
 
 
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
@@ -74,30 +75,32 @@ class Service:
     DEFAULT_ES_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultElasticSearchIndex"
     DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
-    UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
+    UNCONSTRAINED_SCHEMA = (
+        "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
+    )
 
     SPARQL_ENDPOINT_TYPE = "sparql"
     ELASTIC_ENDPOINT_TYPE = "elastic"
 
     def __init__(
-            self,
-            endpoint: str,
-            org: str,
-            prj: str,
-            token: str,
-            model_context: Context,
-            max_connection: int,
-            searchendpoints: Dict,
-            store_context: str,
-            store_local_context: str,
-            namespace: str,
-            project_property: str,
-            deprecated_property: bool,
-            content_type: str,
-            accept: str,
-            files_upload_config: Dict,
-            files_download_config: Dict,
-            **params,
+        self,
+        endpoint: str,
+        org: str,
+        prj: str,
+        token: str,
+        model_context: Context,
+        max_connection: int,
+        searchendpoints: Dict,
+        store_context: str,
+        store_local_context: str,
+        namespace: str,
+        project_property: str,
+        deprecated_property: bool,
+        content_type: str,
+        accept: str,
+        files_upload_config: Dict,
+        files_download_config: Dict,
+        **params,
     ):
         nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
@@ -112,8 +115,18 @@ class Service:
         self.namespace = namespace
         self.project_property = project_property
         self.store_metadata_keys = [
-            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
-            "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+            "_constrainedBy",
+            "_createdAt",
+            "_createdBy",
+            "_deprecated",
+            "_incoming",
+            "_outgoing",
+            "_project",
+            "_rev",
+            "_schemaProject",
+            "_self",
+            "_updatedAt",
+            "_updatedBy",
         ]
 
         self.deprecated_property = deprecated_property
@@ -124,27 +137,35 @@ class Service:
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
         sparql_config = searchendpoints.get("sparql", None) if searchendpoints else None
-        elastic_config = searchendpoints.get("elastic", None) if searchendpoints else None
+        elastic_config = (
+            searchendpoints.get("elastic", None) if searchendpoints else None
+        )
 
         self.headers_sparql = {
-            "Content-Type": sparql_config["Content-Type"]
-            if sparql_config and "Content-Type" in sparql_config
-            else "text/plain",
-            "Accept": sparql_config["Accept"]
-            if sparql_config and "Accept" in sparql_config
-            else "application/sparql-results+json",
+            "Content-Type": (
+                sparql_config["Content-Type"]
+                if sparql_config and "Content-Type" in sparql_config
+                else "text/plain"
+            ),
+            "Accept": (
+                sparql_config["Accept"]
+                if sparql_config and "Accept" in sparql_config
+                else "application/sparql-results+json"
+            ),
         }
         self.headers_elastic = {
-            "Content-Type": elastic_config["Content-Type"]
-            if elastic_config and "Content-Type" in elastic_config
-            else "application/json",
-            "Accept": elastic_config["Accept"]
-            if elastic_config and "Accept" in elastic_config
-            else "application/json",
+            "Content-Type": (
+                elastic_config["Content-Type"]
+                if elastic_config and "Content-Type" in elastic_config
+                else "application/json"
+            ),
+            "Accept": (
+                elastic_config["Accept"]
+                if elastic_config and "Accept" in elastic_config
+                else "application/json"
+            ),
         }
-        self.headers_upload = {
-            "Accept": files_upload_config.pop("Accept"),
-        }
+        self.headers_upload = {"Accept": files_upload_config.pop("Accept")}
         self.headers_download = {"Accept": files_download_config.pop("Accept")}
 
         if token is not None:
@@ -156,16 +177,10 @@ class Service:
             self.headers_download["Authorization"] = "Bearer " + token
         self.context = Context(self.get_project_context())
 
-        self.url_base_files = "/".join((self.endpoint, "files"))
-        self.url_files = "/".join(
-            (self.url_base_files, quote_plus(org), quote_plus(prj))
-        )
-        self.url_resources = "/".join(
-            (self.endpoint, "resources", quote_plus(org), quote_plus(prj))
-        )
-        self.url_resolver = "/".join(
-            (self.endpoint, "resolvers", quote_plus(org), quote_plus(prj))
-        )
+        self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
+        self.url_resources = Service.make_endpoint(self.endpoint, "resources", org, prj)
+        self.url_resolver = Service.make_endpoint(self.endpoint, "resolvers", org, prj)
+
         self.metadata_context = Context(
             recursive_resolve(
                 self.store_context, self.resolve_context, already_loaded=[]
@@ -195,18 +210,24 @@ class Service:
         )
 
         self.sparql_endpoint = {
-            "endpoint": self.make_endpoint(sparql_view, Service.SPARQL_ENDPOINT_TYPE)
+            "endpoint": self.make_query_endpoint_self(
+                sparql_view, Service.SPARQL_ENDPOINT_TYPE
+            )
         }
 
         self.elastic_endpoint = {
-            "endpoint": self.make_endpoint(elastic_view, Service.ELASTIC_ENDPOINT_TYPE)
+            "endpoint": self.make_query_endpoint_self(
+                elastic_view, Service.ELASTIC_ENDPOINT_TYPE
+            )
         }
 
         self.elastic_endpoint["view"] = LazyAction(
             nexus.views.fetch,
             quote_plus(org),
             quote_plus(prj),
-            es_mapping if es_mapping else elastic_view,  # Todo consider using Dict for es_mapping
+            (
+                es_mapping if es_mapping else elastic_view
+            ),  # Todo consider using Dict for es_mapping
         )
         self.elastic_endpoint["default_str_keyword_field"] = default_str_keyword_field
 
@@ -218,7 +239,30 @@ class Service:
             pass
 
     @staticmethod
-    def make_query_endpoint(base, view, endpoint_type, organisation, project) -> str:
+    def make_endpoint(
+        endpoint: str, endpoint_type: str, organisation: str, project: str
+    ):
+        return "/".join(
+            (endpoint, endpoint_type, quote_plus(organisation), quote_plus(project))
+        )
+
+    @staticmethod
+    def add_schema_and_id_to_endpoint(
+        endpoint: str, schema_id: Optional[str], resource_id: Optional[str]
+    ):
+        schema = quote_plus(schema_id) if schema_id else "_"
+
+        to_join = [endpoint, schema]
+
+        if resource_id:
+            to_join.append(quote_plus(resource_id))
+
+        return "/".join(to_join)
+
+    @staticmethod
+    def make_query_endpoint(
+        endpoint, view, endpoint_type, organisation, project
+    ) -> str:
 
         if endpoint_type == Service.SPARQL_ENDPOINT_TYPE:
             last_url_component = "sparql"
@@ -227,30 +271,24 @@ class Service:
         else:
             raise ValueError(f"Unknown endpoint type {endpoint_type}")
 
-        return "/".join(
-            (
-                base,
-                "views",
-                quote_plus(organisation),
-                quote_plus(project),
-                quote_plus(view),
-                last_url_component,
-            )
-        )
+        view_base = Service.make_endpoint(endpoint, "views", organisation, project)
 
-    def make_endpoint(self, view: str, endpoint_type: str):
+        return "/".join((view_base, quote_plus(view), last_url_component))
+
+    def make_query_endpoint_self(self, view: str, endpoint_type: str):
         return Service.make_query_endpoint(
-            base=self.endpoint, view=view,
+            endpoint=self.endpoint,
+            view=view,
             endpoint_type=endpoint_type,
             organisation=self.organisation,
-            project=self.project
+            project=self.project,
         )
 
     def get_project_context(self) -> Dict:
         project_data = nexus.projects.fetch(self.organisation, self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
-        for mapping in project_data['apiMappings']:
-            context[mapping['prefix']] = mapping['namespace']
+        for mapping in project_data["apiMappings"]:
+            context[mapping["prefix"]] = mapping["namespace"]
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
@@ -260,8 +298,16 @@ class Service:
             context_to_resolve = (
                 self.store_local_context if iri == self.store_context else iri
             )
-            url = "/".join((self.url_resolver, "_", quote_plus(context_to_resolve)))
-            response = requests.get(url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT)
+
+            url = Service.add_schema_and_id_to_endpoint(
+                endpoint=self.url_resolver,
+                schema_id=None,
+                resource_id=context_to_resolve,
+            )
+
+            response = requests.get(
+                url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT
+            )
             response.raise_for_status()
             resource = response.json()
         except Exception as exc:
@@ -269,15 +315,19 @@ class Service:
                 try:
                     context = Context(context_to_resolve)
                 except URLError as exc2:
-                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
+                    raise ValueError(
+                        f"{context_to_resolve} is not resolvable"
+                    ) from exc2
 
                 document = context.document["@context"]
             else:
                 raise ValueError(f"{context_to_resolve} is not resolvable") from exc
         else:
             # Make sure context is not deprecated
-            if '_deprecated' in resource and resource['_deprecated']:
-                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
+            if "_deprecated" in resource and resource["_deprecated"]:
+                raise ConfigurationError(
+                    f"Context {context_to_resolve} exists but was deprecated"
+                )
             document = json.loads(json.dumps(resource["@context"]))
         if isinstance(document, list):
             if self.store_context in document:
@@ -288,158 +338,60 @@ class Service:
         return document
 
     def batch_request(
-            self,
-            resources: List[Resource],
-            action: BatchAction,
-            callback: Callable,
-            error_type: Callable,
-            **kwargs,
+        self,
+        resources: List[Resource],
+        action: BatchAction,
+        callback: Callable,
+        error_type: RunException,
+        **kwargs,
     ) -> Tuple[BatchResults, BatchResults]:
+
         def create_tasks(
-                semaphore, session, loop, data, batch_action, f_callback, error
-        ):
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop,
+            data: List,
+            batch_action: BatchAction,
+            f_callback: Callable,
+            error: RunException,
+        ) -> List[Task]:
+
+            prepare_function_map = {
+                batch_action.CREATE: BatchRequestHandler.prepare_batch_create,
+                batch_action.UPDATE: BatchRequestHandler.prepare_batch_update,
+                batch_action.TAG: BatchRequestHandler.prepare_batch_tag,
+                batch_action.DEPRECATE: BatchRequestHandler.prepare_batch_deprecate,
+                batch_action.FETCH: BatchRequestHandler.prepare_batch_fetch,
+                batch_action.UPDATE_SCHEMA: BatchRequestHandler.prepare_batch_update_schema,
+            }
+
             futures = []
-            schema_id = kwargs.get("schema_id")
-            schema_id = "_" if schema_id is None else quote_plus(schema_id)
+
             for resource in data:
-                params = deepcopy(kwargs.get("params", {}))
-                if batch_action == batch_action.CREATE:
-                    context = self.model_context or self.context
-                    payload = as_jsonld(
-                        resource,
-                        "compacted",
-                        False,
-                        model_context=context,
-                        metadata_context=None,
-                        context_resolver=self.resolve_context
-                    )
-                    url = f"{self.url_resources}/{schema_id}"
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_POST,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
+                params = deepcopy(kwargs.pop("params", {}))
 
-                if batch_action == batch_action.UPDATE:
-                    url, params_from_resource = self._prepare_uri(resource, schema_id)
-                    params.update(params_from_resource)
+                prepare_function = prepare_function_map.get(batch_action, None)
 
-                    payload = as_jsonld(
-                        resource,
-                        "compacted",
-                        False,
-                        model_context=self.model_context,
-                        metadata_context=None,
-                        context_resolver=self.resolve_context
-                    )
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_PUT,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
+                if prepare_function is None:
+                    raise not_supported()
 
-                if batch_action == batch_action.TAG:
-                    url, payload, rev_param = self._prepare_tag(resource, kwargs.get("tag"))
-                    params.update(rev_param)
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_POST,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            payload,
-                            params,
-                        )
-                    )
-
-                if batch_action == batch_action.DEPRECATE:
-                    url, rev_param = self._prepare_uri(resource)
-                    params.update(rev_param)
-
-                    prepared_request = loop.create_task(
-                        queue(
-                            hdrs.METH_DELETE,
-                            semaphore,
-                            session,
-                            url,
-                            resource,
-                            error,
-                            params=params,
-                        )
-                    )
-
-                if batch_action == BatchAction.FETCH:
-                    resource_org, resource_prj = resource._project.split("/")[-2:]
-                    resource_url = "/".join(
-                        (
-                            self.endpoint,
-                            "resources",
-                            quote_plus(resource_org),
-                            quote_plus(resource_prj),
-                        )
-                    )
-                    url = "/".join((resource_url, "_", quote_plus(resource.id)))
-                    if hasattr(resource, "_rev"):
-                        params["rev"] = resource._rev
-                    retrieve_source = params.get("retrieve_source", False)
-                    if retrieve_source:
-                        url = "/".join((url, "source"))
-                    params.pop("retrieve_source")
-                    prepared_request = loop.create_task(
-                        queue(hdrs.METH_GET, semaphore, session, url, resource, error,
-                              params=params)
-                    )
+                prepared_request = prepare_function(
+                    service=self,
+                    resource=resource,
+                    semaphore=semaphore,
+                    session=session,
+                    loop=loop,
+                    params=params,
+                    error=error,
+                    **kwargs,
+                )
 
                 if f_callback:
                     prepared_request.add_done_callback(f_callback)
+
                 futures.append(prepared_request)
+
             return futures
-
-        async def queue(
-                method,
-                semaphore,
-                session,
-                url,
-                resource,
-                exception,
-                payload=None,
-                params=None,
-        ):
-            async with semaphore:
-                return await request(
-                    method, session, url, resource, payload, params, exception
-                )
-
-        async def request(method, session, url, resource, payload, params, exception):
-            async with session.request(
-                    method,
-                    url,
-                    headers=self.headers,
-                    data=json.dumps(payload),
-                    params=params,
-            ) as response:
-                content = await response.json()
-                if response.status < 400:
-                    return BatchResult(resource, content)
-
-                error = exception(_error_message(content))
-                return BatchResult(resource, error)
 
         async def dispatch_action():
             semaphore = asyncio.Semaphore(self.max_connection)
@@ -452,17 +404,28 @@ class Service:
 
         return asyncio.run(dispatch_action())
 
-    def _prepare_tag(self, resource, tag) -> Tuple[str, Dict, Dict]:
+    def _prepare_tag(self, resource: Resource, tag: str) -> Tuple[str, Dict, Dict]:
         url, params = self._prepare_uri(resource)
-        url = "/".join((url, "tags"))
+        url = f"{url}/tags"
         data = {"tag": tag}
         data.update(params)
         return url, data, params
 
-    def _prepare_uri(self, resource, schema_uri=None) -> Tuple[str, Dict]:
-        schema_id = schema_uri if schema_uri else resource._store_metadata._constrainedBy
-        schema_id = "_" if schema_id == self.UNCONSTRAINED_SCHEMA or schema_id is None else schema_id
-        url = "/".join((self.url_resources, quote_plus(schema_id), quote_plus(resource.id)))
+    def _prepare_uri(
+        self,
+        resource: Resource,
+        schema_uri: Optional[str] = None,
+        use_unconstrained_id: bool = False,
+    ) -> Tuple[str, Dict]:
+        schema_id = schema_uri or resource._store_metadata._constrainedBy
+
+        if schema_id == self.UNCONSTRAINED_SCHEMA and not use_unconstrained_id:
+            schema_id = None
+
+        url = Service.add_schema_and_id_to_endpoint(
+            self.url_resources, schema_id, resource_id=resource.id
+        )
+
         rev = resource._store_metadata._rev
         params = {"rev": rev}
         return url, params
@@ -486,12 +449,12 @@ class Service:
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(
-            self,
-            resource: Resource,
-            response: Union[Exception, Dict],
-            action_name: str,
-            succeeded: bool,
-            synchronized: bool,
+        self,
+        resource: Resource,
+        response: Union[Exception, Dict],
+        action_name: str,
+        succeeded: bool,
+        synchronized: bool,
     ) -> None:
         if succeeded:
             action = Action(action_name, succeeded, None)
@@ -505,25 +468,27 @@ class Service:
     def default_callback(self, fun_name: str) -> Callable:
         def callback(task: Task):
             result = task.result()
-            if isinstance(result.response, Exception):
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, False, False
-                )
-            else:
-                self.synchronize_resource(
-                    result.resource, result.response, fun_name, True, True
-                )
+
+            succeeded = not isinstance(result.response, Exception)
+
+            self.synchronize_resource(
+                resource=result.resource,
+                response=result.response,
+                action_name=fun_name,
+                succeeded=succeeded,
+                synchronized=succeeded,
+            )
 
         return callback
 
     def verify(
-            self,
-            resources: List[Resource],
-            function_name,
-            exception: Type[Exception],
-            id_required: bool,
-            required_synchronized: bool,
-            execute_actions: bool,
+        self,
+        resources: List[Resource],
+        function_name,
+        exception: Type[Exception],
+        id_required: bool,
+        required_synchronized: bool,
+        execute_actions: bool,
     ) -> List[Resource]:
         valid = []
         for resource in resources:
@@ -554,12 +519,15 @@ class Service:
         return valid
 
     def to_resource(
-            self, payload: Dict, sync_metadata: bool = True, **kwargs
+        self, payload: Dict, sync_metadata: bool = True, **kwargs
     ) -> Resource:
         # Use JSONLD context defined in Model if no context is retrieved from payload
         # Todo: BlueBrainNexus store is not indexing in ES the JSONLD context, user provided context can be changed to Model defined one
         data_context = deepcopy(
-            payload.get("@context", self.model_context.iri if self.model_context else None))
+            payload.get(
+                "@context", self.model_context.iri if self.model_context else None
+            )
+        )
         if not isinstance(data_context, list):
             data_context = [data_context]
         if self.store_context in data_context:
@@ -576,9 +544,9 @@ class Service:
                 data[k] = v
 
         if (
-                self.model_context
-                and data_context is not None
-                and data_context == self.model_context.iri
+            self.model_context
+            and data_context is not None
+            and data_context == self.model_context.iri
         ):
             resolved_ctx = self.model_context.document["@context"]
         elif data_context is not None:
@@ -599,24 +567,277 @@ class Service:
         if len(metadata) > 0 and sync_metadata:
             metadata.update(kwargs)
             self.sync_metadata(resource, metadata)
-        if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
+        if not hasattr(resource, "id") and kwargs and "id" in kwargs.keys():
             resource.id = kwargs.get("id")
         return resource
 
 
 def _error_message(error: Union[HTTPError, Dict]) -> str:
+    def format_message(msg: str):
+        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+
     try:
         # Error from Nexus
         error_json = error.response.json() if isinstance(error, HTTPError) else error
         messages = []
         reason = error_json.get("reason", None)
         details = error_json.get("details", None)
-        if reason:
+
+        if reason and isinstance(reason, str):
             messages.append(format_message(reason))
-        if details:
+        if details and isinstance(details, str):
             messages.append(format_message(details))
-        messages = messages if reason or details else [str(error)]
+
+        messages = messages if len(messages) > 0 else [str(error)]
         return ". ".join(messages)
     except Exception:
-        # Return general HTTPError
-        return error_message(error)
+        pass
+
+    try:
+        error_text = (
+            error.response.text() if isinstance(error, HTTPError) else str(error)
+        )
+        return format_message(error_text)
+    except Exception:
+        return format_message(str(error))
+
+
+class BatchRequestHandler:
+
+    @staticmethod
+    def prepare_batch_create(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ) -> Task:
+
+        schema_id = kwargs.get("schema_id")
+        url = Service.add_schema_and_id_to_endpoint(
+            service.url_resources, schema_id=schema_id, resource_id=None
+        )
+
+        context = service.model_context or service.context
+        payload = as_jsonld(
+            resource,
+            "compacted",
+            False,
+            model_context=context,
+            metadata_context=None,
+            context_resolver=service.resolve_context,
+        )
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_POST,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params,
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_update(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ):
+
+        url, params_from_resource = service._prepare_uri(
+            resource, schema_uri=kwargs.get("schema_id"), use_unconstrained_id=True
+        )
+
+        params.update(params_from_resource)
+
+        payload = as_jsonld(
+            resource,
+            "compacted",
+            False,
+            model_context=service.model_context,
+            metadata_context=None,
+            context_resolver=service.resolve_context,
+        )
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_PUT,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params,
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_tag(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ):
+        url, payload, rev_param = service._prepare_tag(resource, kwargs.get("tag"))
+        params.update(rev_param)
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_POST,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                payload=payload,
+                params=params,
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_deprecate(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ):
+        url, rev_param = service._prepare_uri(resource)
+        params.update(rev_param)
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_DELETE,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                params=params,
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_fetch(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ):
+        resource_org, resource_prj = resource._project.split("/")[-2:]
+        endpoint = Service.make_endpoint(
+            service.endpoint, "resources", resource_org, resource_prj
+        )
+        url = Service.add_schema_and_id_to_endpoint(
+            endpoint=endpoint, schema_id=None, resource_id=resource.id
+        )
+
+        if hasattr(resource, "_rev"):
+            params["rev"] = resource._rev
+
+        retrieve_source = params.pop("retrieve_source", False)
+
+        if retrieve_source:
+            url = "/".join((url, "source"))
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_GET,
+                semaphore,
+                session,
+                url,
+                resource,
+                error,
+                headers=service.headers,
+                params=params,
+            )
+        )
+
+    @staticmethod
+    def prepare_batch_update_schema(
+        service: Service,
+        resource: Resource,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        loop,
+        params: Dict,
+        error: RunException,
+        **kwargs,
+    ):
+
+        schema_id = kwargs.get("schema_id")
+        url = Service.add_schema_and_id_to_endpoint(
+            endpoint=service.url_resources, schema_id=schema_id, resource_id=resource.id
+        )
+
+        return loop.create_task(
+            BatchRequestHandler.queue(
+                hdrs.METH_PUT,
+                semaphore,
+                session,
+                url=f"{url}/update-schema",
+                resource=resource,
+                exception=error,
+                headers=service.headers,
+                payload=None,
+                params=None,
+            )
+        )
+
+    @staticmethod
+    async def queue(
+        method,
+        semaphore,
+        session,
+        url,
+        resource,
+        exception,
+        headers,
+        payload=None,
+        params=None,
+    ):
+        async with semaphore:
+            return await BatchRequestHandler.request(
+                method, session, url, resource, payload, params, exception, headers
+            )
+
+    @staticmethod
+    async def request(
+        method, session, url, resource, payload, params, exception, headers
+    ):
+        async with session.request(
+            method, url, headers=headers, data=json.dumps(payload), params=params
+        ) as response:
+            content = await response.json()
+            if response.status < 400:
+                return BatchResult(resource, content)
+
+            error = exception(_error_message(content))
+            return BatchResult(resource, error)

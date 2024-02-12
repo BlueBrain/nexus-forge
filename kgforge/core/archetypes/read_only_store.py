@@ -72,7 +72,7 @@ class ReadOnlyStore(ABC):
 
     @abstractmethod
     def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
+            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ) -> Optional[Resource]:
         # POLICY Should notify of failures with exception RetrievalError including a message.
         # POLICY Resource _store_metadata should be set using wrappers.dict.wrap_dict().
