@@ -132,15 +132,14 @@ def prepare_fetch(
 
     resource_org, resource_prj = resource._project.split("/")[-2:]
     endpoint = Service.make_endpoint(service.endpoint, "resources", resource_org, resource_prj)
-    url = Service.add_schema_and_id_to_endpoint(endpoint=endpoint, schema_id=None,
-                                                resource_id=resource.id)
+    url = Service.add_schema_and_id_to_endpoint(
+        endpoint=endpoint, schema_id=None, resource_id=resource.id
+    )
 
-
-    fetch_params = {}
+    fetch_params = copy.deepcopy(service.params.get("retrieve", {}))
 
     if hasattr(resource, "_rev"):
         fetch_params["rev"] = resource._rev
-
 
     retrieve_source = kwargs.pop("retrieve_source", False)
 

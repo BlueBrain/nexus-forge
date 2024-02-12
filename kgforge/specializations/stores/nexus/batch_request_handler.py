@@ -1,9 +1,10 @@
 from collections import namedtuple
+import json
+import asyncio
+
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any
 from typing_extensions import Unpack
 
-import asyncio
-import json
 from aiohttp import ClientSession
 
 from kgforge.core.resource import Resource
