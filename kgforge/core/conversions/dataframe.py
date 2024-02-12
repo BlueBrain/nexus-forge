@@ -60,6 +60,8 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
     new_na = row.replace(na, np.nan)
     no_na = new_na.dropna()
     items = list(no_na.items())
+    if not all([isinstance(i[0], str) for i in items]):
+        raise ValueError('Non-string column name!')
     data = deflatten(items, nesting)
     return from_json(data, None)
 
@@ -94,7 +96,7 @@ def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
         if n1 in split:  # already done, continue
             continue
         k1, v1 = t1_  # all tuples refer to a key-value pair in the DataFrame row
-        if isinstance(k1, str) and sep in k1:  # avoid issue if int or other class
+        if sep in k1:  # avoid issue if int or other class
             pre, _ = k1.split(sep, maxsplit=1)  # getting prefix ('agent.type' => 'agent')
             if pre in d:  # we already have d[pre] from the else statement, i.e. it appeared without sep!
                 raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
@@ -102,7 +104,7 @@ def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
             pitems = []  # any of type {pre}{sep}{depth2}{sep}{depth3} => {depth2}{sep}{depth3}
             for n2, t2_ in enumerate(items):
                 k2, v2 = t2_
-                if isinstance(k2, str) and k2.startswith(f'{pre}{sep}'):
+                if k2.startswith(f'{pre}{sep}'):
                     _, post = k2.split(sep, maxsplit=1)  # _ ought to be == pre, but we care mainly about what comes after {pre}{sep}
                     pitems.append((post, v2))
                     split.append(n2)  # we do not need to split this item anymore in this specific recursive call
