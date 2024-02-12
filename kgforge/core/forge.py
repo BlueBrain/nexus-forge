@@ -737,7 +737,6 @@ class KnowledgeGraphForge:
 
         :param data: the resources to update
         :param schema_id: an identifier of the schema the updated resources should conform to
-        :param update_schema: whether the resource(s)' schemas should be updated to the schema_id value
         """
         self._store.update(data, schema_id)
 
