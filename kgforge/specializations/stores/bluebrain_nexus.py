@@ -288,11 +288,11 @@ class BlueBrainNexus(Store):
         url_resource = Service.add_schema_and_id_to_endpoint(
             url_base, schema_id=None, resource_id=id_
         )
-        # 4 cases depending on  the value of retrieve_source and cross_bucket:
+        # 4 cases depending on the value of retrieve_source and cross_bucket:
         # retrieve_source = False and cross_bucket = True: metadata in payload
         # retrieve_source = False and cross_bucket = False: metadata in payload
         # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
-        # retrieve_source = True, and cross_bucket = True:
+        # retrieve_source = True and cross_bucket = True:
         #   Uses the resolvers endpoint. No metadata if retrieving_source.
         #   https://github.com/BlueBrain/nexus/issues/4717 To fetch separately.
         #   Solution: first API call used to retrieve metadata
