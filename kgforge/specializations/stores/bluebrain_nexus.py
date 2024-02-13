@@ -252,22 +252,33 @@ class BlueBrainNexus(Store):
     def _retrieve_id(
             self,  id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
     ):
-
+        """
+            Retrieves assuming the provided identifier really is the id
+        """
         url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
 
         url_resource = Service.add_schema_and_id_to_endpoint(
             url_base, schema_id=None, resource_id=id_
         )
-        # and not cross_bucket: if cross_bucket, no support for /source and metadata.
-        # So this will fetch the right metadata. The source data will be fetched later
-        url = f"{url_resource}/source" if retrieve_source and not cross_bucket else url_resource
+        # 4 cases depending on the value of retrieve_source and cross_bucket:
+        # retrieve_source = False and cross_bucket = True: metadata in payload
+        # retrieve_source = False and cross_bucket = False: metadata in payload
+        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
+        # retrieve_source = True and cross_bucket = True:
+        #   Uses the resolvers endpoint. No metadata if retrieving_source.
+        #   https://github.com/BlueBrain/nexus/issues/4717 To fetch separately.
+        #   Solution: first API call used to retrieve metadata
+        #             afterwards, second API call to retrieve data
 
-        response = requests.request(
-            method=hdrs.METH_GET,
-            url=url,
-            params=query_params,
-            headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT
+        url = f"{url_resource}/source" if retrieve_source else url_resource
+
+        # if cross_bucket, no support for /source and metadata.
+        # So this will fetch the right metadata. The source data will be fetched later
+        if cross_bucket:
+            url = url_resource
+
+        response = requests.get(
+            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, RetrievalError)
 
@@ -277,25 +288,22 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
-        # retrieve_source = False = metadata in payload
-        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
-        #       Used to be a call without /source, and then synchronize_resource
-        # retrieve_source = True, and cross_bucket = True: no metadata. To fetch separately.
-        #       Used to be a call to the _self/source and then service.to_resource
-
-        # specific case that requires additional fetching of data without source
         if not (retrieve_source and cross_bucket):
             return resource
 
+        # specific case that requires additional fetching of data without source
         _self = data.get("_self", None)
 
+        # Retrieves the appropriate data if retrieve_source = True and cross_bucket = True
         if _self:
             response_source = requests.get(
                 url=f"{_self}/source",
                 params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
             )
             catch_http_error_nexus(response_source, RetrievalError)
+            # turns the retrieved data into a resource
             resource = self.service.to_resource(response_source.json())
+            # uses the metadata of the first call
             self.service.synchronize_resource(
                 resource, data, self.retrieve.__name__, True, True
             )
@@ -306,14 +314,13 @@ class BlueBrainNexus(Store):
     def _retrieve_self(
             self, self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
+        """
+            Retrieves assuming the provided identifier is actually the resource's _self field
+        """
         url = f"{self_}/source" if retrieve_source else self_
 
-        response = requests.request(
-            method=hdrs.METH_GET,
-            url=url,
-            params=query_params,
-            headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT
+        response = requests.get(
+            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, RetrievalError)
 
