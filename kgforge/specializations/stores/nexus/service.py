@@ -291,23 +291,6 @@ class Service:
         self.context_cache.update({context_to_resolve: document})
         return document
 
-    def _prepare_uri(
-            self, resource: Resource, schema_uri: Optional[str] = None,
-            keep_unconstrained: bool = False
-    ) -> Tuple[str, Dict]:
-        schema_id = schema_uri or resource._store_metadata._constrainedBy
-
-        if schema_id == self.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
-            schema_id = None
-
-        url = Service.add_schema_and_id_to_endpoint(
-            self.url_resources, schema_id, resource_id=resource.id
-        )
-
-        rev = resource._store_metadata._rev
-        params = {"rev": rev}
-        return url, params
-
     @staticmethod
     def _local_parse(id_value, version_params) -> Tuple[str, Dict]:
         parsed_id = urlparse(id_value)

@@ -1,7 +1,7 @@
+import copy
 from typing import Dict, Optional, Tuple, Type
 from typing_extensions import TypeAlias
 from aiohttp import hdrs
-import copy
 
 from kgforge.core.resource import Resource
 import kgforge.core.commons.exceptions as run_exceptions
@@ -58,7 +58,7 @@ def prepare_update(
 ) -> prepare_return:
 
     schema_id = kwargs.get("schema_id")
-    url, params = service._prepare_uri(resource, schema_id, keep_unconstrained=True)
+    url, params = _prepare_uri(service, resource, schema_id, keep_unconstrained=True)
     params_update = copy.deepcopy(service.params.get("update", {}))
     params_update.update(params)
 
@@ -78,8 +78,26 @@ def prepare_update(
     return method, url, resource, exception, headers, params_update, payload
 
 
+def _prepare_uri(
+        service, resource: Resource, schema_uri: Optional[str] = None,
+        keep_unconstrained: bool = False
+) -> Tuple[str, Dict]:
+    schema_id = schema_uri or resource._store_metadata._constrainedBy
+
+    if schema_id == service.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
+        schema_id = None
+
+    url = Service.add_schema_and_id_to_endpoint(
+        service.url_resources, schema_id, resource_id=resource.id
+    )
+
+    rev = resource._store_metadata._rev
+    params = {"rev": rev}
+    return url, params
+
+
 def _prepare_tag(service: Service, resource: Resource, tag: str) -> Tuple[str, Dict, Dict]:
-    url, params = service._prepare_uri(resource)
+    url, params = _prepare_uri(service, resource)
     url = f"{url}/tags"
     data = {"tag": tag}
     data.update(params)
@@ -113,7 +131,7 @@ def prepare_deprecate(
 ) -> prepare_return:
 
     params_deprecate = copy.deepcopy(service.params.get("deprecate", {}))
-    url, rev_param = service._prepare_uri(resource)
+    url, rev_param = _prepare_uri(service, resource)
     params_deprecate.update(rev_param)
 
     method = hdrs.METH_DELETE
