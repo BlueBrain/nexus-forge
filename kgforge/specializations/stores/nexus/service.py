@@ -20,6 +20,8 @@ from asyncio import Task
 from copy import deepcopy
 from urllib.error import URLError
 from urllib.parse import quote_plus, urlparse, parse_qs
+
+import aiohttp
 import nest_asyncio
 import nexussdk as nexus
 import requests
@@ -451,14 +453,17 @@ class Service:
         return resource
 
 
-def _error_message(error: Union[requests.HTTPError, Dict]) -> str:
+def _error_message(error: Union[requests.HTTPError, aiohttp.ClientResponseError, Dict]) -> str:
     def format_message(msg: str):
         return "".join(
             [msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""]
         )
 
     try:
-        error_json = error.response.json() if isinstance(error, requests.HTTPError) else error
+        error_json = error.response.json() if \
+            isinstance(error, (requests.HTTPError, aiohttp.ClientResponseError)) \
+            else error
+
         messages = []
         reason = error_json.get("reason", None)
         details = error_json.get("details", None)
