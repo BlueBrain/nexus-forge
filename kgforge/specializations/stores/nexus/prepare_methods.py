@@ -25,13 +25,14 @@ def prepare_create(
 ) -> prepare_return:
 
     schema_id = kwargs.get("schema_id")
-    url = Service.add_schema_and_id_to_endpoint(
-        service.url_resources, schema_id=schema_id, resource_id=None
-    )
 
     params_register = copy.deepcopy(service.params.get("register", {}))
 
     identifier = resource.get_identifier()
+
+    url = Service.add_schema_and_id_to_endpoint(
+        service.url_resources, schema_id=schema_id, resource_id=identifier
+    )
 
     context = service.model_context or service.context
 
@@ -46,9 +47,8 @@ def prepare_create(
 
     method = hdrs.METH_PUT if identifier else hdrs.METH_POST
     exception = run_exceptions.RegistrationError
-    headers = service.headers
 
-    return method, url, resource, exception, headers, params_register, payload
+    return method, url, resource, exception, service.headers, params_register, payload
 
 
 def prepare_update(
@@ -73,9 +73,8 @@ def prepare_update(
 
     method = hdrs.METH_PUT
     exception = run_exceptions.UpdatingError
-    headers = service.headers
 
-    return method, url, resource, exception, headers, params_update, payload
+    return method, url, resource, exception, service.headers, params_update, payload
 
 
 def _prepare_uri(
@@ -119,9 +118,8 @@ def prepare_tag(
 
     method = hdrs.METH_POST
     exception = run_exceptions.TaggingError
-    headers = service.headers
 
-    return method, url, resource, exception, headers, params_tag, payload
+    return method, url, resource, exception, service.headers, params_tag, payload
 
 
 def prepare_deprecate(
@@ -136,10 +134,9 @@ def prepare_deprecate(
 
     method = hdrs.METH_DELETE
     exception = run_exceptions.DeprecationError
-    headers = service.headers
     payload = None
 
-    return method, url, resource, exception, headers, params_deprecate, payload
+    return method, url, resource, exception, service.headers, params_deprecate, payload
 
 
 def prepare_fetch(
@@ -166,10 +163,9 @@ def prepare_fetch(
 
     method = hdrs.METH_GET
     exception = run_exceptions.QueryingError
-    headers = service.headers
     payload = None
 
-    return method, url, resource, exception, headers, fetch_params, payload
+    return method, url, resource, exception, service.headers, fetch_params, payload
 
 
 def prepare_update_schema(
@@ -186,7 +182,7 @@ def prepare_update_schema(
     method = hdrs.METH_PUT
     url = f"{url}/update-schema"
     exception = run_exceptions.SchemaUpdateError
-    headers = service.headers
     payload = None
+    update_schema_params = None
 
-    return method, url, resource, exception, headers, None, payload
+    return method, url, resource, exception, service.headers, update_schema_params, payload

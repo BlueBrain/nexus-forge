@@ -106,10 +106,13 @@ class BlueBrainNexus(Store):
 
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
 
+        fc_name = self._register_many.__name__
+
         def register_callback(task: Task):
             result = task.result()
             succeeded = not isinstance(result.response, Exception)
 
+            # This if is the one difference with the default callback
             if succeeded:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
@@ -123,14 +126,14 @@ class BlueBrainNexus(Store):
             self.service.synchronize_resource(
                 result.resource,
                 result.response,
-                self._register_many.__name__,
+                fc_name,
                 succeeded,
                 succeeded,
             )
 
         verified = self.service.verify(
             resources,
-            function_name=self._register_many.__name__,
+            function_name=fc_name,
             exception=RegistrationError,
             id_required=False,
             required_synchronized=False,
@@ -525,10 +528,11 @@ class BlueBrainNexus(Store):
         )
 
     def _update_many(self, resources: List[Resource], schema_id: str) -> None:
-        update_callback = self.service.default_callback(self._update_many.__name__)
+        fc_name = self._update_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._update_many.__name__,
+            function_name=fc_name,
             exception=UpdatingError,
             id_required=True,
             required_synchronized=False,
@@ -538,7 +542,7 @@ class BlueBrainNexus(Store):
         BatchRequestHandler.batch_request(
             service=self.service,
             resources=verified,
-            callback=update_callback,
+            callback=self.service.default_callback(fc_name),
             prepare_function=prepare_methods.prepare_update,
             schema_id=schema_id
         )
@@ -584,11 +588,11 @@ class BlueBrainNexus(Store):
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
 
-        update_schema_callback = self.service.default_callback(self._update_schema_many.__name__)
+        fc_name = self._update_schema_many.__name__
 
         verified = self.service.verify(
             resources,
-            function_name=self._update_schema_many.__name__,
+            function_name=fc_name,
             exception=SchemaUpdateError,
             id_required=True,
             required_synchronized=True,
@@ -599,7 +603,7 @@ class BlueBrainNexus(Store):
             service=self.service,
             resources=verified,
             prepare_function=prepare_methods.prepare_update_schema,
-            callback=update_schema_callback,
+            callback=self.service.default_callback(fc_name),
             schema_id=schema_id,
         )
 
@@ -630,10 +634,11 @@ class BlueBrainNexus(Store):
         )
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
-        tag_callback = self.service.default_callback(self._tag_many.__name__)
+        fc_name = self._tag_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._tag_many.__name__,
+            function_name=fc_name,
             exception=TaggingError,
             id_required=True,
             required_synchronized=True,
@@ -643,7 +648,7 @@ class BlueBrainNexus(Store):
             service=self.service,
             resources=verified,
             prepare_function=prepare_methods.prepare_tag,
-            callback=tag_callback,
+            callback=self.service.default_callback(fc_name),
             tag=value
         )
 
@@ -679,12 +684,11 @@ class BlueBrainNexus(Store):
         )
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
-        deprecate_callback = self.service.default_callback(
-            self._deprecate_many.__name__
-        )
+        fc_name = self._deprecate_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._deprecate_many.__name__,
+            function_name=fc_name,
             exception=DeprecationError,
             id_required=True,
             required_synchronized=True,
@@ -695,7 +699,7 @@ class BlueBrainNexus(Store):
             service=self.service,
             resources=verified,
             prepare_function=prepare_methods.prepare_deprecate,
-            callback=deprecate_callback
+            callback=self.service.default_callback(fc_name)
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
