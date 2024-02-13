@@ -296,13 +296,13 @@ class BlueBrainNexus(Store):
         #   Uses the resolvers endpoint. No metadata if retrieving_source.
         #   https://github.com/BlueBrain/nexus/issues/4717 To fetch separately.
         #   Solution: first API call used to retrieve metadata
-        #             afterwards, second API call to retrieve not_source_with_metadata
+        #             afterwards, second API call to retrieve data
 
         # TODO temporary
         # url = f"{url_resource}/source" if retrieve_source else url_resource
         #
         # # if cross_bucket, no support for /source and metadata.
-        # # So this will fetch the right metadata. The source not_source_with_metadata will be fetched later
+        # # So this will fetch the right metadata. The source data will be fetched later
         # if cross_bucket:
         #     url = url_resource
 
@@ -326,7 +326,7 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
-        # specific case that requires additional fetching of not_source_with_metadata without source
+        # specific case that requires additional fetching of data without source
         _self = not_source_with_metadata.get("_self", None)
 
         # Retrieves the appropriate not_source_with_metadata if retrieve_source = True and cross_bucket = True
