@@ -273,46 +273,58 @@ class BlueBrainNexus(Store):
         #   Solution: first API call used to retrieve metadata
         #             afterwards, second API call to retrieve data
 
-        url = f"{url_resource}/source" if retrieve_source else url_resource
+        # TODO temporary
+        # url = f"{url_resource}/source" if retrieve_source else url_resource
+        #
+        # # if cross_bucket, no support for /source and metadata.
+        # # So this will fetch the right metadata. The source data will be fetched later
+        # if cross_bucket:
+        #     url = url_resource
 
-        # if cross_bucket, no support for /source and metadata.
-        # So this will fetch the right metadata. The source data will be fetched later
-        if cross_bucket:
-            url = url_resource
+        url = url_resource
 
-        response = requests.get(
+        response_not_source_with_metadata = requests.get(
             url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
-        catch_http_error_nexus(response, RetrievalError)
+        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
 
         try:
-            data = response.json()
-            resource = self.service.to_resource(data)
+            not_source_with_metadata = response_not_source_with_metadata.json()
+
+            # TODO temporary
+            # if not (retrieve_source and cross_bucket):
+            #     return self.service.to_resource(not_source_with_metadata)
+
+            if not retrieve_source:
+                return self.service.to_resource(not_source_with_metadata)
+
         except Exception as e:
             raise RetrievalError(e) from e
 
-        if not (retrieve_source and cross_bucket):
-            return resource
+        # specific case that requires additional fetching of data with source
+        _self = not_source_with_metadata.get("_self", None)
 
-        # specific case that requires additional fetching of data without source
-        _self = data.get("_self", None)
-
-        # Retrieves the appropriate data if retrieve_source = True and cross_bucket = True
+        # Retrieves the appropriate data if retrieve_source = True
         if _self:
-            response_source = requests.get(
-                url=f"{_self}/source",
-                params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
-            )
-            catch_http_error_nexus(response_source, RetrievalError)
-            # turns the retrieved data into a resource
-            resource = self.service.to_resource(response_source.json())
-            # uses the metadata of the first call
-            self.service.synchronize_resource(
-                resource, data, self.retrieve.__name__, True, True
-            )
-            return resource
+            return self._merge_metadata_with_source_data(_self, not_source_with_metadata, query_params)
 
         raise RetrievalError("Cannot find metadata in payload")
+
+    def _merge_metadata_with_source_data(self, _self, data_not_source_with_metadata, query_params):
+        response_source = requests.get(
+            url=f"{_self}/source",
+            params=query_params, headers=self.service.headers,
+            timeout=REQUEST_TIMEOUT
+        )
+        catch_http_error_nexus(response_source, RetrievalError)
+        # turns the retrieved data into a resource
+        data_source = response_source.json()
+        resource = self.service.to_resource(data_source)
+        # uses the metadata of the first call
+        self.service.synchronize_resource(
+            resource, data_not_source_with_metadata, self.retrieve.__name__, True, True
+        )
+        return resource
 
     def _retrieve_self(
             self, self_, retrieve_source: bool, query_params: Dict
@@ -320,18 +332,24 @@ class BlueBrainNexus(Store):
         """
             Retrieves assuming the provided identifier is actually the resource's _self field
         """
-        url = f"{self_}/source" if retrieve_source else self_
+        # TODO temporary
+        # url = f"{self_}/source" if retrieve_source else self_
+        url = self_
 
-        response = requests.get(
+        response_not_source_with_metadata = requests.get(
             url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
-        catch_http_error_nexus(response, RetrievalError)
+        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
 
         try:
-            data = response.json()
-            return self.service.to_resource(data)
+            not_source_with_metadata = response_not_source_with_metadata.json()
+            if not retrieve_source:
+                return self.service.to_resource(not_source_with_metadata)
+
         except Exception as e:
             raise RetrievalError(e) from e
+
+        return self._merge_metadata_with_source_data(self_, not_source_with_metadata, query_params)
 
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
@@ -364,8 +382,8 @@ class BlueBrainNexus(Store):
 
         retrieve_source = params.get('retrieve_source', True)
 
-        if retrieve_source:
-            query_params.update({"annotate": True})
+        # if retrieve_source:
+        #     query_params.update({"annotate": True})
 
         try:
             return self._retrieve_id(
