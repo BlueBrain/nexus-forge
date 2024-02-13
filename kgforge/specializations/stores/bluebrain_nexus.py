@@ -68,7 +68,7 @@ REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
 def catch_http_error_nexus(
         r: requests.Response, e: Type[BaseException],
-        error_message_formatter: Callable=_error_message,
+        error_message_formatter: Callable = _error_message,
         aiohttp_error=False
 ):
     return catch_http_error(
