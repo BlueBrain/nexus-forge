@@ -326,10 +326,10 @@ class BlueBrainNexus(Store):
         except Exception as e:
             raise RetrievalError(e) from e
 
-        # specific case that requires additional fetching of data without source
+        # specific case that requires additional fetching of data with source
         _self = not_source_with_metadata.get("_self", None)
 
-        # Retrieves the appropriate not_source_with_metadata if retrieve_source = True and cross_bucket = True
+        # Retrieves the appropriate data if retrieve_source = True
         if _self:
             return self._merge_metadata_with_source_data(_self, not_source_with_metadata, query_params)
 
