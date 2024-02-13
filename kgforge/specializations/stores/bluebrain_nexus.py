@@ -376,7 +376,6 @@ class BlueBrainNexus(Store):
 
         return self._merge_metadata_with_source_data(self_, not_source_with_metadata, query_params)
 
-
     def retrieve(
             self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
