@@ -493,7 +493,6 @@ class BlueBrainNexus(Store):
 
         return self._retrieve_many(ids, versions, cross_bucket, **params)
 
-
     # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
     async def _retrieve(
             self,
