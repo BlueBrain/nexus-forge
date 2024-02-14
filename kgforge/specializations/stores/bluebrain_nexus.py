@@ -157,7 +157,7 @@ class BlueBrainNexus(Store):
     def _register_one(self, resource: Resource, schema_id: str) -> None:
 
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_create(
-            service=self.service, resource=resource, params={}
+            service=self.service, resource=resource
         )
 
         response = requests.request(
@@ -824,7 +824,7 @@ class BlueBrainNexus(Store):
     def _tag_one(self, resource: Resource, value: str) -> None:
 
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_tag(
-            service=self.service, resource=resource, params={}, tag=value
+            service=self.service, resource=resource, tag=value
         )
 
         response = requests.request(
@@ -874,7 +874,7 @@ class BlueBrainNexus(Store):
     def _deprecate_one(self, resource: Resource) -> None:
 
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_deprecate(
-            service=self.service, resource=resource, params={}
+            service=self.service, resource=resource
         )
 
         response = requests.request(
