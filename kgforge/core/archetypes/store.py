@@ -254,14 +254,14 @@ class Store(ReadOnlyStore):
             ESQueryBuilder.debug_query(query_dict)
 
         return self._elastic(
-            json.dumps(query_dict),
+            query_dict,
             view=params.get("view", None),
-            as_json=params.get("as_json", False)
+            as_resource=params.get("as_resource", True)
         )
 
     @abstractmethod
     def _elastic(
-            self, query: str, view: Optional[str], as_json: bool
+            self, query: Dict, view: Optional[str], as_resource: bool
     ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
