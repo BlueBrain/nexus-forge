@@ -53,70 +53,58 @@ class BatchRequestHandler:
             **kwargs
     ) -> BatchResults:
 
-        def create_tasks(
-                semaphore: asyncio.Semaphore,
-                session: ClientSession,
-                loop: AbstractEventLoop,
-                resources: List[Resource],
-                service,
-                **kwargs
-        ) -> List[asyncio.Task]:
-
-            def init_task(res: Resource):
-
-                batch_result = BatchRequestHandler.request(
-                    semaphore=semaphore,
-                    session=session,
-                    service=service,
-                    resource=res,
-                    **kwargs
-                )
-                prepared_request: asyncio.Task = loop.create_task(batch_result)
-
-                if callback:
-                    prepared_request.add_done_callback(callback)
-
-                return prepared_request
-
-            return [init_task(res) for res in resources]
-
         return BatchRequestHandler.batch_request(
             service=service,
             data=resources,
-            task_creator=create_tasks,
+            task_creator=BatchRequestHandler.create_tasks_for_resources,
             prepare_function=prepare_function,
-            f_callback=callback,
+            callback=callback,
             **kwargs
         )
 
     @staticmethod
-    async def request(
+    def create_tasks_for_resources(
             semaphore: asyncio.Semaphore,
             session: ClientSession,
-            service: Service,
-            resource: Optional[Resource],
-            prepare_function: Callable[
-                [Service, Resource, Dict, Unpack[Any]],
-                Tuple[str, str, Resource, Type[RunException], Dict, Optional[Dict], Optional[Dict]]
-            ],
+            loop: AbstractEventLoop,
+            resources: List[Resource],
+            service,
             **kwargs
-    ) -> BatchResult:
+    ) -> List[asyncio.Task]:
 
-        method, url, resource, exception, headers, params, payload = prepare_function(
-            service, resource, **kwargs
-        )
+        prepare_function = kwargs["prepare_function"]
+        callback = kwargs["callback"]
 
-        async with semaphore:
-            async with session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    data=json.dumps(payload, ensure_ascii=True),
-                    params=params
-            ) as response:
-                content = await response.json()
-                if response.status < 400:
-                    return BatchResult(resource, content)
+        async def request(resource: Optional[Resource]) -> BatchResult:
 
-                error = exception(_error_message(content))
-                return BatchResult(resource, error)
+            method, url, resource, exception, headers, params, payload = prepare_function(
+                service, resource, **kwargs
+            )
+
+            async with semaphore:
+                async with session.request(
+                        method=method,
+                        url=url,
+                        headers=headers,
+                        data=json.dumps(payload, ensure_ascii=True),
+                        params=params
+                ) as response:
+                    content = await response.json()
+                    if response.status < 400:
+                        return BatchResult(resource, content)
+
+                    error = exception(_error_message(content))
+                    return BatchResult(resource, error)
+
+        tasks = []
+
+        for res in resources:
+
+            prepared_request: asyncio.Task = loop.create_task(request(res))
+
+            if callback:
+                prepared_request.add_done_callback(callback)
+
+            tasks.append(prepared_request)
+
+        return tasks
