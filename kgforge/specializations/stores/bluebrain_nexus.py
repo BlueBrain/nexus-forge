@@ -410,7 +410,7 @@ class BlueBrainNexus(Store):
             versions: List[Optional[Union[int, str]]],
             cross_bucket: bool,
             **params
-    ) -> Optional[Resource]:
+    ) -> List[Optional[Resource]]:
 
         def create_tasks(
                 semaphore: asyncio.Semaphore,
@@ -449,7 +449,7 @@ class BlueBrainNexus(Store):
 
             return tasks
 
-        return BatchRequestHandler.batch_request(
+        batch_results = BatchRequestHandler.batch_request(
             service=self.service,
             task_creator=create_tasks,
             data=ids,
@@ -457,6 +457,7 @@ class BlueBrainNexus(Store):
             cross_bucket=cross_bucket,
             **params
         )
+        return [b.resource for b in batch_results]
 
     def retrieve(
             self,
@@ -464,7 +465,7 @@ class BlueBrainNexus(Store):
             version: Union[Optional[Union[int, str]], List[Optional[Union[int, str]]]],
             cross_bucket: bool = False,
             **params
-    ) -> Optional[Resource]:
+    ) -> Union[List[Optional[Resource]], Optional[Resource]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
@@ -479,7 +480,7 @@ class BlueBrainNexus(Store):
 
         ids = [id_] if isinstance(id_, str) else id_
 
-        if len(id_) == 1:
+        if len(ids) == 1:
 
             versions = [version] if isinstance(version, (str, int)) else (version or [None])
 
@@ -557,7 +558,8 @@ class BlueBrainNexus(Store):
                 # Try to use the id as it was given
                 return await self._retrieve_self(
                     session=session,
-                    self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
+                    self_=id_without_query, retrieve_source=retrieve_source,
+                    query_params=query_params
                 )
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
