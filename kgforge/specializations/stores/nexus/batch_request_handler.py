@@ -3,13 +3,13 @@ from collections import namedtuple
 import json
 import asyncio
 
-from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Awaitable
+from typing import Callable, Dict, List, Optional, Tuple, Type, Any
 from typing_extensions import Unpack
 
 from aiohttp import ClientSession
 
 from kgforge.core.resource import Resource
-from kgforge.core.commons.exceptions import RunException, RetrievalError
+from kgforge.core.commons.exceptions import RunException
 from kgforge.specializations.stores.nexus.service import Service, _error_message
 
 BatchResult = namedtuple("BatchResult", ["resource", "response"])

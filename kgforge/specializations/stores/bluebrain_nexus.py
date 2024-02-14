@@ -59,7 +59,8 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
-from kgforge.specializations.stores.nexus.batch_request_handler import BatchRequestHandler
+from kgforge.specializations.stores.nexus.batch_request_handler import BatchRequestHandler, \
+    BatchResult
 from kgforge.specializations.stores.nexus.service import Service, _error_message
 import kgforge.specializations.stores.nexus.prepare_methods as prepare_methods
 
@@ -381,6 +382,82 @@ class BlueBrainNexus(Store):
             session, self_, not_source_with_metadata, query_params
         )
 
+    def _retrieve_one(
+            self,
+            id_: str,
+            version: Optional[Union[int, str]],
+            cross_bucket: bool,
+            **params
+    ):
+        loop = asyncio.get_event_loop()
+
+        async def do():
+            async with ClientSession() as session:
+                return await self._retrieve(
+                    semaphore=asyncio.Semaphore(1),
+                    session=session,
+                    id_=id_,
+                    version=version,
+                    cross_bucket=cross_bucket,
+                    **params
+                )
+
+        return loop.run_until_complete(do())
+
+    def _retrieve_many(
+            self,
+            ids: List[str],
+            versions: List[Optional[Union[int, str]]],
+            cross_bucket: bool,
+            **params
+    ) -> Optional[Resource]:
+
+        def create_tasks(
+                semaphore: asyncio.Semaphore,
+                session: ClientSession,
+                loop: AbstractEventLoop,
+                ids_: List[Any],
+                service,
+                **kwargs
+        ) -> List[asyncio.Task]:
+
+            vs = kwargs["versions"]
+            tasks = []
+
+            async def do_catch(id_, version):
+                try:
+                    resource = await self._retrieve(
+                        semaphore=semaphore,
+                        session=session,
+                        service=service,
+                        id_=id_,
+                        version=version,
+                        **kwargs
+                    )
+                    return BatchResult(resource, None)
+                except RetrievalError as e:
+                    return BatchResult(Resource(), e)
+                    # TODO do we want to return an empty resource so that we may propagate the error?
+
+            for id_, version in zip(ids_, vs):
+                batch_result = do_catch(id_, version)
+                prepared_request: asyncio.Task = loop.create_task(batch_result)
+                prepared_request.add_done_callback(
+                    self.service.default_callback(self._retrieve_many.__name__)
+                )
+                tasks.append(prepared_request)
+
+            return tasks
+
+        return BatchRequestHandler.batch_request(
+            service=self.service,
+            task_creator=create_tasks,
+            data=ids,
+            versions=versions,
+            cross_bucket=cross_bucket,
+            **params
+        )
+
     def retrieve(
             self,
             id_: Union[str, List[str]],
@@ -400,60 +477,21 @@ class BlueBrainNexus(Store):
         :return: Resource
         """
 
-        if isinstance(id_, str):
-            loop = asyncio.get_event_loop()
+        ids = [id_] if isinstance(id_, str) else id_
 
-            async def do():
-                async with ClientSession() as session:
-                    return await self._retrieve(
-                        semaphore=asyncio.Semaphore(1),
-                        session=session,
-                        id_=id_,
-                        version=version,
-                        cross_bucket=cross_bucket,
-                        **params
-                    )
+        if len(id_) == 1:
 
-            return loop.run_until_complete(do())
-        else:
-            versions = [None] * len(id_) if version is None else version
+            versions = [version] if isinstance(version, (str, int)) else (version or [None])
 
-            if len(versions) != len(id_):
-                raise Exception("As many versions as ids need to be provided")
+            return self._retrieve_one(ids[0], versions[0], cross_bucket, **params)
 
-            def create_tasks(
-                    semaphore: asyncio.Semaphore,
-                    session: ClientSession,
-                    loop: AbstractEventLoop,
-                    ids: List[Any],
-                    service,
-                    **kwargs
-            ) -> List[asyncio.Task]:
+        versions = [None] * len(ids) if version is None else version
 
-                def init_task(id_: str, version:  Optional[Union[str, int]]):
+        if len(versions) != len(ids):
+            raise Exception("As many versions as ids need to be provided")
 
-                    batch_result = self._retrieve(
-                        semaphore=semaphore,
-                        session=session,
-                        service=service,
-                        id_=id_,
-                        version=version,
-                        **kwargs
-                    )
-                    prepared_request: asyncio.Task = loop.create_task(batch_result)
-                    return prepared_request
+        return self._retrieve_many(ids, versions, cross_bucket, **params)
 
-                vs = kwargs["versions"]
-                return [init_task(res, v) for res, v in zip(ids, vs)]
-
-            return BatchRequestHandler.batch_request(
-                service=self.service,
-                task_creator=create_tasks,
-                data=id_,
-                versions=versions,
-                cross_bucket=cross_bucket,
-                **params
-            )
 
     # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
     async def _retrieve(

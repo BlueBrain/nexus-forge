@@ -338,14 +338,15 @@ class Service:
     def synchronize_resource(
             self,
             resource: Resource,
-            response: Union[Exception, Dict],
+            response: Optional[Union[Exception, Dict]],
             action_name: str,
             succeeded: bool,
             synchronized: bool,
     ) -> None:
         if succeeded:
             action = Action(action_name, succeeded, None)
-            self.sync_metadata(resource, response)
+            if response:  # for requests that don't return metadata on success
+                self.sync_metadata(resource, response)
         else:
             action = Action(action_name, succeeded, response)
 
