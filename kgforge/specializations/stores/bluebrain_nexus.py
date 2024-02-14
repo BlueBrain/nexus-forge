@@ -984,7 +984,9 @@ class BlueBrainNexus(Store):
         context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
-    def _elastic(self, query: str, view: Optional[str]) -> List[Resource]:
+    def _elastic(
+            self, query: str, view: Optional[str], as_json: bool
+    ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
 
         endpoint = self.service.elastic_endpoint["endpoint"] \
             if view is None \
@@ -999,6 +1001,11 @@ class BlueBrainNexus(Store):
         catch_http_error_nexus(response, QueryingError)
 
         results = response.json()
+        results = results["hits"]["hits"]
+
+        if as_json:
+            return results
+
         return [
             self.service.to_resource(
                 hit["_source"],
@@ -1009,9 +1016,8 @@ class BlueBrainNexus(Store):
                     "_score": hit.get("_score", None),
                 },
             )
-            for hit in results["hits"]["hits"]
+            for hit in results
         ]
-
     # Utils.
 
     def _initialize_service(

@@ -161,7 +161,7 @@ class DemoStore(Store):
     def _sparql(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
         raise not_supported()
 
-    def _elastic(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource]]:
+    def _elastic(self, query: str, endpoint: str) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
         raise not_supported()
 
     # Utils.

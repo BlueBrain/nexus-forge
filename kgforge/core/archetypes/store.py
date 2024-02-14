@@ -241,7 +241,7 @@ class Store(ReadOnlyStore):
     def elastic(
             self, query: str, debug: bool, limit: int = DEFAULT_LIMIT, offset: int = DEFAULT_OFFSET,
             **params
-    ) -> List[Resource]:
+    ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         query_dict = json.loads(query)
 
         query_dict = ESQueryBuilder.apply_limit_and_offset_to_query(
@@ -253,10 +253,16 @@ class Store(ReadOnlyStore):
         if debug:
             ESQueryBuilder.debug_query(query_dict)
 
-        return self._elastic(json.dumps(query_dict), view=params.get("view", None))
+        return self._elastic(
+            json.dumps(query_dict),
+            view=params.get("view", None),
+            as_json=params.get("as_json", False)
+        )
 
     @abstractmethod
-    def _elastic(self, query: str, view: Optional[str]) -> Optional[Union[List[Resource], Resource]]:
+    def _elastic(
+            self, query: str, view: Optional[str], as_json: bool
+    ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).
         # POLICY Resource _synchronized should not be set (default is False).
