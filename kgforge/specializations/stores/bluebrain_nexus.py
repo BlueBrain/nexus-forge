@@ -68,9 +68,14 @@ REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
 
 def catch_http_error_nexus(
-        r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
+        r: requests.Response, e: Type[BaseException],
+        error_message_formatter: Callable = _error_message,
+        aiohttp_error=False
 ):
-    return catch_http_error(r, e, error_message_formatter)
+    return catch_http_error(
+        r, e, error_message_formatter,
+        to_catch=requests.HTTPError if not aiohttp_error else ClientResponseError
+    )
 
 
 class BlueBrainNexus(Store):
@@ -253,8 +258,10 @@ class BlueBrainNexus(Store):
 
         return id_without_query, query_params
 
-    def _retrieve_id(
-            self,  id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
+    async def _retrieve_id(
+            self,
+            session,
+            id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
     ):
         """
             Retrieves assuming the provided identifier really is the id
@@ -284,14 +291,18 @@ class BlueBrainNexus(Store):
 
         url = url_resource
 
-        response_not_source_with_metadata = requests.get(
-            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
-        )
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
+        async with session.request(
+                method=hdrs.METH_GET,
+                url=url,
+                headers=self.service.headers,
+
+        ) as response_not_source_with_metadata:
+            # turns the retrieved data into a resource
+            not_source_with_metadata = await response_not_source_with_metadata.json()
+
+        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError, aiohttp_error=True)
 
         try:
-            not_source_with_metadata = response_not_source_with_metadata.json()
-
             # TODO temporary
             # if not (retrieve_source and cross_bucket):
             #     return self.service.to_resource(not_source_with_metadata)
@@ -307,19 +318,29 @@ class BlueBrainNexus(Store):
 
         # Retrieves the appropriate data if retrieve_source = True
         if _self:
-            return self._merge_metadata_with_source_data(_self, not_source_with_metadata, query_params)
+            return await self._merge_metadata_with_source_data(
+                session,
+                _self, not_source_with_metadata, query_params
+            )
 
         raise RetrievalError("Cannot find metadata in payload")
 
-    def _merge_metadata_with_source_data(self, _self, data_not_source_with_metadata, query_params):
-        response_source = requests.get(
-            url=f"{_self}/source",
-            params=query_params, headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT
-        )
-        catch_http_error_nexus(response_source, RetrievalError)
-        # turns the retrieved data into a resource
-        data_source = response_source.json()
+    async def _merge_metadata_with_source_data(
+            self,
+            session,
+            _self, data_not_source_with_metadata, query_params
+    ):
+
+        async with session.request(
+                method=hdrs.METH_GET,
+                url=f"{_self}/source",
+                headers=self.service.headers,
+                params=query_params
+        ) as response_source:
+            # turns the retrieved data into a resource
+            data_source = await response_source.json()
+
+        catch_http_error_nexus(response_source, RetrievalError, aiohttp_error=True)
         resource = self.service.to_resource(data_source)
         # uses the metadata of the first call
         self.service.synchronize_resource(
@@ -327,8 +348,10 @@ class BlueBrainNexus(Store):
         )
         return resource
 
-    def _retrieve_self(
-            self, self_, retrieve_source: bool, query_params: Dict
+    async def _retrieve_self(
+            self,
+            session,
+            self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
         """
             Retrieves assuming the provided identifier is actually the resource's _self field
@@ -337,23 +360,146 @@ class BlueBrainNexus(Store):
         # url = f"{self_}/source" if retrieve_source else self_
         url = self_
 
-        response_not_source_with_metadata = requests.get(
-            url, params=query_params, headers=self.service.headers, timeout=REQUEST_TIMEOUT
-        )
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
+        async with session.request(
+                method=hdrs.METH_GET,
+                url=url,
+                headers=self.service.headers,
+                params=query_params
+        ) as response_not_source_with_metadata:
+            # turns the retrieved data into a resource
+            not_source_with_metadata = await response_not_source_with_metadata.json()
+
+        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError, aiohttp_error=True)
 
         try:
-            not_source_with_metadata = response_not_source_with_metadata.json()
             if not retrieve_source:
                 return self.service.to_resource(not_source_with_metadata)
 
         except Exception as e:
             raise RetrievalError(e) from e
 
-        return self._merge_metadata_with_source_data(self_, not_source_with_metadata, query_params)
+        return await self._merge_metadata_with_source_data(
+            session, self_, not_source_with_metadata, query_params
+        )
+
+    def _retrieve_one(
+            self,
+            id_: str,
+            version: Optional[Union[int, str]],
+            cross_bucket: bool,
+            **params
+    ):
+        loop = asyncio.get_event_loop()
+
+        async def do():
+            async with ClientSession() as session:
+                return await self._retrieve(
+                    semaphore=asyncio.Semaphore(1),
+                    session=session,
+                    id_=id_,
+                    version=version,
+                    cross_bucket=cross_bucket,
+                    **params
+                )
+
+        return loop.run_until_complete(do())
+
+    def _retrieve_many(
+            self,
+            ids: List[str],
+            versions: List[Optional[Union[int, str]]],
+            cross_bucket: bool,
+            **params
+    ) -> List[Optional[Resource]]:
+
+        def create_tasks(
+                semaphore: asyncio.Semaphore,
+                session: ClientSession,
+                loop: AbstractEventLoop,
+                ids_: List[Any],
+                service,
+                **kwargs
+        ) -> List[asyncio.Task]:
+
+            vs = kwargs["versions"]
+            tasks = []
+
+            async def do_catch(id_, version):
+                try:
+                    resource = await self._retrieve(
+                        semaphore=semaphore,
+                        session=session,
+                        service=service,
+                        id_=id_,
+                        version=version,
+                        **kwargs
+                    )
+                    return BatchResult(resource, None)
+                except RetrievalError as e:
+                    return BatchResult(Resource(), e)
+                    # TODO do we want to return an empty resource so that we may propagate the error?
+
+            for id_, version in zip(ids_, vs):
+                batch_result = do_catch(id_, version)
+                prepared_request: asyncio.Task = loop.create_task(batch_result)
+                prepared_request.add_done_callback(
+                    self.service.default_callback(self._retrieve_many.__name__)
+                )
+                tasks.append(prepared_request)
+
+            return tasks
+
+        batch_results = BatchRequestHandler.batch_request(
+            service=self.service,
+            task_creator=create_tasks,
+            data=ids,
+            versions=versions,
+            cross_bucket=cross_bucket,
+            **params
+        )
+        return [b.resource for b in batch_results]
 
     def retrieve(
-            self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool = False, **params
+            self,
+            id_: Union[str, List[str]],
+            version: Union[Optional[Union[int, str]], List[Optional[Union[int, str]]]],
+            cross_bucket: bool = False,
+            **params
+    ) -> Union[List[Optional[Resource]], Optional[Resource]]:
+        """
+        Retrieve a resource by its identifier from the configured store and possibly at a given version.
+
+        :param id_: the resource identifier to retrieve
+        :param version: a version of the resource to retrieve
+        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [retrieve_source] whether to retrieve the resource payload as registered in the last update
+              (default: True)
+        :return: Resource
+        """
+
+        ids = [id_] if isinstance(id_, str) else id_
+
+        if len(ids) == 1:
+
+            versions = [version] if isinstance(version, (str, int)) else (version or [None])
+
+            return self._retrieve_one(ids[0], versions[0], cross_bucket, **params)
+
+        versions = [None] * len(ids) if version is None else version
+
+        if len(versions) != len(ids):
+            raise Exception("As many versions as ids need to be provided")
+
+        return self._retrieve_many(ids, versions, cross_bucket, **params)
+
+    # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
+    async def _retrieve(
+            self,
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            id_: str, version: Optional[Union[int, str]],
+            cross_bucket: bool = False, **params
     ) -> Optional[Resource]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -386,30 +532,34 @@ class BlueBrainNexus(Store):
         # if retrieve_source:
         #     query_params.update({"annotate": True})
 
-        try:
-            return self._retrieve_id(
-                id_=id_without_query, retrieve_source=retrieve_source,
-                cross_bucket=cross_bucket, query_params=query_params
-            )
-        except RetrievalError as er:
-
-            # without org and proj, vs with
-            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
-            nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
-
-            if not id_without_query.startswith(nexus_path_no_bucket):
-                raise er
-
-            if not id_without_query.startswith(nexus_path):
-                raise RetrievalError(
-                    f"Provided resource identifier {id_} is not inside the current bucket, "
-                    "use cross_bucket=True to be able to retrieve it"
+        async with semaphore:
+            try:
+                return await self._retrieve_id(
+                    session=session,
+                    id_=id_without_query, retrieve_source=retrieve_source,
+                    cross_bucket=cross_bucket, query_params=query_params
                 )
+            except RetrievalError as er:
 
-            # Try to use the id as it was given
-            return self._retrieve_self(
-                self_=id_without_query, retrieve_source=retrieve_source, query_params=query_params
-            )
+                # without org and proj, vs with
+                nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
+                nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
+
+                if not id_without_query.startswith(nexus_path_no_bucket):
+                    raise er
+
+                if not id_without_query.startswith(nexus_path):
+                    raise RetrievalError(
+                        f"Provided resource identifier {id_} is not inside the current bucket, "
+                        "use cross_bucket=True to be able to retrieve it"
+                    )
+
+                # Try to use the id as it was given
+                return await self._retrieve_self(
+                    session=session,
+                    self_=id_without_query, retrieve_source=retrieve_source,
+                    query_params=query_params
+                )
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
         response = requests.request(
