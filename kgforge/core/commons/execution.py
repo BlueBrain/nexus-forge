@@ -99,13 +99,11 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
 
 
 def catch_http_error(
-        r: requests.Response, error_to_throw: Type[BaseException],
-        error_message_formatter: Callable,
-        to_catch: Type[BaseException]
+        r: requests.Response, error_to_throw: Type[BaseException], error_message_formatter
 ):
     try:
         r.raise_for_status()
-    except to_catch as e:
+    except requests.HTTPError as e:
         raise error_to_throw(error_message_formatter(e)) from e
 
 

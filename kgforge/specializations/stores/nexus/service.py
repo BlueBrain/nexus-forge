@@ -21,10 +21,10 @@ from copy import deepcopy
 from urllib.error import URLError
 from urllib.parse import quote_plus, urlparse, parse_qs
 
-import aiohttp
 import nest_asyncio
 import nexussdk as nexus
 import requests
+from requests import HTTPError
 
 from kgforge.core.resource import Resource
 
@@ -338,15 +338,14 @@ class Service:
     def synchronize_resource(
             self,
             resource: Resource,
-            response: Optional[Union[Exception, Dict]],
+            response: Union[Exception, Dict],
             action_name: str,
             succeeded: bool,
             synchronized: bool,
     ) -> None:
         if succeeded:
             action = Action(action_name, succeeded, None)
-            if response:  # for requests that don't return metadata on success
-                self.sync_metadata(resource, response)
+            self.sync_metadata(resource, response)
         else:
             action = Action(action_name, succeeded, response)
 
@@ -454,17 +453,14 @@ class Service:
         return resource
 
 
-def _error_message(error: Union[requests.HTTPError, aiohttp.ClientResponseError, Dict]) -> str:
+def _error_message(error: Union[HTTPError, Dict]) -> str:
     def format_message(msg: str):
         return "".join(
             [msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""]
         )
 
     try:
-        error_json = error.response.json() if \
-            isinstance(error, (requests.HTTPError, aiohttp.ClientResponseError)) \
-            else error
-
+        error_json = error.response.json() if isinstance(error, HTTPError) else error
         messages = []
         reason = error_json.get("reason", None)
         details = error_json.get("details", None)
@@ -480,7 +476,7 @@ def _error_message(error: Union[requests.HTTPError, aiohttp.ClientResponseError,
         pass
 
     try:
-        error_text = error.response.text() if isinstance(error, requests.HTTPError) else str(error)
+        error_text = error.response.text() if isinstance(error, HTTPError) else str(error)
         return format_message(error_text)
     except Exception:
         return format_message(str(error))

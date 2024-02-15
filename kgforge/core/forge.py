@@ -606,11 +606,11 @@ class KnowledgeGraphForge:
     @catch
     def retrieve(
         self,
-        id: Union[str, List[str]],
-        version: Optional[Union[int, str, List[Union[str, int]]]] = None,
+        id: str,
+        version: Optional[Union[int, str]] = None,
         cross_bucket: bool = False,
         **params
-    ) -> Union[Optional[Resource], List[Optional[Resource]]]:
+    ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
 
