@@ -256,12 +256,13 @@ class Store(ReadOnlyStore):
         return self._elastic(
             query_dict,
             view=params.get("view", None),
-            as_resource=params.get("as_resource", True)
+            as_resource=params.get("as_resource", True),
+            build_resource_from=params.get("build_resource_from", "source")
         )
 
     @abstractmethod
     def _elastic(
-            self, query: Dict, view: Optional[str], as_resource: bool
+            self, query: Dict, view: Optional[str], as_resource: bool, build_resource_from: str
     ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
         # POLICY Should notify of failures with exception QueryingError including a message.
         # POLICY Resource _store_metadata should not be set (default is None).

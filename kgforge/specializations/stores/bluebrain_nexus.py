@@ -985,14 +985,8 @@ class BlueBrainNexus(Store):
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(
-            self, query: Dict, view: Optional[str], as_resource: bool
+            self, query: Dict, view: Optional[str], as_resource: bool, build_resource_from: str
     ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
-
-        if not query.get("_source", True):
-            raise QueryingError(
-                "_source = False is not supported when building Resources. "
-                "Set as_resource = False"
-            )
 
         endpoint = self.service.elastic_endpoint["endpoint"] \
             if view is None \
@@ -1012,9 +1006,19 @@ class BlueBrainNexus(Store):
         if not as_resource:
             return results
 
+        supported_build_arg = {"source": "_source"}
+
+        if build_resource_from not in supported_build_arg.keys():
+            raise Exception(
+                f"Building resources is only supported from the following options:"
+                f" {supported_build_arg.keys()}"
+            )
+
+        key_to_build_from = supported_build_arg[build_resource_from]
+
         return [
             self.service.to_resource(
-                hit["_source"],
+                hit[key_to_build_from],
                 True,
                 **{
                     "id": hit.get("_id", None),
