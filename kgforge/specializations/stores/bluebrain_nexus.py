@@ -967,25 +967,41 @@ class BlueBrainNexus(Store):
         context = self.model_context() or self.context
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
-    def _elastic(self, query: str, view: Optional[str]) -> List[Resource]:
+    def _elastic(
+            self, query: Dict, view: Optional[str], as_resource: bool, build_resource_from: str
+    ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
 
         endpoint = self.service.elastic_endpoint["endpoint"] \
             if view is None \
             else self.service.make_query_endpoint_self(view, endpoint_type="elastic")
 
-        response = requests.request(
-            method=hdrs.METH_POST,
-            url=endpoint,
-            data=query,
+        response = requests.post(
+            endpoint,
+            data=json.dumps(query),
             headers=self.service.headers_elastic,
             timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, QueryingError)
 
         results = response.json()
+        results = results["hits"]["hits"]
+
+        if not as_resource:
+            return results
+
+        supported_build_arg = {"source": "_source"}
+
+        if build_resource_from not in supported_build_arg.keys():
+            raise Exception(
+                f"Building resources is only supported from the following options:"
+                f" {supported_build_arg.keys()}"
+            )
+
+        key_to_build_from = supported_build_arg[build_resource_from]
+
         return [
             self.service.to_resource(
-                hit["_source"],
+                hit[key_to_build_from],
                 True,
                 **{
                     "id": hit.get("_id", None),
@@ -993,9 +1009,8 @@ class BlueBrainNexus(Store):
                     "_score": hit.get("_score", None),
                 },
             )
-            for hit in results["hits"]["hits"]
+            for hit in results
         ]
-
     # Utils.
 
     def _initialize_service(
