@@ -562,12 +562,7 @@ class BlueBrainNexus(Store):
                 )
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
-        response = requests.request(
-            method=hdrs.METH_GET,
-            url=id_,
-            headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT
-        )
+        response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
         return metadata["_filename"], metadata["_mediaType"]
@@ -627,8 +622,7 @@ class BlueBrainNexus(Store):
         headers = self.service.headers_download if not content_type else update_dict(
             self.service.headers_download, {"Accept": content_type})
 
-        response = requests.request(
-            method=hdrs.METH_GET,
+        response = requests.get(
             url=url,
             headers=headers,
             params=params_download,
@@ -1103,9 +1097,8 @@ class BlueBrainNexus(Store):
             if view is None \
             else self.service.make_query_endpoint_self(view, endpoint_type="sparql")
 
-        response = requests.request(
-            method=hdrs.METH_POST,
-            url=endpoint,
+        response = requests.post(
+            endpoint,
             data=query,
             headers=self.service.headers_sparql,
             timeout=REQUEST_TIMEOUT
@@ -1125,9 +1118,8 @@ class BlueBrainNexus(Store):
             if view is None \
             else self.service.make_query_endpoint_self(view, endpoint_type="elastic")
 
-        response = requests.request(
-            method=hdrs.METH_POST,
-            url=endpoint,
+        response = requests.post(
+            endpoint,
             data=json.dumps(query),
             headers=self.service.headers_elastic,
             timeout=REQUEST_TIMEOUT
