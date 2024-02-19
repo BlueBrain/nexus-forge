@@ -678,7 +678,7 @@ class KnowledgeGraphForge:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         **params
-    ) -> List[Resource]:
+    ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
 

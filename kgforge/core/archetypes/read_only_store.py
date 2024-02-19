@@ -249,9 +249,8 @@ class ReadOnlyStore(ABC):
 
     @abstractmethod
     def elastic(
-            self, query: str, debug: bool, limit: int = None,
-            offset: int = None, **params
-    ) -> Optional[Union[List[Resource], Resource]]:
+            self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+    ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         ...
 
     # Versioning.
