@@ -39,7 +39,7 @@ from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.resolver import Resolver
-from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.actions import LazyAction, Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -424,6 +424,17 @@ class BlueBrainNexus(Store):
             vs = kwargs["versions"]
             tasks = []
 
+            def retrieve_done_callback(task: Task):
+                result = task.result()
+
+                succeeded = not isinstance(result, Action)
+
+                if isinstance(result, Resource):
+                    self.service.synchronize_resource(
+                        resource=result, response=None, action_name=self,
+                        succeeded=succeeded, synchronized=succeeded
+                    )
+
             async def do_catch(id_, version):
                 try:
                     resource = await self._retrieve(
@@ -434,17 +445,14 @@ class BlueBrainNexus(Store):
                         version=version,
                         **kwargs
                     )
-                    return BatchResult(resource, None)
+                    return resource
                 except RetrievalError as e:
-                    return BatchResult(Resource(), e)
-                    # TODO do we want to return an empty resource so that we may propagate the error?
+                    return Action(self._retrieve_many.__name__, False, e)
 
             for id_, version in zip(ids_, vs):
                 batch_result = do_catch(id_, version)
                 prepared_request: asyncio.Task = loop.create_task(batch_result)
-                prepared_request.add_done_callback(
-                    self.service.default_callback(self._retrieve_many.__name__)
-                )
+                prepared_request.add_done_callback(retrieve_done_callback)
                 tasks.append(prepared_request)
 
             return tasks
@@ -457,7 +465,7 @@ class BlueBrainNexus(Store):
             cross_bucket=cross_bucket,
             **params
         )
-        return [b.resource for b in batch_results]
+        return batch_results
 
     def retrieve(
             self,
