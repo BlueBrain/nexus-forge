@@ -66,6 +66,22 @@ def test_load_context_fail():
         Context(context_url)
 
 
+def test_prefix_with_non_URI_GEN_DELIMS_expands(custom_context):
+    context = Context(custom_context)
+    context.document["@context"][
+        "NCBITaxon"
+    ] = "http://purl.obolibrary.org/obo/NCBITaxon_"
+    assert "_" not in context.URI_GEN_DELIMS
+    assert context.resolve("NCBITaxon:10090") == "NCBITaxon:10090"
+    context.document["@context"]["NCBITaxon"] = {
+        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_",
+        "@prefix": True,
+    }
+    assert (
+        context.resolve("NCBITaxon:10090")
+        == "http://purl.obolibrary.org/obo/NCBITaxon_10090"
+    )
+
+
 def is_valid_document(doc):
-    return (isinstance(doc, dict)
-            and "@context" in doc)
+    return isinstance(doc, dict) and "@context" in doc
