@@ -16,6 +16,7 @@ import json
 
 import pytest
 from urllib.error import URLError
+from rdflib.plugins.shared.jsonld.context import URI_GEN_DELIMS
 
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
@@ -71,7 +72,7 @@ def test_prefix_with_non_URI_GEN_DELIMS_expands(custom_context):
     context.document["@context"][
         "NCBITaxon"
     ] = "http://purl.obolibrary.org/obo/NCBITaxon_"
-    assert "_" not in context.URI_GEN_DELIMS
+    assert "_" not in URI_GEN_DELIMS
     assert context.resolve("NCBITaxon:10090") == "NCBITaxon:10090"
     context.document["@context"]["NCBITaxon"] = {
         "@id": "http://purl.obolibrary.org/obo/NCBITaxon_",
