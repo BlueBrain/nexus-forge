@@ -202,11 +202,6 @@ def custom_context():
                 "@id": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
             },
             "atlasRelease": {"@id": "nsg:atlasRelease"},
-            "NCBITaxon": {
-                "@id": "http://purl.obolibrary.org/obo/NCBITaxon_",
-                "@prefix": True,
-            },
-            "NCBITaxonPrefixFalse": "http://purl.obolibrary.org/obo/NCBITaxon_",
             "mba": "http://api.brain-map.org/api/v2/data/Structure/",
             "nsg": "https://neuroshapes.org/",
             "obo": "http://purl.obolibrary.org/obo/",
