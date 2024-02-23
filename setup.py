@@ -36,9 +36,7 @@ setup(
     url="https://github.com/BlueBrain/nexus-forge",
     packages=find_packages(),
     python_requires=">=3.8",
-    setup_requires=[
-        "setuptools_scm",
-    ],
+    setup_requires=["setuptools_scm"],
     install_requires=[
         "hjson",
         "pyyaml",
@@ -55,13 +53,7 @@ setup(
         "requests==2.31.0",
     ],
     extras_require={
-        "dev": [
-            "tox",
-            "pytest",
-            "pytest-bdd==3.4.0",
-            "pytest-cov",
-            "pytest-mock",
-        ],
+        "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock"],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
         "linking_sklearn": ["scikit-learn"],
     },

@@ -42,6 +42,7 @@ def do(fun: Callable, data: Union[Resource, List[Resource]], *args) -> None:
 
 # Resource(s) creation.
 
+
 @pytest.fixture
 def json_one():
     return {"id": "123", "type": "Type", "p1": "v1a", "p2": "v2a"}
@@ -118,15 +119,9 @@ def check_resource_status(data, attr, value):
 
 def check_report(capsys, rc, err, msg, op):
     out = capsys.readouterr().out[:-1]
-    heads = {
-        "": "",
-        "s": "<count> 2\n",
-    }
+    heads = {"": "", "s": "<count> 2\n"}
     head = heads[rc]
-    tails = {
-        None: f"False\n<error> {msg}",
-        " not": "True",
-    }
+    tails = {None: f"False\n<error> {msg}", " not": "True"}
     tail = tails[err]
     assert out == f"{head}<action> {op}\n<succeeded> {tail}"
 
@@ -172,12 +167,9 @@ def forge():
         "Model": {
             "name": "DemoModel",
             "origin": "directory",
-            "source": full_path_relative_to_root("tests/data/demo-model/")
+            "source": full_path_relative_to_root("tests/data/demo-model/"),
         },
-        "Store": {
-            "name": "DemoStore",
-            "model": {"name": "DemoModel"}
-        },
+        "Store": {"name": "DemoStore", "model": {"name": "DemoModel"}},
     }
     return KnowledgeGraphForge(config)
 
@@ -190,44 +182,29 @@ def custom_context():
             "foaf": "http://xmlns.com/foaf/0.1/",
             "Person": "foaf:Person",
             "name": "foaf:name",
-            "skos":"http://www.w3.org/2004/02/skos/core#",
-            "notation":"skos:notation",
-            "schema":"http://schema.org/",
-            "identifier":"schema:identifier",
-            "isPartOf": {
-                "@id": "schema:isPartOf",
-                "@type": "@id"
-            },
-            "prefLabel":"skos:prefLabel",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "notation": "skos:notation",
+            "schema": "http://schema.org/",
+            "identifier": "schema:identifier",
+            "isPartOf": {"@id": "schema:isPartOf", "@type": "@id"},
+            "prefLabel": "skos:prefLabel",
             "owl": "http://www.w3.org/2002/07/owl#",
-            "Class": {
-                "@id": "owl:Class"
-            },
+            "Class": {"@id": "owl:Class"},
             "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-            "isDefinedBy": {
-                "@id": "rdfs:isDefinedBy",
-                "@type": "@id"
-            },
-            "label": {
-                "@id": "rdfs:label"
-            },
-            "subClassOf": {
-                "@id": "rdfs:subClassOf",
-                "@type": "@id"
-            },
+            "isDefinedBy": {"@id": "rdfs:isDefinedBy", "@type": "@id"},
+            "label": {"@id": "rdfs:label"},
+            "subClassOf": {"@id": "rdfs:subClassOf", "@type": "@id"},
             "delineatedBy": {
                 "@id": "https://bbp.epfl.ch/ontologies/core/bmo/delineatedBy",
-                "@type": "@id"
+                "@type": "@id",
             },
             "representedInAnnotation": {
                 "@id": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
             },
-            "atlasRelease": {
-                "@id": "nsg:atlasRelease"
-            },
-            "mba": "http://api.brain-map.org/api/v2/data/Structure/", 
+            "atlasRelease": {"@id": "nsg:atlasRelease"},
+            "mba": "http://api.brain-map.org/api/v2/data/Structure/",
             "nsg": "https://neuroshapes.org/",
-            "obo": "http://purl.obolibrary.org/obo/"
+            "obo": "http://purl.obolibrary.org/obo/",
         }
     }
 
@@ -342,8 +319,8 @@ def model_prefixes():
         "owl": "http://www.w3.org/2002/07/owl#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "foaf": "http://xmlns.com/foaf/0.1/",
-        "mba": "http://api.brain-map.org/api/v2/data/Structure/", 
-        "obo": "http://purl.obolibrary.org/obo/"
+        "mba": "http://api.brain-map.org/api/v2/data/Structure/",
+        "obo": "http://purl.obolibrary.org/obo/",
     }
 
 
@@ -359,9 +336,7 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
             else Context(context)
         )
         latitude_term = ctx.terms.get("latitude")
-        latitude_node = {
-            "@value": resource.geo["latitude"],
-        }
+        latitude_node = {"@value": resource.geo["latitude"]}
         if latitude_term.type:
             latitude_node = {**{"@type": latitude_term.type}, **latitude_node}
 
@@ -369,10 +344,10 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
         data.update(
             {
                 "@type": [ctx.expand(resource.type)],
-                ctx.expand("description"): [{"@value":resource.description}],
+                ctx.expand("description"): [{"@value": resource.description}],
                 ctx.expand("geo"): [geo_expanded],
                 ctx.expand("image"): [{"@id": resource.image}],
-                ctx.expand("name"): [{"@value":resource.name}]
+                ctx.expand("name"): [{"@value": resource.name}],
             }
         )
         if store_metadata and resource._store_metadata is not None:
@@ -482,23 +457,17 @@ def config(model, store, resolver):
                         {
                             "identifier": "sex",
                             "bucket": "sex.json",
-                            "filters":[
-                                {
-                                "path": "type",
-                                "value": "class"
-                                },
-                                {
-                                "path": "label",
-                                "value": "female"
-                                }
-                            ]
-                        },
+                            "filters": [
+                                {"path": "type", "value": "class"},
+                                {"path": "label", "value": "female"},
+                            ],
+                        }
                     ],
                     "result_resource_mapping": full_path_relative_to_root(
                         "./examples/configurations/demo-resolver/term-to-resource-mapping.hjson"
-                    )
-                },
-            ],
+                    ),
+                }
+            ]
         },
     }
 
@@ -597,11 +566,7 @@ def es_mapping_dict():
                         "type": "object",
                     },
                     "layer": {
-                        "properties": {
-                            "label": {
-                                "type": "text",
-                            }
-                        },
+                        "properties": {"label": {"type": "text"}},
                         "type": "object",
                     },
                 },
@@ -640,10 +605,7 @@ def es_mapping_dict():
                         },
                         "type": "nested",
                     },
-                    "a_dense_vector": {
-                        "dims": 3,
-                        "type": "dense_vector",
-                    },
+                    "a_dense_vector": {"dims": 3, "type": "dense_vector"},
                 },
                 "type": "nested",
             },
@@ -680,13 +642,8 @@ def es_mapping_dict():
                 "fields": {"keyword": {"type": "keyword"}},
                 "type": "integer",
             },
-            "a_dense_vector": {
-                "dims": 3,
-                "type": "dense_vector",
-            },
-            "a_boolean": {
-                "type": "boolean",
-            },
+            "a_dense_vector": {"dims": 3, "type": "dense_vector"},
+            "a_boolean": {"type": "boolean"},
             "objectOfStudy": {
                 "properties": {"label": {"type": "text"}},
                 "type": "object",
@@ -710,9 +667,7 @@ def es_mapping_dict():
                         "fields": {"keyword": {"type": "keyword"}},
                         "type": "text",
                     },
-                    "a_float": {
-                        "type": "float",
-                    },
+                    "a_float": {"type": "float"},
                 },
                 "type": "nested",
             },
