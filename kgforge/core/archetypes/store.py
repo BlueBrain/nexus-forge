@@ -25,11 +25,7 @@ from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
-    DeprecationError,
-    FreezingError,
     RegistrationError,
-    TaggingError,
-    UpdatingError,
     UploadingError
 )
 from kgforge.core.commons.execution import run
@@ -135,7 +131,16 @@ class Store(ReadOnlyStore):
 
         raise UploadingError("no file_resource_mapping has been configured")
 
+    def upload_image(self, path: str, content_type: str, about: str,
+                     forge: 'KnowledgeGraphForge'):
+        p = Path(path)
+        # Get response
+        uploaded = self._upload(p, content_type)
+        return forge.from_json({'@id': uploaded['@id'],
+                                'about': about})
+
     def _upload(self, path: Path, content_type: str) -> Union[Any, List[Any]]:
+
         # path: Union[FilePath, DirPath].
         if path.is_dir():
             filepaths = [

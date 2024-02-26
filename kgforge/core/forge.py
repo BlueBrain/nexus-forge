@@ -786,6 +786,21 @@ class KnowledgeGraphForge:
         # path: Union[FilePath, DirPath].
         return LazyAction(self._store.upload, path, content_type, self)
 
+    @catch
+    def attach_image(self, path: str, content_type: str = None,
+                  about: str = None) -> LazyAction:
+        """
+        Return a LazyAction for future upload  of files located in a provided path.
+        The output of this method can be used to attach files to a resource: https://nexus-forge.readthedocs.io/en/latest/interaction.html#resource.
+
+        :param path: path to upload files from
+        :param content_type: the content_type of the files to upload
+        :param about: the class/type expression what is the image about
+        :return: LazyAction
+        """
+        # path: Union[FilePath, DirPath].
+        return LazyAction(self._store.upload_image, path, content_type, about, self)
+
     # Converting User Interface.
 
     @catch
