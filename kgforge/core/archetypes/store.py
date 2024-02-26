@@ -25,7 +25,11 @@ from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
 from kgforge.core.commons.exceptions import (
+    DeprecationError,
+    FreezingError,
     RegistrationError,
+    TaggingError,
+    UpdatingError,
     UploadingError
 )
 from kgforge.core.commons.execution import run

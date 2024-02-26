@@ -788,7 +788,7 @@ class KnowledgeGraphForge:
 
     @catch
     def attach_image(self, path: str, content_type: str = None,
-                  about: str = None) -> LazyAction:
+                     about: str = None) -> LazyAction:
         """
         Return a LazyAction for future upload  of files located in a provided path.
         The output of this method can be used to attach files to a resource: https://nexus-forge.readthedocs.io/en/latest/interaction.html#resource.
