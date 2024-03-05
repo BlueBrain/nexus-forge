@@ -54,7 +54,7 @@ Resolvers:
               value: Species
       searchendpoints:
         sparql:
-          endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+          endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
       result_resource_mapping: https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/configurations/nexus-resolver/term-to-resource-mapping.hjson
   agent:
     - resolver: AgentResolver
