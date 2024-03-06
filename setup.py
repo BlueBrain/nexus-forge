@@ -41,7 +41,7 @@ setup(
         "hjson",
         "pyyaml",
         "pandas",
-        "nexus-sdk",
+        "nexus-sdk@git+https://github.com/BlueBrain/nexus-python-sdk@v0.3.2/display_response",
         "aiohttp",
         "rdflib==6.3.2",
         "pyLD",
