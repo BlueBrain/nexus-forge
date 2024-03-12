@@ -390,7 +390,7 @@ class SPARQLQueryBuilder(QueryBuilder):
         return query
 
     @staticmethod
-    def _create_select_query(
+    def create_select_query(
         vars_: List[str],
         statements: Union[str, List[str]],
         distinct: bool,
@@ -459,7 +459,7 @@ def build_shacl_query(
     vars_ = ["?type", "?shape", "?resource_id"]
     if search_in_graph:
         vars_.append("?g")
-    shacl_query = SPARQLQueryBuilder._create_select_query(
+    shacl_query = SPARQLQueryBuilder.create_select_query(
         vars_=vars_,
         statements=all_statements,
         distinct=True,

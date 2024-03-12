@@ -899,7 +899,7 @@ class BlueBrainNexus(Store):
             query_statements.extend(store_metadata_statements)
             statements = ";\n ".join(query_statements)
             _filters = "\n".join((".\n ".join(query_filters), project_filter))
-            query = SPARQLQueryBuilder._create_select_query(
+            query = SPARQLQueryBuilder.create_select_query(
                 _vars, f"?id {statements} . \n {_filters}", distinct, search_in_graph
             )
             # support @id and @type

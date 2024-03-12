@@ -577,28 +577,28 @@ class TestQuerying:
     def test_create_select_query(self):
         statements = f"?id type <https://github.com/BlueBrain/nexus-forge>"
         vars_ = ["?id", "?project"]
-        query = SPARQLQueryBuilder._create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             vars_, statements, distinct=False, search_in_graph=True
         )
         assert (
             query
             == "SELECT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
         )
-        query = SPARQLQueryBuilder._create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             vars_, statements, distinct=True, search_in_graph=True
         )
         assert (
             query
             == "SELECT DISTINCT ?id ?project WHERE { Graph ?g {?id type <https://github.com/BlueBrain/nexus-forge>}}"
         )
-        query = SPARQLQueryBuilder._create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             vars_, statements, distinct=False, search_in_graph=False
         )
         assert (
             query
             == "SELECT ?id ?project WHERE {?id type <https://github.com/BlueBrain/nexus-forge>}"
         )
-        query = SPARQLQueryBuilder._create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             vars_, statements, distinct=True, search_in_graph=False
         )
         assert (

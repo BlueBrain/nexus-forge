@@ -147,7 +147,7 @@ class SPARQLStore(DatasetStore):
         statements = ";\n ".join(query_statements)
         _filters = (".\n".join(query_filters) + "\n") if len(filters) > 0 else ""
         _vars = ["?id"]
-        query = SPARQLQueryBuilder._create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             _vars, f"?id {statements} . \n {_filters}", distinct, False
         )
         # support @id and @type
