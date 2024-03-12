@@ -78,13 +78,22 @@ class DirectoryService(RdfService):
         class_to_shape = {}
         shape_to_defining_resource = {}
         shape_to_named_graph = {}
+        defining_resource_to_named_graph = {}
         for row in res:
             class_to_shape[URIRef(row["type"])] = URIRef(row["shape"])
             shape_to_defining_resource[URIRef(row["shape"])] = URIRef(
                 row["resource_id"]
             )
             shape_to_named_graph[URIRef(row["shape"])] = URIRef(row["g"])
-        return class_to_shape, shape_to_defining_resource, shape_to_named_graph
+            defining_resource_to_named_graph[URIRef(row["resource_id"])] = URIRef(
+                row["g"]
+            )
+        return (
+            class_to_shape,
+            shape_to_defining_resource,
+            shape_to_named_graph,
+            defining_resource_to_named_graph,
+        )
 
     def load_shape_graph(self, graph_id, schema_id):
         return self._graph.graph(rdflib.term.URIRef(graph_id))

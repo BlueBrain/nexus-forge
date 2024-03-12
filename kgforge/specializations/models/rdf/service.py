@@ -154,6 +154,7 @@ class RdfService:
             self.class_to_shape,
             self.shape_to_defining_resource,
             self.shape_to_named_graph,
+            self.defining_resource_to_named_graph,
         ) = self._build_shapes_map()
         self._imported = []
 
@@ -301,7 +302,9 @@ class RdfService:
                 rdflib.term.URIRef(schema_id), OWL.imports
             ):
                 imported_schema_id = self.context.expand(imported)
-                imported_graph_id = imported_schema_id + "/graph"
+                imported_graph_id = (
+                    self.defining_resource_to_named_graph[URIRef(imported_schema_id)],
+                )
                 imported_schema_graph = self.transitive_load_shape_graph(
                     imported_graph_id, imported_schema_id
                 )

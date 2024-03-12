@@ -95,6 +95,7 @@ class StoreService(RdfService):
         class_to_shape = {}
         shape_to_defining_resource = {}
         shape_to_named_graph = {}
+        defining_resource_to_named_graph = {}
         while count == limit:
             resources = self.context_store.sparql(
                 query, debug=False, limit=limit, offset=offset
@@ -104,9 +105,17 @@ class StoreService(RdfService):
                 class_to_shape[r.type] = shape_uri
                 shape_to_defining_resource[shape_uri] = URIRef(r.resource_id)
                 shape_to_named_graph[shape_uri] = URIRef(r.resource_id + "/graph")
+                defining_resource_to_named_graph[URIRef(row["resource_id"])] = URIRef(
+                    r.resource_id + "/graph"
+                )
             count = len(resources)
             offset += limit
-        return class_to_shape, shape_to_defining_resource, shape_to_named_graph
+        return (
+            class_to_shape,
+            shape_to_defining_resource,
+            shape_to_named_graph,
+            defining_resource_to_named_graph,
+        )
 
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
         document = {}
