@@ -21,7 +21,7 @@ from rdflib import OWL, RDF, SH, URIRef, Namespace, Graph
 from rdflib.paths import ZeroOrMore, OneOrMore
 
 from kgforge.core.commons.exceptions import RetrievalError
-from kgforge.core.commons.rdf_utils import build_shacl_query
+from kgforge.core.commons.sparql_query_builder import build_shacl_query
 from kgforge.core.conversions.rdf import as_jsonld, from_graph
 from kgforge.core.archetypes.store import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties

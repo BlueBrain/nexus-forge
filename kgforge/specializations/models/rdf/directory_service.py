@@ -22,7 +22,7 @@ from rdflib import OWL, Graph, Namespace, URIRef
 from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.rdf_utils import build_shacl_query
+from kgforge.core.commons.sparql_query_builder import build_shacl_query
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
 

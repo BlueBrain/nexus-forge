@@ -421,3 +421,57 @@ class SPARQLQueryBuilder(QueryBuilder):
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
+
+
+def build_shacl_query(
+    statements: List[str] = None,
+    defining_property_uri: str = None,
+    deprecated_property_uri: str = None,
+    optional: bool = False,
+    search_in_graph: bool = False,
+    context: Context = None,
+) -> str:
+    deprecated_statement = (
+        f"?resource_id <{deprecated_property_uri}> ?_deprecated"
+        if deprecated_property_uri
+        else ""
+    )
+    defining_statement = (
+        f"?resource_id <{defining_property_uri}> ?shape"
+        if defining_property_uri
+        else ""
+    )
+    if optional and deprecated_property_uri:
+        deprecated_statement = " OPTIONAL {" + deprecated_statement + "}"
+    if optional and defining_property_uri:
+        defining_statement = " OPTIONAL {" + defining_statement + "}"
+
+    shape_target_statements = "?shape sh:targetClass ?type"
+    shape_node_statements = "SELECT (?shape as ?type) ?shape ?resource_id WHERE { ?shape a sh:NodeShape . ?shape a rdfs:Class"
+    extra_statements = [defining_statement] + [deprecated_statement]
+    if statements:
+        extra_statements.extend(statements)
+    shape_target_statements_str = ".".join([shape_target_statements] + extra_statements)
+    shape_node_statements_str = (
+        ".".join([shape_node_statements] + extra_statements) + "}"
+    )
+    all_statements = [shape_target_statements_str, shape_node_statements_str]
+    vars_ = ["?type", "?shape", "?resource_id"]
+    if search_in_graph:
+        vars_.append("?g")
+    shacl_query = SPARQLQueryBuilder._create_select_query(
+        vars_=vars_,
+        statements=all_statements,
+        distinct=True,
+        search_in_graph=search_in_graph,
+        union=True,
+    )
+    if not context:
+        return shacl_query
+    else:
+        return SPARQLQueryBuilder.rewrite_sparql(
+            shacl_query,
+            context_as_dict=context.document,
+            prefixes=context.prefixes,
+            vocab=context.vocab,
+        )
