@@ -64,9 +64,6 @@ class StoreService(RdfService):
     def _validate(
         self, iri: str, data_graph: Graph, shape: Shape, shacl_graph: Graph
     ) -> Tuple[bool, Graph, str]:
-        # _type_shape will make sure all the shapes for this schema are in the graph
-        # self._type_shape(iri)
-        # schema_graph = self._get_schema_graph(iri)
         return validate(data_graph, shacl_graph=shacl_graph)
 
     def resolve_context(self, iri: str) -> Dict:
