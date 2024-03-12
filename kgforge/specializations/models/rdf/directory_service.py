@@ -15,11 +15,14 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from pyshacl import validate
-from rdflib import Graph, URIRef
+from pyshacl import Shape, validate
+import rdflib
+from rdflib import OWL, Graph, Namespace, URIRef
+
 from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.rdf_utils import build_shacl_query
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
 
@@ -27,13 +30,13 @@ from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWr
 class DirectoryService(RdfService):
 
     def __init__(self, dirpath: Path, context_iri: str) -> None:
-        self._graph = load_rdf_files(dirpath)
+
+        self._graph = _load_rdf_files_as_graph(dirpath)
         self._sg = ShapesGraphWrapper(self._graph)
         super().__init__(self._graph, context_iri)
 
     def schema_source_id(self, schema_iri: str) -> str:
-        # FIXME should return the file path where the schema is in
-        return schema_iri
+        return self.shape_to_defining_resource[schema_iri]
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._sg.lookup_shape_from_node(iri)
@@ -43,8 +46,10 @@ class DirectoryService(RdfService):
             attrs["properties"] = props
         return NodeProperties(**attrs)
 
-    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
-        return validate(data_graph, shacl_graph=self._graph)
+    def _validate(
+        self, iri: str, data_graph: Graph, shape: Shape, shacl_graph: Graph
+    ) -> Tuple[bool, Graph, str]:
+        return validate(data_graph, shacl_graph=shacl_graph)
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
@@ -61,30 +66,38 @@ class DirectoryService(RdfService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Dict:
-        query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?type ?shape WHERE {
-                { ?shape sh:targetClass ?type .}
-                UNION {
-                    SELECT (?shape as ?type) ?shape WHERE {
-                        ?shape a sh:NodeShape .
-                        ?shape a rdfs:Class
-                    }
-                }
-            } ORDER BY ?type"""
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
+        query = build_shacl_query(
+            defining_property_uri=self.NXV.shapes,
+            deprecated_property_uri=OWL.deprecated,
+            optional=True,
+            search_in_graph=True,
+            context=self.context,
+        )
         res = self._graph.query(query)
-        return {row["type"]: row["shape"] for row in res}
+        class_to_shape = {}
+        shape_to_defining_resource = {}
+        shape_to_named_graph = {}
+        for row in res:
+            class_to_shape[URIRef(row["type"])] = URIRef(row["shape"])
+            shape_to_defining_resource[URIRef(row["shape"])] = URIRef(
+                row["resource_id"]
+            )
+            shape_to_named_graph[URIRef(row["shape"])] = URIRef(row["g"])
+        return class_to_shape, shape_to_defining_resource, shape_to_named_graph
+
+    def load_shape_graph(self, graph_id, schema_id):
+        return self._graph.graph(rdflib.term.URIRef(graph_id))
 
 
-def load_rdf_files(path: Path) -> Graph:
-    memory_graph = Graph()
+def _load_rdf_files_as_graph(path: Path):
+    schema_graphs = rdflib.Dataset()
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
             file_format = guess_format(f.name)
             if file_format is None:
                 file_format = "json-ld"
-            memory_graph.parse(f.as_posix(), format=file_format)
-    return memory_graph
+            schema_graph = schema_graphs.graph(rdflib.term.URIRef(f.as_posix()))
+            schema_graph.parse(f.as_posix(), format=file_format)
+    return schema_graphs

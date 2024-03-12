@@ -319,6 +319,7 @@ def model_prefixes():
         "owl": "http://www.w3.org/2002/07/owl#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "foaf": "http://xmlns.com/foaf/0.1/",
+        "sh": "http://www.w3.org/ns/shacl#",
         "mba": "http://api.brain-map.org/api/v2/data/Structure/",
         "obo": "http://purl.obolibrary.org/obo/",
     }

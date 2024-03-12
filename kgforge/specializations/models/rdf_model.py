@@ -73,7 +73,10 @@ class RdfModel(Model):
         return self.service.context.prefixes
 
     def _types(self) -> List[str]:
-        return list(self.service.types_to_shapes.keys())
+        return [
+            self.service.context.to_symbol(cls)
+            for cls in self.service.class_to_shape.keys()
+        ]
 
     def context(self) -> Context:
         return self.service.context
@@ -90,25 +93,37 @@ class RdfModel(Model):
 
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
-            uri = self.service.types_to_shapes[type]
-        except KeyError as exc:
-            raise ValueError("type '" + type + "' not found in " + self.source) from exc
-        node_properties = self.service.materialize(uri)
-        dictionary = parse_attributes(node_properties, only_required, None)
-        return dictionary
+            shape_iri = self.service.get_shape_iri_from_class_fragment(type)
+            node_properties = self.service.materialize(shape_iri)
+            dictionary = parse_attributes(node_properties, only_required, None)
+            return dictionary
+        except Exception as exc:
+            raise ValueError(f"Unable to generate template:{str(exc)}") from exc
 
     # Validation.
 
     def schema_id(self, type: str) -> str:
         try:
-            shape_iri = self.service.types_to_shapes[type]
+            shape_iri = self.service.get_shape_iri_from_class_fragment(type)
             return str(self.service.schema_source_id(shape_iri))
-        except KeyError as exc:
-            raise ValueError("type not found") from exc
+        except Exception as exc:
+            raise ValueError(f"Unable to get the schema id:{str(exc)}") from exc
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
-        run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated", type_=type_)
+    def validate(
+        self,
+        data: Union[Resource, List[Resource]],
+        execute_actions_before: bool,
+        type_: str,
+    ) -> None:
+        run(
+            self._validate_one,
+            self._validate_many,
+            data,
+            execute_actions=execute_actions_before,
+            exception=ValidationError,
+            monitored_status="_validated",
+            type_=type_,
+        )
 
     def _validate_many(self, resources: List[Resource], type_: str) -> None:
         for resource in resources:
@@ -118,10 +133,14 @@ class RdfModel(Model):
                 action = Action(self._validate_many.__name__, conforms, None)
             else:
                 resource._validated = False
-                violations = set(" ".join(re.findall('[A-Z][^A-Z]*', as_term(o)))
-                                 for o in graph.objects(None, SH.sourceConstraintComponent))
+                violations = set(
+                    " ".join(re.findall("[A-Z][^A-Z]*", as_term(o)))
+                    for o in graph.objects(None, SH.sourceConstraintComponent)
+                )
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
-                action = Action(self._validate_many.__name__, conforms, ValidationError(message))
+                action = Action(
+                    self._validate_many.__name__, conforms, ValidationError(message)
+                )
 
             resource._last_action = action
 
@@ -133,11 +152,15 @@ class RdfModel(Model):
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
+    def _service_from_directory(
+        dirpath: Path, context_iri: str, **dir_config
+    ) -> RdfService:
         return DirectoryService(dirpath, context_iri)
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
+    def _service_from_store(
+        store: Callable, context_config: Optional[Dict], **source_config
+    ) -> Any:
 
         default_store: Store = store(**source_config)
 
@@ -146,15 +169,19 @@ class RdfModel(Model):
             context_token = context_config.get("token", default_store.token)
             context_bucket = context_config.get("bucket", default_store.bucket)
             context_iri = context_config.get("iri")
-            if (context_endpoint != default_store.endpoint
-                    or context_token != default_store.token
-                    or context_bucket != default_store.bucket):
+            if (
+                context_endpoint != default_store.endpoint
+                or context_token != default_store.token
+                or context_bucket != default_store.bucket
+            ):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
                 context_store: Store = store(
-                    endpoint=context_endpoint, bucket=context_bucket, token=context_token,
-                    **source_config
+                    endpoint=context_endpoint,
+                    bucket=context_bucket,
+                    token=context_token,
+                    **source_config,
                 )
                 # FIXME: define a store independent StoreService
                 service = StoreService(default_store, context_iri, context_store)
@@ -179,8 +206,9 @@ class RdfModel(Model):
         raise not_supported()
 
 
-def parse_attributes(node: NodeProperties, only_required: bool,
-                     inherited_constraint: Optional[str]) -> Dict:
+def parse_attributes(
+    node: NodeProperties, only_required: bool, inherited_constraint: Optional[str]
+) -> Dict:
     attributes = {}
     if hasattr(node, "path"):
         if only_required is True:
@@ -194,11 +222,15 @@ def parse_attributes(node: NodeProperties, only_required: bool,
         attributes[as_term(node.path)] = v
     elif hasattr(node, "properties"):
         parent_constraint = node.constraint if hasattr(node, "constraint") else None
-        attributes.update(parse_properties(node.properties, only_required, parent_constraint))
+        attributes.update(
+            parse_properties(node.properties, only_required, parent_constraint)
+        )
     return attributes
 
 
-def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
+def parse_properties(
+    items: List[NodeProperties], only_required: bool, inherited_constraint: str
+) -> Dict:
     props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
@@ -235,7 +267,9 @@ def default_values(values, one: bool):
                 if sortable:
                     return sorted(all_default_values)
 
-                types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
+                types_position = {
+                    DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values
+                }
                 return [types_position[k] for k in sorted(types_position.keys())]
     else:
         return default_value(values)
