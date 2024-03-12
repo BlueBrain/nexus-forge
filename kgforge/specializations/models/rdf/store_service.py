@@ -86,6 +86,7 @@ class StoreService(RdfService):
         query = build_shacl_query(
             defining_property_uri=self.NXV.shapes,
             deprecated_property_uri=self.NXV.deprecated,
+            context=self.context,
         )
         # consider taking this from the forge config
         limit = 1000
