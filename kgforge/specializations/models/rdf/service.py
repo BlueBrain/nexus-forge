@@ -159,8 +159,13 @@ class RdfService:
         ) = self._build_shapes_map()
         self._imported = []
 
-    def schema_source_id(self, schema_iri: str) -> str:
+    @abstractmethod
+    def schema_source_id(self, shape_uri: str) -> str:
         # POLICY Should return the id of the resource containing the schema
+        raise NotImplementedError()
+
+    @abstractmethod
+    def schema_id(self, shape_uri: str) -> str:
         raise NotImplementedError()
 
     @abstractmethod

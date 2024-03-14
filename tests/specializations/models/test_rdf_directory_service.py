@@ -47,8 +47,8 @@ def test_build_shapes_map(rdf_model_from_dir: RdfModel):
     ) = rdf_model_from_dir.service._build_shapes_map()
 
     assert shape_to_named_graph.keys() == shape_to_defining_resource.keys()
-    assert sorted(list(shape_to_defining_resource.values())) == sorted(
-        list(defining_resource_to_named_graph.keys())
+    assert sorted(set(shape_to_defining_resource.values())) == sorted(
+        set(defining_resource_to_named_graph.keys())
     )
     expected_targeted_classes = list(TYPES_SHAPES_MAP.keys())
     loaded_classes = [

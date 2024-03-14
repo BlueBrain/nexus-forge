@@ -105,7 +105,7 @@ class RdfModel(Model):
     def schema_id(self, type: str) -> str:
         try:
             shape_iri = self.service.get_shape_iri_from_class_fragment(type)
-            return str(self.service.schema_source_id(shape_iri))
+            return self.service.schema_id(shape_iri)
         except Exception as exc:
             raise ValueError(f"Unable to get the schema id:{str(exc)}") from exc
 
