@@ -16,7 +16,6 @@ from typing import List, Dict, Tuple, Set, Optional, Union
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from pyshacl.shape import Shape
-from pyshacl.pytypes import GraphLike
 from pyshacl.shapes_graph import ShapesGraph
 import rdflib
 from rdflib import OWL, SH, Graph, Namespace, URIRef, RDF, XSD
@@ -141,7 +140,9 @@ class ShapesGraphWrapper(ShapesGraph):
 
 class RdfService:
 
-    def __init__(self, graph: GraphLike, context_iri: Optional[str] = None) -> None:
+    def __init__(
+        self, graph: rdflib.Dataset, context_iri: Optional[str] = None
+    ) -> None:
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
@@ -215,6 +216,10 @@ class RdfService:
         * a Dict of a shape to the resource definining it
         * a Dict of a shape to the a named graph containing it
         """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def load_shape_graph(self, graph_id, schema_id) -> Graph:
         raise NotImplementedError()
 
     def _generate_context(self) -> Dict:
@@ -298,9 +303,7 @@ class RdfService:
         if schema_id not in self._imported:
             schema_graph = self.load_shape_graph(graph_id, schema_id)
             self._imported.append(schema_id)
-            for imported in schema_graph.objects(
-                rdflib.term.URIRef(schema_id), OWL.imports
-            ):
+            for imported in schema_graph.objects(URIRef(schema_id), OWL.imports):
                 imported_schema_id = self.context.expand(imported)
                 imported_graph_id = (
                     self.defining_resource_to_named_graph[URIRef(imported_schema_id)],
@@ -321,7 +324,7 @@ class RdfService:
                     schema_graph.remove(triple_to_remove)
             return schema_graph
         else:
-            return self._graph.graph(rdflib.term.URIRef(graph_id))
+            return self._graph.graph(URIRef(graph_id))
 
     def _get_property_shapes_from_nodeshape(self, node_shape_uriref):
         property_shapes_to_add = []
@@ -392,7 +395,3 @@ class RdfService:
             return self.class_to_shape[URIRef(type_expanded_cls)]
         except KeyError as ke:
             raise TypeError(f"Unkown type: {ke}") from ke
-
-    @abstractmethod
-    def load_shape_graph(self, graph_id, schema_id):
-        raise NotImplementedError()

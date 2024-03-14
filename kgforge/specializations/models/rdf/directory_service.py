@@ -95,11 +95,11 @@ class DirectoryService(RdfService):
             defining_resource_to_named_graph,
         )
 
-    def load_shape_graph(self, graph_id, schema_id):
+    def load_shape_graph(self, graph_id, schema_id) -> Graph:
         return self._graph.graph(rdflib.term.URIRef(graph_id))
 
 
-def _load_rdf_files_as_graph(path: Path):
+def _load_rdf_files_as_graph(path: Path) -> rdflib.Dataset:
     schema_graphs = rdflib.Dataset()
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):

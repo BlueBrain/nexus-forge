@@ -101,11 +101,12 @@ class StoreService(RdfService):
                 query, debug=False, limit=limit, offset=offset
             )
             for r in resources:
-                shape_uri = URIRef(r.shape)
-                class_to_shape[r.type] = shape_uri
+
+                shape_uri = URIRef(self.context.expand(r.shape))
+                class_to_shape[URIRef(self.context.expand(r.type))] = shape_uri
                 shape_to_defining_resource[shape_uri] = URIRef(r.resource_id)
                 shape_to_named_graph[shape_uri] = URIRef(r.resource_id + "/graph")
-                defining_resource_to_named_graph[URIRef(row["resource_id"])] = URIRef(
+                defining_resource_to_named_graph[URIRef(r.resource_id)] = URIRef(
                     r.resource_id + "/graph"
                 )
             count = len(resources)
@@ -147,7 +148,7 @@ class StoreService(RdfService):
             document.update(context)
         return document
 
-    def load_shape_graph(self, graph_id, schema_id):
+    def load_shape_graph(self, graph_id, schema_id) -> Graph:
         try:
             schema_resource = self.context_store.retrieve(
                 schema_id, version=None, cross_bucket=False

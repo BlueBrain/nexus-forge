@@ -14,6 +14,7 @@
 
 from typing import Callable, List, Union, Dict, Optional
 from uuid import uuid4
+from kgforge.specializations.models.rdf_model import RdfModel
 from utils import full_path_relative_to_root
 import pytest
 from pytest_bdd import given, parsers, then, when
@@ -293,8 +294,20 @@ def context_file_path():
 
 
 @pytest.fixture(scope="session")
+def shacl_schemas_file_path():
+    return full_path_relative_to_root("tests/data/shacl-model/commons")
+
+
+@pytest.fixture(scope="session")
 def context_iri_file(context_file_path):
     return f"file://{context_file_path}"
+
+
+@pytest.fixture(scope="session")
+def rdf_model_from_dir(context_iri_file, shacl_schemas_file_path):
+    return RdfModel(
+        shacl_schemas_file_path, context={"iri": context_iri_file}, origin="directory"
+    )
 
 
 @pytest.fixture(scope="session")
