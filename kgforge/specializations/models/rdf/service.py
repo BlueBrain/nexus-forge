@@ -157,7 +157,6 @@ class RdfService:
         (
             self.class_to_shape,
             self.shape_to_defining_resource,
-            self.shape_to_named_graph,
             self.defining_resource_to_named_graph,
         ) = self._build_shapes_map()
         self._imported = []
@@ -221,12 +220,11 @@ class RdfService:
         raise NotImplementedError()
 
     @abstractmethod
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
         """Index the loaded node shapes
         Returns:
             * a Dict of a targeted owl:Class to a shape
             * a Dict of a shape to the resource defining it through <https://bluebrain.github.io/nexus/vocabulary/shapes>
-            * a Dict of a shape to the a named graph containing it
             * a Dict of a resource defining a shape to the a named graph containing it
         """
         raise NotImplementedError()
@@ -260,6 +258,11 @@ class RdfService:
 
     def get_shape_graph_wrapper(self):
         return self._sg
+
+    def _get_named_graph_from_shape(self, shape_uriref: URIRef):
+        return self.defining_resource_to_named_graph[
+            self.shape_to_defining_resource[shape_uriref]
+        ]
 
     def _generate_context(self) -> Dict:
         """Materializes all Types into templates and parses the templates to generate a context"""
@@ -409,15 +412,17 @@ class RdfService:
             shape = self.get_shape_graph_wrapper().lookup_shape_from_node(shape_uriref)
             if (
                 shape_uriref in self.shape_to_defining_resource
-                and self.shape_to_defining_resource[shape_uriref] in self._imported
+                and str(self.shape_to_defining_resource[shape_uriref]) in self._imported
             ):
-                shape_graph = self._graph.graph(self.shape_to_named_graph[shape_uriref])
+                shape_graph = self._graph.graph(
+                    self._get_named_graph_from_shape(shape_uriref)
+                )
             else:
                 raise ValueError()
         except ValueError:
             try:
                 shape_graph = self.transitive_load_shape_graph(
-                    self.shape_to_named_graph[shape_uriref],
+                    self._get_named_graph_from_shape(shape_uriref),
                     self.shape_to_defining_resource[shape_uriref],
                     shape_uriref,
                 )

@@ -71,15 +71,16 @@ class StoreService(RdfService):
         return document
 
     def generate_context(self) -> Dict:
-        for v in self.shape_to_defining_resource.values():
-            self.transitive_load_shape_graph(
-                self.shape_to_named_graph[v], self.shape_to_defining_resource[v], v
-            )
+        for shape_uriref, schema_uriref in self.shape_to_defining_resource.items():
+            if str(schema_uriref) not in self._imported:
+                self.transitive_load_shape_graph(
+                    self._get_named_graph_from_shape(shape_uriref), schema_uriref
+                )
         # reloads the shapes graph
         self._sg = ShapesGraphWrapper(self._graph)
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
         query = build_shacl_query(
             defining_property_uri=self.NXV.shapes,
             deprecated_property_uri=self.NXV.deprecated,
@@ -91,7 +92,6 @@ class StoreService(RdfService):
         count = limit
         class_to_shape = {}
         shape_to_defining_resource = {}
-        shape_to_named_graph = {}
         defining_resource_to_named_graph = {}
         while count == limit:
             resources = self.context_store.sparql(
@@ -102,7 +102,6 @@ class StoreService(RdfService):
                 shape_uri = URIRef(self.context.expand(r.shape))
                 class_to_shape[URIRef(self.context.expand(r.type))] = shape_uri
                 shape_to_defining_resource[shape_uri] = URIRef(r.resource_id)
-                shape_to_named_graph[shape_uri] = URIRef(r.resource_id + "/graph")
                 defining_resource_to_named_graph[URIRef(r.resource_id)] = URIRef(
                     r.resource_id + "/graph"
                 )
@@ -111,7 +110,6 @@ class StoreService(RdfService):
         return (
             class_to_shape,
             shape_to_defining_resource,
-            shape_to_named_graph,
             defining_resource_to_named_graph,
         )
 

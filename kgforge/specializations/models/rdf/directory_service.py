@@ -34,7 +34,7 @@ class DirectoryService(RdfService):
         super().__init__(dataset_graph, context_iri)
 
     def schema_source_id(self, shape_uri: str) -> str:
-        return str(self.shape_to_named_graph[URIRef(shape_uri)])
+        return str(self._get_named_graph_from_shape(URIRef(shape_uri)))
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._sg.lookup_shape_from_node(iri)
@@ -64,7 +64,7 @@ class DirectoryService(RdfService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
         query = build_shacl_query(
             defining_property_uri=self.NXV.shapes,
             deprecated_property_uri=OWL.deprecated,
@@ -75,21 +75,18 @@ class DirectoryService(RdfService):
         res = self._graph.query(query)
         class_to_shape = {}
         shape_to_defining_resource = {}
-        shape_to_named_graph = {}
         defining_resource_to_named_graph = {}
         for row in res:
             class_to_shape[URIRef(row["type"])] = URIRef(row["shape"])
             shape_to_defining_resource[URIRef(row["shape"])] = URIRef(
                 row["resource_id"]
             )
-            shape_to_named_graph[URIRef(row["shape"])] = URIRef(row["g"])
             defining_resource_to_named_graph[URIRef(row["resource_id"])] = URIRef(
                 row["g"]
             )
         return (
             class_to_shape,
             shape_to_defining_resource,
-            shape_to_named_graph,
             defining_resource_to_named_graph,
         )
 
