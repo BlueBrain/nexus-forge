@@ -12,14 +12,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import types
-from typing import List, Dict, Tuple, Set, Optional, Union
+from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from pyshacl.shape import Shape
 from pyshacl.shapes_graph import ShapesGraph
-import rdflib
 from rdflib import OWL, SH, Graph, Namespace, URIRef, RDF, XSD
 from rdflib.paths import ZeroOrMore
+from rdflib import Dataset as RDFDataset
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
@@ -115,7 +115,7 @@ class ShapeWrapper(Shape):
 
 class ShapesGraphWrapper(ShapesGraph):
 
-    def __init__(self, graph: rdflib.Dataset) -> None:
+    def __init__(self, graph: RDFDataset) -> None:
         super().__init__(graph)
         # the following line triggers the shape loading
         self._shapes = self.shapes
@@ -143,9 +143,7 @@ class ShapesGraphWrapper(ShapesGraph):
 
 class RdfService:
 
-    def __init__(
-        self, graph: rdflib.Dataset, context_iri: Optional[str] = None
-    ) -> None:
+    def __init__(self, graph: RDFDataset, context_iri: Optional[str] = None) -> None:
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")

@@ -12,11 +12,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import json
-import os
-from pathlib import Path
 from pyshacl import Shape
 import pytest
-import rdflib
+from rdflib import URIRef, Graph
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import ValidationError
@@ -141,13 +139,13 @@ class TestValidation:
         assert isinstance(rdf_model_from_dir.service, DirectoryService)
         for s in TYPES_SHAPES_MAP.values():
             shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
-                rdflib.term.URIRef(s["shape"])
+                URIRef(s["shape"])
             )
             assert isinstance(shape, Shape)
             assert str(shape.node) == s["shape"]
-            assert isinstance(schema_graph, rdflib.Graph)
+            assert isinstance(schema_graph, Graph)
             assert len(schema_graph) > 0
         with pytest.raises(Exception):
             shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
-                rdflib.URIRef("https://noshape")
+                URIRef("https://noshape")
             )

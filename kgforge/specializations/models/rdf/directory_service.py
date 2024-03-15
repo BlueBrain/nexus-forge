@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 from pyshacl import Shape, validate
-import rdflib
-from rdflib import OWL, Graph, Namespace, URIRef
+from rdflib import Dataset as RDFDataset
+from rdflib import OWL, Graph, URIRef
 
 from rdflib.util import guess_format
 
@@ -97,17 +97,17 @@ class DirectoryService(RdfService):
         )
 
     def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
-        return self._graph.graph(rdflib.term.URIRef(graph_id))
+        return self._graph.graph(URIRef(graph_id))
 
 
-def _load_rdf_files_as_graph(path: Path) -> rdflib.Dataset:
-    schema_graphs = rdflib.Dataset()
+def _load_rdf_files_as_graph(path: Path) -> RDFDataset:
+    schema_graphs = RDFDataset()
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
             file_format = guess_format(f.name)
             if file_format is None:
                 file_format = "json-ld"
-            schema_graph = schema_graphs.graph(rdflib.term.URIRef(f.as_posix()))
+            schema_graph = schema_graphs.graph(URIRef(f.as_posix()))
             schema_graph.parse(f.as_posix(), format=file_format)
     return schema_graphs

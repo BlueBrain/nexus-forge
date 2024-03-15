@@ -16,13 +16,12 @@ from typing import Dict, Optional, Union, List, Tuple
 import json
 
 from pyshacl import Shape, validate
-import rdflib
-from rdflib import OWL, RDF, SH, URIRef, Namespace, Graph
-from rdflib.paths import ZeroOrMore, OneOrMore
+from rdflib import URIRef, Namespace, Graph
+from rdflib import Dataset as RDFDataset
 
 from kgforge.core.commons.exceptions import RetrievalError
 from kgforge.core.commons.sparql_query_builder import build_shacl_query
-from kgforge.core.conversions.rdf import as_jsonld, from_graph
+from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.archetypes.store import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
 from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
@@ -46,7 +45,7 @@ class StoreService(RdfService):
             if hasattr(self.default_store.service, "store_context")
             else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
         )
-        super().__init__(rdflib.Dataset(), context_iri)
+        super().__init__(RDFDataset(), context_iri)
 
     def schema_source_id(self, shape_uri: str) -> str:
         return str(self.shape_to_defining_resource[URIRef(shape_uri)])
@@ -166,6 +165,6 @@ class StoreService(RdfService):
         )
         # this double conversion was due blank nodes were not "regenerated" with json-ld
         temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
-        schema_graph = self._graph.graph(rdflib.term.URIRef(graph_id))
+        schema_graph = self._graph.graph(URIRef(graph_id))
         schema_graph.parse(data=temp_graph.serialize(format="n3"), format="n3")
         return schema_graph
