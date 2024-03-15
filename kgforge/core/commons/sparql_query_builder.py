@@ -435,7 +435,7 @@ def build_shacl_query(
     context: Context = None,
 ) -> str:
     deprecated_statement = (
-        f"?resource_id <{deprecated_property_uri}> '{deprecated}'^^xsd:boolean"
+        f"?resource_id <{deprecated_property_uri}> '{str(deprecated).lower()}'^^xsd:boolean"
         if deprecated_property_uri
         else ""
     )
