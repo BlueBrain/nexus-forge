@@ -30,10 +30,8 @@ from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWr
 class DirectoryService(RdfService):
 
     def __init__(self, dirpath: Path, context_iri: str) -> None:
-
-        self._graph = _load_rdf_files_as_graph(dirpath)
-        self._sg = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
+        dataset_graph = _load_rdf_files_as_graph(dirpath)
+        super().__init__(dataset_graph, context_iri)
 
     def schema_source_id(self, shape_uri: str) -> str:
         return str(self.shape_to_named_graph[URIRef(shape_uri)])
@@ -69,11 +67,11 @@ class DirectoryService(RdfService):
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
         query = build_shacl_query(
             defining_property_uri=self.NXV.shapes,
             deprecated_property_uri=OWL.deprecated,
-            optional=True,
+            deprecated_optional=True,
             search_in_graph=True,
             context=self.context,
         )
@@ -98,7 +96,7 @@ class DirectoryService(RdfService):
             defining_resource_to_named_graph,
         )
 
-    def load_shape_graph(self, graph_id, schema_id) -> Graph:
+    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
         return self._graph.graph(rdflib.term.URIRef(graph_id))
 
 

@@ -147,3 +147,7 @@ class TestValidation:
             assert str(shape.node) == s["shape"]
             assert isinstance(schema_graph, rdflib.Graph)
             assert len(schema_graph) > 0
+        with pytest.raises(Exception):
+            shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
+                rdflib.URIRef("https://noshape")
+            )

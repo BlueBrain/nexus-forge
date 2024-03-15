@@ -398,7 +398,9 @@ class SPARQLQueryBuilder(QueryBuilder):
         union: bool = False,
     ):
         if not union:
-            all_statements = statements
+            all_statements = (
+                ". ".join(statements) if isinstance(statements, list) else statements
+            )
 
         elif not isinstance(statements, list):
             raise AttributeError(
@@ -427,12 +429,13 @@ def build_shacl_query(
     statements: List[str] = None,
     defining_property_uri: str = None,
     deprecated_property_uri: str = None,
-    optional: bool = False,
+    deprecated: bool = False,
+    deprecated_optional: bool = False,
     search_in_graph: bool = False,
     context: Context = None,
 ) -> str:
     deprecated_statement = (
-        f"?resource_id <{deprecated_property_uri}> ?_deprecated"
+        f"?resource_id <{deprecated_property_uri}> '{deprecated}'^^xsd:boolean"
         if deprecated_property_uri
         else ""
     )
@@ -441,21 +444,18 @@ def build_shacl_query(
         if defining_property_uri
         else ""
     )
-    if optional and deprecated_property_uri:
+    if deprecated_optional and deprecated_property_uri:
         deprecated_statement = " OPTIONAL {" + deprecated_statement + "}"
-    if optional and defining_property_uri:
-        defining_statement = " OPTIONAL {" + defining_statement + "}"
-
-    shape_target_statements = "?shape sh:targetClass ?type"
-    shape_node_statements = "SELECT (?shape as ?type) ?shape ?resource_id WHERE { ?shape a sh:NodeShape . ?shape a rdfs:Class"
-    extra_statements = [defining_statement] + [deprecated_statement]
+    shape_target_statement = "?shape sh:targetClass ?type"
+    extra_statements = [defining_statement, deprecated_statement]
     if statements:
         extra_statements.extend(statements)
-    shape_target_statements_str = ".".join([shape_target_statements] + extra_statements)
+    shape_target_statement_str = ".".join([shape_target_statement] + extra_statements)
     shape_node_statements_str = (
-        ".".join([shape_node_statements] + extra_statements) + "}"
+        "SELECT (?shape as ?type) ?shape ?resource_id WHERE { ?shape a sh:NodeShape ."
+        + "?shape a rdfs:Class . {}".format(".".join(extra_statements) + "}")
     )
-    all_statements = [shape_target_statements_str, shape_node_statements_str]
+    all_statements = [shape_target_statement_str, shape_node_statements_str]
     vars_ = ["?type", "?shape", "?resource_id"]
     if search_in_graph:
         vars_.append("?g")

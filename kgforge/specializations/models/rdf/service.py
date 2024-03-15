@@ -129,7 +129,10 @@ class ShapesGraphWrapper(ShapesGraph):
         Returns:
             Shape: The Shacl shape of the requested node.
         """
-        shape = self._node_shape_cache[node]
+        try:
+            shape = self._node_shape_cache[node]
+        except KeyError as ke:
+            raise ValueError(f"Unknown shape node id '{node}': {str(ke)}") from ke
         if shape:
             shape_wrapper = ShapeWrapper(self._node_shape_cache[node])
             if not hasattr(shape_wrapper, "traverse"):
@@ -147,6 +150,8 @@ class RdfService:
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
         self._graph = graph
+        self._sg = None
+        self._init_shape_graph_wrapper()
         self.NXV = Namespace("https://bluebrain.github.io/nexus/vocabulary/")
         self._context_cache = {}
         resolved_context = self.resolve_context(context_iri)
@@ -161,11 +166,27 @@ class RdfService:
 
     @abstractmethod
     def schema_source_id(self, shape_uri: str) -> str:
+        """Id of the source from which the shape is accessible (e.g. bucket, file path, ...)
+
+        Args:
+            shape_uri: the URI of a node shape
+
+        Returns:
+            The id of the source from which the shape is accessible
+        """
         # POLICY Should return the id of the resource containing the schema
         raise NotImplementedError()
 
     @abstractmethod
     def schema_id(self, shape_uri: str) -> str:
+        """Id of the schema resource defining the node shape
+
+        Args:
+            shape_uri: the URI of a node shape
+
+        Returns:
+            The Id of the schema resource defining the node shape
+        """
         raise NotImplementedError()
 
     @abstractmethod
@@ -188,11 +209,11 @@ class RdfService:
                     "Please provide a type_ parameter to validate against it."
                 )
             type_to_validate = type_ if type_ else resource.type
-            shape_iri = self.get_shape_iri_from_class_fragment(type_to_validate)
         except AttributeError as exc:
             raise TypeError(
                 "Resource requires a type attribute or a type_ parameter should be provided"
             ) from exc
+        shape_iri = self.get_shape_iri_from_class_fragment(type_to_validate)
         data_graph = as_graph(resource, False, self.context, None, None)
         shape, shacl_graph = self.get_shape_graph(shape_iri)
         return self._validate(shape_iri, data_graph, shape, shacl_graph)
@@ -214,18 +235,34 @@ class RdfService:
         raise NotImplementedError()
 
     @abstractmethod
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
-        """
-        Queries the source and returns as tuple:
-        * a Dict of a targeted owl:Class to a shape and
-        * a Dict of a shape to the resource definining it
-        * a Dict of a shape to the a named graph containing it
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
+        """Index the loaded node shapes
+        Returns:
+            * a Dict of a targeted owl:Class to a shape
+            * a Dict of a shape to the resource defining it through <https://bluebrain.github.io/nexus/vocabulary/shapes>
+            * a Dict of a shape to the a named graph containing it
+            * a Dict of a resource defining a shape to the a named graph containing it
         """
         raise NotImplementedError()
 
     @abstractmethod
-    def load_shape_graph(self, graph_id, schema_id) -> Graph:
+    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
+        """Loads the content of the node shapes defined in by shema_id and accessible from graph_id
+
+        Args:
+            graph_id: A named graph uri from which the shapes are accessible
+            schema_id: the resource defining the node shapes through <https://bluebrain.github.io/nexus/vocabulary/shapes>
+
+        Returns:
+            An rdflib.Graph() with node shapes defined by schema_id
+        """
         raise NotImplementedError()
+
+    def _init_shape_graph_wrapper(self):
+        self._sg = ShapesGraphWrapper(self._graph)
+
+    def get_shape_graph_wrapper(self):
+        return self._sg
 
     def _generate_context(self) -> Dict:
         """Materializes all Types into templates and parses the templates to generate a context"""
@@ -305,31 +342,31 @@ class RdfService:
     def transitive_load_shape_graph(
         self, graph_id: str, schema_id: str, node_shape_uriref: URIRef = None
     ):
-        if schema_id not in self._imported:
-            schema_graph = self.load_shape_graph(graph_id, schema_id)
-            self._imported.append(schema_id)
-            for imported in schema_graph.objects(URIRef(schema_id), OWL.imports):
-                imported_schema_id = self.context.expand(imported)
-                imported_graph_id = (
-                    self.defining_resource_to_named_graph[URIRef(imported_schema_id)],
-                )
+        schema_graph = self.load_shape_graph(graph_id, schema_id)
+        self._imported.append(schema_id)
+        for imported in schema_graph.objects(URIRef(schema_id), OWL.imports):
+            imported_schema_id = self.context.expand(imported)
+            imported_graph_id = self.defining_resource_to_named_graph[
+                URIRef(imported_schema_id)
+            ]
+            if imported_schema_id not in self._imported:
                 imported_schema_graph = self.transitive_load_shape_graph(
                     imported_graph_id, imported_schema_id
                 )
-                schema_graph.parse(
-                    data=imported_schema_graph.serialize(format="n3"), format="n3"
-                )
-            if node_shape_uriref:
-                triples_to_add, _, triples_to_remove = (
-                    self._get_property_shapes_from_nodeshape(node_shape_uriref)
-                )
-                for triple_to_add in triples_to_add:
-                    schema_graph.add(triple_to_add)
-                for triple_to_remove in triples_to_remove:
-                    schema_graph.remove(triple_to_remove)
-            return schema_graph
-        else:
-            return self._graph.graph(URIRef(graph_id))
+            else:
+                imported_schema_graph = self._graph.graph(URIRef(graph_id))
+            schema_graph.parse(
+                data=imported_schema_graph.serialize(format="n3"), format="n3"
+            )
+        if node_shape_uriref:
+            triples_to_add, _, triples_to_remove = (
+                self._get_property_shapes_from_nodeshape(node_shape_uriref)
+            )
+            for triple_to_add in triples_to_add:
+                schema_graph.add(triple_to_add)
+            for triple_to_remove in triples_to_remove:
+                schema_graph.remove(triple_to_remove)
+        return schema_graph
 
     def _get_property_shapes_from_nodeshape(self, node_shape_uriref):
         property_shapes_to_add = []
@@ -350,10 +387,7 @@ class RdfService:
                 list(self._graph.objects(node_shape_uriref, s / SH.property))
             )
         for sh_node in set(sh_nodes):
-            if (
-                str(sh_node) != str(node_shape_uriref)
-                and str(sh_node) != "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"
-            ):
+            if str(sh_node) != str(node_shape_uriref) and str(sh_node) != str(RDF.nil):
                 t_a, p_a, t_r = self._get_property_shapes_from_nodeshape(sh_node)
                 if p_a:
                     triples_to_add.extend(t_a)
@@ -366,32 +400,40 @@ class RdfService:
                     triples_to_remove.append((node_shape_uriref, SH.node, sh_node))
 
         for sh_node_property in set(sh_properties):
-            if (
-                str(sh_node_property) != str(node_shape_uriref)
-                and str(sh_node_property)
-                != "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"
-            ):
+            if str(sh_node_property) != str(node_shape_uriref) and str(
+                sh_node_property
+            ) != str(RDF.nil):
                 property_shapes_to_add.append((SH.property, sh_node_property))
 
         return triples_to_add, property_shapes_to_add, triples_to_remove
 
     def get_shape_graph(self, shape_uriref: URIRef) -> Tuple[Shape, Graph]:
         try:
-            shape = self._sg.lookup_shape_from_node(shape_uriref)
-            shape_graph = self.transitive_load_shape_graph(
-                self.shape_to_named_graph[shape_uriref],
-                self.shape_to_defining_resource[shape_uriref],
-                shape_uriref,
-            )
-        except KeyError:
-            shape_graph = self.transitive_load_shape_graph(
-                self.shape_to_named_graph[shape_uriref],
-                self.shape_to_defining_resource[shape_uriref],
-                shape_uriref,
-            )
-            # reloads the shapes graph
-            self._sg = ShapesGraphWrapper(self._graph)
-            shape = self._sg.lookup_shape_from_node(shape_uriref)
+            shape = self.get_shape_graph_wrapper().lookup_shape_from_node(shape_uriref)
+            if (
+                shape_uriref in self.shape_to_defining_resource
+                and self.shape_to_defining_resource[shape_uriref] in self._imported
+            ):
+                shape_graph = self._graph.graph(self.shape_to_named_graph[shape_uriref])
+            else:
+                raise ValueError()
+        except ValueError:
+            try:
+                shape_graph = self.transitive_load_shape_graph(
+                    self.shape_to_named_graph[shape_uriref],
+                    self.shape_to_defining_resource[shape_uriref],
+                    shape_uriref,
+                )
+                # reloads the shapes graph
+                self._init_shape_graph_wrapper()
+                shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
+                    shape_uriref
+                )
+            except Exception as e:
+                raise Exception(
+                    f"Failed to get the shape '{shape_uriref}': {str(e)}"
+                ) from e
+
         return shape, shape_graph
 
     def get_shape_iri_from_class_fragment(self, fragment):
@@ -399,4 +441,4 @@ class RdfService:
             type_expanded_cls = self.context.expand(fragment)
             return self.class_to_shape[URIRef(type_expanded_cls)]
         except KeyError as ke:
-            raise TypeError(f"Unkown type: {ke}") from ke
+            raise TypeError(f"Unknown type: {ke}") from ke

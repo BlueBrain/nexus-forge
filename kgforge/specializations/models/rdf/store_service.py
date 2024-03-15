@@ -46,9 +46,7 @@ class StoreService(RdfService):
             if hasattr(self.default_store.service, "store_context")
             else Namespace(Service.NEXUS_CONTEXT_FALLBACK)
         )
-        self._graph = rdflib.Dataset()
-        self._sg = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
+        super().__init__(rdflib.Dataset(), context_iri)
 
     def schema_source_id(self, shape_uri: str) -> str:
         return str(self.shape_to_defining_resource[URIRef(shape_uri)])
@@ -85,7 +83,7 @@ class StoreService(RdfService):
         self._sg = ShapesGraphWrapper(self._graph)
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict, Dict]:
         query = build_shacl_query(
             defining_property_uri=self.NXV.shapes,
             deprecated_property_uri=self.NXV.deprecated,
@@ -151,7 +149,7 @@ class StoreService(RdfService):
             document.update(context)
         return document
 
-    def load_shape_graph(self, graph_id, schema_id) -> Graph:
+    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
         try:
             schema_resource = self.context_store.retrieve(
                 schema_id, version=None, cross_bucket=False
@@ -168,6 +166,6 @@ class StoreService(RdfService):
         )
         # this double conversion was due blank nodes were not "regenerated" with json-ld
         temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
-        schema_graph = self._graph.graph(graph_id)
+        schema_graph = self._graph.graph(rdflib.term.URIRef(graph_id))
         schema_graph.parse(data=temp_graph.serialize(format="n3"), format="n3")
         return schema_graph
