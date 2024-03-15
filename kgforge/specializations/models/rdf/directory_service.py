@@ -72,15 +72,15 @@ class DirectoryService(RdfService):
             search_in_graph=True,
             context=self.context,
         )
+        print(query)
         res = self._graph.query(query)
         class_to_shape = {}
         shape_to_defining_resource = {}
         defining_resource_to_named_graph = {}
         for row in res:
-            class_to_shape[URIRef(row["type"])] = URIRef(row["shape"])
-            shape_to_defining_resource[URIRef(row["shape"])] = URIRef(
-                row["resource_id"]
-            )
+            shape_uri = URIRef(self.context.expand(row["shape"]))
+            class_to_shape[URIRef(URIRef(self.context.expand(row["type"])))] = shape_uri
+            shape_to_defining_resource[shape_uri] = URIRef(row["resource_id"])
             defining_resource_to_named_graph[URIRef(row["resource_id"])] = URIRef(
                 row["g"]
             )

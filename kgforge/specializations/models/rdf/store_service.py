@@ -99,9 +99,9 @@ class StoreService(RdfService):
             )
             for r in resources:
 
-                shape_uri = URIRef(self.context.expand(r.shape))
-                class_to_shape[URIRef(self.context.expand(r.type))] = shape_uri
-                shape_to_defining_resource[shape_uri] = URIRef(r.resource_id)
+                shape_uriref = URIRef(self.context.expand(r.shape))
+                class_to_shape[URIRef(self.context.expand(r.type))] = shape_uriref
+                shape_to_defining_resource[shape_uriref] = URIRef(r.resource_id)
                 defining_resource_to_named_graph[URIRef(r.resource_id)] = URIRef(
                     r.resource_id + "/graph"
                 )
