@@ -36,9 +36,6 @@ class DirectoryService(RdfService):
     def schema_source_id(self, shape_uri: str) -> str:
         return str(self.shape_to_named_graph[URIRef(shape_uri)])
 
-    def schema_id(self, shape_uri: str) -> str:
-        return str(self.shape_to_defining_resource[URIRef(shape_uri)])
-
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._sg.lookup_shape_from_node(iri)
         predecessors = set()

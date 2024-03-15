@@ -176,18 +176,6 @@ class RdfService:
         raise NotImplementedError()
 
     @abstractmethod
-    def schema_id(self, shape_uri: str) -> str:
-        """Id of the schema resource defining the node shape
-
-        Args:
-            shape_uri: the URI of a node shape
-
-        Returns:
-            The Id of the schema resource defining the node shape
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
     def materialize(self, iri: URIRef) -> NodeProperties:
         """Triggers the collection of properties of a given Shape node
 
@@ -255,6 +243,17 @@ class RdfService:
             An rdflib.Graph() with node shapes defined by schema_id
         """
         raise NotImplementedError()
+
+    def schema_id(self, shape_uri: str) -> str:
+        """Id of the schema resource defining the node shape
+
+        Args:
+            shape_uri: the URI of a node shape
+
+        Returns:
+            The Id of the schema resource defining the node shape
+        """
+        return str(self.shape_to_defining_resource[URIRef(shape_uri)])
 
     def _init_shape_graph_wrapper(self):
         self._sg = ShapesGraphWrapper(self._graph)

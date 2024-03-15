@@ -50,9 +50,6 @@ class StoreService(RdfService):
     def schema_source_id(self, shape_uri: str) -> str:
         return str(self.shape_to_defining_resource[URIRef(shape_uri)])
 
-    def schema_id(self, shape_uri: str) -> str:
-        return self.schema_source_id(shape_uri)
-
     def materialize(self, iri: URIRef) -> NodeProperties:
         shape = self.get_shape_graph(iri)
         predecessors = set()
