@@ -35,6 +35,7 @@ def test_load_rdf_files_as_graph(shacl_schemas_file_path):
     for file_path in expected_file_paths:
         g = graph_dataset.graph(file_path)
         expected_g = rdflib.Graph().parse(file_path, format="json-ld")
+        assert len(g) > 0
         assert len(g) == len(expected_g)
 
 
@@ -43,9 +44,12 @@ def test_build_shapes_map(rdf_model_from_dir: RdfModel):
         rdf_model_from_dir.service._build_shapes_map()
     )
 
-    assert sorted(list(class_to_shape.values())) == sorted(
-        list(shape_to_defining_resource.keys())
+    geo_shape_uri = (
+        "http://www.example.com/GeoShape"  # The only shape not targeting a class
     )
+    assert sorted(
+        list(class_to_shape.values()) + [rdflib.URIRef(geo_shape_uri)]
+    ) == sorted(list(shape_to_defining_resource.keys()))
     assert sorted(set(shape_to_defining_resource.values())) == sorted(
         set(defining_resource_to_named_graph.keys())
     )
@@ -56,5 +60,6 @@ def test_build_shapes_map(rdf_model_from_dir: RdfModel):
     ]
     assert sorted(loaded_classes) == sorted(expected_targeted_classes)
     expected_shapes = [val["shape"] for val in TYPES_SHAPES_MAP.values()]
+    expected_shapes.append(geo_shape_uri)
     loaded_shapes = [str(s) for s in shape_to_defining_resource.keys()]
     assert sorted(loaded_shapes) == sorted(expected_shapes)
