@@ -20,6 +20,7 @@ from pyshacl.shapes_graph import ShapesGraph
 from rdflib import OWL, SH, Graph, Namespace, URIRef, RDF, XSD
 from rdflib.paths import ZeroOrMore
 from rdflib import Dataset as RDFDataset
+from rdflib.exceptions import ParserError
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
@@ -188,15 +189,19 @@ class RdfService:
 
     def validate(self, resource: Resource, type_: str):
         try:
-            if isinstance(resource.type, list) and type_ is None:
+            if not resource.get_type() and not type_:
+                raise ValueError(
+                    "No type was provided through Resource.type or the type_ parameter"
+                )
+            if isinstance(resource.get_type(), list) and type_ is None:
                 raise ValueError(
                     "Resource has list of types as attribute and type_ parameter is not specified. "
-                    "Please provide a type_ parameter to validate against it."
+                    "Provide a single value for the type_ parameter or for Resource.type"
                 )
-            type_to_validate = type_ if type_ else resource.type
-        except AttributeError as exc:
+            type_to_validate = type_ if type_ else resource.get_type()
+        except ValueError as exc:
             raise TypeError(
-                "Resource requires a type attribute or a type_ parameter should be provided"
+                f"A single type should be provided for validation: {str(exc)}"
             ) from exc
         shape_iri = self.get_shape_iri_from_class_fragment(type_to_validate)
         data_graph = as_graph(resource, False, self.context, None, None)
@@ -340,24 +345,37 @@ class RdfService:
         return {"@context": context} if len(context) > 0 else None
 
     def transitive_load_shape_graph(
-        self, graph_id: str, schema_id: str, node_shape_uriref: URIRef = None
+        self,
+        graph_uriref: URIRef,
+        schema_uriref: URIRef,
+        node_shape_uriref: URIRef = None,
     ):
-        schema_graph = self.load_shape_graph(graph_id, schema_id)
-        self._imported.append(schema_id)
-        for imported in schema_graph.objects(URIRef(schema_id), OWL.imports):
-            imported_schema_id = self.context.expand(imported)
-            imported_graph_id = self.defining_resource_to_named_graph[
-                URIRef(imported_schema_id)
-            ]
-            if imported_schema_id not in self._imported:
-                imported_schema_graph = self.transitive_load_shape_graph(
-                    imported_graph_id, imported_schema_id
-                )
-            else:
-                imported_schema_graph = self._graph.graph(URIRef(graph_id))
-            schema_graph.parse(
-                data=imported_schema_graph.serialize(format="n3"), format="n3"
-            )
+        schema_graph = self.load_shape_graph(graph_uriref, schema_uriref)
+        self._imported.append(schema_uriref)
+
+        for imported in schema_graph.objects(schema_uriref, OWL.imports):
+            imported_schema_uriref = URIRef(self.context.expand(imported))
+            try:
+                imported_graph_id = self.defining_resource_to_named_graph[
+                    imported_schema_uriref
+                ]
+                if imported_schema_uriref not in self._imported:
+                    imported_schema_graph = self.transitive_load_shape_graph(
+                        imported_graph_id, imported_schema_uriref
+                    )
+                else:
+                    imported_schema_graph = self._graph.graph(graph_uriref)
+                # set operation to keep blank nodes unchanged as all the graphs belong to the same overall RDF Dataset
+                # seeAlso: https://rdflib.readthedocs.io/en/stable/merging.html
+                schema_graph += imported_schema_graph
+            except KeyError as ke:
+                raise ValueError(
+                    f"Imported schema {imported_schema_uriref} is not loaded ad indexed: {str(ke)}"
+                ) from ke
+            except ParserError as pe:
+                raise ValueError(
+                    f"Failed to parse the rdf graph of the imported schema {imported_schema_uriref}: {str(pe)}"
+                ) from pe
         if node_shape_uriref:
             triples_to_add, _, triples_to_remove = (
                 self._get_property_shapes_from_nodeshape(node_shape_uriref)
@@ -412,14 +430,14 @@ class RdfService:
             shape = self.get_shape_graph_wrapper().lookup_shape_from_node(shape_uriref)
             if (
                 shape_uriref in self.shape_to_defining_resource
-                and str(self.shape_to_defining_resource[shape_uriref]) in self._imported
+                and self.shape_to_defining_resource[shape_uriref] in self._imported
             ):
                 shape_graph = self._graph.graph(
                     self._get_named_graph_from_shape(shape_uriref)
                 )
             else:
                 raise ValueError()
-        except ValueError:
+        except Exception:
             try:
                 shape_graph = self.transitive_load_shape_graph(
                     self._get_named_graph_from_shape(shape_uriref),
@@ -435,7 +453,6 @@ class RdfService:
                 raise Exception(
                     f"Failed to get the shape '{shape_uriref}': {str(e)}"
                 ) from e
-
         return shape, shape_graph
 
     def get_shape_iri_from_class_fragment(self, fragment):

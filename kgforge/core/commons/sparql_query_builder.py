@@ -455,7 +455,16 @@ def build_shacl_query(
         "SELECT (?shape as ?type) ?shape ?resource_id WHERE { ?shape a sh:NodeShape ."
         + "?shape a rdfs:Class . {}".format(".".join(extra_statements) + "}")
     )
-    all_statements = [shape_target_statement_str, shape_node_statements_str]
+    shape_node_not_targeting_statements_str = (
+        "SELECT ?shape ?resource_id WHERE { ?shape a sh:NodeShape ."
+        + "FILTER NOT EXISTS {?shape sh:targetClass []} FILTER NOT EXISTS {?shape a rdfs:Class}"
+        + " . {}".format(".".join(extra_statements) + "}")
+    )
+    all_statements = [
+        shape_target_statement_str,
+        shape_node_statements_str,
+        shape_node_not_targeting_statements_str,
+    ]
     vars_ = ["?type", "?shape", "?resource_id"]
     if search_in_graph:
         vars_.append("?g")

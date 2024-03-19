@@ -79,7 +79,8 @@ class DirectoryService(RdfService):
         for row in res:
             shape_uriref = URIRef(self.context.expand(row["shape"]))
             resource_uriref = URIRef(self.context.expand(row["resource_id"]))
-            class_to_shape[URIRef(self.context.expand(row["type"]))] = shape_uriref
+            if "type" in row:
+                class_to_shape[URIRef(self.context.expand(row["type"]))] = shape_uriref
             shape_to_defining_resource[shape_uriref] = resource_uriref
             defining_resource_to_named_graph[resource_uriref] = URIRef(row["g"])
         return (

@@ -72,12 +72,12 @@ class StoreService(RdfService):
 
     def generate_context(self) -> Dict:
         for shape_uriref, schema_uriref in self.shape_to_defining_resource.items():
-            if str(schema_uriref) not in self._imported:
+            if schema_uriref not in self._imported:
                 self.transitive_load_shape_graph(
                     self._get_named_graph_from_shape(shape_uriref), schema_uriref
                 )
         # reloads the shapes graph
-        self._sg = ShapesGraphWrapper(self._graph)
+        self._init_shape_graph_wrapper()
         return self._generate_context()
 
     def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
@@ -100,7 +100,10 @@ class StoreService(RdfService):
             for r in resources:
 
                 shape_uriref = URIRef(self.context.expand(r.shape))
-                class_to_shape[URIRef(self.context.expand(r.type))] = shape_uriref
+                if r.has_type():
+                    class_to_shape[URIRef(self.context.expand(r.get_type()))] = (
+                        shape_uriref
+                    )
                 shape_to_defining_resource[shape_uriref] = URIRef(r.resource_id)
                 defining_resource_to_named_graph[URIRef(r.resource_id)] = URIRef(
                     r.resource_id + "/graph"
