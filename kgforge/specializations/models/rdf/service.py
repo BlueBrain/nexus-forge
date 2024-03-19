@@ -459,5 +459,5 @@ class RdfService:
         try:
             type_expanded_cls = self.context.expand(fragment)
             return self.class_to_shape[URIRef(type_expanded_cls)]
-        except KeyError as ke:
-            raise TypeError(f"Unknown type: {ke}") from ke
+        except Exception as ke:
+            raise TypeError(f"Unknown type '{fragment}': {ke}") from ke
