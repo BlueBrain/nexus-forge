@@ -364,7 +364,7 @@ class RdfService:
                         imported_graph_id, imported_schema_uriref
                     )
                 else:
-                    imported_schema_graph = self._graph.graph(graph_uriref)
+                    imported_schema_graph = self._graph.graph(imported_graph_id)
                 # set operation to keep blank nodes unchanged as all the graphs belong to the same overall RDF Dataset
                 # seeAlso: https://rdflib.readthedocs.io/en/stable/merging.html
                 schema_graph += imported_schema_graph
