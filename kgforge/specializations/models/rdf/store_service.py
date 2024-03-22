@@ -161,8 +161,7 @@ class StoreService(RdfService):
             metadata_context=None,
             context_resolver=self.context_store.service.resolve_context,
         )
-        # this double conversion was due blank nodes were not "regenerated" with json-ld
-        temp_graph = Graph().parse(data=json.dumps(json_dict), format="json-ld")
         schema_graph = self._graph.graph(URIRef(graph_id))
-        schema_graph.parse(data=temp_graph.serialize(format="n3"), format="n3")
+        schema_graph.remove((None, None, None))
+        schema_graph.parse(data=json.dumps(json_dict), format="json-ld")
         return schema_graph
