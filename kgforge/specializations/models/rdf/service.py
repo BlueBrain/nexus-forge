@@ -352,8 +352,6 @@ class RdfService:
         node_shape_uriref: URIRef = None,
     ):
         schema_graph = self.load_shape_graph(graph_uriref, schema_uriref)
-        self._imported.append(schema_uriref)
-
         for imported in schema_graph.objects(schema_uriref, OWL.imports):
             imported_schema_uriref = URIRef(self.context.expand(imported))
             try:
@@ -377,6 +375,7 @@ class RdfService:
                 raise ValueError(
                     f"Failed to parse the rdf graph of the imported schema {imported_schema_uriref}: {str(pe)}"
                 ) from pe
+
         if node_shape_uriref:
             triples_to_add, _, triples_to_remove = (
                 self._get_property_shapes_from_nodeshape(
@@ -387,6 +386,7 @@ class RdfService:
                 schema_graph.add(triple_to_add)
             for triple_to_remove in triples_to_remove:
                 schema_graph.remove(triple_to_remove)
+        self._imported.append(schema_uriref)
         return schema_graph
 
     def _get_property_shapes_from_nodeshape(self, node_shape_uriref, schema_graph):
