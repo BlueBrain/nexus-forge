@@ -18,15 +18,15 @@ import copy
 import json
 import mimetypes
 import re
-from asyncio import Semaphore, Task
+from asyncio import Semaphore, Task, AbstractEventLoop
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Optional, Tuple, Union, Type, Callable
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 import nexussdk as nexus
 import requests
-from aiohttp import ClientSession, MultipartWriter
+from aiohttp import ClientSession, MultipartWriter, hdrs, ClientResponseError
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
@@ -50,18 +50,19 @@ from kgforge.core.commons.exceptions import (
     TaggingError,
     UpdatingError,
     UploadingError,
-    SchemaUpdateError,
+    SchemaUpdateError
 )
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.json import as_json
-from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
-from kgforge.specializations.stores.nexus.service import BatchAction, Service, _error_message
-
+from kgforge.specializations.stores.nexus.batch_request_handler import BatchRequestHandler, \
+    BatchResult
+from kgforge.specializations.stores.nexus.service import Service, _error_message
+import kgforge.specializations.stores.nexus.prepare_methods as prepare_methods
 
 REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
 
@@ -105,17 +106,15 @@ class BlueBrainNexus(Store):
         )
 
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+
+        fc_name = self._register_many.__name__
+
         def register_callback(task: Task):
             result = task.result()
-            if isinstance(result.response, Exception):
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    False,
-                    False,
-                )
-            else:
+            succeeded = not isinstance(result.response, Exception)
+
+            # This if is the one difference with the default callback
+            if succeeded:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
                     context = self.model_context() or self.context
@@ -124,80 +123,57 @@ class BlueBrainNexus(Store):
                         if context.is_http_iri()
                         else context.document["@context"]
                     )
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    True,
-                    True,
-                )
+
+            self.service.synchronize_resource(
+                result.resource,
+                result.response,
+                fc_name,
+                succeeded,
+                succeeded,
+            )
 
         verified = self.service.verify(
             resources,
-            function_name=self._register_many.__name__,
+            function_name=fc_name,
             exception=RegistrationError,
             id_required=False,
             required_synchronized=False,
             execute_actions=True,
         )
-        params_register = copy.deepcopy(self.service.params.get("register", {}))
 
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.CREATE,
             callback=register_callback,
-            error_type=RegistrationError,
+            prepare_function=prepare_methods.prepare_create,
             schema_id=schema_id,
-            params=params_register,
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
-        data = as_jsonld(
-            resource,
-            "compacted",
-            False,
-            model_context=context,
-            metadata_context=None,
-            context_resolver=self.service.resolve_context
+
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_create(
+            service=self.service, resource=resource
         )
 
-        params_register = copy.deepcopy(self.service.params.get("register", None))
-        identifier = resource.get_identifier()
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
+            timeout=REQUEST_TIMEOUT
+        )
 
-        if identifier:
+        catch_http_error_nexus(response, exception_)
 
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=identifier
-            )
-
-            response = requests.put(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT
-            )
-        else:
-
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=None
-            )
-
-            response = requests.post(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT
-            )
-        catch_http_error_nexus(response, RegistrationError)
+        data = payload
 
         response_json = response.json()
         resource.id = response_json["@id"]
         # If resource had no context, update it with the one provided by the store.
         if not hasattr(resource, "context"):
             resource.context = data["@context"]
+
         self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
@@ -565,48 +541,42 @@ class BlueBrainNexus(Store):
         )
 
     def _update_many(self, resources: List[Resource], schema_id: str) -> None:
-        update_callback = self.service.default_callback(self._update_many.__name__)
+        fc_name = self._update_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._update_many.__name__,
+            function_name=fc_name,
             exception=UpdatingError,
             id_required=True,
             required_synchronized=False,
             execute_actions=True,
         )
-        params_update = copy.deepcopy(self.service.params.get("update", {}))
-        self.service.batch_request(
+
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.UPDATE,
-            callback=update_callback,
-            error_type=UpdatingError,
-            params=params_update,
+            callback=self.service.default_callback(fc_name),
+            prepare_function=prepare_methods.prepare_update,
             schema_id=schema_id
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
-        data = as_jsonld(
-            resource,
-            "compacted",
-            False,
-            model_context=context,
-            metadata_context=None,
-            context_resolver=self.service.resolve_context
-        )
-        url, params = self.service._prepare_uri(resource, schema_id, use_unconstrained_id=True)
-        params_update = copy.deepcopy(self.service.params.get("update", {}))
-        params_update.update(params)
 
-        response = requests.put(
-            url,
-            headers=self.service.headers,
-            data=json.dumps(data, ensure_ascii=True),
-            params=params_update,
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update(
+            service=self.service,
+            resource=resource
+        )
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT
         )
 
-        catch_http_error_nexus(response, UpdatingError)
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     def delete_schema(self, resource: Union[Resource, List[Resource]]):
@@ -614,33 +584,39 @@ class BlueBrainNexus(Store):
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
 
-        url = Service.add_schema_and_id_to_endpoint(
-            endpoint=self.service.url_resources, schema_id=schema_id, resource_id=resource.id
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update_schema(
+            service=self.service, resource=resource, schema_id=schema_id
         )
-        response = requests.put(
-            url=f"{url}/update-schema", headers=self.service.headers, timeout=REQUEST_TIMEOUT
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
+            timeout=REQUEST_TIMEOUT
         )
-        catch_http_error_nexus(response, SchemaUpdateError)
+
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
 
-        update_schema_callback = self.service.default_callback(self._update_schema_many.__name__)
+        fc_name = self._update_schema_many.__name__
 
         verified = self.service.verify(
             resources,
-            function_name=self._update_schema_many.__name__,
+            function_name=fc_name,
             exception=SchemaUpdateError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False
         )
 
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.UPDATE_SCHEMA,
-            callback=update_schema_callback,
-            error_type=SchemaUpdateError,
+            prepare_function=prepare_methods.prepare_update_schema,
+            callback=self.service.default_callback(fc_name),
             schema_id=schema_id,
         )
 
@@ -671,38 +647,40 @@ class BlueBrainNexus(Store):
         )
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
-        tag_callback = self.service.default_callback(self._tag_many.__name__)
+        fc_name = self._tag_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._tag_many.__name__,
+            function_name=fc_name,
             exception=TaggingError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
         )
-        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.TAG,
-            callback=tag_callback,
-            error_type=TaggingError,
-            tag=value,
-            params=params_tag,
+            prepare_function=prepare_methods.prepare_tag,
+            callback=self.service.default_callback(fc_name),
+            tag=value
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        url, data, rev_param = self.service._prepare_tag(resource, value)
-        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
-        params_tag.update(rev_param)
-        response = requests.post(
-            url,
-            headers=self.service.headers,
-            data=json.dumps(data, ensure_ascii=True),
-            params=params_tag,
+
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_tag(
+            service=self.service, resource=resource, tag=value
+        )
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT
         )
-        catch_http_error_nexus(response, TaggingError)
 
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     # CRU[D].
@@ -719,40 +697,40 @@ class BlueBrainNexus(Store):
         )
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
-        deprecate_callback = self.service.default_callback(
-            self._deprecate_many.__name__
-        )
+        fc_name = self._deprecate_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._deprecate_many.__name__,
+            function_name=fc_name,
             exception=DeprecationError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
         )
-        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", {}))
-        self.service.batch_request(
+
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.DEPRECATE,
-            callback=deprecate_callback,
-            error_type=DeprecationError,
-            params=params_deprecate,
+            prepare_function=prepare_methods.prepare_deprecate,
+            callback=self.service.default_callback(fc_name)
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
 
-        url, params = self.service._prepare_uri(resource)
-        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
-
-        if params_deprecate is not None:
-            params_deprecate.update(params)
-        else:
-            params_deprecate = params
-
-        response = requests.delete(
-            url, headers=self.service.headers, params=params_deprecate, timeout=REQUEST_TIMEOUT
+        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_deprecate(
+            service=self.service, resource=resource
         )
-        catch_http_error_nexus(response, DeprecationError)
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
+            timeout=REQUEST_TIMEOUT
+        )
+
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
         # Querying.
@@ -850,14 +828,12 @@ class BlueBrainNexus(Store):
             resources = self.sparql(
                 query, debug=debug, limit=limit, offset=offset, view=params.get("view", None)
             )
-            params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
-            params_retrieve['retrieve_source'] = retrieve_source
-            results = self.service.batch_request(
+            results = BatchRequestHandler.batch_request_on_resources(
+                service=self.service,
                 resources=resources,
-                action=BatchAction.FETCH,
+                prepare_function=prepare_methods.prepare_fetch,
                 callback=None,
-                error_type=QueryingError,
-                params=params_retrieve
+                retrieve_source=retrieve_source
             )
             resources = []
             for result in results:
