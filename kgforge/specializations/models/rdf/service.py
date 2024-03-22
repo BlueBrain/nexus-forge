@@ -20,6 +20,7 @@ from pyshacl.shapes_graph import ShapesGraph
 from rdflib import OWL, SH, Graph, Namespace, URIRef, RDF, XSD
 from rdflib.paths import ZeroOrMore
 from rdflib import Dataset as RDFDataset
+from rdflib.collection import Collection as RDFCollection
 from rdflib.exceptions import ParserError
 
 from kgforge.core.resource import Resource
@@ -378,7 +379,9 @@ class RdfService:
                 ) from pe
         if node_shape_uriref:
             triples_to_add, _, triples_to_remove = (
-                self._get_property_shapes_from_nodeshape(node_shape_uriref)
+                self._get_property_shapes_from_nodeshape(
+                    node_shape_uriref, schema_graph
+                )
             )
             for triple_to_add in triples_to_add:
                 schema_graph.add(triple_to_add)
@@ -386,7 +389,7 @@ class RdfService:
                 schema_graph.remove(triple_to_remove)
         return schema_graph
 
-    def _get_property_shapes_from_nodeshape(self, node_shape_uriref):
+    def _get_property_shapes_from_nodeshape(self, node_shape_uriref, schema_graph):
         property_shapes_to_add = []
         triples_to_add = []
         triples_to_remove = []
@@ -406,7 +409,9 @@ class RdfService:
             )
         for sh_node in set(sh_nodes):
             if str(sh_node) != str(node_shape_uriref) and str(sh_node) != str(RDF.nil):
-                t_a, p_a, t_r = self._get_property_shapes_from_nodeshape(sh_node)
+                t_a, p_a, t_r = self._get_property_shapes_from_nodeshape(
+                    sh_node, schema_graph
+                )
                 if p_a:
                     triples_to_add.extend(t_a)
                     for propertyShape in p_a:
@@ -416,13 +421,26 @@ class RdfService:
                         property_shapes_to_add.append(propertyShape)
                     triples_to_remove.extend(t_r)
                     triples_to_remove.append((node_shape_uriref, SH.node, sh_node))
-
+                    for t in schema_graph.subjects(SH.node, sh_node):
+                        for list_, first, o, g in self._graph.quads(
+                            (
+                                None,
+                                URIRef(
+                                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#first"
+                                ),
+                                t,
+                                None,
+                            )
+                        ):
+                            if g == self._get_named_graph_from_shape(node_shape_uriref):
+                                list_collection = RDFCollection(schema_graph, list_)
+                                t_index = list_collection.index(t)
+                                del list_collection[t_index]
         for sh_node_property in set(sh_properties):
             if str(sh_node_property) != str(node_shape_uriref) and str(
                 sh_node_property
             ) != str(RDF.nil):
                 property_shapes_to_add.append((SH.property, sh_node_property))
-
         return triples_to_add, property_shapes_to_add, triples_to_remove
 
     def get_shape_graph(self, shape_uriref: URIRef) -> Tuple[Shape, Graph]:
