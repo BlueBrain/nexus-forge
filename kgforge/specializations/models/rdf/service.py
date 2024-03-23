@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import types
-from typing import List, Dict, Tuple, Set, Optional
+from typing import List, Dict, Tuple, Set, Optional, Union
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from pyshacl.shape import Shape
@@ -206,7 +206,11 @@ class RdfService:
             ) from exc
         shape_iri = self.get_shape_iri_from_class_fragment(type_to_validate)
         data_graph = as_graph(resource, False, self.context, None, None)
-        shape, shacl_graph = self.get_shape_graph(shape_iri)
+        # link_property_shapes_from_ancestors=True to address pySHacl current
+        # limitation of the length of sh:node transitive path (https://github.com/RDFLib/pySHACL/blob/master/pyshacl/shape.py#L468).
+        shape, shacl_graph = self.get_shape_graph(
+            shape_iri, link_property_shapes_from_ancestors=True
+        )
         return self._validate(shape_iri, data_graph, shape, shacl_graph)
 
     @abstractmethod
@@ -236,8 +240,8 @@ class RdfService:
         raise NotImplementedError()
 
     @abstractmethod
-    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
-        """Loads the content of the node shapes defined in by shema_id and accessible from graph_id
+    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
+        """Loads into graph_id the node shapes defined in shema_id
 
         Args:
             graph_id: A named graph uri from which the shapes are accessible
@@ -345,13 +349,18 @@ class RdfService:
 
         return {"@context": context} if len(context) > 0 else None
 
-    def transitive_load_shape_graph(
-        self,
-        graph_uriref: URIRef,
-        schema_uriref: URIRef,
-        node_shape_uriref: URIRef = None,
-    ):
-        schema_graph = self.load_shape_graph(graph_uriref, schema_uriref)
+    def _transitive_load_shape_graph(self, graph_uriref: URIRef, schema_uriref: URIRef):
+        """Loads into the graph identified by graph_uriref:
+            * the node shapes defined in the schema identified by schema_uriref
+            * the transitive closure of the owl.imports property of the schema schema_uriref
+
+            Loaded schemas are added to self._imported to avoid loading them a second time.
+
+        Args:
+            graph_uriref: A named graph URIRef containing schema_uriref
+            schema_uriref: A URIRef of the schema
+        """
+        schema_graph = self.load_shape_graph_from_source(graph_uriref, schema_uriref)
         for imported in schema_graph.objects(schema_uriref, OWL.imports):
             imported_schema_uriref = URIRef(self.context.expand(imported))
             try:
@@ -359,7 +368,7 @@ class RdfService:
                     imported_schema_uriref
                 ]
                 if imported_schema_uriref not in self._imported:
-                    imported_schema_graph = self.transitive_load_shape_graph(
+                    imported_schema_graph = self._transitive_load_shape_graph(
                         imported_graph_id, imported_schema_uriref
                     )
                 else:
@@ -375,24 +384,36 @@ class RdfService:
                 raise ValueError(
                     f"Failed to parse the rdf graph of the imported schema {imported_schema_uriref}: {str(pe)}"
                 ) from pe
-
-        if node_shape_uriref:
-            triples_to_add, _, triples_to_remove = (
-                self._get_property_shapes_from_nodeshape(
-                    node_shape_uriref, schema_graph
-                )
-            )
-            for triple_to_add in triples_to_add:
-                schema_graph.add(triple_to_add)
-            for triple_to_remove in triples_to_remove:
-                schema_graph.remove(triple_to_remove)
         self._imported.append(schema_uriref)
         return schema_graph
 
-    def _get_property_shapes_from_nodeshape(self, node_shape_uriref, schema_graph):
+    def _get_property_shapes_from_nodeshape(
+        self, node_shape_uriref: URIRef, schema_graph: Graph
+    ) -> Tuple[List, List, List, List]:
+        """
+        Recursively collect all the property shapes defined (through sh:property) by node_shape_uriref and by the node shapes
+        it extends through (and|or|xone)*/SH.node. In order to properly replace in schema_graph
+        the (node_shape_uriref, SH.node, parent_node_shape_uriref) triples with (node_shape_uriref, SH.property, property_shape_uriref)
+        for each collected property shape, are also collected:
+
+        * (node_shape_uriref, SH.property, property_shape_uriref) triples to add to schema_graph
+        * (node_shape_uriref, SH.node, parent_node_shape_uriref) triples  to remove from schema_graph
+        * RDF collection c such as (node_shape_uriref, c/SH.node, parent_node_shape_uriref) and index of items to remove from them
+
+        Args:
+            node_shape_uriref: the URI of a node shape
+            schema_graph: An rdflib.Graph containing the definition of node_shape_uriref
+        Returns:
+            A Tuple of 3 lists:
+            * the triples to add to schema_graph
+            * collected property shapes (SH.property, property_shape_uriref)
+            * the triples to remove from schema_graph
+            * RDF Collections and index of items to remove from them
+        """
         property_shapes_to_add = []
         triples_to_add = []
         triples_to_remove = []
+        rdfcollection_items_to_remove = []
         schema_defines_shape = [
             SH["and"] / (RDF.first | RDF.rest / RDF.first) * ZeroOrMore,
             SH["or"] / (RDF.first | RDF.rest / RDF.first) * ZeroOrMore,
@@ -409,11 +430,12 @@ class RdfService:
             )
         for sh_node in set(sh_nodes):
             if str(sh_node) != str(node_shape_uriref) and str(sh_node) != str(RDF.nil):
-                t_a, p_a, t_r = self._get_property_shapes_from_nodeshape(
+                t_a, p_a, t_r, c_r = self._get_property_shapes_from_nodeshape(
                     sh_node, schema_graph
                 )
                 if p_a:
                     triples_to_add.extend(t_a)
+                    rdfcollection_items_to_remove.extend(c_r)
                     for propertyShape in p_a:
                         triples_to_add.append(
                             (node_shape_uriref, propertyShape[0], propertyShape[1])
@@ -435,41 +457,72 @@ class RdfService:
                             if g == self._get_named_graph_from_shape(node_shape_uriref):
                                 list_collection = RDFCollection(schema_graph, list_)
                                 t_index = list_collection.index(t)
-                                del list_collection[t_index]
+                                # del list_collection[t_index]
+                                rdfcollection_items_to_remove.append(
+                                    (list_collection, t_index)
+                                )
         for sh_node_property in set(sh_properties):
             if str(sh_node_property) != str(node_shape_uriref) and str(
                 sh_node_property
             ) != str(RDF.nil):
                 property_shapes_to_add.append((SH.property, sh_node_property))
-        return triples_to_add, property_shapes_to_add, triples_to_remove
+        return (
+            triples_to_add,
+            property_shapes_to_add,
+            triples_to_remove,
+            rdfcollection_items_to_remove,
+        )
 
-    def get_shape_graph(self, shape_uriref: URIRef) -> Tuple[Shape, Graph]:
+    def get_shape_graph(
+        self,
+        node_shape_uriref: URIRef,
+        link_property_shapes_from_ancestors: bool = False,
+    ) -> Tuple[Shape, Graph]:
         try:
-            shape = self.get_shape_graph_wrapper().lookup_shape_from_node(shape_uriref)
+            shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
+                node_shape_uriref
+            )
             if (
-                shape_uriref in self.shape_to_defining_resource
-                and self.shape_to_defining_resource[shape_uriref] in self._imported
+                node_shape_uriref in self.shape_to_defining_resource
+                and self.shape_to_defining_resource[node_shape_uriref] in self._imported
             ):
                 shape_graph = self._graph.graph(
-                    self._get_named_graph_from_shape(shape_uriref)
+                    self._get_named_graph_from_shape(node_shape_uriref)
                 )
             else:
                 raise ValueError()
         except Exception:
             try:
-                shape_graph = self.transitive_load_shape_graph(
-                    self._get_named_graph_from_shape(shape_uriref),
-                    self.shape_to_defining_resource[shape_uriref],
-                    shape_uriref,
+                shape_graph = self._transitive_load_shape_graph(
+                    self._get_named_graph_from_shape(node_shape_uriref),
+                    self.shape_to_defining_resource[node_shape_uriref],
                 )
+                if link_property_shapes_from_ancestors:
+                    (
+                        triples_to_add,
+                        _,
+                        triples_to_remove,
+                        rdfcollection_items_to_remove,
+                    ) = self._get_property_shapes_from_nodeshape(
+                        node_shape_uriref, shape_graph
+                    )
+                    for triple_to_add in triples_to_add:
+                        shape_graph.add(triple_to_add)
+                    for triple_to_remove in triples_to_remove:
+                        shape_graph.remove(triple_to_remove)
+                    for (
+                        rdfcollection,
+                        rdfcollection_item_index,
+                    ) in rdfcollection_items_to_remove:
+                        del rdfcollection[rdfcollection_item_index]
                 # reloads the shapes graph
                 self._init_shape_graph_wrapper()
                 shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
-                    shape_uriref
+                    node_shape_uriref
                 )
             except Exception as e:
                 raise Exception(
-                    f"Failed to get the shape '{shape_uriref}': {str(e)}"
+                    f"Failed to get the shape '{node_shape_uriref}': {str(e)}"
                 ) from e
         return shape, shape_graph
 

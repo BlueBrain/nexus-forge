@@ -89,7 +89,7 @@ class DirectoryService(RdfService):
             defining_resource_to_named_graph,
         )
 
-    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
+    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         return self._graph.graph(URIRef(graph_id))
 
 

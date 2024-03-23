@@ -73,7 +73,7 @@ class StoreService(RdfService):
     def generate_context(self) -> Dict:
         for shape_uriref, schema_uriref in self.shape_to_defining_resource.items():
             if schema_uriref not in self._imported:
-                self.transitive_load_shape_graph(
+                self._transitive_load_shape_graph(
                     self._get_named_graph_from_shape(shape_uriref), schema_uriref
                 )
         # reloads the shapes graph
@@ -146,7 +146,7 @@ class StoreService(RdfService):
             document.update(context)
         return document
 
-    def load_shape_graph(self, graph_id: str, schema_id: str) -> Graph:
+    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         try:
             schema_resource = self.context_store.retrieve(
                 schema_id, version=None, cross_bucket=False
