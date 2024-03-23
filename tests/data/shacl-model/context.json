@@ -159,7 +159,8 @@
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "foaf": "http://xmlns.com/foaf/0.1/",
     "mba": "http://api.brain-map.org/api/v2/data/Structure/",
-    "obo": "http://purl.obolibrary.org/obo/"
+    "obo": "http://purl.obolibrary.org/obo/",
+    "sh": "http://www.w3.org/ns/shacl#"
   },
   "@id": "http://context.example.org"
 }

@@ -5,6 +5,7 @@
     "schema": "http://schema.org/",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "prov": "http://www.w3.org/ns/prov#",
+    "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
     "nodeKind": {
       "@id": "sh:nodeKind",
       "@type": "@id"
@@ -46,12 +47,12 @@
     }
   },
   "@id": "http://shapes.ex/building",
-  "@type": "this:Schema",
+  "@type": "nxv:Schema",
   "shapes": [
     {
       "@id": "this:GeoShape",
       "@type": "sh:NodeShape",
-      "closed" : true,
+      "closed": true,
       "property": [
         {
           "path": "schema:latitude",
@@ -93,5 +94,3 @@
     }
   ]
 }
-
-
