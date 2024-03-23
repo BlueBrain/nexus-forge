@@ -161,7 +161,7 @@ class StoreService(RdfService):
             metadata_context=None,
             context_resolver=self.context_store.service.resolve_context,
         )
-        schema_graph = self._graph.graph(URIRef(graph_id))
+        schema_graph = self._dataset_graph.graph(URIRef(graph_id))
         schema_graph.remove((None, None, None))
         schema_graph.parse(data=json.dumps(json_dict), format="json-ld")
         return schema_graph

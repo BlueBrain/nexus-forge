@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import types
-from typing import List, Dict, Tuple, Set, Optional, Union
+from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from pyshacl.shape import Shape
@@ -149,7 +149,7 @@ class RdfService:
 
         if context_iri is None:
             raise ConfigurationError("RdfModel requires a context")
-        self._graph = graph
+        self._dataset_graph = graph
         self._sg = None
         self._init_shape_graph_wrapper()
         self.NXV = Namespace("https://bluebrain.github.io/nexus/vocabulary/")
@@ -264,7 +264,7 @@ class RdfService:
         return str(self.shape_to_defining_resource[URIRef(shape_uri)])
 
     def _init_shape_graph_wrapper(self):
-        self._sg = ShapesGraphWrapper(self._graph)
+        self._sg = ShapesGraphWrapper(self._dataset_graph)
 
     def get_shape_graph_wrapper(self):
         return self._sg
@@ -289,8 +289,8 @@ class RdfService:
             for property_ in properties:
                 if hasattr(property_, "path"):
                     if property_.path != RDF.type and str(property_.path) != "id":
-                        v_prefix, v_namespace, v_name = self._graph.compute_qname(
-                            property_.path
+                        v_prefix, v_namespace, v_name = (
+                            self._dataset_graph.compute_qname(property_.path)
                         )
                         l_prefixes.update({v_prefix: str(v_namespace)})
                         term_obj = {"@id": ":".join((v_prefix, v_name))}
@@ -309,7 +309,9 @@ class RdfService:
                                     term_obj.update({"@type": "@id"})
                                 else:
                                     try:
-                                        px, ns, n = self._graph.compute_qname(obj_type)
+                                        px, ns, n = self._dataset_graph.compute_qname(
+                                            obj_type
+                                        )
                                         l_prefixes.update({px: str(ns)})
                                         if str(ns) == str(XSD):
                                             term_obj.update(
@@ -334,7 +336,7 @@ class RdfService:
                 print("duplicated term", key, k)
 
         for type_, shape in self.class_to_shape.items():
-            t_prefix, t_namespace, t_name = self._graph.compute_qname(type_)
+            t_prefix, t_namespace, t_name = self._dataset_graph.compute_qname(type_)
             prefixes.update({t_prefix: str(t_namespace)})
             types_.update({t_name: {"@id": ":".join((t_prefix, t_name))}})
             node = self.materialize(shape)
@@ -372,7 +374,7 @@ class RdfService:
                         imported_graph_id, imported_schema_uriref
                     )
                 else:
-                    imported_schema_graph = self._graph.graph(imported_graph_id)
+                    imported_schema_graph = self._dataset_graph.graph(imported_graph_id)
                 # set operation to keep blank nodes unchanged as all the graphs belong to the same overall RDF Dataset
                 # seeAlso: https://rdflib.readthedocs.io/en/stable/merging.html
                 schema_graph += imported_schema_graph
@@ -421,12 +423,16 @@ class RdfService:
         ]
         sh_nodes = []
         sh_properties = []
-        sh_properties.extend(list(self._graph.objects(node_shape_uriref, SH.property)))
-        sh_nodes.extend(list(self._graph.objects(node_shape_uriref, SH.node)))
+        sh_properties.extend(
+            list(self._dataset_graph.objects(node_shape_uriref, SH.property))
+        )
+        sh_nodes.extend(list(self._dataset_graph.objects(node_shape_uriref, SH.node)))
         for s in schema_defines_shape:
-            sh_nodes.extend(list(self._graph.objects(node_shape_uriref, s / SH.node)))
+            sh_nodes.extend(
+                list(self._dataset_graph.objects(node_shape_uriref, s / SH.node))
+            )
             sh_properties.extend(
-                list(self._graph.objects(node_shape_uriref, s / SH.property))
+                list(self._dataset_graph.objects(node_shape_uriref, s / SH.property))
             )
         for sh_node in set(sh_nodes):
             if str(sh_node) != str(node_shape_uriref) and str(sh_node) != str(RDF.nil):
@@ -444,7 +450,7 @@ class RdfService:
                     triples_to_remove.extend(t_r)
                     triples_to_remove.append((node_shape_uriref, SH.node, sh_node))
                     for t in schema_graph.subjects(SH.node, sh_node):
-                        for list_, first, o, g in self._graph.quads(
+                        for list_, first, o, g in self._dataset_graph.quads(
                             (
                                 None,
                                 URIRef(
@@ -486,7 +492,7 @@ class RdfService:
                 node_shape_uriref in self.shape_to_defining_resource
                 and self.shape_to_defining_resource[node_shape_uriref] in self._imported
             ):
-                shape_graph = self._graph.graph(
+                shape_graph = self._dataset_graph.graph(
                     self._get_named_graph_from_shape(node_shape_uriref)
                 )
             else:

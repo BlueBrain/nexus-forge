@@ -72,7 +72,7 @@ class DirectoryService(RdfService):
             search_in_graph=True,
             context=self.context,
         )
-        res = self._graph.query(query)
+        res = self._dataset_graph.query(query)
         class_to_shape = {}
         shape_to_defining_resource = {}
         defining_resource_to_named_graph = {}
@@ -90,7 +90,7 @@ class DirectoryService(RdfService):
         )
 
     def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
-        return self._graph.graph(URIRef(graph_id))
+        return self._dataset_graph.graph(URIRef(graph_id))
 
 
 def _load_rdf_files_as_graph(path: Path) -> RDFDataset:
