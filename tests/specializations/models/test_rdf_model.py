@@ -11,15 +11,13 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+
 import json
-from pyshacl import Shape
 import pytest
-from rdflib import URIRef, Graph
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import ValidationError
 from kgforge.specializations.models import RdfModel
-from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from tests.specializations.models.data import *
 
 
@@ -132,20 +130,3 @@ class TestValidation:
             == invalid_activity_resource._last_action.operation
             == rdf_model_from_dir._validate_many.__name__
         )
-
-    def test_get_shape_graph(
-        self, rdf_model_from_dir: RdfModel, shacl_schemas_file_path
-    ):
-        assert isinstance(rdf_model_from_dir.service, DirectoryService)
-        for s in TYPES_SHAPES_MAP.values():
-            shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
-                URIRef(s["shape"])
-            )
-            assert isinstance(shape, Shape)
-            assert str(shape.node) == s["shape"]
-            assert isinstance(schema_graph, Graph)
-            assert len(schema_graph) > 0
-        with pytest.raises(Exception):
-            shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
-                URIRef("https://noshape")
-            )

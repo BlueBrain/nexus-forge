@@ -25,7 +25,7 @@ def test_load_rdf_files_as_graph(shacl_schemas_file_path):
     graph_dataset = _load_rdf_files_as_graph(Path(shacl_schemas_file_path))
     assert isinstance(graph_dataset, rdflib.Dataset)
     shape_graphs = [str(g.identifier) for g in graph_dataset.graphs()]
-    assert len(shape_graphs) == 4
+    assert len(shape_graphs) == 5
     expected_file_paths = [
         str(f.resolve())
         for f in Path(shacl_schemas_file_path).rglob(os.path.join("*.*"))

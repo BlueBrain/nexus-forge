@@ -24,7 +24,7 @@ from kgforge.core.commons.sparql_query_builder import build_shacl_query
 from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.archetypes.store import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.service import RdfService
 from kgforge.specializations.stores.nexus import Service
 
 

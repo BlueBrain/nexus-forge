@@ -303,7 +303,7 @@ def context_iri_file(context_file_path):
     return f"file://{context_file_path}"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def rdf_model_from_dir(context_iri_file, shacl_schemas_file_path):
     return RdfModel(
         shacl_schemas_file_path, context={"iri": context_iri_file}, origin="directory"

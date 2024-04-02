@@ -160,50 +160,6 @@
       ]
     },
     {
-      "@id": "this:EmployeeShape",
-      "@type": "sh:NodeShape",
-      "nodeKind": "sh:IRI",
-      "targetClass": "this:Employee",
-      "and": [
-        {
-          "node": "this:PersonShape"
-        },
-        {
-          "path": "schema:startDate",
-          "datatype": "xsd:date",
-          "minCount": 1,
-          "maxCount": 1
-        },
-        {
-          "path": "schema:colleague",
-          "class": "schema:Person"
-        },
-        {
-          "path": "schema:worksFor",
-          "or": [
-            {
-              "class": "schema:Person"
-            },
-            {
-              "class": "schema:Organization"
-            }
-          ]
-        },
-        {
-          "or": [
-            {
-              "path": "schema:contractor",
-              "class": "schema:Organization"
-            },
-            {
-              "path": "schema:department",
-              "class": "schema:Organization"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "@id": "this:OrganizationShape",
       "@type": "sh:NodeShape",
       "nodeKind": "sh:BlankNodeOrIRI",

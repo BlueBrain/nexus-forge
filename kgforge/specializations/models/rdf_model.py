@@ -93,8 +93,9 @@ class RdfModel(Model):
 
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
-            shape_iri = self.service.get_shape_iri_from_class_fragment(type)
+            shape_iri = self.service.get_shape_uriref_from_class_fragment(type)
             node_properties = self.service.materialize(shape_iri)
+            print(node_properties)
             dictionary = parse_attributes(node_properties, only_required, None)
             return dictionary
         except Exception as exc:
@@ -104,7 +105,7 @@ class RdfModel(Model):
 
     def schema_id(self, type: str) -> str:
         try:
-            shape_iri = self.service.get_shape_iri_from_class_fragment(type)
+            shape_iri = self.service.get_shape_uriref_from_class_fragment(type)
             return self.service.schema_id(shape_iri)
         except Exception as exc:
             raise ValueError(f"Unable to get the schema id:{str(exc)}") from exc
