@@ -39,6 +39,7 @@ class CategoryDataType(Enum):
     BOOLEAN = "boolean"
     LITERAL = "literal"
 
+
 # FIXME: need to find a comprehensive way (different than list) to get all SPARQL reserved clauses
 
 
@@ -87,7 +88,7 @@ SPARQL_CLAUSES = [
     "order",
     "minus",
     "not",
-    "exists"
+    "exists",
 ]
 
 type_map = {
@@ -103,7 +104,9 @@ format_type = {
     CategoryDataType.DATETIME: lambda x: f'"{x}"^^xsd:dateTime',
     CategoryDataType.NUMBER: lambda x: x,
     CategoryDataType.LITERAL: lambda x: f'"{x}"',
-    CategoryDataType.BOOLEAN: lambda x: "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean",
+    CategoryDataType.BOOLEAN: lambda x: (
+        "'true'^^xsd:boolean" if x else "'false'^^xsd:boolean"
+    ),
 }
 
 sparql_operator_map = {
@@ -120,11 +123,11 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build(
-            schema: Optional[Dict],
-            resolvers: Optional[List[Resolver]],
-            context: Context,
-            filters: List[Filter],
-            **params,
+        schema: Optional[Dict],
+        resolvers: Optional[List[Resolver]],
+        context: Context,
+        filters: List[Filter],
+        **params,
     ) -> Tuple[List, List]:
 
         statements = []
@@ -145,12 +148,14 @@ class SPARQLQueryBuilder(QueryBuilder):
                 property_path = "/".join(f.path)
             try:
                 if (
-                        last_path in ["type", "@type"]
-                        or last_path in ["id", "@id"]
-                        or (last_term is not None and last_term.type == "@id")
+                    last_path in ["type", "@type"]
+                    or last_path in ["id", "@id"]
+                    or (last_term is not None and last_term.type == "@id")
                 ):
                     if f.operator == "__eq__":
-                        statements.append(f"{property_path} {_box_value_as_full_iri(f.value)}")
+                        statements.append(
+                            f"{property_path} {_box_value_as_full_iri(f.value)}"
+                        )
                     elif f.operator == "__ne__":
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(f"FILTER(?v{index} != {f.value})")
@@ -161,13 +166,18 @@ class SPARQLQueryBuilder(QueryBuilder):
                 else:
                     parsed_type, parsed_value = _parse_type(f.value, parse_str=False)
                     value_type = type_map[parsed_type]
-                    value = format_type[value_type](parsed_value if parsed_value else f.value)
+                    value = format_type[value_type](
+                        parsed_value if parsed_value else f.value
+                    )
                     if value_type is CategoryDataType.LITERAL:
                         if f.operator not in ["__eq__", "__ne__"]:
-                            raise NotImplementedError("supported operators are '==' and '!=' when filtering with a str.")
+                            raise NotImplementedError(
+                                "supported operators are '==' and '!=' when filtering with a str."
+                            )
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(
-                            f"FILTER(?v{index} = {_box_value_as_full_iri(value)})")
+                            f"FILTER(?v{index} = {_box_value_as_full_iri(value)})"
+                        )
                     else:
                         statements.append(f"{property_path} ?v{index}")
                         sparql_filters.append(
@@ -182,20 +192,24 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build_resource_from_response(
-            query: str, response: Dict, context: Context, *args, **params
+        query: str, response: Dict, context: Context, *args, **params
     ) -> List[Resource]:
         _, q_comp = Query.parseString(query)
         bindings = response["results"]["bindings"]
         # FIXME workaround to parse a CONSTRUCT query, this fix depends on
         #  https://github.com/BlueBrain/nexus/issues/1155
         if q_comp.name == "ConstructQuery":
-            return SPARQLQueryBuilder.build_resource_from_construct_query(bindings, context)
+            return SPARQLQueryBuilder.build_resource_from_construct_query(
+                bindings, context
+            )
 
         # SELECT QUERY
         return SPARQLQueryBuilder.build_resource_from_select_query(bindings)
 
     @staticmethod
-    def build_resource_from_construct_query(results: List, context: Context) -> List[Resource]:
+    def build_resource_from_construct_query(
+        results: List, context: Context
+    ) -> List[Resource]:
 
         subject_triples = {}
 
@@ -222,9 +236,7 @@ class SPARQLQueryBuilder(QueryBuilder):
             compacted = jsonld.compact(data_framed, context.document)
             resource = from_jsonld(compacted)
             resource.context = (
-                context.iri
-                if context.is_http_iri()
-                else context.document["@context"]
+                context.iri if context.is_http_iri() else context.document["@context"]
             )
             return resource
 
@@ -232,18 +244,36 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def build_resource_from_select_query(results: List) -> List[Resource]:
-        return [
-            Resource(**{k: _process_types(v) for k, v in x.items()})
-            for x in results
-        ]
+
+        def process_v(v):
+            if (
+                v["type"] == "literal"
+                and "datatype" in v
+                and v["datatype"] == "http://www.w3.org/2001/XMLSchema#boolean"
+            ):
+
+                return json.loads(str(v["value"]).lower())
+
+            elif (
+                v["type"] == "literal"
+                and "datatype" in v
+                and v["datatype"] == "http://www.w3.org/2001/XMLSchema#integer"
+            ):
+
+                return int(v["value"])
+
+            else:
+                return v["value"]
+
+        return [Resource(**{k: process_v(v) for k, v in x.items()}) for x in results]
 
     @staticmethod
     def rewrite_sparql(
-            query: str,
-            # context: Context, metadata_context: Context,
-            context_as_dict: Dict,
-            prefixes: Optional[Dict],
-            vocab: Optional[str]
+        query: str,
+        # context: Context, metadata_context: Context,
+        context_as_dict: Dict,
+        prefixes: Optional[Dict],
+        vocab: Optional[str],
     ) -> str:
         """Rewrite local property and type names from Model.template() as IRIs.
 
@@ -257,8 +287,11 @@ class SPARQLQueryBuilder(QueryBuilder):
         has_vocab = vocab is not None
 
         if context_as_dict.get("type") == "@type":
-            context_as_dict["type"] = "rdf:type" if "rdf" in prefixes \
+            context_as_dict["type"] = (
+                "rdf:type"
+                if "rdf" in prefixes
                 else "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+            )
 
         def replace(match: Match) -> str:
             m4 = match.group(4)
@@ -267,7 +300,8 @@ class SPARQLQueryBuilder(QueryBuilder):
             else:
                 v = (
                     context_as_dict.get(m4, ":" + m4 if has_vocab else None)
-                    if str(m4).lower() not in SPARQL_CLAUSES and not str(m4).startswith("https")
+                    if str(m4).lower() not in SPARQL_CLAUSES
+                    and not str(m4).startswith("https")
                     else m4
                 )
                 if v is None:
@@ -301,18 +335,21 @@ class SPARQLQueryBuilder(QueryBuilder):
 
     @staticmethod
     def _replace_in_sparql(
-            qr: str,
-            what: str,
-            value: Optional[int],
-            default_value: int,
-            search_regex: Pattern,
-            replace_if_in_query=True
+        qr: str,
+        what: str,
+        value: Optional[int],
+        default_value: int,
+        search_regex: Pattern,
+        replace_if_in_query=True,
     ) -> str:
 
         is_what_in_query = bool(re.search(pattern=search_regex, string=qr))
 
-        replace_value = f" {what} {value}" if value else \
-            (f" {what} {default_value}" if default_value else None)
+        replace_value = (
+            f" {what} {value}"
+            if value
+            else (f" {what} {default_value}" if default_value else None)
+        )
 
         if is_what_in_query:
             if not replace_if_in_query and value:
@@ -330,20 +367,120 @@ class SPARQLQueryBuilder(QueryBuilder):
         return qr
 
     @staticmethod
-    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+    def apply_limit_and_offset_to_query(
+        query, limit, default_limit, offset, default_offset
+    ):
         if limit:
             query = SPARQLQueryBuilder._replace_in_sparql(
-                query, "LIMIT", limit, default_limit,
-                re.compile(r" LIMIT \d+", flags=re.IGNORECASE)
+                query,
+                "LIMIT",
+                limit,
+                default_limit,
+                re.compile(r" LIMIT \d+", flags=re.IGNORECASE),
             )
         if offset:
             query = SPARQLQueryBuilder._replace_in_sparql(
-                query, "OFFSET", offset, default_offset,
-                re.compile(r" OFFSET \d+", flags=re.IGNORECASE)
+                query,
+                "OFFSET",
+                offset,
+                default_offset,
+                re.compile(r" OFFSET \d+", flags=re.IGNORECASE),
             )
 
         return query
 
+    @staticmethod
+    def create_select_query(
+        vars_: List[str],
+        statements: Union[str, List[str]],
+        distinct: bool,
+        search_in_graph: bool,
+        union: bool = False,
+    ):
+        if not union:
+            all_statements = (
+                ". ".join(statements) if isinstance(statements, list) else statements
+            )
+
+        elif not isinstance(statements, list):
+            raise AttributeError(
+                f"Expected statements argument to be of type  List[str] when union is True. Each item will go in a UNION clause: {statements}"
+            )
+        else:
+            all_statements = "}} UNION {{".join(statements)
+            all_statements = "{{" + all_statements + "}}"
+
+        where_clauses = (
+            f"{{ Graph ?g {{{all_statements}}}}}"
+            if search_in_graph
+            else f"{{{all_statements}}}"
+        )
+
+        join_vars_ = " ".join(vars_)
+        select_vars = f"DISTINCT {join_vars_}" if distinct else f"{join_vars_}"
+        return f"SELECT {select_vars} WHERE {where_clauses}"
+
 
 def _box_value_as_full_iri(value):
     return f"<{value}>" if is_valid_url(value) else value
+
+
+def build_shacl_query(
+    statements: List[str] = None,
+    defining_property_uri: str = None,
+    deprecated_property_uri: str = None,
+    deprecated: bool = False,
+    deprecated_optional: bool = False,
+    search_in_graph: bool = False,
+    context: Context = None,
+) -> str:
+    deprecated_statement = (
+        f"?resource_id <{deprecated_property_uri}> '{str(deprecated).lower()}'^^xsd:boolean"
+        if deprecated_property_uri
+        else ""
+    )
+    defining_statement = (
+        f"?resource_id <{defining_property_uri}> ?shape"
+        if defining_property_uri
+        else ""
+    )
+    if deprecated_optional and deprecated_property_uri:
+        deprecated_statement = " OPTIONAL {" + deprecated_statement + "}"
+    shape_target_statement = "?shape sh:targetClass ?type"
+    extra_statements = [defining_statement, deprecated_statement]
+    if statements:
+        extra_statements.extend(statements)
+    shape_target_statement_str = ".".join([shape_target_statement] + extra_statements)
+    shape_node_statements_str = (
+        "SELECT (?shape as ?type) ?shape ?resource_id WHERE { ?shape a sh:NodeShape ."
+        + "?shape a rdfs:Class . {}".format(".".join(extra_statements) + "}")
+    )
+    shape_node_not_targeting_statements_str = (
+        "SELECT ?shape ?resource_id WHERE { ?shape a sh:NodeShape ."
+        + "FILTER NOT EXISTS {?shape sh:targetClass []} FILTER NOT EXISTS {?shape a rdfs:Class}"
+        + " . {}".format(".".join(extra_statements) + "}")
+    )
+    all_statements = [
+        shape_target_statement_str,
+        shape_node_statements_str,
+        shape_node_not_targeting_statements_str,
+    ]
+    vars_ = ["?type", "?shape", "?resource_id"]
+    if search_in_graph:
+        vars_.append("?g")
+    shacl_query = SPARQLQueryBuilder.create_select_query(
+        vars_=vars_,
+        statements=all_statements,
+        distinct=True,
+        search_in_graph=search_in_graph,
+        union=True,
+    )
+    if not context:
+        return shacl_query
+    else:
+        return SPARQLQueryBuilder.rewrite_sparql(
+            shacl_query,
+            context_as_dict=context.document,
+            prefixes=context.prefixes,
+            vocab=context.vocab,
+        )

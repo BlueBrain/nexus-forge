@@ -29,7 +29,6 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.commons.exceptions import QueryingError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.specializations.stores.bluebrain_nexus import _create_select_query
 
 
 class SPARQLStore(DatasetStore):
@@ -45,10 +44,21 @@ class SPARQLStore(DatasetStore):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> None:
+    def __init__(
+        self,
+        model: Optional[Model] = None,
+        endpoint: Optional[str] = None,
+        file_resource_mapping: Optional[str] = None,
+        searchendpoints: Optional[Dict] = None,
+        **store_config,
+    ) -> None:
         super().__init__(model)
         self.endpoint = endpoint
         self.file_resource_mapping = file_resource_mapping
         self.searchendpoints = searchendpoints
+        self.service = self._initialize_service(
+            endpoint, searchendpoints, **store_config
+        )
         self.service = self._initialize_service(
             endpoint, searchendpoints, **store_config
         )
@@ -65,10 +75,36 @@ class SPARQLStore(DatasetStore):
         cross_bucket: bool,
         content_type: str,
         bucket: str,
+        self,
+        url: str,
+        path: str,
+        store_metadata: Optional[DictWrapper],
+        cross_bucket: bool,
+        content_type: str,
+        bucket: str,
     ) -> None:
+        # path: FilePath.
+        # TODO define downloading method
+        # POLICY Should notify of failures with exception DownloadingError including a message.
+        raise not_supported()
+
+    def retrieve(
+        self,
+        id_: str,
+        version: Optional[Union[int, str]],
+        cross_bucket: bool = False,
+        **params,
+    ) -> Optional[Resource]:
+        raise not_supported()
+
+    def _retrieve_filename(self, id: str) -> str:
         raise not_supported()
 
     def _search(
+        self,
+        *filters: Union[Dict, Filter],
+        resolvers: Optional[List[Resolver]] = None,
+        **params,
         self,
         *filters: Union[Dict, Filter],
         resolvers: Optional[List[Resolver]] = None,
@@ -101,6 +137,9 @@ class SPARQLStore(DatasetStore):
         search_endpoint = params.get(
             "search_endpoint", SPARQLService.SPARQL_ENDPOINT_TYPE
         )
+        search_endpoint = params.get(
+            "search_endpoint", SPARQLService.SPARQL_ENDPOINT_TYPE
+        )
 
         valid_endpoints = [SPARQLService.SPARQL_ENDPOINT_TYPE]
 
@@ -129,17 +168,25 @@ class SPARQLStore(DatasetStore):
             resolvers=resolvers,
             context=self.model_context(),
             filters=filters,
+            schema=None,
+            resolvers=resolvers,
+            context=self.model_context(),
+            filters=filters,
         )
         statements = ";\n ".join(query_statements)
         _filters = (".\n".join(query_filters) + "\n") if len(filters) > 0 else ""
+        _filters = (".\n".join(query_filters) + "\n") if len(filters) > 0 else ""
         _vars = ["?id"]
-        query = _create_select_query(
+        query = SPARQLQueryBuilder.create_select_query(
             _vars, f"?id {statements} . \n {_filters}", distinct, False
         )
         # support @id and @type
         resources = self.sparql(query, debug=debug, limit=limit, offset=offset)
         return resources
 
+    def _sparql(
+        self, query: str, endpoint: str
+    ) -> Optional[Union[List[Resource], Resource]]:
     def _sparql(
         self, query: str, endpoint: str
     ) -> Optional[Union[List[Resource], Resource]]:
@@ -150,8 +197,14 @@ class SPARQLStore(DatasetStore):
                     if endpoint is None
                     else endpoint
                 ),
+                (
+                    self.service.sparql_endpoint["endpoint"]
+                    if endpoint is None
+                    else endpoint
+                ),
                 data=query,
                 headers=self.service.headers_sparql,
+                timeout=SPARQLStore.REQUEST_TIMEOUT,
                 timeout=SPARQLStore.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
@@ -161,33 +214,13 @@ class SPARQLStore(DatasetStore):
         data = response.json()
 
         return SPARQLQueryBuilder.build_resource_from_response(
-            query, data, self.model_context
+            query, data, self.model_context()
         )
-
-    def elastic(
-        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
-    ) -> Optional[Union[List[Resource], Resource]]:
-        raise not_supported()
-
-    def _prepare_download_one(
-        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
-    ) -> Tuple[str, str]:
-        raise not_supported()
-
-    def retrieve(
-        self, id: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
-    ) -> Resource:
-        not_supported()
-
-    def _retrieve_filename(self, id: str) -> str:
-        not_supported()
-
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        raise not_supported()
 
     # Utils.
 
     def _initialize_service(
+        self, endpoint: Optional[str], searchendpoints: Optional[Dict], **store_config
         self, endpoint: Optional[str], searchendpoints: Optional[Dict], **store_config
     ) -> SPARQLService:
         try:
@@ -200,13 +233,14 @@ class SPARQLStore(DatasetStore):
             accept = store_config.pop("Accept", "application/ld+json")
             params = store_config.pop("params", {})
             store_context = store_config.pop("store_context", None)
+            store_context = store_config.pop("store_context", None)
 
         except Exception as ve:
             raise ValueError(f"Store configuration error: {ve}") from ve
 
         return SPARQLService(
             endpoint=endpoint,
-            model_context=self.model_context,
+            model_context=self.model_context(),
             store_context=store_context,
             max_connection=max_connection,
             searchendpoints=searchendpoints,
@@ -214,3 +248,16 @@ class SPARQLStore(DatasetStore):
             accept=accept,
             **params,
         )
+
+    def elastic(
+        self, query: str, debug: bool, limit: int = None, offset: int = None, **params
+    ) -> Optional[Union[List[Resource], Resource]]:
+        raise not_supported()
+
+    def _prepare_download_one(
+        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
+    ) -> Tuple[str, str]:
+        raise not_supported()
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        raise not_supported()
