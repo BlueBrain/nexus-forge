@@ -13,6 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import os
 from pathlib import Path
+import pytest
 import rdflib
 from kgforge.specializations.models import RdfModel
 from kgforge.specializations.models.rdf.directory_service import (
@@ -37,6 +38,11 @@ def test_load_rdf_files_as_graph(shacl_schemas_file_path):
         expected_g = rdflib.Graph().parse(file_path, format="json-ld")
         assert len(g) > 0
         assert len(g) == len(expected_g)
+
+
+def test_load_not_existing_rdf_files_raise_error():
+    with pytest.raises(ValueError):
+        _load_rdf_files_as_graph(Path("not_existing_shacl_schemas_file_path"))
 
 
 def test_build_shapes_map(rdf_model_from_dir: RdfModel):
