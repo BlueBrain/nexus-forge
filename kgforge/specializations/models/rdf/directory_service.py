@@ -94,6 +94,8 @@ class DirectoryService(RdfService):
 
 
 def _load_rdf_files_as_graph(path: Path) -> RDFDataset:
+    if not path.exists():
+        raise ValueError(f"The path {path} does not exist")
     schema_graphs = RDFDataset()
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):

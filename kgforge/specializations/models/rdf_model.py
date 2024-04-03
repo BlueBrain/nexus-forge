@@ -74,7 +74,7 @@ class RdfModel(Model):
 
     def _types(self) -> List[str]:
         return [
-            self.service.context.to_symbol(cls)
+            self.service.context.to_symbol(str(cls))
             for cls in self.service.class_to_shape.keys()
         ]
 
@@ -95,7 +95,6 @@ class RdfModel(Model):
         try:
             shape_iri = self.service.get_shape_uriref_from_class_fragment(type)
             node_properties = self.service.materialize(shape_iri)
-            print(node_properties)
             dictionary = parse_attributes(node_properties, only_required, None)
             return dictionary
         except Exception as exc:
