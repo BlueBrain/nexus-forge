@@ -5,6 +5,7 @@
     "schema": "http://schema.org/",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "prov": "http://www.w3.org/ns/prov#",
+    "owl": "http://www.w3.org/2002/07/owl#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
@@ -85,106 +86,55 @@
       "@container": "@set"
     }
   },
-  "@id": "http://shapes.ex/person",
+  "@id": "http://shapes.ex/employee",
   "@type": "nxv:Schema",
+  "owl:imports": [
+    "http://shapes.ex/person"
+  ],
   "shapes": [
     {
-      "@id": "schema:PostalAddress",
-      "@type": [
-        "sh:NodeShape",
-        "rdfs:Class"
-      ],
-      "closed": true,
-      "nodeKind": "sh:BlankNode",
-      "property": [
+      "@id": "this:EmployeeShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "this:Employee",
+      "and": [
         {
-          "path": "schema:streetAddress",
-          "datatype": "xsd:string"
+          "node": "this:PersonShape"
         },
         {
-          "path": "schema:postalCode",
-          "minInclusive": 10000,
-          "maxInclusive": 99999,
+          "path": "schema:startDate",
+          "datatype": "xsd:date",
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "schema:colleague",
+          "class": "schema:Person"
+        },
+        {
+          "path": "schema:worksFor",
           "or": [
             {
-              "datatype": "xsd:string"
+              "class": "schema:Person"
             },
             {
-              "datatype": "xsd:integer"
+              "class": "schema:Organization"
+            }
+          ]
+        },
+        {
+          "or": [
+            {
+              "path": "schema:contractor",
+              "class": "schema:Organization"
+            },
+            {
+              "path": "schema:department",
+              "class": "schema:Organization"
             }
           ]
         }
       ]
-    },
-    {
-      "@id": "this:PersonShape",
-      "@type": "sh:NodeShape",
-      "nodeKind": "sh:IRI",
-      "targetClass": "schema:Person",
-      "property": [
-        {
-          "path": "schema:familyName",
-          "datatype": "xsd:string",
-          "minCount": 1
-        },
-        {
-          "path": "schema:givenName",
-          "datatype": "xsd:string",
-          "minCount": 1,
-          "message": "Mandatory property 'schema:givenName' of type 'xsd:string' is missing"
-        },
-        {
-          "path": "schema:gender",
-          "in": [
-            "female",
-            "male"
-          ],
-          "minCount": 1,
-          "maxCount": 1
-        },
-        {
-          "path": "schema:birthDate",
-          "datatype": "xsd:date",
-          "minCount": 1,
-          "maxCount": 1
-        },
-        {
-          "path": "schema:deathDate",
-          "datatype": "xsd:date",
-          "maxCount": 1
-        },
-        {
-          "path": "schema:address",
-          "node": "schema:PostalAddress"
-        }
-      ]
-    },
-    {
-      "@id": "this:OrganizationShape",
-      "@type": "sh:NodeShape",
-      "nodeKind": "sh:BlankNodeOrIRI",
-      "targetClass": "schema:Organization",
-      "property": [
-        {
-          "path": "schema:name",
-          "datatype": "xsd:string",
-          "minCount": 1
-        },
-        {
-          "path": "schema:parentOrganization",
-          "class": "schema:Organization"
-        }
-      ]
-    },
-    {
-      "@id": "this:AssociationShape",
-      "@type": "sh:NodeShape",
-      "nodeKind": "sh:IRI",
-      "targetClass": "schema:Association",
-      "property": {
-        "path": "schema:agent",
-        "node": "this:PersonShape"
-      }
     }
   ]
 }
