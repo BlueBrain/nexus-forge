@@ -281,4 +281,4 @@ def test_deflatten_raises():
     with pytest.raises(ValueError) as exc:
         deflatten([('a','A'), ('a.p', 'Q')], '.')
     msg = str(exc.value)
-    assert 'Mix of' in msg and 'Cannot be processed'
+    assert 'Mix of' in msg and 'Cannot be processed' in msg
