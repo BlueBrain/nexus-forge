@@ -90,28 +90,20 @@ def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
         Deflatten means that the separator implies nesting of the dictionary.
 
     """
-    d = {}  # dictionary that will be returned
-    split = []  # those we have already split (we need to keep track)
-    for n1, t1_ in enumerate(items):
-        if n1 in split:  # already done, continue
-            continue
-        k1, v1 = t1_  # all tuples refer to a key-value pair in the DataFrame row
-        if sep in k1:  # avoid issue if int or other class
-            pre, _ = k1.split(sep, maxsplit=1)  # getting prefix ('agent.type' => 'agent')
-            if pre in d:  # we already have d[pre] from the else statement, i.e. it appeared without sep!
-                raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
-                # e.g. both d['agent'] = 'NicoRicardi' and d['agent.name'] = 'NicoRicardi'
-            pitems = []  # any of type {pre}{sep}{depth2}{sep}{depth3} => {depth2}{sep}{depth3}
-            for n2, t2_ in enumerate(items):
-                k2, v2 = t2_
-                if k2.startswith(f'{pre}{sep}'):
-                    _, post = k2.split(sep, maxsplit=1)  # _ ought to be == pre, but we care mainly about what comes after {pre}{sep}
-                    pitems.append((post, v2))
-                    split.append(n2)  # we do not need to split this item anymore in this specific recursive call
-            d[pre] = deflatten(pitems, sep)  # these items get flattened further in case there is a deeper nesting
-        else:
-            if k1 in d:  # this key has already been added by the if statement(i.e. from splitting a longer key)
-                raise ValueError(f'Mix of {pre} and {pre}{sep} (e.g. {k1}). Cannot be processed!')
-                # e.g. both d['agent'] = 'NicoRicardi' and d['agent.name'] = 'NicoRicardi'
-            d[k1] = v1  # not nested key-value pair, we just assign
-    return d  # all recursive calls are done, i.e. no nesting left, we can return
+    deflattened_row = {}
+    for col_label,v in items:
+        keys = col_label.split(sep)
+
+        current = deflattened_row
+        for i, k in enumerate(keys):
+            if i==len(keys)-1:
+                try:
+                    current[k] = v
+                except TypeError:
+                    raise ValueError(f'Mix of nested and not nested for {col_label}. Cannot be processed!')
+            else:
+                if k not in current.keys():
+                    current[k] = {}
+                current = current[k]
+    return deflattened_row
+    
