@@ -60,7 +60,7 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
     new_na = row.replace(na, np.nan)
     no_na = new_na.dropna()
     items = list(no_na.items())
-    if not all([isinstance(i[0], str) for i in items]):
+    if not all(isinstance(i[0], str) for i in items):
         raise ValueError('Non-string column name!')
     data = deflatten(items, nesting)
     return from_json(data, None)
@@ -91,19 +91,18 @@ def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
 
     """
     deflattened_row = {}
-    for col_label,v in items:
+    for col_label, v in items:
         keys = col_label.split(sep)
 
         current = deflattened_row
         for i, k in enumerate(keys):
-            if i==len(keys)-1:
+            if i == len(keys) - 1:
                 try:
                     current[k] = v
-                except TypeError:
-                    raise ValueError(f'Mix of nested and not nested for {col_label}. Cannot be processed!')
+                except TypeError as exc:
+                    raise ValueError(f'Mix of nested and not nested for {col_label}. Cannot be processed!') from exc
             else:
-                if k not in current.keys():
+                if k not in current:
                     current[k] = {}
                 current = current[k]
     return deflattened_row
-    
