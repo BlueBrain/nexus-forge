@@ -484,3 +484,15 @@ def build_shacl_query(
             prefixes=context.prefixes,
             vocab=context.vocab,
         )
+
+
+def build_ontology_query() -> str:
+    query = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT DISTINCT ?ont ?g WHERE {
+                Graph ?g {
+                ?ont a owl:Ontology
+                }
+            }"""
+    return query
