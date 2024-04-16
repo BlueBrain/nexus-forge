@@ -2,7 +2,7 @@
   "@context": {
     "this": "http://www.example.com/",
     "sh": "http://www.w3.org/ns/shacl#",
-    "schema": "http://schema.org/",
+    "schema": "https://schema.org/",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "prov": "http://www.w3.org/ns/prov#",
     "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
