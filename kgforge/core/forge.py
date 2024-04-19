@@ -240,10 +240,13 @@ class KnowledgeGraphForge:
                 # Same model, different config
                 store_model = import_class(store_model_name, "models")
                 store_config["model"] = store_model(**store_model_config)
+                store_config["model"] = store_model(**store_model_config)
             else:
                 # Same model, same config
                 store_config["model"] = self._model
+                store_config["model"] = self._model
         else:
+            raise ValueError(f"Missing model configuration for store {store_name}")
             raise ValueError(f"Missing model configuration for store {store_name}")
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
@@ -325,6 +328,7 @@ class KnowledgeGraphForge:
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool = False,
         type_: str = None,
+        inference: Optional[str] = None,
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -335,6 +339,9 @@ class KnowledgeGraphForge:
         :param data: a resource or a list of resources to validate
         :param execute_actions_before: whether to execute a LazyAction value of one of a resource property (True) or not (False) prior to validation
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
+        :param inference: an inference strategy to use during validation to extend the resource. For example 'rdfs' is an RDF inference strategy (when using RdfModel with pySHACL)
+                          able to extend the resource with the transitive closures of type subClassOf and/or property subPropertyOf relations as per the
+                          RDFS entailment rules (https://www.w3.org/TR/rdf-mt/). In this example 'owlrl' or 'rdfsowlrl' are also possible values while no inference will be performed with None .
         :return: None
         """
         self._model.validate(data, execute_actions_before, type_=type_)
@@ -479,6 +486,7 @@ class KnowledgeGraphForge:
                 limit,
                 threshold,
                 self,
+                self,
             )
         else:
             raise ResolvingError("no resolvers have been configured")
@@ -486,6 +494,14 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
+    def format(
+        self,
+        what: str = None,
+        *args,
+        formatter: Union[Formatter, str] = Formatter.STR,
+        uri: str = None,
+        **kwargs,
+    ) -> str:
     def format(
         self,
         what: str = None,
@@ -510,6 +526,7 @@ class KnowledgeGraphForge:
 
         try:
             formatter = (
+                formatter if isinstance(formatter, Formatter) else Formatter[formatter]
                 formatter if isinstance(formatter, Formatter) else Formatter[formatter]
             )
         except Exception as e:
@@ -566,6 +583,7 @@ class KnowledgeGraphForge:
             return self._model.mappings(source, pretty)
 
     @catch
+    def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
     def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -635,6 +653,7 @@ class KnowledgeGraphForge:
         version: Optional[Union[int, str]] = None,
         cross_bucket: bool = False,
         **params,
+        **params,
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -645,6 +664,9 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters.
         :return: Resource
         """
+        return self._store.retrieve(
+            id_=id, version=version, cross_bucket=cross_bucket, **params
+        )
         return self._store.retrieve(
             id_=id, version=version, cross_bucket=cross_bucket, **params
         )
@@ -692,6 +714,7 @@ class KnowledgeGraphForge:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         **params,
+        **params,
     ) -> List[Resource]:
         """
         Search for resources using a SPARQL query. See SPARQL docs: https://www.w3.org/TR/sparql11-query.
@@ -720,9 +743,8 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        source: Optional[str] = None,
         **params,
-    ) -> List[Resource]:
+    ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
 
@@ -750,7 +772,6 @@ class KnowledgeGraphForge:
         overwrite: bool = False,
         cross_bucket: bool = False,
         content_type: str = None,
-        source: Optional[str] = None,
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -878,6 +899,7 @@ class KnowledgeGraphForge:
         form: str = Form.COMPACTED.value,
         store_metadata: bool = False,
         **params,
+        **params,
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -895,6 +917,7 @@ class KnowledgeGraphForge:
             self._model.context(),
             self._store.metadata_context,
             self._model.resolve_context,
+            **params,
             **params,
         )
 
@@ -1101,6 +1124,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
             store_config,
             "source",
             "name",
+            ["endpoint", "token", "bucket", "model", "searchendpoints", "vocabulary"],
             ["endpoint", "token", "bucket", "model", "searchendpoints", "vocabulary"],
         )
     resolver_name = config.pop("resolver")

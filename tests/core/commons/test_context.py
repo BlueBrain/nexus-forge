@@ -48,7 +48,7 @@ def test_load_context_from_list(custom_context, context_iri_file, model_prefixes
     assert context.is_http_iri() is False
     assert context.base == "http://example.org/"
     assert context.vocab == "http://example.org/vocab/"
-    assert context.expand("Person") == "http://schema.org/Person"
+    assert context.expand("Person") == "https://schema.org/Person"
     assert context.prefixes == model_prefixes
 
 

@@ -15,16 +15,18 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from pyshacl import Shape, validate
 from rdflib import Dataset as RDFDataset
 from rdflib import OWL, Graph, URIRef
 
 from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
-from kgforge.core.commons.sparql_query_builder import build_shacl_query
+from kgforge.core.commons.sparql_query_builder import (
+    build_ontology_query,
+    build_shacl_query,
+)
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.service import RdfService
 
 
 class DirectoryService(RdfService):
@@ -43,11 +45,6 @@ class DirectoryService(RdfService):
         if props:
             attrs["properties"] = props
         return NodeProperties(**attrs)
-
-    def _validate(
-        self, iri: str, data_graph: Graph, shape: Shape, shacl_graph: Graph
-    ) -> Tuple[bool, Graph, str]:
-        return validate(data_graph, shacl_graph=shacl_graph)
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
@@ -89,7 +86,17 @@ class DirectoryService(RdfService):
             defining_resource_to_named_graph,
         )
 
-    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
+    def _build_ontology_map(self) -> Dict:
+        query = build_ontology_query()
+        res = self._dataset_graph.query(query)
+        ont_to_named_graph = {}
+        for row in res:
+            ont_to_named_graph[URIRef(self.context.expand(row["ont"]))] = URIRef(
+                row["g"]
+            )
+        return ont_to_named_graph
+
+    def load_resource_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         return self._dataset_graph.graph(URIRef(graph_id))
 
 

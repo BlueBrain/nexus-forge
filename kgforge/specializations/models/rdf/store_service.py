@@ -15,12 +15,14 @@ from typing import Dict, Optional, Union, List, Tuple
 
 import json
 
-from pyshacl import Shape, validate
 from rdflib import URIRef, Namespace, Graph
 from rdflib import Dataset as RDFDataset
 
 from kgforge.core.commons.exceptions import RetrievalError
-from kgforge.core.commons.sparql_query_builder import build_shacl_query
+from kgforge.core.commons.sparql_query_builder import (
+    build_ontology_query,
+    build_shacl_query,
+)
 from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.archetypes.store import Store
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
@@ -51,17 +53,12 @@ class StoreService(RdfService):
         return str(self.shape_to_defining_resource[URIRef(shape_uri)])
 
     def materialize(self, iri: URIRef) -> NodeProperties:
-        shape = self.get_shape_graph(iri)
+        shape, _, _ = self.get_shape_graph(iri)
         predecessors = set()
         props, attrs = shape.traverse(predecessors)
         if props:
             attrs["properties"] = props
         return NodeProperties(**attrs)
-
-    def _validate(
-        self, iri: str, data_graph: Graph, shape: Shape, shacl_graph: Graph
-    ) -> Tuple[bool, Graph, str]:
-        return validate(data_graph, shacl_graph=shacl_graph)
 
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
@@ -116,6 +113,24 @@ class StoreService(RdfService):
             defining_resource_to_named_graph,
         )
 
+    def _build_ontology_map(self) -> Dict:
+        query = build_ontology_query()
+        limit = 1000
+        offset = 0
+        count = limit
+        ont_to_named_graph = {}
+        while count == limit:
+            resources = self.context_store.sparql(
+                query, debug=False, limit=limit, offset=offset
+            )
+            for r in resources:
+                ont_uri = self.context.expand(r.ont)
+                ont_uriref = URIRef(ont_uri)
+                ont_to_named_graph[ont_uriref] = URIRef(ont_uri + "/graph")
+            count = len(resources)
+            offset += limit
+        return ont_to_named_graph
+
     def recursive_resolve(self, context: Union[Dict, List, str]) -> Dict:
         document = {}
         if isinstance(context, list):
@@ -146,7 +161,7 @@ class StoreService(RdfService):
             document.update(context)
         return document
 
-    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
+    def load_resource_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         try:
             schema_resource = self.context_store.retrieve(
                 schema_id, version=None, cross_bucket=False
