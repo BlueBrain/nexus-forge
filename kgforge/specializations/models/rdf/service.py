@@ -222,8 +222,8 @@ class RdfService:
             conforms = False
             # Create a dedicated validation report
             result_desc = (
-                f"No data matching the targets of {type_to_validate}'s schema (i.e. what the schema can validate)"
-                + f" were found in the provided resource. The resource types the {type_to_validate} schema can validate are: {list(shape.target_classes())}."
+                f"No data matching the targets (i.e. what the schema can validate) of {type_to_validate}'s schema"
+                + f" were found in the provided resource. The {type_to_validate} schema can validate the following types: {list(shape.target_classes())}."
                 + f" Consider providing a resource with type in {list(shape.target_classes())}."
             )
             r_node = BNode()
@@ -420,15 +420,9 @@ class RdfService:
             imported_resource_graph = self._dataset_graph.graph(imported_graph_id)
             imported_ont_graph = Graph()
             if collect_imported_ontology:
-                if (
+                imported_ont_graph = self._build_imported_ontology_graph(
                     imported_resource_uriref
-                    in self._defining_resource_to_imported_ontology
-                ):
-                    imported_ont_graph = self._dataset_graph.graph(
-                        self._defining_resource_to_imported_ontology[
-                            imported_resource_uriref
-                        ]
-                    )
+                )
         return imported_resource_graph, imported_ont_graph
 
     def _transitive_load_resource_graph(
@@ -451,6 +445,8 @@ class RdfService:
             graph_uriref, resource_uriref
         )
         ont_graph = Graph()
+        transitive_imported_ontologies = []
+        locally_imported_ontologies = []
         for imported in resource_graph.objects(resource_uriref, OWL.imports):
             imported_resource_uriref = URIRef(self.context.expand(imported))
             imported_resource_graph = Graph()
@@ -462,17 +458,18 @@ class RdfService:
                         collect_imported_ontology=True,
                     )
                 )
+                transitive_imported_ontologies += (
+                    self._defining_resource_to_imported_ontology.get(
+                        imported_resource_uriref, []
+                    )
+                )
             elif imported_resource_uriref in self.ont_to_named_graph:
                 imported_ont_graph, _ = self._process_imported_resource(
                     imported_resource_uriref,
                     self.ont_to_named_graph,
                     collect_imported_ontology=False,
                 )
-                if resource_uriref not in self._defining_resource_to_imported_ontology:
-                    self._defining_resource_to_imported_ontology[resource_uriref] = []
-                self._defining_resource_to_imported_ontology[resource_uriref].append(
-                    imported_resource_uriref
-                )
+                locally_imported_ontologies.append(imported_resource_uriref)
             else:
                 raise ValueError(
                     f"Imported resource {imported_resource_uriref} is not loaded as schema or ontology"
@@ -482,13 +479,18 @@ class RdfService:
                 # seeAlso: https://rdflib.readthedocs.io/en/stable/merging.html
                 ont_graph += imported_ont_graph
                 resource_graph += imported_resource_graph
-                # schema_graph += imported_ont_graph
             except ParserError as pe:
                 raise ValueError(
                     f"Failed to parse the rdf graph of the imported resource {imported_resource_uriref}: {str(pe)}"
                 ) from pe
-        self._imported.append(resource_uriref)
 
+        self._imported.append(resource_uriref)
+        if transitive_imported_ontologies or locally_imported_ontologies:
+            if resource_uriref not in self._defining_resource_to_imported_ontology:
+                self._defining_resource_to_imported_ontology[resource_uriref] = []
+            self._defining_resource_to_imported_ontology[resource_uriref].extend(
+                transitive_imported_ontologies + locally_imported_ontologies
+            )
         return resource_graph, ont_graph
 
     def _get_transitive_property_shapes_from_nodeshape(
@@ -625,32 +627,34 @@ class RdfService:
             )
         except ValueError:
             return self._import_shape(node_shape_uriref)
-
         if self.shape_to_defining_resource[node_shape_uriref] in self._imported:
             defining_resource = self.shape_to_defining_resource[node_shape_uriref]
             shape_graph = self._dataset_graph.graph(
                 self._get_named_graph_from_shape(node_shape_uriref)
             )
-            if (
-                defining_resource in self._defining_resource_to_imported_ontology
-            ):  # has imported ontology
-                imported_ont_urirefs = self._defining_resource_to_imported_ontology[
-                    defining_resource
-                ]
-                for imported_ont_uriref in imported_ont_urirefs:
-                    if imported_ont_uriref in self.ont_to_named_graph:
-                        ont_named_graph = self.ont_to_named_graph[imported_ont_uriref]
-                        ont_graph = self._dataset_graph.graph(ont_named_graph)
-                    else:
-                        raise ValueError(
-                            f"Unknown ontology '{imported_ont_uriref}' imported in schema '{defining_resource}'"
-                        )
-            else:  # does not have imported ontology
-                ont_graph = Graph()
+            ont_graph = self._build_imported_ontology_graph(defining_resource)
         else:
             return self._import_shape(node_shape_uriref)
 
         return shape, shape_graph, ont_graph
+
+    def _build_imported_ontology_graph(self, resurce_uriref):
+        ont_graph = Graph()
+        if (
+            resurce_uriref in self._defining_resource_to_imported_ontology
+        ):  # has imported ontology
+            imported_ont_urirefs = self._defining_resource_to_imported_ontology[
+                resurce_uriref
+            ]
+            for imported_ont_uriref in imported_ont_urirefs:
+                if imported_ont_uriref in self.ont_to_named_graph:
+                    ont_named_graph = self.ont_to_named_graph[imported_ont_uriref]
+                    ont_graph += self._dataset_graph.graph(ont_named_graph)
+                else:
+                    raise ValueError(
+                        f"Unknown ontology '{imported_ont_uriref}' imported in schema '{resurce_uriref}'"
+                    )
+        return ont_graph
 
     def get_shape_uriref_from_class_fragment(self, fragment):
         try:

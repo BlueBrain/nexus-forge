@@ -61,11 +61,11 @@ def test_build_shapes_map(rdf_model_from_dir: RdfModel):
     assert sorted(set(shape_to_defining_resource.values())) == sorted(
         set(defining_resource_to_named_graph.keys())
     )
-    expected_targeted_classes = list(TYPES_SHAPES_MAP.keys())
-    loaded_classes = [
+    expected_targeted_classes = set(TYPES_SHAPES_MAP.keys())
+    loaded_classes = {
         rdf_model_from_dir.service.context.to_symbol(cls)
         for cls in class_to_shape.keys()
-    ]
+    }
     assert sorted(loaded_classes) == sorted(expected_targeted_classes)
     expected_shapes = [val["shape"] for val in TYPES_SHAPES_MAP.values()]
     expected_shapes.append(geo_shape_uri)

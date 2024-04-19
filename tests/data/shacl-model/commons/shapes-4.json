@@ -89,8 +89,7 @@
   "@id": "http://shapes.ex/employee",
   "@type": "nxv:Schema",
   "owl:imports": [
-    "http://shapes.ex/person",
-    "https://schema.org/"
+    "http://shapes.ex/person"
   ],
   "shapes": [
     {

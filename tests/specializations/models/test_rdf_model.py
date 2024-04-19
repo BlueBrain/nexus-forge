@@ -31,7 +31,7 @@ class TestVocabulary:
 
     def test_types(self, rdf_model_from_dir: RdfModel):
         types = rdf_model_from_dir.types(pretty=False)
-        assert types == list(TYPES_SHAPES_MAP.keys())
+        assert sorted(types) == sorted(list(TYPES_SHAPES_MAP.keys()))
 
     def test_context(self, rdf_model_from_dir: RdfModel, context_file_path):
         with open(context_file_path) as f:
