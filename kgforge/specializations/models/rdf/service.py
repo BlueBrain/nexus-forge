@@ -16,8 +16,11 @@ from typing import List, Dict, Tuple, Set, Optional
 from abc import abstractmethod
 from pyshacl.constraints import ALL_CONSTRAINT_PARAMETERS
 from pyshacl.shape import Shape
+from pyshacl.validate import Validator, validate
+from pyshacl.consts import SH_Violation
+from pyshacl.constraints.constraint_component import CustomConstraintComponentFactory
 from pyshacl.shapes_graph import ShapesGraph
-from rdflib import OWL, SH, Graph, Namespace, URIRef, RDF, XSD
+from rdflib import OWL, SH, BNode, Graph, Namespace, URIRef, RDF, XSD
 from rdflib.paths import ZeroOrMore
 from rdflib import Dataset as RDFDataset
 from rdflib.collection import Collection as RDFCollection
@@ -161,7 +164,9 @@ class RdfService:
             self.shape_to_defining_resource,
             self.defining_resource_to_named_graph,
         ) = self._build_shapes_map()
+        self.ont_to_named_graph = self._build_ontology_map()
         self._imported = []
+        self._defining_resource_to_imported_ontology = {}
 
     @abstractmethod
     def schema_source_id(self, shape_uri: str) -> str:
@@ -188,7 +193,7 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, type_: str):
+    def validate(self, resource: Resource, type_: str, inference: str):
         try:
             if not resource.get_type() and not type_:
                 raise ValueError(
@@ -206,14 +211,57 @@ class RdfService:
             ) from exc
         shape_iri = self.get_shape_uriref_from_class_fragment(type_to_validate)
         data_graph = as_graph(resource, False, self.context, None, None)
-        shape, shacl_graph = self.get_shape_graph(shape_iri)
-        return self._validate(shape_iri, data_graph, shape, shacl_graph)
+        shape, shacl_graph, ont_graph = self.get_shape_graph(shape_iri)
+        conforms, report_graph, report_text = self._validate(
+            shape_iri, data_graph, shape, shacl_graph, inference, ont_graph
+        )
+        # when no schema target was found in the data (i.e no data was selected for validation)
+        # conforms is currently set to True by pyShacl. Here it is set to False so that
+        # the validation fails when type_to_validate is not present in the data
+        if conforms and len(shape.focus_nodes(data_graph)) == 0:
+            conforms = False
+            # Create a dedicated validation report
+            result_desc = (
+                f"No data matching the targets (i.e. what the schema can validate) of {type_to_validate}'s schema"
+                + f" were found in the provided resource. The {type_to_validate} schema can validate the following types: {list(shape.target_classes())}."
+                + f" Consider providing a resource with type in {list(shape.target_classes())}."
+            )
+            r_node = BNode()
+            result = (
+                result_desc,
+                r_node,
+                [
+                    (r_node, RDF.type, SH.ValidationResult),
+                    (r_node, SH.sourceShape, (shape.sg, shape.node)),
+                    (
+                        r_node,
+                        SH.resultSeverity,
+                        SH.Warning,
+                    ),  # what is the severity here ?
+                ],
+            )
+            report_graph, report_text = Validator.create_validation_report(
+                sg=shape.sg, conforms=conforms, results=[result]
+            )
+        return conforms, report_graph, report_text
 
-    @abstractmethod
     def _validate(
-        self, iri: str, data_graph: Graph, shape: Shape, shacl_graph: Graph
+        self,
+        iri: str,
+        data_graph: Graph,
+        shape: Shape,
+        shacl_graph: Graph,
+        inference: str,
+        ont_graph: Graph = None,
     ) -> Tuple[bool, Graph, str]:
-        raise NotImplementedError()
+        inplace = inference and inference != "none"
+        return validate(
+            data_graph=data_graph,
+            shacl_graph=shacl_graph,
+            ont_graph=ont_graph,
+            inference=inference,
+            inplace=inplace,
+        )
 
     @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
@@ -236,7 +284,15 @@ class RdfService:
         raise NotImplementedError()
 
     @abstractmethod
-    def load_shape_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
+    def _build_ontology_map(self) -> Dict:
+        """Index the loaded ontologies
+        Returns:
+            * a Dict of URIRef to ontology named graph
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def load_resource_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         """Loads into graph_id the node shapes defined in shema_id from the source
 
         Args:
@@ -347,47 +403,95 @@ class RdfService:
 
         return {"@context": context} if len(context) > 0 else None
 
-    def _transitive_load_shape_graph(self, graph_uriref: URIRef, schema_uriref: URIRef):
+    def _process_imported_resource(
+        self,
+        imported_resource_uriref,
+        resource_to_named_graph_uriref,
+        collect_imported_ontology: bool,
+    ):
+        imported_graph_id = resource_to_named_graph_uriref[imported_resource_uriref]
+        if imported_resource_uriref not in self._imported:
+            imported_resource_graph, imported_ont_graph = (
+                self._transitive_load_resource_graph(
+                    imported_graph_id, imported_resource_uriref
+                )
+            )
+        else:
+            imported_resource_graph = self._dataset_graph.graph(imported_graph_id)
+            imported_ont_graph = Graph()
+            if collect_imported_ontology:
+                imported_ont_graph = self._build_imported_ontology_graph(
+                    imported_resource_uriref
+                )
+        return imported_resource_graph, imported_ont_graph
+
+    def _transitive_load_resource_graph(
+        self, graph_uriref: URIRef, resource_uriref: URIRef
+    ) -> Tuple[Graph, Graph]:
         """Loads into the graph identified by graph_uriref:
-            * the node shapes defined in the schema identified by schema_uriref
-            * the transitive closure of the owl.imports property of the schema schema_uriref
-
-            Loaded schemas are added to self._imported to avoid loading them a second time.
-
+            * the node shapes defined in the resource identified by resource_uriref
+            * the transitive closure of the owl.imports property (only schema) of the resource resource_uriref
+           Loads imported (by resource_uriref) ontologies in a separate rdf graph ont_graph.
+           Loaded schemas and ontologies are cached in self._imported.
         Args:
-            node_shape_uriref: the URI of a node shape
             graph_uriref: A named graph URIRef containing schema_uriref
-            schema_uriref: A URIRef of the schema
-            import_transitive_closure: Whether (True) to add node_shape_uriref's owl:import transitive closure in node_shape_uriref's graph or not (False)
-            link_property_shapes_from_ancestors: Whether (True) to directly link to node_shape_uriref recursively collected property shapes of its ancestors or not (False)
+            resource_uriref: the URI of a node shape
+        Returns:
+            A Tuple of 2 rdflib.Graph():
+            * schema graph
+            * imported ontology graph
         """
-        schema_graph = self.load_shape_graph_from_source(graph_uriref, schema_uriref)
-        # if import_transitive_closure:
-        for imported in schema_graph.objects(schema_uriref, OWL.imports):
-            imported_schema_uriref = URIRef(self.context.expand(imported))
-            try:
-                imported_graph_id = self.defining_resource_to_named_graph[
-                    imported_schema_uriref
-                ]
-                if imported_schema_uriref not in self._imported:
-                    imported_schema_graph = self._transitive_load_shape_graph(
-                        imported_graph_id, imported_schema_uriref
+        resource_graph = self.load_resource_graph_from_source(
+            graph_uriref, resource_uriref
+        )
+        ont_graph = Graph()
+        transitive_imported_ontologies = []
+        locally_imported_ontologies = []
+        for imported in resource_graph.objects(resource_uriref, OWL.imports):
+            imported_resource_uriref = URIRef(self.context.expand(imported))
+            imported_resource_graph = Graph()
+            if imported_resource_uriref in self.defining_resource_to_named_graph:
+                imported_resource_graph, imported_ont_graph = (
+                    self._process_imported_resource(
+                        imported_resource_uriref,
+                        self.defining_resource_to_named_graph,
+                        collect_imported_ontology=True,
                     )
-                else:
-                    imported_schema_graph = self._dataset_graph.graph(imported_graph_id)
+                )
+                transitive_imported_ontologies += (
+                    self._defining_resource_to_imported_ontology.get(
+                        imported_resource_uriref, []
+                    )
+                )
+            elif imported_resource_uriref in self.ont_to_named_graph:
+                imported_ont_graph, _ = self._process_imported_resource(
+                    imported_resource_uriref,
+                    self.ont_to_named_graph,
+                    collect_imported_ontology=False,
+                )
+                locally_imported_ontologies.append(imported_resource_uriref)
+            else:
+                raise ValueError(
+                    f"Imported resource {imported_resource_uriref} is not loaded as schema or ontology"
+                )
+            try:
                 # set operation to keep blank nodes unchanged as all the graphs belong to the same overall RDF Dataset
                 # seeAlso: https://rdflib.readthedocs.io/en/stable/merging.html
-                schema_graph += imported_schema_graph
-            except KeyError as ke:
-                raise ValueError(
-                    f"Imported schema {imported_schema_uriref} is not loaded and indexed: {str(ke)}"
-                ) from ke
+                ont_graph += imported_ont_graph
+                resource_graph += imported_resource_graph
             except ParserError as pe:
                 raise ValueError(
-                    f"Failed to parse the rdf graph of the imported schema {imported_schema_uriref}: {str(pe)}"
+                    f"Failed to parse the rdf graph of the imported resource {imported_resource_uriref}: {str(pe)}"
                 ) from pe
-        self._imported.append(schema_uriref)
-        return schema_graph
+
+        self._imported.append(resource_uriref)
+        if transitive_imported_ontologies or locally_imported_ontologies:
+            if resource_uriref not in self._defining_resource_to_imported_ontology:
+                self._defining_resource_to_imported_ontology[resource_uriref] = []
+            self._defining_resource_to_imported_ontology[resource_uriref].extend(
+                transitive_imported_ontologies + locally_imported_ontologies
+            )
+        return resource_graph, ont_graph
 
     def _get_transitive_property_shapes_from_nodeshape(
         self, node_shape_uriref: URIRef, schema_graph: Graph
@@ -481,55 +585,76 @@ class RdfService:
             )
         return sh_nodes, sh_properties
 
-    def get_shape_graph(self, node_shape_uriref: URIRef) -> Tuple[Shape, Graph]:
+    def _import_shape(self, node_shape_uriref: URIRef):
+        try:
+            shape_graph, ont_graph = self._transitive_load_resource_graph(
+                self._get_named_graph_from_shape(node_shape_uriref),
+                self.shape_to_defining_resource[node_shape_uriref],
+            )
+            # Address (though not for all node shape inheritance cases) limitation of the length
+            # of sh:node transitive path (https://github.com/RDFLib/pySHACL/blob/master/pyshacl/shape.py#L468).
+            (triples_to_add, _, triples_to_remove, rdfcollection_items_to_remove) = (
+                self._get_transitive_property_shapes_from_nodeshape(
+                    node_shape_uriref, shape_graph
+                )
+            )
+            for triple_to_add in triples_to_add:
+                shape_graph.add(triple_to_add)
+            for triple_to_remove in triples_to_remove:
+                shape_graph.remove(triple_to_remove)
+            for (
+                rdfcollection,
+                rdfcollection_item_index,
+            ) in rdfcollection_items_to_remove:
+                del rdfcollection[rdfcollection_item_index]
+            # reloads the shapes graph
+            self._init_shape_graph_wrapper()
+            shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
+                node_shape_uriref
+            )
+            return shape, shape_graph, ont_graph
+        except Exception as e:
+            raise Exception(
+                f"Failed to import the shape '{node_shape_uriref}': {str(e)}"
+            ) from e
+
+    def get_shape_graph(self, node_shape_uriref: URIRef) -> Tuple[Shape, Graph, Graph]:
+        if node_shape_uriref not in self.shape_to_defining_resource:
+            raise ValueError(f"Unknown shape '{node_shape_uriref}'")
         try:
             shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
                 node_shape_uriref
             )
-            if (
-                node_shape_uriref in self.shape_to_defining_resource
-                and self.shape_to_defining_resource[node_shape_uriref] in self._imported
-            ):
-                shape_graph = self._dataset_graph.graph(
-                    self._get_named_graph_from_shape(node_shape_uriref)
-                )
-            else:
-                raise ValueError()
-        except Exception:
-            try:
-                shape_graph = self._transitive_load_shape_graph(
-                    self._get_named_graph_from_shape(node_shape_uriref),
-                    self.shape_to_defining_resource[node_shape_uriref],
-                )
-                # Address (though not for all node shape inheritance cases) limitation of the length
-                # of sh:node transitive path (https://github.com/RDFLib/pySHACL/blob/master/pyshacl/shape.py#L468).
-                (
-                    triples_to_add,
-                    _,
-                    triples_to_remove,
-                    rdfcollection_items_to_remove,
-                ) = self._get_transitive_property_shapes_from_nodeshape(
-                    node_shape_uriref, shape_graph
-                )
-                for triple_to_add in triples_to_add:
-                    shape_graph.add(triple_to_add)
-                for triple_to_remove in triples_to_remove:
-                    shape_graph.remove(triple_to_remove)
-                for (
-                    rdfcollection,
-                    rdfcollection_item_index,
-                ) in rdfcollection_items_to_remove:
-                    del rdfcollection[rdfcollection_item_index]
-                # reloads the shapes graph
-                self._init_shape_graph_wrapper()
-                shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
-                    node_shape_uriref
-                )
-            except Exception as e:
-                raise Exception(
-                    f"Failed to get the shape '{node_shape_uriref}': {str(e)}"
-                ) from e
-        return shape, shape_graph
+        except ValueError:
+            return self._import_shape(node_shape_uriref)
+        if self.shape_to_defining_resource[node_shape_uriref] in self._imported:
+            defining_resource = self.shape_to_defining_resource[node_shape_uriref]
+            shape_graph = self._dataset_graph.graph(
+                self._get_named_graph_from_shape(node_shape_uriref)
+            )
+            ont_graph = self._build_imported_ontology_graph(defining_resource)
+        else:
+            return self._import_shape(node_shape_uriref)
+
+        return shape, shape_graph, ont_graph
+
+    def _build_imported_ontology_graph(self, resurce_uriref):
+        ont_graph = Graph()
+        if (
+            resurce_uriref in self._defining_resource_to_imported_ontology
+        ):  # has imported ontology
+            imported_ont_urirefs = self._defining_resource_to_imported_ontology[
+                resurce_uriref
+            ]
+            for imported_ont_uriref in imported_ont_urirefs:
+                if imported_ont_uriref in self.ont_to_named_graph:
+                    ont_named_graph = self.ont_to_named_graph[imported_ont_uriref]
+                    ont_graph += self._dataset_graph.graph(ont_named_graph)
+                else:
+                    raise ValueError(
+                        f"Unknown ontology '{imported_ont_uriref}' imported in schema '{resurce_uriref}'"
+                    )
+        return ont_graph
 
     def get_shape_uriref_from_class_fragment(self, fragment):
         try:
