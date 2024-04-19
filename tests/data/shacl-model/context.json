@@ -4,6 +4,9 @@
     "Activity": {
       "@id": "prov:Activity"
     },
+    "Patient": {
+      "@id": "schema:Patient"
+    },
     "Agent": {
       "@id": "prov:Agent"
     },
@@ -20,7 +23,7 @@
       "@id": "nsg:BrainRegion"
     },
     "Building": {
-      "@id": "http://schema.org/Building"
+      "@id": "schema:Building"
     },
     "Employee": {
       "@id": "http://www.example.com/Employee"
@@ -82,7 +85,7 @@
       "@id": "schema:givenName"
     },
     "image": {
-      "@id": "http://schema.org/image",
+      "@id": "schema:image",
       "@type": "@id"
     },
     "isDefinedBy": {
@@ -110,7 +113,7 @@
     "prov": "http://www.w3.org/ns/prov#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-    "schema": "http://schema.org/",
+    "schema": "https://schema.org/",
     "skos": "http://www.w3.org/2004/02/skos/core#",
     "startDate": {
       "@id": "schema:startDate",
@@ -159,7 +162,8 @@
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "foaf": "http://xmlns.com/foaf/0.1/",
     "mba": "http://api.brain-map.org/api/v2/data/Structure/",
-    "obo": "http://purl.obolibrary.org/obo/"
+    "obo": "http://purl.obolibrary.org/obo/",
+    "sh": "http://www.w3.org/ns/shacl#"
   },
   "@id": "http://context.example.org"
 }

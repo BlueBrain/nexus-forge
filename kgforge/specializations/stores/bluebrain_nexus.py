@@ -32,8 +32,11 @@ from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.commons.dictionaries import update_dict
 from kgforge.core.commons.es_query_builder import ESQueryBuilder
-from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder, format_type, \
-    CategoryDataType
+from kgforge.core.commons.sparql_query_builder import (
+    SPARQLQueryBuilder,
+    format_type,
+    CategoryDataType,
+)
 from kgforge.core.resource import Resource
 from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
@@ -97,7 +100,7 @@ class BlueBrainNexus(Store):
         return DictionaryMapper
 
     def register(
-            self, data: Union[Resource, List[Resource]], schema_id: str = None
+        self, data: Union[Resource, List[Resource]], schema_id: str = None
     ) -> None:
         run(
             self._register_one,
@@ -155,7 +158,6 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_create(
             service=self.service, resource=resource
         )
@@ -199,9 +201,9 @@ class BlueBrainNexus(Store):
             data = MultipartWriter("form-data")
             part = data.append(path.open("rb"))
             part.headers[CONTENT_TYPE] = mime_type
-            part.headers[
-                CONTENT_DISPOSITION
-            ] = f'form-data; name="file"; filename="{path.name}"'
+            part.headers[CONTENT_DISPOSITION] = (
+                f'form-data; name="file"; filename="{path.name}"'
+            )
             return loop.create_task(_upload(data, semaphore, session))
 
         async def _upload(data, semaphore, session):
@@ -211,9 +213,7 @@ class BlueBrainNexus(Store):
                     if response.status < 400:
                         return body
 
-                    msg = " ".join(
-                        re.findall("[A-Z][^A-Z]*", body["@type"])
-                    ).lower()
+                    msg = " ".join(re.findall("[A-Z][^A-Z]*", body["@type"])).lower()
                     raise UploadingError(msg)
 
         return asyncio.run(_bulk())
@@ -253,7 +253,7 @@ class BlueBrainNexus(Store):
         if version_params is not None:
             query_params.update(version_params)
 
-        formatted_fragment = '#' + fragment if fragment is not None else ''
+        formatted_fragment = "#" + fragment if fragment is not None else ""
         id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
 
         return id_without_query, query_params
@@ -262,11 +262,14 @@ class BlueBrainNexus(Store):
             self,
             session,
             id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
+
     ):
         """
-            Retrieves assuming the provided identifier really is the id
+        Retrieves assuming the provided identifier really is the id
         """
-        url_base = self.service.url_resolver if cross_bucket else self.service.url_resources
+        url_base = (
+            self.service.url_resolver if cross_bucket else self.service.url_resources
+        )
 
         url_resource = Service.add_schema_and_id_to_endpoint(
             url_base, schema_id=None, resource_id=id_
@@ -318,12 +321,15 @@ class BlueBrainNexus(Store):
 
         # Retrieves the appropriate data if retrieve_source = True
         if _self:
+
             return await self._merge_metadata_with_source_data(
                 session,
+
                 _self, not_source_with_metadata, query_params
             )
 
         raise RetrievalError("Cannot find metadata in payload")
+
 
     async def _merge_metadata_with_source_data(
             self,
@@ -341,6 +347,7 @@ class BlueBrainNexus(Store):
             data_source = await response_source.json()
 
         catch_http_error_nexus(response_source, RetrievalError, aiohttp_error=True)
+
         resource = self.service.to_resource(data_source)
         # uses the metadata of the first call
         self.service.synchronize_resource(
@@ -354,7 +361,7 @@ class BlueBrainNexus(Store):
             self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
         """
-            Retrieves assuming the provided identifier is actually the resource's _self field
+        Retrieves assuming the provided identifier is actually the resource's _self field
         """
         # TODO temporary
         # url = f"{self_}/source" if retrieve_source else self_
@@ -535,7 +542,7 @@ class BlueBrainNexus(Store):
             id_value=id_, version_params=version_params
         )
 
-        retrieve_source = params.get('retrieve_source', True)
+        retrieve_source = params.get("retrieve_source", True)
 
         # if retrieve_source:
         #     query_params.update({"annotate": True})
@@ -570,25 +577,32 @@ class BlueBrainNexus(Store):
                 )
 
     def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
-        response = requests.get(id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT)
+        response = requests.get(
+            id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT
+        )
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
         return metadata["_filename"], metadata["_mediaType"]
 
     def _download_many(
-            self,
-            urls: List[str],
-            paths: List[str],
-            store_metadata: Optional[DictWrapper],
-            cross_bucket: bool,
-            content_type: str,
-            buckets: List[str]
+        self,
+        urls: List[str],
+        paths: List[str],
+        store_metadata: Optional[DictWrapper],
+        cross_bucket: bool,
+        content_type: str,
+        buckets: List[str],
     ) -> None:
         async def _bulk():
             loop = asyncio.get_event_loop()
             semaphore = Semaphore(self.service.max_connection)
-            headers = self.service.headers_download if not content_type else update_dict(
-                self.service.headers_download, {"Accept": content_type})
+            headers = (
+                self.service.headers_download
+                if not content_type
+                else update_dict(
+                    self.service.headers_download, {"Accept": content_type}
+                )
+            )
             async with ClientSession(headers=headers) as session:
                 tasks = (
                     _create_task(x, y, z, b, loop, semaphore, session)
@@ -606,9 +620,9 @@ class BlueBrainNexus(Store):
                 params_download = copy.deepcopy(self.service.params.get("download", {}))
                 async with session.get(url, params=params_download) as response:
                     catch_http_error_nexus(
-                        response, DownloadingError,
-                        error_message_formatter=lambda e:
-                        f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}"
+                        response,
+                        DownloadingError,
+                        error_message_formatter=lambda e: f"Downloading url {url} from bucket {bucket} failed: {_error_message(e)}",
                     )
                     with open(path, "wb") as f:
                         data = await response.read()
@@ -617,29 +631,30 @@ class BlueBrainNexus(Store):
         return asyncio.run(_bulk())
 
     def _download_one(
-            self,
-            url: str,
-            path: str,
-            store_metadata: Optional[DictWrapper],
-            cross_bucket: bool,
-            content_type: str,
-            bucket: str
+        self,
+        url: str,
+        path: str,
+        store_metadata: Optional[DictWrapper],
+        cross_bucket: bool,
+        content_type: str,
+        bucket: str,
     ) -> None:
 
         params_download = copy.deepcopy(self.service.params.get("download", {}))
-        headers = self.service.headers_download if not content_type else update_dict(
-            self.service.headers_download, {"Accept": content_type})
+        headers = (
+            self.service.headers_download
+            if not content_type
+            else update_dict(self.service.headers_download, {"Accept": content_type})
+        )
 
         response = requests.get(
-            url=url,
-            headers=headers,
-            params=params_download,
-            timeout=REQUEST_TIMEOUT
+            url=url, headers=headers, params=params_download, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(
-            response, DownloadingError,
+            response,
+            DownloadingError,
             error_message_formatter=lambda e: f"Downloading from bucket {bucket} failed: "
-                                              f"{_error_message(e)}"
+            f"{_error_message(e)}",
         )
 
         with open(path, "wb") as f:
@@ -647,10 +662,7 @@ class BlueBrainNexus(Store):
                 f.write(chunk)
 
     def _prepare_download_one(
-            self,
-            url: str,
-            store_metadata: Optional[DictWrapper],
-            cross_bucket: bool
+        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
     ) -> Tuple[str, str]:
         if cross_bucket:
             if store_metadata is not None:
@@ -675,8 +687,10 @@ class BlueBrainNexus(Store):
             url_base = "/".join(
                 (
                     self.service.make_endpoint(
-                        endpoint=self.service.endpoint, endpoint_type="files",
-                        organisation=org, project=project
+                        endpoint=self.service.endpoint,
+                        endpoint_type="files",
+                        organisation=org,
+                        project=project,
                     ),
                     quote_plus(file_id),
                 )
@@ -685,7 +699,9 @@ class BlueBrainNexus(Store):
 
     # CR[U]D.
 
-    def update(self, data: Union[Resource, List[Resource]], schema_id: str = None) -> None:
+    def update(
+        self, data: Union[Resource, List[Resource]], schema_id: str = None
+    ) -> None:
         run(
             self._update_one,
             self._update_many,
@@ -741,7 +757,6 @@ class BlueBrainNexus(Store):
         return self.update_schema(resource, schema_id=Service.UNCONSTRAINED_SCHEMA)
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
-
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update_schema(
             service=self.service, resource=resource, schema_id=schema_id
         )
@@ -758,7 +773,6 @@ class BlueBrainNexus(Store):
         self.service.sync_metadata(resource, response.json())
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
-
         fc_name = self._update_schema_many.__name__
 
         verified = self.service.verify(
@@ -767,7 +781,7 @@ class BlueBrainNexus(Store):
             exception=SchemaUpdateError,
             id_required=True,
             required_synchronized=True,
-            execute_actions=False
+            execute_actions=False,
         )
 
         BatchRequestHandler.batch_request_on_resources(
@@ -824,7 +838,6 @@ class BlueBrainNexus(Store):
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-
         method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_tag(
             service=self.service, resource=resource, tag=value
         )
@@ -894,8 +907,10 @@ class BlueBrainNexus(Store):
         # Querying.
 
     def search(
-            self, *filters: Union[Dict, Filter], resolvers: Optional[List[Resolver]],
-            **params
+        self,
+        *filters: Union[Dict, Filter],
+        resolvers: Optional[List[Resolver]],
+        **params,
     ) -> List[Resource]:
 
         if "filters" in params:
@@ -917,11 +932,10 @@ class BlueBrainNexus(Store):
         includes = params.get("includes", None)
         excludes = params.get("excludes", None)
         search_endpoint = params.get(
-            "search_endpoint", Service.SPARQL_ENDPOINT_TYPE  # default search endpoint is sparql
+            "search_endpoint",
+            Service.SPARQL_ENDPOINT_TYPE,  # default search endpoint is sparql
         )
-        valid_endpoints = [
-            Service.SPARQL_ENDPOINT_TYPE, Service.ELASTIC_ENDPOINT_TYPE,
-        ]
+        valid_endpoints = [Service.SPARQL_ENDPOINT_TYPE, Service.ELASTIC_ENDPOINT_TYPE]
 
         if search_endpoint not in valid_endpoints:
             raise ValueError(
@@ -954,7 +968,10 @@ class BlueBrainNexus(Store):
                 project_filter = ""
 
             query_statements, query_filters = SPARQLQueryBuilder.build(
-                schema=None, resolvers=resolvers, context=self.model_context(), filters=filters
+                schema=None,
+                resolvers=resolvers,
+                context=self.model_context(),
+                filters=filters,
             )
             retrieve_source = params.get("retrieve_source", True)
             store_metadata_statements = []
@@ -963,28 +980,34 @@ class BlueBrainNexus(Store):
                 for i, k in enumerate(self.service.store_metadata_keys):
                     _vars.append(f"?{k}")
                     store_metadata_statements.insert(
-                        i + 2, f"<{self.metadata_context.terms[k].id}> ?{k}")
+                        i + 2, f"<{self.metadata_context.terms[k].id}> ?{k}"
+                    )
                 deprecated_filter = f"Filter (?_deprecated = {format_type[CategoryDataType.BOOLEAN](deprecated)})"
                 query_filters.append(deprecated_filter)
             else:
                 _vars = ["?id", "?_project", "?_rev"]
-                store_metadata_statements.append(f"<{self.service.revision_property}> ?_rev")
-                store_metadata_statements.append(f"<{self.service.project_property}> ?_project")
+                store_metadata_statements.append(
+                    f"<{self.service.revision_property}> ?_rev"
+                )
+                store_metadata_statements.append(
+                    f"<{self.service.project_property}> ?_project"
+                )
                 query_statements.append(
-                    f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}",
+                    f"<{self.service.deprecated_property}> {format_type[CategoryDataType.BOOLEAN](deprecated)}"
                 )
             query_statements.extend(store_metadata_statements)
             statements = ";\n ".join(query_statements)
-            _filters = "\n".join(
-                (".\n ".join(query_filters), project_filter)
-            )
-            query = _create_select_query(
-                _vars, f"?id {statements} . \n {_filters}", distinct,
-                search_in_graph
+            _filters = "\n".join((".\n ".join(query_filters), project_filter))
+            query = SPARQLQueryBuilder.create_select_query(
+                _vars, f"?id {statements} . \n {_filters}", distinct, search_in_graph
             )
             # support @id and @type
             resources = self.sparql(
-                query, debug=debug, limit=limit, offset=offset, view=params.get("view", None)
+                query,
+                debug=debug,
+                limit=limit,
+                offset=offset,
+                view=params.get("view", None),
             )
             results = BatchRequestHandler.batch_request_on_resources(
                 service=self.service,
@@ -998,11 +1021,12 @@ class BlueBrainNexus(Store):
                 resource = result.resource
                 if retrieve_source:
                     store_metadata_response = as_json(
-                        result.resource, expanded=False,
+                        result.resource,
+                        expanded=False,
                         store_metadata=False,
                         model_context=None,
                         metadata_context=None,
-                        context_resolver=None
+                        context_resolver=None,
                     )  # store_metadata is obtained from SPARQL (resource) and
                     # not from server (response) because of retrieve_source==True
                 else:
@@ -1011,19 +1035,28 @@ class BlueBrainNexus(Store):
                     resource = self.service.to_resource(result.response)
                 except Exception as e:
                     self.service.synchronize_resource(
-                        resource, store_metadata_response, self.search.__name__, False, False
+                        resource,
+                        store_metadata_response,
+                        self.search.__name__,
+                        False,
+                        False,
                     )
                     raise ValueError(e) from e
                 finally:
                     self.service.synchronize_resource(
-                        resource, store_metadata_response, self.search.__name__, True, True
+                        resource,
+                        store_metadata_response,
+                        self.search.__name__,
+                        True,
+                        True,
                     )
                 resources.append(resource)
             return resources
         else:
             if isinstance(self.service.elastic_endpoint["view"], LazyAction):
-                self.service.elastic_endpoint["view"] = \
-                    self.service.elastic_endpoint["view"].execute()
+                self.service.elastic_endpoint["view"] = self.service.elastic_endpoint[
+                    "view"
+                ].execute()
 
             elastic_mapping = self.service.elastic_endpoint["view"].get("mapping", None)
 
@@ -1040,31 +1073,36 @@ class BlueBrainNexus(Store):
                 Filter(
                     operator="__eq__",
                     path=[
-                        deprecated_property_context_term.name
-                        if deprecated_property_context_term is not None
-                        else "_deprecated"
+                        (
+                            deprecated_property_context_term.name
+                            if deprecated_property_context_term is not None
+                            else "_deprecated"
+                        )
                     ],
                     value=deprecated,
                 )
-
             )
             _project = None
             if bucket:
-                _project = '/'.join([self.endpoint, 'projects', bucket])
+                _project = "/".join([self.endpoint, "projects", bucket])
 
             elif not cross_bucket:
-                _project = '/'.join([self.endpoint, 'projects', self.organisation, self.project])
+                _project = "/".join(
+                    [self.endpoint, "projects", self.organisation, self.project]
+                )
 
             if _project:
                 filters.append(
                     Filter(
                         operator="__eq__",
                         path=[
-                            project_property_context_term.name
-                            if project_property_context_term is not None
-                            else "_project"
+                            (
+                                project_property_context_term.name
+                                if project_property_context_term is not None
+                                else "_project"
+                            )
                         ],
-                        value=_project
+                        value=_project,
                     )
                 )
 
@@ -1079,8 +1117,11 @@ class BlueBrainNexus(Store):
             )
 
             return self.elastic(
-                json.dumps(query), debug=debug, limit=limit, offset=offset,
-                view=params.get("view", None)
+                json.dumps(query),
+                debug=debug,
+                limit=limit,
+                offset=offset,
+                view=params.get("view", None),
             )
 
     @staticmethod  # for testing
@@ -1096,20 +1137,26 @@ class BlueBrainNexus(Store):
 
         return ctx, prefixes, model_context.vocab
 
-    def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
-        return BlueBrainNexus.reformat_contexts(self.model_context(), self.service.metadata_context)
+    def get_context_prefix_vocab(
+        self,
+    ) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
+        return BlueBrainNexus.reformat_contexts(
+            self.model_context(), self.service.metadata_context
+        )
 
     def _sparql(self, query: str, view: str) -> List[Resource]:
 
-        endpoint = self.service.sparql_endpoint["endpoint"] \
-            if view is None \
+        endpoint = (
+            self.service.sparql_endpoint["endpoint"]
+            if view is None
             else self.service.make_query_endpoint_self(view, endpoint_type="sparql")
+        )
 
         response = requests.post(
             endpoint,
             data=query,
             headers=self.service.headers_sparql,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
         catch_http_error_nexus(response, QueryingError)
 
@@ -1119,18 +1166,24 @@ class BlueBrainNexus(Store):
         return SPARQLQueryBuilder.build_resource_from_response(query, data, context)
 
     def _elastic(
-            self, query: Dict, view: Optional[str], as_resource: bool, build_resource_from: str
+        self,
+        query: Dict,
+        view: Optional[str],
+        as_resource: bool,
+        build_resource_from: str,
     ) -> Optional[Union[List[Resource], Resource, List[Dict], Dict]]:
 
-        endpoint = self.service.elastic_endpoint["endpoint"] \
-            if view is None \
+        endpoint = (
+            self.service.elastic_endpoint["endpoint"]
+            if view is None
             else self.service.make_query_endpoint_self(view, endpoint_type="elastic")
+        )
 
         response = requests.post(
             endpoint,
             data=json.dumps(query),
             headers=self.service.headers_elastic,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
         catch_http_error_nexus(response, QueryingError)
 
@@ -1162,15 +1215,16 @@ class BlueBrainNexus(Store):
             )
             for hit in results
         ]
+
     # Utils.
 
     def _initialize_service(
-            self,
-            endpoint: Optional[str],
-            bucket: Optional[str],
-            token: Optional[str],
-            searchendpoints: Optional[Dict] = None,
-            **store_config,
+        self,
+        endpoint: Optional[str],
+        bucket: Optional[str],
+        token: Optional[str],
+        searchendpoints: Optional[Dict] = None,
+        **store_config,
     ) -> Any:
         try:
             self.organisation, self.project = self.bucket.split("/")
@@ -1237,9 +1291,9 @@ class BlueBrainNexus(Store):
         # try decoding the url first
         raw_url = unquote(uri)
         if is_file:  # for files
-            url_base = '/'.join([self.endpoint, 'files', self.bucket])
+            url_base = "/".join([self.endpoint, "files", self.bucket])
         else:  # for resources
-            url_base = '/'.join([self.endpoint, 'resources', self.bucket])
+            url_base = "/".join([self.endpoint, "resources", self.bucket])
         matches = re.match(r"[\w\.:%/-]+/(\w+):(\w+)/[\w\.-/:%]+", raw_url)
         if matches:
             groups = matches.groups()
@@ -1256,7 +1310,7 @@ class BlueBrainNexus(Store):
                     resolved_id = id_
                 return url.replace(id_, quote_plus(resolved_id))
 
-            extended_schema = ''.join([resolved, groups[1]])
+            extended_schema = "".join([resolved, groups[1]])
             url = raw_url.replace(old_schema, extended_schema)
         else:
             url = raw_url
@@ -1282,12 +1336,3 @@ class BlueBrainNexus(Store):
 
     def _freeze_many(self, resources: List[Resource]) -> None:
         raise not_supported()
-
-
-def _create_select_query(vars_, statements, distinct, search_in_graph):
-    where_clauses = (
-        f"{{ Graph ?g {{{statements}}}}}" if search_in_graph else f"{{{statements}}}"
-    )
-    join_vars_ = ' '.join(vars_)
-    select_vars = f"DISTINCT {join_vars_}" if distinct else f"{join_vars_}"
-    return f"SELECT {select_vars} WHERE {where_clauses}"

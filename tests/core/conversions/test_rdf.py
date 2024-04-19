@@ -231,19 +231,19 @@ class TestGraph:
         id = "http://test/1234"
         id_uri = term.URIRef(id)
         graph = Graph()
-        graph.bind("schemaorg", Namespace("http://schema.org/"))
-        graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
-        graph.add((id_uri,term.URIRef("http://schema.org/name"),term.Literal("The Empire State Building")))
-        graph.add((id_uri,term.URIRef("http://schema.org/description"),term.Literal("The Empire State Building is a 102-story landmark in New York City.")))
-        graph.add((id_uri,term.URIRef("http://schema.org/image"),term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg")))
+        graph.bind("schemaorg", Namespace("https://schema.org/"))
+        graph.add((id_uri, RDF.type, term.URIRef("https://schema.org/Building")))
+        graph.add((id_uri,term.URIRef("https://schema.org/name"),term.Literal("The Empire State Building")))
+        graph.add((id_uri,term.URIRef("https://schema.org/description"),term.Literal("The Empire State Building is a 102-story landmark in New York City.")))
+        graph.add((id_uri,term.URIRef("https://schema.org/image"),term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg")))
         bNode = term.BNode()
-        graph.add((id_uri,term.URIRef("http://schema.org/geo"),bNode))
-        graph.add((bNode,term.URIRef("http://schema.org/latitude"), term.Literal("40.75")))
+        graph.add((id_uri,term.URIRef("https://schema.org/geo"),bNode))
+        graph.add((bNode,term.URIRef("https://schema.org/latitude"), term.Literal("40.75")))
         results = from_graph(graph)
 
         assert isinstance(results, Resource)
         results.context.update({"schemaorg:latitude": {
-                                  "@id": "http://schema.org/latitude",
+                                  "@id": "https://schema.org/latitude",
                                   "@type": "xsd:float"
                                 }})
         building.id = id
@@ -254,13 +254,13 @@ class TestGraph:
                   context_resolver=None)
         assert result_jsonld == expected
 
-        graph.remove((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
+        graph.remove((id_uri, RDF.type, term.URIRef("https://schema.org/Building")))
         results = from_graph(graph)
         assert len(results) == 3
 
-        graph.add((id_uri, RDF.type, term.URIRef("http://schema.org/Building")))
-        graph.add((term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg"), RDF.type, term.URIRef("http://schema.org/Image")))
-        results = from_graph(graph, type_=["http://schema.org/Building", "http://schema.org/Image"])
+        graph.add((id_uri, RDF.type, term.URIRef("https://schema.org/Building")))
+        graph.add((term.URIRef("http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg"), RDF.type, term.URIRef("https://schema.org/Image")))
+        results = from_graph(graph, type_=["https://schema.org/Building", "https://schema.org/Image"])
         assert len(results) == 2
         assert results[0].type is not None
         assert results[1].type is not None
@@ -273,15 +273,15 @@ class TestGraph:
                              model_context=model_context, metadata_context=metadata_context,
                              context_resolver=None)
         results = [result_0, result_1]
-        assert set(["http://schema.org/Building","http://schema.org/Image"]) == {result["@type"][0] for result in results}
+        assert set(["https://schema.org/Building","https://schema.org/Image"]) == {result["@type"][0] for result in results}
 
         frame = {
-            "@type": ['http://schema.org/Image'],
+            "@type": ['https://schema.org/Image'],
             "@embed": True
         }
         results = from_graph(graph, frame=frame)
         assert isinstance(results, Resource)
-        expected = {'@type': ['http://schema.org/Image'], '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
+        expected = {'@type': ['https://schema.org/Image'], '@id': 'http://www.civil.usherbrooke.ca/cours/gci215a/empire-state-building.jpg'}
         result_jsonld = as_jsonld(results, form="expanded", store_metadata=store_metadata,
                          model_context=model_context, metadata_context=metadata_context,
                          context_resolver=None)

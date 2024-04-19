@@ -14,6 +14,7 @@
 
 from typing import Callable, List, Union, Dict, Optional
 from uuid import uuid4
+from kgforge.specializations.models.rdf_model import RdfModel
 from utils import full_path_relative_to_root
 import pytest
 from pytest_bdd import given, parsers, then, when
@@ -293,8 +294,20 @@ def context_file_path():
 
 
 @pytest.fixture(scope="session")
+def shacl_schemas_file_path():
+    return full_path_relative_to_root("tests/data/shacl-model/commons")
+
+
+@pytest.fixture(scope="session")
 def context_iri_file(context_file_path):
     return f"file://{context_file_path}"
+
+
+@pytest.fixture(scope="function")
+def rdf_model_from_dir(context_iri_file, shacl_schemas_file_path):
+    return RdfModel(
+        shacl_schemas_file_path, context={"iri": context_iri_file}, origin="directory"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -312,13 +325,14 @@ def model_prefixes():
     return {
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "prov": "http://www.w3.org/ns/prov#",
-        "schema": "http://schema.org/",
+        "schema": "https://schema.org/",
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "skos": "http://www.w3.org/2004/02/skos/core#",
         "nsg": "https://neuroshapes.org/",
         "owl": "http://www.w3.org/2002/07/owl#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "foaf": "http://xmlns.com/foaf/0.1/",
+        "sh": "http://www.w3.org/ns/shacl#",
         "mba": "http://api.brain-map.org/api/v2/data/Structure/",
         "obo": "http://purl.obolibrary.org/obo/",
     }

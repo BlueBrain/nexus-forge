@@ -5,8 +5,19 @@
     "schema": "https://schema.org/",
     "xsd": "http://www.w3.org/2001/XMLSchema#",
     "prov": "http://www.w3.org/ns/prov#",
+    "owl": "http://www.w3.org/2002/07/owl#",
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "node": {
+      "@id": "sh:node",
+      "@type": "@id"
+    },
+    "and": {
+      "@id": "sh:and",
+      "@type": "@id",
+      "@container": "@list"
+    },
     "or": {
       "@id": "sh:or",
       "@type": "@id",
@@ -16,6 +27,16 @@
       "@id": "sh:xone",
       "@type": "@id",
       "@container": "@list"
+    },
+    "in": {
+      "@id": "sh:in",
+      "@container": "@list"
+    },
+    "minInclusive": {
+      "@id": "sh:minInclusive"
+    },
+    "maxInclusive": {
+      "@id": "sh:maxInclusive"
     },
     "nodeKind": {
       "@id": "sh:nodeKind",
@@ -46,7 +67,8 @@
       "@type": "@id"
     },
     "maxCount": {
-      "@id": "sh:maxCount"
+      "@id": "sh:maxCount",
+      "@type": "xsd:integer"
     },
     "minCount": {
       "@id": "sh:minCount",
@@ -55,84 +77,60 @@
     "hasValue": {
       "@id": "sh:hasValue"
     },
+    "message": {
+      "@id": "sh:message"
+    },
     "shapes": {
       "@id": "nxv:shapes",
       "@type": "@id",
       "@container": "@set"
     }
   },
-  "@id": "http://shapes.ex/activity",
+  "@id": "http://shapes.ex/employee",
   "@type": "nxv:Schema",
+  "owl:imports": [
+    "http://shapes.ex/person"
+  ],
   "shapes": [
     {
-      "@id": "this:ActivityShape",
+      "@id": "this:EmployeeShape",
       "@type": "sh:NodeShape",
       "nodeKind": "sh:IRI",
-      "targetClass": "prov:Activity",
-      "property": [
+      "targetClass": "this:Employee",
+      "and": [
         {
-          "@context": {
-            "hasValue": {
-              "@id": "sh:hasValue",
-              "@type": "@id"
-            }
-          },
-          "path": "rdf:type",
-          "hasValue": "prov:Activity"
+          "node": "this:PersonShape"
         },
         {
-          "path": "prov:generated",
-          "class": "prov:Entity",
-          "minCount": 1
+          "path": "schema:startDate",
+          "datatype": "xsd:date",
+          "minCount": 1,
+          "maxCount": 1
         },
         {
-          "path": "prov:used",
-          "class": "prov:Entity"
+          "path": "schema:colleague",
+          "class": "schema:Person"
         },
         {
-          "path": "schema:author",
-          "xone": [
+          "path": "schema:worksFor",
+          "or": [
             {
               "class": "schema:Person"
             },
             {
               "class": "schema:Organization"
             }
-          ],
-          "maxCount": 1
+          ]
         },
         {
-          "path": "schema:status",
-          "hasValue": "completed",
-          "minCount": 1,
-          "maxCount": 1
-        },
-        {
-          "path": "prov:startedAtTime",
-          "datatype": "xsd:dateTime",
-          "lessThan": "prov:endedAtTime",
-          "maxCount": 1
-        },
-        {
-          "path": "prov:endedAtTime",
-          "datatype": "xsd:dateTime",
-          "maxCount": 1
-        },
-        {
-          "path": "schema:validated",
-          "datatype": "xsd:boolean",
-          "maxCount": 1
-        },
-        {
-          "path": "schema:citation",
-          "name": "Citation",
-          "description": "A citation or reference to another creative work, such as another publication, web page, scholarly article, etc.",
           "or": [
             {
-              "datatype": "xsd:string"
+              "path": "schema:contractor",
+              "class": "schema:Organization"
             },
             {
-              "nodeKind": "sh:IRI"
+              "path": "schema:department",
+              "class": "schema:Organization"
             }
           ]
         }

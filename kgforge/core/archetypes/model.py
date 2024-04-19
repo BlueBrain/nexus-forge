@@ -55,16 +55,17 @@ class Model(ABC):
         prefixes = dict(sorted(self._prefixes().items(), key=lambda item: item[0]))
         if pretty:
             print("Used prefixes:")
-            df = DataFrame(prefixes)
-            formatters = {x: f"{{:<{df[x].str.len().max()}s}}".format for x in df.columns}
+            df = DataFrame(prefixes, index=[0])
+            formatters = {
+                x: f"{{:<{df[x].str.len().max()}s}}".format for x in df.columns
+            }
             print(df.to_string(header=False, index=False, formatters=formatters))
             return None
 
         return dict(prefixes)
 
     @abstractmethod
-    def _prefixes(self) -> Dict[str, str]:
-        ...
+    def _prefixes(self) -> Dict[str, str]: ...
 
     def types(self, pretty: bool) -> Optional[List[str]]:
         types = sorted(self._types())
@@ -131,10 +132,14 @@ class Model(ABC):
         ...
 
     def mappings(self, source: str, pretty: bool) -> Optional[Dict[str, List[str]]]:
-        mappings = {k: sorted(v) for k, v in
-                    sorted(self._mappings(source).items(), key=lambda kv: kv[0])}
+        mappings = {
+            k: sorted(v)
+            for k, v in sorted(self._mappings(source).items(), key=lambda kv: kv[0])
+        }
         if pretty:
-            print("Managed mappings for the data source per entity type and mapping type:")
+            print(
+                "Managed mappings for the data source per entity type and mapping type:"
+            )
             for k, v in mappings.items():
                 print(*[f"   - {k}:", *v], sep="\n        * ")
             return None
@@ -162,20 +167,35 @@ class Model(ABC):
         # POLICY Should retrieve the schema id of the given type.
         ...
 
-    def validate(self, data: Union[Resource, List[Resource]],
-                 execute_actions_before: bool, type_: str) -> None:
+    def validate(
+        self,
+        data: Union[Resource, List[Resource]],
+        execute_actions_before: bool,
+        type_: str,
+        inference: Optional[str] = None,
+    ) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
-        run(self._validate_one, None, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated", type_=type_)
+        run(
+            self._validate_one,
+            None,
+            data,
+            execute_actions=execute_actions_before,
+            exception=ValidationError,
+            monitored_status="_validated",
+            type_=type_,
+            inference=inference,
+        )
 
     @abstractmethod
-    def _validate_many(self, resources: List[Resource], type_: str) -> None:
+    def _validate_many(
+        self, resources: List[Resource], type_: str, inference: str
+    ) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
         ...
 
     @abstractmethod
-    def _validate_one(self, resource: Resource, type_: str) -> None:
+    def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
         # POLICY Should notify of failures with exception ValidationError including a message.
         ...
 
@@ -201,17 +221,14 @@ class Model(ABC):
 
     @staticmethod
     @abstractmethod
-    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any:
-        ...
+    def _service_from_directory(dirpath: Path, context_iri: Optional[str]) -> Any: ...
 
     @staticmethod
     @abstractmethod
-    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
-        ...
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any: ...
 
     @staticmethod
     @abstractmethod
     def _service_from_store(
-            store: 'Store', context_config: Optional[dict], **source_config
-    ) -> Any:
-        ...
+        store: "Store", context_config: Optional[dict], **source_config
+    ) -> Any: ...

@@ -43,9 +43,9 @@ setup(
         "pandas",
         "nexus-sdk",
         "aiohttp",
-        "rdflib==6.3.2",
+        "rdflib==7.0.0",
         "pyLD",
-        "pyshacl==v0.23.0",
+        "pyshacl==v0.25.0",
         "nest-asyncio>=1.5.1",
         "pyparsing>=2.0.2",
         "owlrl>=5.2.3",
@@ -54,7 +54,13 @@ setup(
         "typing-extensions"
     ],
     extras_require={
-        "dev": ["tox", "pytest", "pytest-bdd==3.4.0", "pytest-cov", "pytest-mock"],
+        "dev": [
+            "tox",
+            "pytest==7.3.0",
+            "pytest-bdd==3.4.0",
+            "pytest-cov",
+            "pytest-mock",
+        ],
         "docs": ["sphinx", "sphinx-bluebrain-theme"],
         "linking_sklearn": ["scikit-learn"],
     },
