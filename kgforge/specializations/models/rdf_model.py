@@ -113,8 +113,9 @@ class RdfModel(Model):
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool,
-        type_: str,
-        inference: str = None,
+        type_: Optional[str],
+        inference: Optional[str],
+        schema_id: Optional[str]
     ) -> None:
         run(
             self._validate_one,
@@ -125,14 +126,15 @@ class RdfModel(Model):
             monitored_status="_validated",
             type_=type_,
             inference=inference,
+            schema_id=schema_id
         )
 
     def _validate_many(
-        self, resources: List[Resource], type_: str, inference: str
+        self, resources: List[Resource], type_: str, inference: str, schema_id: str
     ) -> None:
         for resource in resources:
             conforms, graph, _ = self.service.validate(
-                resource, type_=type_, inference=inference
+                resource, type_=type_, inference=inference, schema_id=schema_id
             )
             if conforms:
                 resource._validated = True
@@ -150,8 +152,8 @@ class RdfModel(Model):
 
             resource._last_action = action
 
-    def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
-        conforms, _, report = self.service.validate(resource, type_, inference)
+    def _validate_one(self, resource: Resource, type_: str, inference: str, schema_id: str) -> None:
+        conforms, _, report = self.service.validate(resource, type_, inference, schema_id)
         if conforms is False:
             raise ValidationError("\n" + report)
 

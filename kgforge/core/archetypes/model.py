@@ -171,8 +171,9 @@ class Model(ABC):
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool,
-        type_: str,
-        inference: Optional[str] = None,
+        type_: Optional[str],
+        inference: Optional[str],
+        schema_id: Optional[str]
     ) -> None:
         # Replace None by self._validate_many to switch to optimized bulk validation.
         run(
@@ -184,18 +185,19 @@ class Model(ABC):
             monitored_status="_validated",
             type_=type_,
             inference=inference,
+            schema_id=schema_id
         )
 
     @abstractmethod
     def _validate_many(
-        self, resources: List[Resource], type_: str, inference: str
+        self, resources: List[Resource], type_: str, inference: str, schema_id: str
     ) -> None:
         # Bulk validation could be optimized by overriding this method in the specialization.
         # POLICY Should reproduce self._validate_one() and execution._run_one() behaviours.
         ...
 
     @abstractmethod
-    def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
+    def _validate_one(self, resource: Resource, type_: str, inference: str, schema_id: str) -> None:
         # POLICY Should notify of failures with exception ValidationError including a message.
         ...
 

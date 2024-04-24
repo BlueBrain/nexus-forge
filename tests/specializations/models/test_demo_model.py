@@ -53,7 +53,7 @@ def validate(capsys, model, data, rc, err, msg):
     "I validate the resource. An exception is raised. The printed report mentions an error: 'Exception: exception raised'."
 )
 def validate_exception(monkeypatch, capsys, model, data):
-    def _validate_one(_, x, type_: str, inference: str):
+    def _validate_one(_, x, type_: str, inference: str, schema_id: str):
         raise Exception("exception raised")
 
     monkeypatch.setattr(
