@@ -1,1 +1,2 @@
-DEFAULT_REQUEST_TIMEOUT = 60
+# To be externaliised in the forge config
+DEFAULT_REQUEST_TIMEOUT = 300
