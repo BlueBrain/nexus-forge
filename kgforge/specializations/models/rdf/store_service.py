@@ -170,7 +170,7 @@ class StoreService(RdfService):
             raise ValueError(f"Failed to retrieve {schema_id}: {str(e)}") from e
         json_dict = as_jsonld(
             schema_resource,
-            form="compacted",
+            form="expanded",
             store_metadata=False,
             model_context=None,
             metadata_context=None,

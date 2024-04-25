@@ -327,7 +327,7 @@ class KnowledgeGraphForge:
                           RDFS entailment rules (https://www.w3.org/TR/rdf-mt/). In this example 'owlrl' or 'rdfsowlrl' are also possible values while no inference will be performed with None .
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_)
+        self._model.validate(data, execute_actions_before, type_=type_, inference=inference)
 
     # Resolving User Interface.
 
