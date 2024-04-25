@@ -367,7 +367,7 @@ def recursive_resolve(
     elif isinstance(context, str) and context not in already_loaded:
         if not resolver:
             raise AttributeError(
-                f"UUNable to resolve {context}: a None resolver were provided"
+                f"Unable to resolve the jsonld context '{context}': a None resolver were provided"
             )
         doc = resolver(context)
         document.update(recursive_resolve(doc, resolver, already_loaded))
