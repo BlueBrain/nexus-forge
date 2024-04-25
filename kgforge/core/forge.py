@@ -310,8 +310,9 @@ class KnowledgeGraphForge:
         self,
         data: Union[Resource, List[Resource]],
         execute_actions_before: bool = False,
-        type_: str = None,
+        type_: Optional[str] = None,
         inference: Optional[str] = None,
+        schema_id: Optional[str] = None
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -321,13 +322,14 @@ class KnowledgeGraphForge:
 
         :param data: a resource or a list of resources to validate
         :param execute_actions_before: whether to execute a LazyAction value of one of a resource property (True) or not (False) prior to validation
+        :param schema_id: the schema to validate against it. If None, the validation function will look for the schema tied to the type attribute in the Resource
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
         :param inference: an inference strategy to use during validation to extend the resource. For example 'rdfs' is an RDF inference strategy (when using RdfModel with pySHACL)
                           able to extend the resource with the transitive closures of type subClassOf and/or property subPropertyOf relations as per the
                           RDFS entailment rules (https://www.w3.org/TR/rdf-mt/). In this example 'owlrl' or 'rdfsowlrl' are also possible values while no inference will be performed with None .
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_)
+        self._model.validate(data, execute_actions_before, type_=type_, inference=inference, schema_id=schema_id)
 
     # Resolving User Interface.
 

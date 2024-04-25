@@ -193,18 +193,25 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, type_: str, inference: str):
+    def validate(self, resource: Resource, type_: Optional[str], inference: Optional[str], schema_id: Optional[str]):
+        if schema_id is not None:
+            pass  # TODO
+
         try:
-            if not resource.get_type() and not type_:
-                raise ValueError(
-                    "No type was provided through Resource.type or the type_ parameter"
-                )
-            if isinstance(resource.get_type(), list) and type_ is None:
-                raise ValueError(
-                    "Resource has list of types as attribute and type_ parameter is not specified. "
-                    "Provide a single value for the type_ parameter or for Resource.type"
-                )
-            type_to_validate = type_ if type_ else resource.get_type()
+            if type_ is None:
+                if not resource.get_type():
+                    raise ValueError(
+                        "No type was provided through Resource.type or the type_ parameter"
+                    )
+                if isinstance(resource.get_type(), list):
+                    raise ValueError(
+                        "Resource has list of types as attribute and type_ parameter is not specified. "
+                        "Provide a single value for the type_ parameter or for Resource.type"
+                    )
+                type_to_validate = resource.get_type()
+            else:
+                type_to_validate = type_
+
         except ValueError as exc:
             raise TypeError(
                 f"A single type should be provided for validation: {str(exc)}"
