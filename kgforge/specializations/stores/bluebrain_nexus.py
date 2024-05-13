@@ -12,8 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
+import os
 import asyncio
 import copy
+import collections
 
 import json
 import mimetypes
@@ -24,10 +26,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
-import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
-from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
+from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE, CONTENT_LENGTH
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.commons.dictionaries import update_dict
@@ -71,6 +72,7 @@ from kgforge.specializations.stores.nexus.service import (
 
 
 REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
+JSON_DECODER = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
 
 
 def catch_http_error_nexus(
@@ -248,13 +250,18 @@ class BlueBrainNexus(Store):
         if mime_type is None:
             mime_type = "application/octet-stream"
         try:
-            response = nexus.files.create(
-                self.organisation, self.project, file, content_type=mime_type
-            )
+            headers = self.service.headers_upload
+            filename = file.split("/")[-1]
+            headers[CONTENT_LENGTH] = str(os.path.getsize(file))
+            file_obj = {
+                "file": (filename, open(file, "rb"), mime_type)
+            }
+            response = requests.post(self.service.url_files, headers=headers, files=file_obj)
+            response.raise_for_status()
         except requests.HTTPError as e:
             raise UploadingError(_error_message(e)) from e
 
-        return response
+        return JSON_DECODER.decode(response.text)
 
     # C[R]UD.
 
