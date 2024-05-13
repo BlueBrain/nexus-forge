@@ -14,6 +14,7 @@
 
 import json
 import pytest
+from rdflib import RDFS
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import ValidationError
@@ -30,7 +31,7 @@ class TestVocabulary:
 
     def test_types(self, rdf_model_from_dir: RdfModel):
         types = rdf_model_from_dir.types(pretty=False)
-        assert types == list(TYPES_SHAPES_MAP.keys())
+        assert sorted(types) == sorted(list(TYPES_SHAPES_MAP.keys()))
 
     def test_context(self, rdf_model_from_dir: RdfModel, context_file_path):
         with open(context_file_path) as f:
@@ -95,25 +96,66 @@ class TestValidation:
         resource.id = "http://testing/123"
         return resource
 
+    @pytest.fixture
+    def valid_patient_resource(self, activity_json):
+        resource = Resource(
+            type="Patient",
+            familyName="Doe",
+            givenName="John",
+            gender="male",
+            birthDate="2004-04-12T13:20:15.5",
+        )
+        resource.id = "https://testing/1234"
+        return resource
+
     @pytest.mark.parametrize("type_,", TYPES_SHAPES_MAP.keys())
     def test_type_to_schema(self, rdf_model_from_dir: RdfModel, type_):
         assert rdf_model_from_dir.schema_id(type_) == TYPES_SHAPES_MAP[type_]["schema"]
 
     def test_validate_one(self, rdf_model_from_dir: RdfModel, valid_activity_resource):
-        rdf_model_from_dir.validate(valid_activity_resource, False, type_="Activity")
+        rdf_model_from_dir.validate(
+            valid_activity_resource, False, type_="Activity", inference=None
+        )
+        assert valid_activity_resource._last_action.succeeded == True
+        assert valid_activity_resource._validated == True
 
     def test_validate_one_fail(
         self, rdf_model_from_dir: RdfModel, invalid_activity_resource
     ):
         with pytest.raises(ValidationError):
             rdf_model_from_dir._validate_one(
-                invalid_activity_resource, type_="Activity"
+                invalid_activity_resource, type_="Activity", inference=None
             )
 
-    def test_validate_with_schema(
-        self, rdf_model_from_dir: RdfModel, valid_activity_resource
+    @pytest.mark.parametrize(
+        "inference, type, succeeded, validated",
+        [
+            pytest.param("rdfs", "Person", True, True, id="rdfs_person"),
+            pytest.param("none", "Person", False, False, id="none_str_person"),
+            pytest.param(None, "Person", False, False, id="none_person"),
+        ],
+    )
+    def test_validate_with_ontology(
+        self,
+        rdf_model_from_dir: RdfModel,
+        valid_patient_resource,
+        inference,
+        type,
+        succeeded,
+        validated,
     ):
-        rdf_model_from_dir.validate(valid_activity_resource, False, type_="Activity")
+        assert len(rdf_model_from_dir.service._imported) == 0
+        assert valid_patient_resource.get_type() == "Patient"
+        assert (
+            URIRef("https://schema.org/Patient"),
+            RDFS.subClassOf,
+            URIRef(f"https://schema.org/{type}"),
+        ) in rdf_model_from_dir.service._dataset_graph
+        rdf_model_from_dir.validate(
+            valid_patient_resource, False, type_=type, inference=inference
+        )
+        assert valid_patient_resource._last_action.succeeded == succeeded
+        assert valid_patient_resource._validated == validated
 
     def test_validate_many(
         self,

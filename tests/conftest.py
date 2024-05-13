@@ -325,7 +325,7 @@ def model_prefixes():
     return {
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "prov": "http://www.w3.org/ns/prov#",
-        "schema": "http://schema.org/",
+        "schema": "https://schema.org/",
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "skos": "http://www.w3.org/2004/02/skos/core#",
         "nsg": "https://neuroshapes.org/",

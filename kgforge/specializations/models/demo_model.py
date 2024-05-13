@@ -38,19 +38,25 @@ class DemoModel(Model):
         return [x["label"] for x in self.service.vocabulary["Class"]]
 
     def context(self) -> Context:
-        ctx = {x["label"]: x["id"] for k, v in self.service.vocabulary.items() for x in v}
+        ctx = {
+            x["label"]: x["id"] for k, v in self.service.vocabulary.items() for x in v
+        }
         return Context({"@context": ctx})
 
     # Templates.
 
     def _template(self, type: str, only_required: bool) -> Dict:
         # TODO DKE-148.
-        print("<info> DemoModel does not distinguish values and constraints in templates for now.")
+        print(
+            "<info> DemoModel does not distinguish values and constraints in templates for now."
+        )
         # TODO DKE-148.
         print("<info> DemoModel does not automatically include nested schemas for now.")
         if only_required:
             # TODO DKE-148.
-            print("<info> DemoModel does not support keeping only required properties for now.")
+            print(
+                "<info> DemoModel does not support keeping only required properties for now."
+            )
         type_expanded = self.service.expand(type)
         schema = self.service.schema(type_expanded)
         return self.service.compact(schema)
@@ -81,7 +87,7 @@ class DemoModel(Model):
 
     # Validation.
 
-    def _validate_one(self, resource: Resource, type_: str) -> None:
+    def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
         """
         Validates the model against a given type provided by type_ parameter.
         If type_ is None then it looks for type attribute in resource.
@@ -105,7 +111,7 @@ class DemoModel(Model):
 
     @staticmethod
     def _service_from_store(
-            store: Store, context_config: Optional[dict], **source_config
+        store: Store, context_config: Optional[dict], **source_config
     ) -> Any:
         raise not_supported()
 
@@ -118,7 +124,9 @@ class DemoModel(Model):
     def schema_id(self, type: str) -> str:
         raise not_supported()
 
-    def _validate_many(self, resources: List[Resource], type_: str) -> None:
+    def _validate_many(
+        self, resources: List[Resource], type_: str, inference: str
+    ) -> None:
         raise not_supported()
 
 

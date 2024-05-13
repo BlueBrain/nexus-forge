@@ -13,9 +13,10 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 
+import itertools
 from pyshacl import Shape
 import pytest
-from rdflib import SH, Graph, URIRef
+from rdflib import OWL, RDF, SH, Graph, URIRef
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf_model import RdfModel
 from tests.specializations.models.data import TYPES_SHAPES_MAP
@@ -24,24 +25,25 @@ from tests.specializations.models.data import TYPES_SHAPES_MAP
 def test_get_shape_graph(rdf_model_from_dir: RdfModel):
     assert isinstance(rdf_model_from_dir.service, DirectoryService)
     for s in TYPES_SHAPES_MAP.values():
-        shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
+        shape, schema_graph, ont_graph = rdf_model_from_dir.service.get_shape_graph(
             URIRef(s["shape"])
         )
         assert isinstance(shape, Shape)
         assert str(shape.node) == s["shape"]
         assert isinstance(schema_graph, Graph)
+        assert isinstance(ont_graph, Graph)
         assert shape.node == URIRef(s["shape"])
         assert (shape.node, None, None) in schema_graph
         assert len(schema_graph) > 0
 
-        for imported in s["imports"]:
+        for imported in s["imports"]["schema"]:
             imported_named_graph_uriref = (
                 rdf_model_from_dir.service.defining_resource_to_named_graph[
                     URIRef(imported)
                 ]
             )
             imported_named_graph = (
-                rdf_model_from_dir.service.load_shape_graph_from_source(
+                rdf_model_from_dir.service.load_resource_graph_from_source(
                     graph_id=imported_named_graph_uriref, schema_id=imported
                 )
             )
@@ -55,12 +57,23 @@ def test_get_shape_graph(rdf_model_from_dir: RdfModel):
             )
             for sh_property in imported_sh_properties:
                 assert (URIRef(s["shape"]), SH.property, sh_property) in schema_graph
+        if s["imports"]["ontology"] or s["indirect_imports"]["ontology"]:
+            assert len(ont_graph) == 34872
+        else:
+            assert len(ont_graph) == 0
+
+        all_imported_ontologies = (
+            s["imports"]["ontology"] + s["indirect_imports"]["ontology"]
+        )
+        for imported_ont in all_imported_ontologies:
+            assert (URIRef(imported_ont), None, None) not in schema_graph
+            assert (URIRef(imported_ont), RDF.type, OWL.Ontology) in ont_graph
 
 
 def test_get_nodeshape_parent_propertyshape(rdf_model_from_dir):
     assert len(rdf_model_from_dir.service._imported) == 0
     for s in TYPES_SHAPES_MAP.values():
-        schema_graph = rdf_model_from_dir.service._transitive_load_shape_graph(
+        schema_graph, _ = rdf_model_from_dir.service._transitive_load_resource_graph(
             rdf_model_from_dir.service._get_named_graph_from_shape(URIRef(s["shape"])),
             rdf_model_from_dir.service.shape_to_defining_resource[URIRef(s["shape"])],
         )
@@ -97,24 +110,54 @@ def test_get_nodeshape_parent_propertyshape(rdf_model_from_dir):
 
 def test_import_transitive_closure(rdf_model_from_dir: RdfModel):
     assert len(rdf_model_from_dir.service._imported) == 0
+    expected_schema_imports = []
+    expected_ontology_imports = []
     for s in TYPES_SHAPES_MAP.values():
-        _, _ = rdf_model_from_dir.service.get_shape_graph(URIRef(s["shape"]))
+        _, _, _ = rdf_model_from_dir.service.get_shape_graph(URIRef(s["shape"]))
         assert URIRef(s["schema"]) in rdf_model_from_dir.service._imported
-        s_imports = [URIRef(imp) for imp in s["imports"]]
+        s_schema_imports = [URIRef(imp) for imp in s["imports"]["schema"]]
+        s_ontology_imports = [URIRef(imp) for imp in s["imports"]["ontology"]]
+        s_ontology_indirect_imports = [
+            URIRef(imp) for imp in s["indirect_imports"]["ontology"]
+        ]
+        all_s_ontology_imports = s_ontology_imports + s_ontology_indirect_imports
+        if all_s_ontology_imports:
+            assert (
+                URIRef(s["schema"])
+                in rdf_model_from_dir.service._defining_resource_to_imported_ontology
+            )
+            assert sorted(all_s_ontology_imports) == sorted(
+                rdf_model_from_dir.service._defining_resource_to_imported_ontology[
+                    URIRef(s["schema"])
+                ]
+            )
+        s_imports = s_schema_imports + all_s_ontology_imports
         if s_imports:
             assert set(s_imports).issubset(rdf_model_from_dir.service._imported)
-    shapes = [val["schema"] for val in TYPES_SHAPES_MAP.values()]
-    expected_imports = [
-        imp for val in TYPES_SHAPES_MAP.values() for imp in val["imports"]
-    ]
+        expected_schema_imports.extend(s_schema_imports)
+        expected_ontology_imports.extend(all_s_ontology_imports)
+
+    expected_schema = [URIRef(val["schema"]) for val in TYPES_SHAPES_MAP.values()]
     assert len(rdf_model_from_dir.service._imported) == len(
-        set(shapes + expected_imports)
+        set(expected_schema + expected_schema_imports + expected_ontology_imports)
     )
+    assert sorted(
+        list(rdf_model_from_dir.service._defining_resource_to_imported_ontology.keys())
+    ) == sorted(
+        [URIRef("http://shapes.ex/employee"), URIRef("http://shapes.ex/person")]
+    )
+    assert len(
+        set(
+            itertools.chain.from_iterable(
+                rdf_model_from_dir.service._defining_resource_to_imported_ontology.values()
+            )
+        )
+    ) == len(set(expected_ontology_imports))
 
 
 def test_get_unknown_shape_graph_exception(rdf_model_from_dir: RdfModel):
-    with pytest.raises(Exception):
-        shape, schema_graph = rdf_model_from_dir.service.get_shape_graph(
+    with pytest.raises(ValueError):
+        shape, schema_graph, ont_graph = rdf_model_from_dir.service.get_shape_graph(
             URIRef("https://noshape")
         )
 
