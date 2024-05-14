@@ -129,7 +129,8 @@ from kgforge.core.commons.strategies import ResolvingStrategy
                 ?id a ?type ;
                 name ?name ;
                 givenName ?givenName ;
-                familyName ?familyName
+                familyName ?familyName ;
+                alternateName ?alternateName .
             }} WHERE {{
               ?id a ?type . 
               OPTIONAL {{
@@ -141,23 +142,28 @@ from kgforge.core.commons.strategies import ResolvingStrategy
               OPTIONAL {{
                 ?id familyName ?familyName .
               }}
+              OPTIONAL {{
+                ?id alternateName ?alternateName .
+              }}
               {{
                 SELECT * WHERE {{
                   {{ {0} ; name ?name {1} }} UNION
                   {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
-                  {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
-                }} LIMIT {4}
+                  {{ {0} ; familyName ?familyName; givenName ?givenName {3} }} UNION
+                  {{ {0} ; alternateName ?alternateName {4} }}
+                }} LIMIT {5}
               }}
             }}
             """),
-            (['name', 'givenName', 'familyName']),
+            (['name', 'givenName', 'familyName', 'alternateName']),
             ("EPFL"),
                 ("""
             CONSTRUCT {
                 ?id a ?type ;
                 name ?name ;
                 givenName ?givenName ;
-                familyName ?familyName
+                familyName ?familyName ;
+                alternateName ?alternateName .
             } WHERE {
               ?id a ?type . 
               OPTIONAL {
@@ -169,6 +175,9 @@ from kgforge.core.commons.strategies import ResolvingStrategy
               OPTIONAL {
                 ?id familyName ?familyName .
               }
+              OPTIONAL {
+                ?id alternateName ?alternateName .
+              }
               {
                 SELECT * WHERE {
                   { ?id <https://bluebrain.github.io/nexus/vocabulary/deprecated> "false"^^xsd:boolean ; a Class ; 
@@ -179,7 +188,10 @@ from kgforge.core.commons.strategies import ResolvingStrategy
  FILTER(?v0 = "value_1") ; familyName ?familyName; givenName ?givenName  FILTER (?givenName = "EPFL") } UNION
                   { ?id <https://bluebrain.github.io/nexus/vocabulary/deprecated> "false"^^xsd:boolean ; a Class ; 
  path_1 ?v0 . 
- FILTER(?v0 = "value_1") ; familyName ?familyName; givenName ?givenName  FILTER (?familyName = "EPFL") }
+ FILTER(?v0 = "value_1") ; familyName ?familyName; givenName ?givenName  FILTER (?familyName = "EPFL") } UNION
+                  { ?id <https://bluebrain.github.io/nexus/vocabulary/deprecated> "false"^^xsd:boolean ; a Class ; 
+ path_1 ?v0 . 
+ FILTER(?v0 = "value_1") ; alternateName ?alternateName  FILTER (?alternateName = "EPFL") }
                 } LIMIT 1
               }
             }
