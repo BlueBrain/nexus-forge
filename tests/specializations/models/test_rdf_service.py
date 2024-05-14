@@ -58,7 +58,7 @@ def test_get_shape_graph(rdf_model_from_dir: RdfModel):
             for sh_property in imported_sh_properties:
                 assert (URIRef(s["shape"]), SH.property, sh_property) in schema_graph
         if s["imports"]["ontology"] or s["indirect_imports"]["ontology"]:
-            assert len(ont_graph) == 34872
+            assert len(ont_graph) == 34874
         else:
             assert len(ont_graph) == 0
 
