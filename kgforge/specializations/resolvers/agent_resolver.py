@@ -43,13 +43,14 @@ class AgentResolver(Resolver):
         if target and target not in self.service.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets for the selected resolvers are: {self.service.sources.keys()}")
 
-        properties_to_filter_with = ['name', 'givenName', 'familyName']
+        properties_to_filter_with = ['name', 'givenName', 'familyName', 'alternateName']
         query_template = """
             CONSTRUCT {{
                 ?id a ?type ;
                 name ?name ;
                 givenName ?givenName ;
-                familyName ?familyName
+                familyName ?familyName ;
+                alternateName ?alternateName .
             }} WHERE {{
               GRAPH ?g {{
                 ?id a ?type .
@@ -62,12 +63,16 @@ class AgentResolver(Resolver):
                 OPTIONAL {{
                   ?id familyName ?familyName .
                 }}
+                OPTIONAL {{
+                  ?id alternateName ?alternateName .
+                }}
                 {{
                   SELECT * WHERE {{
                     {{ {0} ; name ?name {1} }} UNION
                     {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
-                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
-                  }} LIMIT {4}
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }} UNION
+                    {{ {0} ; alternateName ?alternateName {4} }}
+                  }} LIMIT {5}
                 }}
               }}
             }}
