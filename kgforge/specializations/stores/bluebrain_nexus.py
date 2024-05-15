@@ -28,7 +28,7 @@ from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 import requests
 from aiohttp import ClientSession, MultipartWriter
-from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE, CONTENT_LENGTH
+from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.commons.dictionaries import update_dict
@@ -252,7 +252,7 @@ class BlueBrainNexus(Store):
         try:
             headers = self.service.headers_upload
             filename = file.split("/")[-1]
-            headers[CONTENT_LENGTH] = str(os.path.getsize(file))
+            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(os.path.getsize(file))
             file_obj = {
                 "file": (filename, open(file, "rb"), mime_type)
             }
