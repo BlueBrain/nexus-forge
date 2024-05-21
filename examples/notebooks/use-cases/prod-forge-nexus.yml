@@ -50,13 +50,13 @@ Resolvers:
         - identifier: Species
           bucket: neurosciencegraph/datamodels
           filters:
-            - path: has_rank
-              value: NCBITaxon:species
+            - path: has_rank.id
+              value: http://purl.obolibrary.org/obo/NCBITaxon_species
         - identifier: Strain
           bucket: neurosciencegraph/datamodels
           filters:
-            - path: has_rank
-              value: NCBITaxon:strain          
+            - path: has_rank.id
+              value: http://purl.obolibrary.org/obo/NCBITaxon_strain          
       searchendpoints:
         sparql:
           endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
