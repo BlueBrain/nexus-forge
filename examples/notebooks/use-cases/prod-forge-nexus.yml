@@ -50,8 +50,13 @@ Resolvers:
         - identifier: Species
           bucket: neurosciencegraph/datamodels
           filters:
-            - path: subClassOf*.id
-              value: Species
+            - path: has_rank
+              value: NCBITaxon:species
+        - identifier: Strain
+          bucket: neurosciencegraph/datamodels
+          filters:
+            - path: has_rank
+              value: NCBITaxon:strain          
       searchendpoints:
         sparql:
           endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
