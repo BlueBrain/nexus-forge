@@ -41,11 +41,11 @@ LD_KEYS = {"id": "@id", "type": "@type", "list": "@list", "set": "@set"}
 
 
 def as_graph(
-        data: Union[Resource, List[Resource]],
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
+    data: Union[Resource, List[Resource]],
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
 ) -> Graph:
     return dispatch(
         data,
@@ -59,19 +59,21 @@ def as_graph(
 
 
 def as_jsonld(
-        data: Union[Resource, List[Resource]],
-        form: str,
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
-        **params
+    data: Union[Resource, List[Resource]],
+    form: str,
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
+    **params,
 ) -> Union[Dict, List[Dict]]:
     try:
         valid_form = Form(form.lower())
     except ValueError as e:
         supported_forms = tuple(item.value for item in Form)
-        raise NotSupportedError(f"supported serialization forms are {supported_forms}") from e
+        raise NotSupportedError(
+            f"supported serialization forms are {supported_forms}"
+        ) from e
 
     return dispatch(
         data,
@@ -82,7 +84,7 @@ def as_jsonld(
         model_context,
         metadata_context,
         context_resolver,
-        **params
+        **params,
     )
 
 
@@ -96,10 +98,10 @@ def from_jsonld(data: Union[Dict, List[Dict]]) -> Union[Resource, List[Resource]
 
 
 def from_graph(
-        data: Graph,
-        type_: Optional[Union[str, List]] = None,
-        frame: Dict = None,
-        model_context: Optional[Context] = None,
+    data: Graph,
+    type_: Optional[Union[str, List]] = None,
+    frame: Dict = None,
+    model_context: Optional[Context] = None,
 ) -> Union[Resource, List[Resource]]:
 
     if not type_:
@@ -172,13 +174,13 @@ def _from_jsonld_one(data: Dict) -> Resource:
 
 
 def _as_jsonld_many(
-        resources: List[Resource],
-        form: Form,
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
-        **params
+    resources: List[Resource],
+    form: Form,
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
+    **params,
 ) -> List[Dict]:
     return [
         _as_jsonld_one(
@@ -188,20 +190,20 @@ def _as_jsonld_many(
             model_context,
             metadata_context,
             context_resolver,
-            **params
+            **params,
         )
         for i, resource in enumerate(resources)
     ]
 
 
 def _as_jsonld_one(
-        resource: Resource,
-        form: Form,
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
-        **params
+    resource: Resource,
+    form: Form,
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
+    **params,
 ) -> Dict:
     context = _resource_context(resource, model_context, context_resolver)
     resolved_context = deepcopy(context.document)
@@ -253,9 +255,16 @@ def _as_jsonld_one(
     if isinstance(result, dict):
         if "@context" in result:
             result.pop("@context")
-        result = {**{"@context": output_context}, **result} if form is Form.COMPACTED else result
-        resource_id = resource.id if hasattr(resource, "id") else (
-            getattr(resource, "@id") if hasattr(resource, "@id") else None)
+        result = (
+            {**{"@context": output_context}, **result}
+            if form is Form.COMPACTED
+            else result
+        )
+        resource_id = (
+            resource.id
+            if hasattr(resource, "id")
+            else (getattr(resource, "@id") if hasattr(resource, "@id") else None)
+        )
         if resource_id:
             result["@id"] = resource_id
     else:
@@ -264,11 +273,11 @@ def _as_jsonld_one(
 
 
 def _as_graph_many(
-        resources: List[Resource],
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
+    resources: List[Resource],
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
 ) -> Graph:
     graph = Graph()
     for resource in resources:
@@ -279,18 +288,18 @@ def _as_graph_many(
             store_metadata,
             model_context,
             metadata_context,
-            context_resolver
+            context_resolver,
         )
         graph.parse(data=json.dumps(json_ld), format="json-ld")
     return graph
 
 
 def _as_graph_one(
-        resource: Resource,
-        store_metadata: bool,
-        model_context: Optional[Context],
-        metadata_context: Optional[Context],
-        context_resolver: Optional[Callable],
+    resource: Resource,
+    store_metadata: bool,
+    model_context: Optional[Context],
+    metadata_context: Optional[Context],
+    context_resolver: Optional[Callable],
 ) -> Graph:
     json_ld = _as_jsonld_one(
         resource,
@@ -298,16 +307,16 @@ def _as_graph_one(
         store_metadata,
         model_context,
         metadata_context,
-        context_resolver
+        context_resolver,
     )
     return Graph().parse(data=json.dumps(json_ld), format="json-ld")
 
 
 def _as_graphs(
-        resource: Resource,
-        store_metadata: bool,
-        context: Context,
-        metadata_context: Context,
+    resource: Resource,
+    store_metadata: bool,
+    context: Context,
+    metadata_context: Context,
 ) -> Tuple[Graph, Graph, Dict, List[str]]:
     """Returns a data and a metadata graph"""
     if hasattr(resource, "context"):
@@ -318,12 +327,17 @@ def _as_graphs(
         )
     converted, json_array = _add_ld_keys(resource, output_context, context.base)
     converted["@context"] = context.document["@context"]
-    return _dicts_to_graph(converted, resource._store_metadata, store_metadata,
-                           metadata_context) + (converted,) + (json_array,)
+    return (
+        _dicts_to_graph(
+            converted, resource._store_metadata, store_metadata, metadata_context
+        )
+        + (converted,)
+        + (json_array,)
+    )
 
 
 def _dicts_to_graph(
-        data: Dict, metadata: Dict, store_meta: bool, metadata_context: Context
+    data: Dict, metadata: Dict, store_meta: bool, metadata_context: Context
 ) -> Tuple[Graph, Graph]:
     json_str = json.dumps(data)
     graph = Graph().parse(data=json_str, format="json-ld")
@@ -341,9 +355,9 @@ def _dicts_to_graph(
 
 
 def recursive_resolve(
-        context: Union[Dict, List, str],
-        resolver: Optional[Callable],
-        already_loaded: List = [],
+    context: Union[Dict, List, str],
+    resolver: Optional[Callable],
+    already_loaded: List = [],
 ) -> Dict:
     document = {}
     if isinstance(context, list):
@@ -351,6 +365,10 @@ def recursive_resolve(
             if x not in already_loaded:
                 document.update(recursive_resolve(x, resolver, already_loaded))
     elif isinstance(context, str) and context not in already_loaded:
+        if not resolver:
+            raise AttributeError(
+                f"Unable to resolve the jsonld context '{context}': a None resolver were provided"
+            )
         doc = resolver(context)
         document.update(recursive_resolve(doc, resolver, already_loaded))
         already_loaded.append(context)
@@ -360,7 +378,7 @@ def recursive_resolve(
 
 
 def _resource_context(
-        resource: Resource, model_context: Context, context_resolver: Callable
+    resource: Resource, model_context: Context, context_resolver: Callable
 ) -> Context:
     if hasattr(resource, "context"):
         if model_context and resource.context == model_context.iri:
@@ -408,9 +426,9 @@ def _unpack_from_list(data):
 
 
 def _add_ld_keys(
-        rsc: [Resource, Dict],
-        context: Optional[Union[Dict, List, str]],
-        base: Optional[str],
+    rsc: [Resource, Dict],
+    context: Optional[Union[Dict, List, str]],
+    base: Optional[str],
 ) -> Union[Dict, List[str]]:
     local_attrs = {}
     local_context = None
@@ -464,11 +482,12 @@ def _resolve_iri(value: str, context) -> str:
         return resolved_id
 
     raise ValueError(
-        f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces")
+        f"A space character was found in the identifier (key @id) of the provided dictionary: {value}: please remove all spaces"
+    )
 
 
 def _remove_ld_keys(
-        dictionary: dict, context: Context, to_resource: Optional[bool] = True
+    dictionary: dict, context: Context, to_resource: Optional[bool] = True
 ) -> Union[Dict, Resource]:
     local_attrs = {}
     for k, v in dictionary.items():
@@ -478,8 +497,10 @@ def _remove_ld_keys(
         else:
             if k == "@id":
                 if not isinstance(v, str):
-                    raise ValueError(f"Invalid value found in data: value of type {type(v)} "
-                                     f"found associated to a \"@id\" key. Only strings are valid")
+                    raise ValueError(
+                        f"Invalid value found in data: value of type {type(v)} "
+                        f'found associated to a "@id" key. Only strings are valid'
+                    )
                 local_attrs["id"] = _resolve_iri(v, context)
             elif k.startswith("@") and k in LD_KEYS.values():
                 local_attrs[k[1:]] = v
@@ -488,9 +509,11 @@ def _remove_ld_keys(
                     local_attrs[k] = _remove_ld_keys(v, context, to_resource)
                 elif isinstance(v, list):
                     local_attrs[k] = [
-                        _remove_ld_keys(item, context, to_resource)
-                        if isinstance(item, dict)
-                        else item
+                        (
+                            _remove_ld_keys(item, context, to_resource)
+                            if isinstance(item, dict)
+                            else item
+                        )
                         for item in v
                     ]
                 else:
@@ -532,7 +555,7 @@ def _merge_second_list_into_first(first: List, second: List) -> List:
 
 
 def _merge_jsonld(
-        first: Union[Dict, List, str], second: Union[Dict, List, str]
+    first: Union[Dict, List, str], second: Union[Dict, List, str]
 ) -> Union[Dict, List, str]:
     result = None
     if isinstance(first, str):
