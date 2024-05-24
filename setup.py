@@ -18,9 +18,6 @@ from setuptools import find_packages, setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-# Set environment variable for pyshacl
-os.system("export PYSHACL_USE_FULL_MIXIN=True")
-
 # Get the long description from the README file.
 with open(os.path.join(HERE, "README.rst"), encoding="utf-8") as f:
     long_description = f.read()

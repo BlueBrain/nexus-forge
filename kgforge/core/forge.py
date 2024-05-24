@@ -259,7 +259,7 @@ class KnowledgeGraphForge:
     @staticmethod
     def set_environment_variables():
         # Set environment variable for pyshacl
-        os.system("export PYSHACL_USE_FULL_MIXIN=True")
+        os.environ["PYSHACL_USE_FULL_MIXIN"] = "True"
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
