@@ -15,6 +15,7 @@
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 
+import os
 import numpy as np
 from pandas import DataFrame
 from rdflib import Graph
@@ -205,6 +206,8 @@ class KnowledgeGraphForge:
         :param kwargs:  keyword arguments
         """
 
+        self.set_environment_variables()
+
         if isinstance(configuration, str):
             config = load_yaml_from_file(configuration)
         else:
@@ -269,6 +272,11 @@ class KnowledgeGraphForge:
         self._dataset_sources: Optional[Dict[str, DatasetStore]] = self.create_datasets(
             dataset_config, store_config
         )
+
+    @staticmethod
+    def set_environment_variables():
+        # Set environment variable for pyshacl
+        os.environ["PYSHACL_USE_FULL_MIXIN"] = "True"
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
