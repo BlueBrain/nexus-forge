@@ -237,7 +237,7 @@ def project_fetch(
         token: Optional[str],
         org_label: str, project_label: str, rev=None
 ):
-        """
+    """
         Fetch a project and all its details.
         Note: This does not give the list of resources. To get that, use the `resource` package.
 
@@ -247,16 +247,16 @@ def project_fetch(
         :param project_label: label of a the project to fetch
         :param rev: OPTIONAL The specific revision of the wanted project. If not provided, will get the last.
         :return: All the details of this project, as a dictionary
-        """
+    """
 
-        org_label = url_encode(org_label)
-        project_label = url_encode(project_label)
-        path = "/projects/" + org_label + "/" + project_label
+    org_label = url_encode(org_label)
+    project_label = url_encode(project_label)
+    path = "/projects/" + org_label + "/" + project_label
 
-        if rev is not None:
-            path = path + "?rev=" + str(rev)
+    if rev is not None:
+        path = path + "?rev=" + str(rev)
 
-        return http_get(environment=endpoint, token=token, path=path, use_base=True)
+    return http_get(environment=endpoint, token=token, path=path, use_base=True)
 
 
 def views_fetch(
