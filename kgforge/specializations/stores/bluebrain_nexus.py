@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
-import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
@@ -63,6 +62,7 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
+from kgforge.specializations.stores.nexus.previous_sdk_usage import files_create
 from kgforge.specializations.stores.nexus.service import (
     BatchAction,
     Service,
@@ -248,8 +248,10 @@ class BlueBrainNexus(Store):
         if mime_type is None:
             mime_type = "application/octet-stream"
         try:
-            response = nexus.files.create(
-                self.organisation, self.project, file, content_type=mime_type
+            response = files_create(
+                endpoint=self.endpoint, token=self.token,
+                org_label=self.organisation, project_label=self.project,
+                filepath=file, content_type=mime_type
             )
         except requests.HTTPError as e:
             raise UploadingError(_error_message(e)) from e
