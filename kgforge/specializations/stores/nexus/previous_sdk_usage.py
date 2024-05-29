@@ -238,11 +238,11 @@ def project_fetch(
         org_label: str, project_label: str, rev=None
 ):
         """
-        :param endpoint: the endpoint base, mandatory is use_base is True, else it is not used
-        :param token: the authentication token
         Fetch a project and all its details.
         Note: This does not give the list of resources. To get that, use the `resource` package.
 
+        :param endpoint: the endpoint base, mandatory is use_base is True, else it is not used
+        :param token: the authentication token
         :param org_label: The label of the organization that contains the project to be fetched
         :param project_label: label of a the project to fetch
         :param rev: OPTIONAL The specific revision of the wanted project. If not provided, will get the last.
@@ -257,3 +257,41 @@ def project_fetch(
             path = path + "?rev=" + str(rev)
 
         return http_get(environment=endpoint, token=token, path=path, use_base=True)
+
+
+def views_fetch(
+        endpoint: Optional[str],
+        token: Optional[str],
+        org_label, project_label, view_id, rev=None, tag=None
+):
+    """
+    Fetches a distant view and returns the payload as a dictionary.
+    In case of error, an exception is thrown.
+
+    :param endpoint: the endpoint base, mandatory is use_base is True, else it is not used
+    :param token: the authentication token
+    :param org_label: The label of the organization that the view belongs to
+    :param project_label: The label of the project that the view belongs to
+    :param view_id: id of the view
+    :param rev: OPTIONAL fetches a specific revision of a view (default: None, fetches the last)
+    :param tag: OPTIONAL fetches the view version that has a specific tag (default: None)
+    :return: Payload of the whole view as a dictionary
+    """
+
+    if rev is not None and tag is not None:
+        raise Exception("The arguments rev and tag are mutually exclusive. One or the other must be chosen.")
+
+    # the element composing the query URL need to be URL-encoded
+    org_label = url_encode(org_label)
+    project_label = url_encode(project_label)
+    view_id = url_encode(view_id)
+
+    path = "/views/" + org_label + "/" + project_label + "/" + view_id
+
+    if rev is not None:
+        path = path + "?rev=" + str(rev)
+
+    if tag is not None:
+        path = path + "?tag=" + str(tag)
+
+    return http_get(environment=endpoint, token=token, path=path, use_base=True)
