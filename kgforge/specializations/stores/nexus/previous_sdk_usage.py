@@ -3,7 +3,7 @@ import json
 import collections
 import requests
 from typing import Any, Dict, List, Optional, Tuple, Union, Type
-from urllib.parse import quote_plus, unquote, urlparse, parse_qs
+from urllib.parse import quote_plus as url_encode
 
 SEGMENT = "files"
 DEFAULT_MIME = "application/octet-stream"
@@ -68,8 +68,8 @@ def files_create(
     """
 
     # the elements composing the query URL need to be URL-encoded
-    org_label = quote_plus(org_label)
-    project_label = quote_plus(project_label)
+    org_label = url_encode(org_label)
+    project_label = url_encode(project_label)
 
     path = [SEGMENT, org_label, project_label]
 
@@ -83,7 +83,7 @@ def files_create(
     if file_id is None:
         return http_post(environment=endpoint, token=token, path=path, body=file_obj, data_type="file", storage=storage_id)
     else:
-        path.append(quote_plus(file_id))
+        path.append(url_encode(file_id))
         return http_put(environment=endpoint, token=token, path=path, body=file_obj, data_type="file", storage=storage_id)
 
 
@@ -136,6 +136,42 @@ def http_put(environment: Optional[str], token: Optional[str], path: Union[str, 
 
     response.raise_for_status()
     return decode_json_ordered(response.text)
+
+
+def http_get(
+        environment: Optional[str], token: Optional[str],
+        path: Union[str, List[str]], stream=False, get_raw_response=False, use_base=False,
+        data_type="default", accept="json", **kwargs
+):
+    """
+        Wrapper to perform a GET request.
+
+        :param environment: the endpoint base, mandatory is use_base is True, else it is not used
+        :param token: the authentication token
+        :param path: complete URL if use_base si False or just the ending if use_base is True
+        :param params: OPTIONAL provide some URL parameters (?foo=bar&hello=world) as a dictionary
+        :param use_base: OPTIONAL if True, the Nexus env provided by nexus.config.set_environment will
+        be prepended to path. (default: False)
+        :param get_raw_response: OPTIONAL If True, the object provided by requests.get will be directly returned as is
+        (convenient when getting a binary file). If False, a dictionary representation of the response will be returned
+        (default: False)
+        :param stream: OPTIONAL True if GETting a file (default: False)
+        :return: if get_raw_response is True, returns the request.get object. If get_raw_response is False, return the
+        dictionary that is equivalent to the json response
+    """
+    header = prepare_header(token=token, type=data_type, accept=accept)
+    full_url = _full_url(environment=environment, path=path, use_base=use_base)
+    params = kwargs.pop("params", None)
+    if params:
+        response = requests.get(full_url, headers=header, stream=stream, params=params, **kwargs)
+    else:
+        response = requests.get(full_url, headers=header, stream=stream, params=kwargs)
+    response.raise_for_status()
+
+    if get_raw_response:
+        return response
+    else:
+        return decode_json_ordered(response.text)
 
 
 def prepare_header(token: Optional[str], type="default", accept="json"):
@@ -194,3 +230,30 @@ def prepare_body(data, type="default"):
         body = None
 
     return body
+
+
+def project_fetch(
+        endpoint: Optional[str],
+        token: Optional[str],
+        org_label: str, project_label: str, rev=None
+):
+        """
+        :param endpoint: the endpoint base, mandatory is use_base is True, else it is not used
+        :param token: the authentication token
+        Fetch a project and all its details.
+        Note: This does not give the list of resources. To get that, use the `resource` package.
+
+        :param org_label: The label of the organization that contains the project to be fetched
+        :param project_label: label of a the project to fetch
+        :param rev: OPTIONAL The specific revision of the wanted project. If not provided, will get the last.
+        :return: All the details of this project, as a dictionary
+        """
+
+        org_label = url_encode(org_label)
+        project_label = url_encode(project_label)
+        path = "/projects/" + org_label + "/" + project_label
+
+        if rev is not None:
+            path = path + "?rev=" + str(rev)
+
+        return http_get(environment=endpoint, token=token, path=path, use_base=True)
