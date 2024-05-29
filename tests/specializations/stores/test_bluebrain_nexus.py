@@ -142,8 +142,8 @@ def store_config(production_configuration):
 
 
 @pytest.fixture
-@mock.patch("project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
-def nexus_store(context_project_patch, metadata_context_patch, store_config):
+@mock.patch("kgforge.specializations.stores.nexus.previous_sdk_usage.project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
+def nexus_store(context_project_patch, store_config):
 
     store_config_cp = copy.deepcopy(store_config)
     store_config_cp["endpoint"] = NEXUS
