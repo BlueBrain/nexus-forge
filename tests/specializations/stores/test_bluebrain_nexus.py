@@ -19,9 +19,9 @@ from urllib.request import pathname2url
 from uuid import uuid4
 from contextlib import nullcontext as does_not_raise
 
-import nexussdk
 import pytest
 from typing import Callable, Union, List
+
 
 from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
@@ -142,8 +142,7 @@ def store_config(production_configuration):
 
 
 @pytest.fixture
-@mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
-@mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
+@mock.patch("project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
 def nexus_store(context_project_patch, metadata_context_patch, store_config):
 
     store_config_cp = copy.deepcopy(store_config)
