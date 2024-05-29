@@ -45,8 +45,9 @@ from kgforge.core.conversions.rdf import (
     as_jsonld,
     recursive_resolve,
 )
+import kgforge
 from kgforge.core.wrappings.dict import wrap_dict
-from kgforge.specializations.stores.nexus.previous_sdk_usage import project_fetch, views_fetch
+from kgforge.specializations.stores.nexus.previous_sdk_usage import views_fetch
 
 
 class BatchAction(Enum):
@@ -257,7 +258,7 @@ class Service:
         )
 
     def get_project_context(self) -> Dict:
-        project_data = project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
+        project_data = kgforge.specializations.stores.nexus.previous_sdk_usage.project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
         for mapping in project_data['apiMappings']:
             context[mapping['prefix']] = mapping['namespace']
