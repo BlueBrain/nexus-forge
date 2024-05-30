@@ -465,12 +465,16 @@ class BlueBrainNexus(Store):
                 query_params=query_params,
             )
 
-    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+    def _retrieve_file_metadata(self, id_: str) -> Dict:
         response = requests.get(
             id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
+        return metadata
+
+    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+        metadata = self._retrieve_file_metadata(id_)
         return metadata["_filename"], metadata["_mediaType"]
 
     def _download_many(
