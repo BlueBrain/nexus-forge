@@ -472,12 +472,16 @@ class BlueBrainNexus(Store):
                 query_params=query_params,
             )
 
-    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+    def _retrieve_file_metadata(self, id_: str) -> Dict:
         response = requests.get(
             id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
+        return metadata
+
+    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+        metadata = self._retrieve_file_metadata(id_)
         return metadata["_filename"], metadata["_mediaType"]
 
     def _download_many(
@@ -557,21 +561,7 @@ class BlueBrainNexus(Store):
             for chunk in response.iter_content(chunk_size=4096):
                 f.write(chunk)
 
-    def _prepare_download_one(
-        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
-    ) -> Tuple[str, str]:
-        if cross_bucket:
-            if store_metadata is not None:
-                project = store_metadata._project.split("/")[-1]
-                org = store_metadata._project.split("/")[-2]
-            else:
-                raise ValueError(
-                    f"Downloading non registered file is not allowed when cross_bucket is set to {cross_bucket}"
-                )
-        else:
-            org = self.service.organisation
-            project = self.service.project
-
+    def _prepare_download_one_with_org_project(self, url: str, org: str, project: str):
         file_id = url.split("/")[-1]
         file_id = unquote(file_id)
         if len(file_id) < 1:
@@ -592,6 +582,22 @@ class BlueBrainNexus(Store):
                 )
             )
         return url_base, f"{org}/{project}"
+
+    def _prepare_download_one(
+        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
+    ) -> Tuple[str, str]:
+        if cross_bucket:
+            if store_metadata is not None:
+                org, project = store_metadata._project.split("/")
+            else:
+                raise ValueError(
+                    f"Downloading non registered file is not allowed when cross_bucket is set to True"
+                )
+        else:
+            org = self.service.organisation
+            project = self.service.project
+
+        return self._prepare_download_one_with_org_project(url, org, project)
 
     # CR[U]D.
 
