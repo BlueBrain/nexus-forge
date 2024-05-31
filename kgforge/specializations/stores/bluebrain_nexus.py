@@ -64,7 +64,7 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
-from kgforge.specializations.stores.nexus.previous_sdk_usage import files_create
+from kgforge.specializations.stores.nexus.https_helpers import files_create
 from kgforge.specializations.stores.nexus.service import (
     BatchAction,
     Service,
