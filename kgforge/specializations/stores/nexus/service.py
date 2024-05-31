@@ -82,6 +82,8 @@ class Service:
     SPARQL_ENDPOINT_TYPE = "sparql"
     ELASTIC_ENDPOINT_TYPE = "elastic"
 
+    NEXUS_CONTENT_LENGTH_HEADER = "x-nxs-file-content-length"
+
     def __init__(
         self,
         endpoint: str,
