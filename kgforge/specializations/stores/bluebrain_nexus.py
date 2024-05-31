@@ -592,8 +592,6 @@ class BlueBrainNexus(Store):
 
         return self._prepare_download_one_with_org_project(url, org, project)
 
-
-
     # CR[U]D.
 
     def update(
