@@ -15,7 +15,7 @@
 from urllib.parse import quote_plus
 import os
 
-from kgforge.specializations.stores.nexus.https_helpers import project_fetch
+from kgforge.specializations.stores.nexus.http_helpers import project_fetch
 
 TOKEN = ""
 base_prod_v1 = "https://bbp.epfl.ch/nexus/v1"

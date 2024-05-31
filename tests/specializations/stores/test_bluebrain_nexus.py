@@ -142,7 +142,7 @@ def store_config(production_configuration):
 
 
 @pytest.fixture
-@mock.patch("kgforge.specializations.stores.nexus.https_helpers.project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
+@mock.patch("kgforge.specializations.stores.nexus.http_helpers.project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
 def nexus_store(context_project_patch, store_config):
 
     store_config_cp = copy.deepcopy(store_config)
