@@ -64,6 +64,7 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
+from kgforge.specializations.stores.nexus.http_helpers import files_create
 from kgforge.specializations.stores.nexus.service import (
     BatchAction,
     Service,
@@ -258,6 +259,7 @@ class BlueBrainNexus(Store):
             }
             response = requests.post(self.service.url_files, headers=headers, files=file_obj)
             response.raise_for_status()
+
         except requests.HTTPError as e:
             raise UploadingError(_error_message(e)) from e
 
