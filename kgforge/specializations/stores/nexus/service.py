@@ -24,7 +24,6 @@ from urllib.error import URLError
 from urllib.parse import quote_plus
 
 import nest_asyncio
-import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, hdrs
 from requests import HTTPError
@@ -46,7 +45,9 @@ from kgforge.core.conversions.rdf import (
     as_jsonld,
     recursive_resolve,
 )
+import kgforge
 from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.specializations.stores.nexus.http_helpers import views_fetch
 
 
 class BatchAction(Enum):
@@ -104,7 +105,6 @@ class Service:
         files_download_config: Dict,
         **params,
     ):
-        nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
         self.organisation = org
         self.project = prj
@@ -170,13 +170,15 @@ class Service:
         self.headers_upload = {"Accept": files_upload_config.pop("Accept")}
         self.headers_download = {"Accept": files_download_config.pop("Accept")}
 
+        self.token = token
+
         if token is not None:
-            nexus.config.set_token(token)
             self.headers["Authorization"] = "Bearer " + token
             self.headers_sparql["Authorization"] = "Bearer " + token
             self.headers_elastic["Authorization"] = "Bearer " + token
             self.headers_upload["Authorization"] = "Bearer " + token
             self.headers_download["Authorization"] = "Bearer " + token
+
         self.context = Context(self.get_project_context())
 
         self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
@@ -224,7 +226,9 @@ class Service:
         }
 
         self.elastic_endpoint["view"] = LazyAction(
-            nexus.views.fetch,
+            views_fetch,
+            self.endpoint,
+            self.token,
             quote_plus(org),
             quote_plus(prj),
             (
@@ -287,7 +291,7 @@ class Service:
         )
 
     def get_project_context(self) -> Dict:
-        project_data = nexus.projects.fetch(self.organisation, self.project)
+        project_data = kgforge.specializations.stores.nexus.http_helpers.project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
         for mapping in project_data["apiMappings"]:
             context[mapping["prefix"]] = mapping["namespace"]
