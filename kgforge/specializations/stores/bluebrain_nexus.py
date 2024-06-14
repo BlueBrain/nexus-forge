@@ -590,7 +590,8 @@ class BlueBrainNexus(Store):
     ) -> Tuple[str, str]:
         if cross_bucket:
             if store_metadata is not None:
-                org, project = store_metadata._project.split("/")
+                project = store_metadata._project.split("/")[-1]
+                org = store_metadata._project.split("/")[-2]
             else:
                 raise ValueError(
                     f"Downloading non registered file is not allowed when cross_bucket is set to True"
