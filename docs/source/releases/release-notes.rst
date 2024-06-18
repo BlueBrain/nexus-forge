@@ -59,7 +59,7 @@ Changelog
 
 .. |Binder_Resolving| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Resolving
-    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.8.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb``
+    :target: https://mybinder.org/v2/gh/BlueBrain/nexus-forge/v0.8.2?filepath=examples%2Fnotebooks%2Fgetting-started%2F09%20-%20Resolving.ipynb
 
 .. |Binder_Querying| image:: https://mybinder.org/badge_logo.svg
     :alt: Binder_Querying
