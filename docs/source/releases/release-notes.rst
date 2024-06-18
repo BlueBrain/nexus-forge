@@ -30,7 +30,7 @@ Forge
 
 |Binder_JSONLD| to try the enhancements.
 
-* Bumped JSON-LD context version from 1.0 to 1.1 to enable expanding a JSON-LD prefix mapping ending with a non IRI-delimiting character such as '_' or any character not present in `rdflib.plugins.shared.jsonld.context.URI_GEN_DELIMS <https://github.com/RDFLib/rdflib/blob/959dec532a3844fde874a36c3ab2328f20b681cb/rdflib/plugins/shared/jsonld/context.py#L69>`__ (issue `#386 <https://github.com/BlueBrain/nexus-forge/issues/386>`__) `#387 <https://github.com/BlueBrain/nexus-forge/issues/387>`__ 
+* Bumped JSON-LD context version from 1.0 to 1.1 to enable expanding a JSON-LD prefix mapping ending with a non IRI-delimiting character such as '_' or any character not present in `rdflib.plugins.shared.jsonld.context.URI_GEN_DELIMS <https://github.com/RDFLib/rdflib/blob/959dec532a3844fde874a36c3ab2328f20b681cb/rdflib/plugins/shared/jsonld/context.py#L69>`__ `#387 <https://github.com/BlueBrain/nexus-forge/issues/387>`__ (issue `#386 <https://github.com/BlueBrain/nexus-forge/issues/386>`__)
   See also `RDFLib/rdflib#2606 <https://github.com/RDFLib/rdflib/issues/2606>`__ 
 
 
@@ -40,7 +40,7 @@ Modeling
 |Binder_Modeling| to try the enhancements.
 
 * `RdfModel`: Added support for importing ontologies from SHACL schemas using `owl:imports`. Added support for inference. Use `forge.validate(resource, inference="inference_value", type_='AType')` with `inference_value` as in `pyshacl <https://github.com/RDFLib/pySHACL/blob/v0.25.0/pyshacl/validate.py#L81>`__. `inference_value="rdfs"` is enough to extend the resource to validate with the transitive closures of type subClassOf and/or property subPropertyOf relations.
-  Validation will fail when a type not in the resource to validate is provided as value of the `type_` argument unless inference is enabled (with `inference='rdfs'` for example) and the resource type is a subClassOf of the value of `type_` (issue `#369 <https://github.com/BlueBrain/nexus-forge/issues/369>`__) `#396 <https://github.com/BlueBrain/nexus-forge/pull/396>`__
+  Validation will fail when a type not in the resource to validate is provided as value of the `type_` argument unless inference is enabled (with `inference='rdfs'` for example) and the resource type is a subClassOf of the value of `type_` `#396 <https://github.com/BlueBrain/nexus-forge/pull/396>`__ (issue `#369 <https://github.com/BlueBrain/nexus-forge/issues/369>`__) 
 
 
 Dataset
@@ -48,7 +48,7 @@ Dataset
 
 |Binder_Dataset| to try the enhancements.
 
-* Added `add_image` method to the `Dataset` class (issue `#388 <https://github.com/BlueBrain/nexus-forge/issues/388>`__ ) `#389 <https://github.com/BlueBrain/nexus-forge/issues/389>`__. This method will upload the image in the configured store and add an `image` property to the Dataset with the return dict as value made of at least the @id of the uploaded image.
+* Added `add_image` method to the `Dataset` class `#389 <https://github.com/BlueBrain/nexus-forge/issues/389>`__ (issue `#388 <https://github.com/BlueBrain/nexus-forge/issues/388>`__ ). This method will upload the image in the configured store and add an `image` property to the Dataset with the return dict as value made of at least the @id of the uploaded image.
 
 
 
