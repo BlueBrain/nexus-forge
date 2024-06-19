@@ -12,7 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 from pathlib import Path
-from typing import Any, Dict, List, Callable, Optional, Tuple
+from typing import Any, Dict, List, Callable, Optional, Tuple, Union
 
 from kgentitylinkingsklearn import EntityLinkerServiceSkLearn
 from kgforge.core.commons.actions import LazyAction
@@ -22,6 +22,15 @@ from kgforge.specializations.resolvers import EntityLinker
 
 
 class EntityLinkerSkLearn(EntityLinker):
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str, targets: Dict[str, Union[str, Dict]]) -> Any:
+        pass
+
+    @staticmethod
+    def _service_from_store(store: 'Store', targets: Dict[str, Union[str, Dict]],
+                            **store_config) -> Any:
+        pass
 
     def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
                  **source_config) -> None:

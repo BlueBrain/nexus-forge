@@ -11,12 +11,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-from typing import Any, Optional, List
+from typing import Any, Dict, Optional, List
 
 from abc import abstractmethod, ABC
 
 from kgforge.core.commons.attributes import repr_class
 from kgforge.core.commons.context import Context
+from kgforge.core.resource import Resource
+from kgforge.core.wrappings import Filter
 
 
 class QueryBuilder(ABC):
@@ -26,10 +28,29 @@ class QueryBuilder(ABC):
     @staticmethod
     @abstractmethod
     def build(
-        schema: Any,
+        schema: Optional[Dict],
         resolvers: Optional[List["Resolver"]],
         context: Context,
-        *filters,
+        filters: List[Filter],
         **params
     ) -> Any:
-        pass
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def build_resource_from_response(
+            query: str, response: Dict, context: Context, *args, **params
+    ) -> List[Resource]:
+        ...
+
+    @staticmethod
+    def debug_query(query):
+        if isinstance(query, Dict):
+            print("Submitted query:", query)
+        else:
+            print(*["Submitted query:", *query.splitlines()], sep="\n   ")
+
+    @staticmethod
+    @abstractmethod
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+        ...

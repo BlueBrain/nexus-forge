@@ -28,14 +28,15 @@ class FilterOperator(Enum):
 
 
 class Filter:
-    def __init__(self, path: List[str], operator: str, value: Any) -> None:
+    def __init__(self, path: List[str], operator: Union[str, FilterOperator], value: Any) -> None:
         self.path: List[str] = path
         try:
-            self.operator: str = FilterOperator(operator).value
+            self.operator: str = operator.value if isinstance(operator, FilterOperator) \
+                else FilterOperator(operator).value
         except Exception as e:
             raise ValueError(
                 f"Invalid operator value '{operator}'. Allowed operators are {[member.value for name, member in FilterOperator.__members__.items()]}"
-            )
+            ) from e
         self.value: Any = value
 
     def __eq__(self, other):
@@ -83,13 +84,12 @@ class FilterMixin:
 
 
 class PathWrapper(FilterMixin):
-    def __init__(self, path: List[str]) -> None:
-        super().__init__(path)
+    ...
 
 
 class PathsWrapper(FilterMixin):
     def __init__(self, path: List[str], paths: Dict) -> None:
-        check_collisions(self._RESERVED, paths.keys())
+        check_collisions(FilterMixin._RESERVED, paths.keys())
         super().__init__(path)
         self.__dict__ = paths
 
@@ -101,12 +101,12 @@ def wrap_paths(template: Dict) -> PathsWrapper:
 def _wrap(data: Any, path: List[str]) -> Union[PathsWrapper, PathWrapper]:
     if isinstance(data, Dict):
         return PathsWrapper(path, {k: _wrap(v, path + [k]) for k, v in data.items()})
-    else:
-        return PathWrapper(path)
+
+    return PathWrapper(path)
 
 
 def create_filters_from_dict(filter_dict: Dict, path_prefix=None) -> List[Filter]:
-    filters = list()
+    filters = []
     if path_prefix is None:
         path_prefix = []
     for k, v in filter_dict.items():

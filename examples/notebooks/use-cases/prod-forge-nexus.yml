@@ -9,9 +9,11 @@ Model:
 Store:
   name: BlueBrainNexus
   endpoint: https://bbp.epfl.ch/nexus/v1
+  model:
+    name: RdfModel
   searchendpoints:
     sparql:
-      endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
     elastic:
       endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
       mapping: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
@@ -48,8 +50,13 @@ Resolvers:
         - identifier: Species
           bucket: neurosciencegraph/datamodels
           filters:
-            - path: subClassOf*.id
-              value: Species
+            - path: has_rank.id
+              value: http://purl.obolibrary.org/obo/NCBITaxon_species
+        - identifier: Strain
+          bucket: neurosciencegraph/datamodels
+          filters:
+            - path: has_rank.id
+              value: http://purl.obolibrary.org/obo/NCBITaxon_strain          
       searchendpoints:
         sparql:
           endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"

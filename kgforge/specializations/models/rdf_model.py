@@ -3,12 +3,12 @@
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import datetime
@@ -20,12 +20,14 @@ from pyshacl.consts import SH
 from rdflib import URIRef, Literal
 from rdflib.namespace import XSD
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Model, Store
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.store import Store
+from kgforge.core.archetypes.model import Model
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import ValidationError
-from kgforge.core.commons.execution import run
+from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
 from kgforge.specializations.models.rdf.service import RdfService
@@ -65,16 +67,16 @@ DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 class RdfModel(Model):
     """Specialization of Model that follows SHACL shapes"""
 
-    def __init__(self, source: str, **source_config) -> None:
-        super().__init__(source, **source_config)
-
     # Vocabulary.
 
     def _prefixes(self) -> Dict[str, str]:
         return self.service.context.prefixes
 
     def _types(self) -> List[str]:
-        return list(self.service.types_to_shapes.keys())
+        return [
+            self.service.context.to_symbol(str(cls))
+            for cls in self.service.class_to_shape.keys()
+        ]
 
     def context(self) -> Context:
         return self.service.context
@@ -91,56 +93,81 @@ class RdfModel(Model):
 
     def _template(self, type: str, only_required: bool) -> Dict:
         try:
-            uri = self.service.types_to_shapes[type]
-        except KeyError:
-            raise ValueError("type '"+type+"' not found in "+self.source)
-        node_properties = self.service.materialize(uri)
-        dictionary = parse_attributes(node_properties, only_required, None)
-        return dictionary
+            shape_iri = self.service.get_shape_uriref_from_class_fragment(type)
+            node_properties = self.service.materialize(shape_iri)
+            dictionary = parse_attributes(node_properties, only_required, None)
+            return dictionary
+        except Exception as exc:
+            raise ValueError(f"Unable to generate template:{str(exc)}") from exc
 
     # Validation.
 
     def schema_id(self, type: str) -> str:
         try:
-            shape_iri = self.service.types_to_shapes[type]
-            return str(self.service.schema_source_id(shape_iri))
-        except KeyError:
-            raise ValueError("type not found")
+            shape_iri = self.service.get_shape_uriref_from_class_fragment(type)
+            return self.service.schema_id(shape_iri)
+        except Exception as exc:
+            raise ValueError(f"Unable to get the schema id:{str(exc)}") from exc
 
-    def validate(self, data: Union[Resource, List[Resource]], execute_actions_before: bool, type_: str) -> None:
-        run(self._validate_one, self._validate_many, data, execute_actions=execute_actions_before,
-            exception=ValidationError, monitored_status="_validated", type_=type_)
+    def validate(
+        self,
+        data: Union[Resource, List[Resource]],
+        execute_actions_before: bool,
+        type_: str,
+        inference: str = None,
+    ) -> None:
+        run(
+            self._validate_one,
+            self._validate_many,
+            data,
+            execute_actions=execute_actions_before,
+            exception=ValidationError,
+            monitored_status="_validated",
+            type_=type_,
+            inference=inference,
+        )
 
-    def _validate_many(self, resources: List[Resource], type_: str) -> None:
+    def _validate_many(
+        self, resources: List[Resource], type_: str, inference: str
+    ) -> None:
         for resource in resources:
-            conforms, graph, _ = self.service.validate(resource, type_=type_)
+            conforms, graph, _ = self.service.validate(
+                resource, type_=type_, inference=inference
+            )
             if conforms:
                 resource._validated = True
                 action = Action(self._validate_many.__name__, conforms, None)
             else:
                 resource._validated = False
-                violations = set(" ".join(re.findall('[A-Z][^A-Z]*', as_term(o)))
-                                 for o in graph.objects(None, SH.sourceConstraintComponent))
+                violations = set(
+                    " ".join(re.findall("[A-Z][^A-Z]*", as_term(o)))
+                    for o in graph.objects(None, SH.sourceConstraintComponent)
+                )
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
-                action = Action(self._validate_many.__name__, conforms, ValidationError(message))
+                action = Action(
+                    self._validate_many.__name__, conforms, ValidationError(message)
+                )
+
             resource._last_action = action
 
-    def _validate_one(self, resource: Resource, type_: str) -> None:
-        conforms, _, report = self.service.validate(resource, type_)
+    def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
+        conforms, _, report = self.service.validate(resource, type_, inference)
         if conforms is False:
             raise ValidationError("\n" + report)
 
     # Utils.
 
     @staticmethod
-    def _service_from_directory(dirpath: Path, context_iri: str, **dir_config) -> RdfService:
+    def _service_from_directory(
+        dirpath: Path, context_iri: str, **dir_config
+    ) -> RdfService:
         return DirectoryService(dirpath, context_iri)
 
     @staticmethod
-    def _service_from_store(store: Callable, context_config: Optional[Dict], **source_config) -> Any:
-        endpoint = source_config.get("endpoint")
-        token = source_config.get("token")
-        bucket = source_config["bucket"]
+    def _service_from_store(
+        store: Callable, context_config: Optional[Dict], **source_config
+    ) -> Any:
+
         default_store: Store = store(**source_config)
 
         if context_config:
@@ -148,13 +175,20 @@ class RdfModel(Model):
             context_token = context_config.get("token", default_store.token)
             context_bucket = context_config.get("bucket", default_store.bucket)
             context_iri = context_config.get("iri")
-            if (context_endpoint != default_store.endpoint
-                    or context_token != default_store.token
-                    or context_bucket != default_store.bucket):
+            if (
+                context_endpoint != default_store.endpoint
+                or context_token != default_store.token
+                or context_bucket != default_store.bucket
+            ):
                 source_config.pop("endpoint", None)
                 source_config.pop("token", None)
                 source_config.pop("bucket", None)
-                context_store: Store = store(context_endpoint, context_bucket, context_token, **source_config)
+                context_store: Store = store(
+                    endpoint=context_endpoint,
+                    bucket=context_bucket,
+                    token=context_token,
+                    **source_config,
+                )
                 # FIXME: define a store independent StoreService
                 service = StoreService(default_store, context_iri, context_store)
             else:
@@ -164,10 +198,24 @@ class RdfModel(Model):
 
         return service
 
+    def _sources(self) -> List[str]:
+        raise not_supported()
 
-def parse_attributes(node: NodeProperties, only_required: bool,
-                     inherited_constraint: Optional[str]) -> Dict:
-    attributes = dict()
+    def _mappings(self, source: str) -> Dict[str, List[str]]:
+        raise not_supported()
+
+    def mapping(self, entity: str, source: str, type: Callable) -> Mapping:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_url(url: str, context_iri: Optional[str]) -> Any:
+        raise not_supported()
+
+
+def parse_attributes(
+    node: NodeProperties, only_required: bool, inherited_constraint: Optional[str]
+) -> Dict:
+    attributes = {}
     if hasattr(node, "path"):
         if only_required is True:
             if not hasattr(node, "mandatory"):
@@ -180,12 +228,16 @@ def parse_attributes(node: NodeProperties, only_required: bool,
         attributes[as_term(node.path)] = v
     elif hasattr(node, "properties"):
         parent_constraint = node.constraint if hasattr(node, "constraint") else None
-        attributes.update(parse_properties(node.properties, only_required, parent_constraint))
+        attributes.update(
+            parse_properties(node.properties, only_required, parent_constraint)
+        )
     return attributes
 
 
-def parse_properties(items: List[NodeProperties], only_required: bool, inherited_constraint: str) -> Dict:
-    props = dict()
+def parse_properties(
+    items: List[NodeProperties], only_required: bool, inherited_constraint: str
+) -> Dict:
+    props = {}
     for item in items:
         props.update(parse_attributes(item, only_required, inherited_constraint))
     return props
@@ -220,9 +272,11 @@ def default_values(values, one: bool):
                 sortable = all(isinstance(v, first_type) for v in all_default_values)
                 if sortable:
                     return sorted(all_default_values)
-                else:
-                    types_position = {DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values}
-                    return [types_position[k] for k in sorted(types_position.keys())]
+
+                types_position = {
+                    DEFAULT_TYPE_ORDER.index(type(v)): v for v in all_default_values
+                }
+                return [types_position[k] for k in sorted(types_position.keys())]
     else:
         return default_value(values)
 
@@ -231,12 +285,12 @@ def default_value(value):
     # TODO: replace the as_term function with context.to_symbol
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    elif isinstance(value, URIRef):
+    if isinstance(value, URIRef):
         return as_term(value)
-    elif isinstance(value, Literal):
+    if isinstance(value, Literal):
         return value.toPython()
-    else:
-        return value
+
+    return value
 
 
 def object_value(value):
@@ -246,5 +300,5 @@ def object_value(value):
 def data_value(value):
     if value in DEFAULT_VALUE:
         return DEFAULT_VALUE[value]
-    else:
-        return value
+
+    return value

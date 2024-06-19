@@ -1,0 +1,140 @@
+{
+  "@context": {
+    "this": "http://www.example.com/",
+    "sh": "http://www.w3.org/ns/shacl#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "prov": "http://www.w3.org/ns/prov#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "nxv": "https://bluebrain.github.io/nexus/vocabulary/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "node": {
+      "@id": "sh:node",
+      "@type": "@id"
+    },
+    "and": {
+      "@id": "sh:and",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "or": {
+      "@id": "sh:or",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "xone": {
+      "@id": "sh:xone",
+      "@type": "@id",
+      "@container": "@list"
+    },
+    "in": {
+      "@id": "sh:in",
+      "@container": "@list"
+    },
+    "minInclusive": {
+      "@id": "sh:minInclusive"
+    },
+    "maxInclusive": {
+      "@id": "sh:maxInclusive"
+    },
+    "nodeKind": {
+      "@id": "sh:nodeKind",
+      "@type": "@id"
+    },
+    "targetClass": {
+      "@id": "sh:targetClass",
+      "@type": "@id"
+    },
+    "path": {
+      "@id": "sh:path",
+      "@type": "@id"
+    },
+    "datatype": {
+      "@id": "sh:datatype",
+      "@type": "@id"
+    },
+    "property": {
+      "@id": "sh:property",
+      "@type": "@id"
+    },
+    "class": {
+      "@id": "sh:class",
+      "@type": "@id"
+    },
+    "lessThan": {
+      "@id": "sh:lessThan",
+      "@type": "@id"
+    },
+    "maxCount": {
+      "@id": "sh:maxCount",
+      "@type": "xsd:integer"
+    },
+    "minCount": {
+      "@id": "sh:minCount",
+      "@type": "xsd:integer"
+    },
+    "hasValue": {
+      "@id": "sh:hasValue"
+    },
+    "message": {
+      "@id": "sh:message"
+    },
+    "shapes": {
+      "@id": "nxv:shapes",
+      "@type": "@id",
+      "@container": "@set"
+    }
+  },
+  "@id": "http://shapes.ex/employee",
+  "@type": "nxv:Schema",
+  "owl:imports": [
+    "http://shapes.ex/person"
+  ],
+  "shapes": [
+    {
+      "@id": "this:EmployeeShape",
+      "@type": "sh:NodeShape",
+      "nodeKind": "sh:IRI",
+      "targetClass": "this:Employee",
+      "and": [
+        {
+          "node": "this:PersonShape"
+        },
+        {
+          "path": "schema:startDate",
+          "datatype": "xsd:date",
+          "minCount": 1,
+          "maxCount": 1
+        },
+        {
+          "path": "schema:colleague",
+          "class": "schema:Person"
+        },
+        {
+          "path": "schema:worksFor",
+          "or": [
+            {
+              "class": "schema:Person"
+            },
+            {
+              "class": "schema:Organization"
+            }
+          ]
+        },
+        {
+          "or": [
+            {
+              "path": "schema:contractor",
+              "class": "schema:Organization"
+            },
+            {
+              "path": "schema:department",
+              "class": "schema:Organization"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

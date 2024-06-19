@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -17,20 +17,16 @@ from itertools import chain
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Union, Any
 
-from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.exceptions import ConfigurationError
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 
 
 class DemoResolver(Resolver):
     """An example to show how to implement a Resolver and to demonstrate how it is used."""
-
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source, targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -44,7 +40,7 @@ class DemoResolver(Resolver):
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) -> Optional[List[Dict[str, str]]]:
 
         if isinstance(text, list):
-            not_supported(("text", list))
+            raise not_supported(("text", list))
 
         resolve_with_properties = None
         if target is not None:
@@ -57,37 +53,39 @@ class DemoResolver(Resolver):
             data = (x for x in data if x.get("type", None) == type)
         if strategy == ResolvingStrategy.EXACT_MATCH:
             try:
-                return next(x for x in data
-                            if text and any([p in x and text == x[p] for p in resolve_with_properties]))
+                return next(
+                    x for x in data
+                    if text and any(p in x and text == x[p] for p in resolve_with_properties)
+                )
             except StopIteration:
                 return None
-        elif strategy == ResolvingStrategy.EXACT_CASEINSENSITIVE_MATCH:
+        elif strategy == ResolvingStrategy.EXACT_CASE_INSENSITIVE_MATCH:
             try:
                 return next(x for x in data
-                            if text and any([p in x and str(text).lower() == str(x[p]).lower() for p in resolve_with_properties]))
+                            if text and any(p in x and str(text).lower() == str(x[p]).lower() for p in resolve_with_properties))
             except StopIteration:
                 return None
         else:
             results = [(_dist([str(x[prop]) for prop in resolve_with_properties if prop in x][0], text), x) for x in data
-                       if text and any ([p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties])]
+                       if text and any(p in x and str(text).lower() in str(x[p]).lower() for p in resolve_with_properties)]
             if results:
                 ordered = sorted(results, key=lambda x: x[0])
                 if strategy == ResolvingStrategy.BEST_MATCH:
                     return ordered[0][1]
-                else:
-                    # Case: ResolvingStrategy.ALL_MATCHES.
-                    return [x[1] for x in ordered]
-            else:
-                return None
+
+                # Case: ResolvingStrategy.ALL_MATCHES.
+                return [x[1] for x in ordered]
+
+            return None
 
     def _is_target_valid(self, target: str) -> Optional[bool]:
         if target and target not in self.service:
             raise ValueError(f"Unknown target value: {target}. Supported targets are: {self.service.keys()}")
-        else:
-            return True
-    
+
+        return True
+
     @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config)\
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]], **source_config)\
             -> Dict[str, List[Dict[str, str]]]:
         resolve_with_properties: List[str] = source_config.pop("resolve_with_properties", None)
         if isinstance(resolve_with_properties, str):
@@ -96,6 +94,16 @@ class DemoResolver(Resolver):
             raise ConfigurationError(f"The 'resolve_with_properties' should be a list: {resolve_with_properties} provided.")
         return {target: {"data": list(_load(dirpath, values['bucket'])),
                          "resolve_with_properties": resolve_with_properties} for target, values in targets.items()}
+
+    @staticmethod
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
+        raise not_supported()
+
+    @staticmethod
+    def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]],
+                            **store_config) -> Any:
+        raise not_supported()
 
 
 def _dist(x: str, y: str) -> int:

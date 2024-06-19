@@ -27,5 +27,5 @@ def split_uri(uri):
         fragment = parsed.fragment
     else:
         path_split = parsed.path.split("/")
-        fragment = path_split[len(path_split)-1]
+        fragment = path_split[len(path_split) - 1]
     return uri.replace(fragment, ""), fragment

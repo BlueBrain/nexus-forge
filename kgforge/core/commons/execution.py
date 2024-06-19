@@ -15,18 +15,19 @@
 import inspect
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union, Type
+import requests
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
                                           execute_lazy_actions)
-from kgforge.core.commons.exceptions import NotSupportedError
+from kgforge.core.commons.exceptions import NotSupportedError, RunException
 
 
 # POLICY Should have only one function called 'wrapper'. See catch().
 
 
-def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
+def not_supported(arg: Optional[Tuple[str, Any]] = None) -> Exception:
     # TODO When 'arg' is specified, compare with the value in the frame to know if it applies.
     # POLICY Should be called in methods in core which could be not implemented by specializations.
     frame = inspect.currentframe().f_back
@@ -37,9 +38,9 @@ def not_supported(arg: Optional[Tuple[str, Any]] = None) -> None:
         tail = f" with {arg[0]}={arg[1]}" if arg else ""
         msg = f"{class_name} is not supporting {method_name}(){tail}"
     except Exception as e:
-        raise e
+        return e
     else:
-        raise NotSupportedError(msg)
+        return NotSupportedError(msg)
     finally:
         del frame
 
@@ -79,8 +80,8 @@ def catch(fun):
                     print(f"<action> {fs.name}"
                           f"\n<error> {type(e).__name__}: {e}\n")
                     return None
-                else:
-                    raise
+
+                raise
 
     return wrapper
 
@@ -91,16 +92,34 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
     # POLICY The method calling this function should be decorated with execution.catch().
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         return fun_many(data, *args, **params)
-    elif isinstance(data, Resource):
+    if isinstance(data, Resource):
         return fun_one(data, *args, **params)
-    else:
-        raise TypeError("not a Resource nor a list of Resource")
+
+    raise TypeError("not a Resource nor a list of Resource")
 
 
-def run(fun_one: Callable, fun_many: Optional[Callable], data: Union[Resource, List[Resource]],
-        exception: Callable, id_required: bool = False,
-        required_synchronized: Optional[bool] = None, execute_actions: bool = False,
-        monitored_status: Optional[str] = None, catch_exceptions: bool = True, **kwargs) -> None:
+def catch_http_error(
+        r: requests.Response, error_to_throw: Type[BaseException], error_message_formatter
+):
+    try:
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        raise error_to_throw(error_message_formatter(e)) from e
+
+
+def run(
+        fun_one: Callable,
+        fun_many: Optional[Callable],
+        data: Union[Resource, List[Resource]],
+        exception: Type[RunException],
+        id_required: bool = False,
+        required_synchronized: Optional[bool] = None,
+        execute_actions: bool = False,
+        monitored_status: Optional[str] = None,
+        catch_exceptions: bool = True,
+        **kwargs
+) -> None:
+
     # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:
@@ -124,9 +143,18 @@ def _run_many(fun: Callable, resources: List[Resource], *args, **kwargs) -> None
         _run_one(fun, x, *args, **kwargs)
 
 
-def _run_one(fun: Callable, resource: Resource, exception: Callable, id_required: bool,
-             required_synchronized: Optional[bool], execute_actions: bool,
-             monitored_status: Optional[str], catch_exceptions: bool, **kwargs) -> None:
+def _run_one(
+        fun: Callable,
+        resource: Resource,
+        exception: Type[RunException],
+        id_required: bool,
+        required_synchronized: Optional[bool],
+        execute_actions: bool,
+        monitored_status: Optional[str],
+        catch_exceptions: bool,
+        **kwargs
+) -> None:
+
     try:
         if id_required and not hasattr(resource, "id"):
             raise exception("resource should have an id")

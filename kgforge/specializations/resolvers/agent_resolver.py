@@ -11,25 +11,20 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable, Union
 
-from kgforge.core.archetypes import Resolver
+from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.archetypes.resolver import _build_resolving_query
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
 from kgforge.core.commons.strategies import ResolvingStrategy
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.resolvers.store_service import StoreService
 
 
 class AgentResolver(Resolver):
-
-    def __init__(self, source: str, targets: List[Dict[str, Any]], result_resource_mapping: str,
-                 **source_config) -> None:
-        super().__init__(source,  targets, result_resource_mapping, **source_config)
 
     @property
     def mapping(self) -> Callable:
@@ -43,18 +38,19 @@ class AgentResolver(Resolver):
                  strategy: ResolvingStrategy, resolving_context: Any, limit: Optional[int], threshold: Optional[float]) -> Optional[List[Dict]]:
 
         if isinstance(text, list):
-            not_supported(("text", list))
-        
+            raise not_supported(("text", list))
+
         if target and target not in self.service.sources:
             raise ValueError(f"Unknown target value: {target}. Supported targets for the selected resolvers are: {self.service.sources.keys()}")
-        
-        properties_to_filter_with = ['name', 'givenName', 'familyName']
+
+        properties_to_filter_with = ['name', 'givenName', 'familyName', 'alternateName']
         query_template = """
             CONSTRUCT {{
                 ?id a ?type ;
                 name ?name ;
                 givenName ?givenName ;
-                familyName ?familyName
+                familyName ?familyName ;
+                alternateName ?alternateName .
             }} WHERE {{
               GRAPH ?g {{
                 ?id a ?type .
@@ -67,31 +63,42 @@ class AgentResolver(Resolver):
                 OPTIONAL {{
                   ?id familyName ?familyName .
                 }}
+                OPTIONAL {{
+                  ?id alternateName ?alternateName .
+                }}
                 {{
                   SELECT * WHERE {{
                     {{ {0} ; name ?name {1} }} UNION
                     {{ {0} ; familyName ?familyName; givenName ?givenName {2} }} UNION
-                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }}
-                  }} LIMIT {4}
+                    {{ {0} ; familyName ?familyName; givenName ?givenName {3} }} UNION
+                    {{ {0} ; alternateName ?alternateName {4} }}
+                  }} LIMIT {5}
                 }}
               }}
             }}
             """
         filters = self.service.filters[target] if target in self.service.filters else None
         context = self.service.get_context(resolving_context, target, filters)
-        query, strategy_dependant_limit = _build_resolving_query(text, query_template, self.service.deprecated_property, self.service.filters[target], strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit)
-        expected_fields = properties_to_filter_with+["type"]
+        query, strategy_dependant_limit = _build_resolving_query(
+            text, query_template, self.service.deprecated_property, self.service.filters[target],
+            strategy, type, properties_to_filter_with, context, SPARQLQueryBuilder, limit
+        )
+        expected_fields = properties_to_filter_with + ["type"]
         return self.service.perform_query(query, target, expected_fields, strategy_dependant_limit)
-    
+
     def _is_target_valid(self, target) -> Optional[bool]:
         return self.service.validate_target(target)
-
-    @staticmethod
-    def _service_from_directory(dirpath: Path, targets: Dict[str,  Dict[str, Dict[str, str]]], **source_config) -> Any:
-        not_supported()
 
     @staticmethod
     def _service_from_store(store: Callable, targets: Dict[str, Dict[str, Dict[str, str]]], **store_config) -> StoreService:
         return StoreService(store, targets, **store_config)
 
+    @staticmethod
+    def _service_from_directory(dirpath: Path, targets: Dict[str, Dict[str, Dict[str, str]]],
+                                **source_config) -> Any:
+        raise not_supported()
 
+    @staticmethod
+    def _service_from_web_service(endpoint: str,
+                                  targets: Dict[str, Dict[str, Dict[str, str]]]) -> Any:
+        raise not_supported()

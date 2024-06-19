@@ -6,4 +6,15 @@
     subClassOf: x.subClassOf
     isDefinedBy: x.isDefinedBy
     notation: x.notation
+    altLabel: x.altLabel
+    definition: x.definition if hasattr(x, "definition") else None
+    atlasRelease: x.atlasRelease if hasattr(x, "atlasRelease") else None
+    identifier: x.identifier if hasattr(x, "identifier") else None
+    delineatedBy: x.delineatedBy if hasattr(x, "delineatedBy") else None
+    hasLayerLocationPhenotype: x.hasLayerLocationPhenotype if hasattr(x, "hasLayerLocationPhenotype") else None
+    representedInAnnotation: x.representedInAnnotation if hasattr(x, "representedInAnnotation") else None
+    hasLeafRegionPart: x.hasLeafRegionPart if hasattr(x, "hasLeafRegionPart") else None
+    isPartOf: x.isPartOf if hasattr(x, "isPartOf") else None
+    isLayerPartOf: x.isLayerPartOf if hasattr(x, "isLayerPartOf") else None
+    units: x.units if hasattr(x, "units") else None
 }

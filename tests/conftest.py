@@ -12,14 +12,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-import os
 from typing import Callable, List, Union, Dict, Optional
 from uuid import uuid4
-
+from kgforge.specializations.models.rdf_model import RdfModel
+from utils import full_path_relative_to_root
 import pytest
 from pytest_bdd import given, parsers, then, when
 
-from kgforge.core import Resource, KnowledgeGraphForge
+from kgforge.core.resource import Resource
+from kgforge.core.forge import KnowledgeGraphForge
 from kgforge.core.commons.actions import Action
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld, Form
@@ -119,15 +120,9 @@ def check_resource_status(data, attr, value):
 
 def check_report(capsys, rc, err, msg, op):
     out = capsys.readouterr().out[:-1]
-    heads = {
-        "": "",
-        "s": "<count> 2\n",
-    }
+    heads = {"": "", "s": "<count> 2\n"}
     head = heads[rc]
-    tails = {
-        None: f"False\n<error> {msg}",
-        " not": "True",
-    }
+    tails = {None: f"False\n<error> {msg}", " not": "True"}
     tail = tails[err]
     assert out == f"{head}<action> {op}\n<succeeded> {tail}"
 
@@ -173,11 +168,9 @@ def forge():
         "Model": {
             "name": "DemoModel",
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": full_path_relative_to_root("tests/data/demo-model/"),
         },
-        "Store": {
-            "name": "DemoStore",
-        },
+        "Store": {"name": "DemoStore", "model": {"name": "DemoModel"}},
     }
     return KnowledgeGraphForge(config)
 
@@ -190,6 +183,29 @@ def custom_context():
             "foaf": "http://xmlns.com/foaf/0.1/",
             "Person": "foaf:Person",
             "name": "foaf:name",
+            "skos": "http://www.w3.org/2004/02/skos/core#",
+            "notation": "skos:notation",
+            "schema": "http://schema.org/",
+            "identifier": "schema:identifier",
+            "isPartOf": {"@id": "schema:isPartOf", "@type": "@id"},
+            "prefLabel": "skos:prefLabel",
+            "owl": "http://www.w3.org/2002/07/owl#",
+            "Class": {"@id": "owl:Class"},
+            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+            "isDefinedBy": {"@id": "rdfs:isDefinedBy", "@type": "@id"},
+            "label": {"@id": "rdfs:label"},
+            "subClassOf": {"@id": "rdfs:subClassOf", "@type": "@id"},
+            "delineatedBy": {
+                "@id": "https://bbp.epfl.ch/ontologies/core/bmo/delineatedBy",
+                "@type": "@id",
+            },
+            "representedInAnnotation": {
+                "@id": "https://bbp.epfl.ch/ontologies/core/bmo/representedInAnnotation"
+            },
+            "atlasRelease": {"@id": "nsg:atlasRelease"},
+            "mba": "http://api.brain-map.org/api/v2/data/Structure/",
+            "nsg": "https://neuroshapes.org/",
+            "obo": "http://purl.obolibrary.org/obo/",
         }
     }
 
@@ -274,12 +290,24 @@ def building():
 
 @pytest.fixture(scope="session")
 def context_file_path():
-    return os.sep.join((os.path.abspath("."), "tests/data/shacl-model/context.json"))
+    return full_path_relative_to_root("tests/data/shacl-model/context.json")
+
+
+@pytest.fixture(scope="session")
+def shacl_schemas_file_path():
+    return full_path_relative_to_root("tests/data/shacl-model/commons")
 
 
 @pytest.fixture(scope="session")
 def context_iri_file(context_file_path):
     return f"file://{context_file_path}"
+
+
+@pytest.fixture(scope="function")
+def rdf_model_from_dir(context_iri_file, shacl_schemas_file_path):
+    return RdfModel(
+        shacl_schemas_file_path, context={"iri": context_iri_file}, origin="directory"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -297,13 +325,16 @@ def model_prefixes():
     return {
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "prov": "http://www.w3.org/ns/prov#",
-        "schema": "http://schema.org/",
+        "schema": "https://schema.org/",
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "skos": "http://www.w3.org/2004/02/skos/core#",
         "nsg": "https://neuroshapes.org/",
         "owl": "http://www.w3.org/2002/07/owl#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
         "foaf": "http://xmlns.com/foaf/0.1/",
+        "sh": "http://www.w3.org/ns/shacl#",
+        "mba": "http://api.brain-map.org/api/v2/data/Structure/",
+        "obo": "http://purl.obolibrary.org/obo/",
     }
 
 
@@ -319,9 +350,7 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
             else Context(context)
         )
         latitude_term = ctx.terms.get("latitude")
-        latitude_node = {
-            "@value": resource.geo["latitude"],
-        }
+        latitude_node = {"@value": resource.geo["latitude"]}
         if latitude_term.type:
             latitude_node = {**{"@type": latitude_term.type}, **latitude_node}
 
@@ -329,10 +358,10 @@ def building_jsonld(metadata_context, metadata_data_compacted, metadata_data_exp
         data.update(
             {
                 "@type": [ctx.expand(resource.type)],
-                ctx.expand("description"): [{"@value":resource.description}],
+                ctx.expand("description"): [{"@value": resource.description}],
                 ctx.expand("geo"): [geo_expanded],
                 ctx.expand("image"): [{"@id": resource.image}],
-                ctx.expand("name"): [{"@value":resource.name}]
+                ctx.expand("name"): [{"@value": resource.name}],
             }
         )
         if store_metadata and resource._store_metadata is not None:
@@ -425,10 +454,11 @@ def config(model, store, resolver):
         "Model": {
             "name": model,
             "origin": "directory",
-            "source": "tests/data/demo-model/",
+            "source": full_path_relative_to_root("tests/data/demo-model/"),
         },
         "Store": {
             "name": store,
+            "model": {"name": model},
             "versioned_id_template": "{x.id}?_version={x._store_metadata.version}",
         },
         "Resolvers": {
@@ -436,26 +466,22 @@ def config(model, store, resolver):
                 {
                     "resolver": resolver,
                     "origin": "directory",
-                    "source": "tests/data/demo-resolver/",
+                    "source": full_path_relative_to_root("tests/data/demo-resolver/"),
                     "targets": [
                         {
                             "identifier": "sex",
                             "bucket": "sex.json",
-                            "filters":[
-                                {
-                                "path": "type",
-                                "value": "class"
-                                },
-                                {
-                                "path": "label",
-                                "value": "female"
-                                }
-                            ]
-                        },
+                            "filters": [
+                                {"path": "type", "value": "class"},
+                                {"path": "label", "value": "female"},
+                            ],
+                        }
                     ],
-                    "result_resource_mapping": "../../configurations/demo-resolver/term-to-resource-mapping.hjson",
-                },
-            ],
+                    "result_resource_mapping": full_path_relative_to_root(
+                        "./examples/configurations/demo-resolver/term-to-resource-mapping.hjson"
+                    ),
+                }
+            ]
         },
     }
 
@@ -554,11 +580,7 @@ def es_mapping_dict():
                         "type": "object",
                     },
                     "layer": {
-                        "properties": {
-                            "label": {
-                                "type": "text",
-                            }
-                        },
+                        "properties": {"label": {"type": "text"}},
                         "type": "object",
                     },
                 },
@@ -597,10 +619,7 @@ def es_mapping_dict():
                         },
                         "type": "nested",
                     },
-                    "a_dense_vector": {
-                        "dims": 3,
-                        "type": "dense_vector",
-                    },
+                    "a_dense_vector": {"dims": 3, "type": "dense_vector"},
                 },
                 "type": "nested",
             },
@@ -637,13 +656,8 @@ def es_mapping_dict():
                 "fields": {"keyword": {"type": "keyword"}},
                 "type": "integer",
             },
-            "a_dense_vector": {
-                "dims": 3,
-                "type": "dense_vector",
-            },
-            "a_boolean": {
-                "type": "boolean",
-            },
+            "a_dense_vector": {"dims": 3, "type": "dense_vector"},
+            "a_boolean": {"type": "boolean"},
             "objectOfStudy": {
                 "properties": {"label": {"type": "text"}},
                 "type": "object",
@@ -667,9 +681,7 @@ def es_mapping_dict():
                         "fields": {"keyword": {"type": "keyword"}},
                         "type": "text",
                     },
-                    "a_float": {
-                        "type": "float",
-                    },
+                    "a_float": {"type": "float"},
                 },
                 "type": "nested",
             },

@@ -15,25 +15,28 @@ import os
 from pathlib import Path
 from typing import Dict, Tuple
 
-from pyshacl import Validator
-from rdflib import Graph, URIRef
+from rdflib import Dataset as RDFDataset
+from rdflib import OWL, Graph, URIRef
+
 from rdflib.util import guess_format
 
 from kgforge.core.commons.context import Context
+from kgforge.core.commons.sparql_query_builder import (
+    build_ontology_query,
+    build_shacl_query,
+)
 from kgforge.specializations.models.rdf.node_properties import NodeProperties
-from kgforge.specializations.models.rdf.service import RdfService, ShapesGraphWrapper
+from kgforge.specializations.models.rdf.service import RdfService
 
 
 class DirectoryService(RdfService):
 
     def __init__(self, dirpath: Path, context_iri: str) -> None:
-        self._graph = load_rdf_files(dirpath)
-        self._sg = ShapesGraphWrapper(self._graph)
-        super().__init__(self._graph, context_iri)
+        dataset_graph = _load_rdf_files_as_graph(dirpath)
+        super().__init__(dataset_graph, context_iri)
 
-    def schema_source_id(self, schema_iri: str) -> str:
-        # FIXME should return the file path where the schema is in
-        return schema_iri
+    def schema_source_id(self, shape_uri: str) -> str:
+        return str(self._get_named_graph_from_shape(URIRef(shape_uri)))
 
     def materialize(self, iri: URIRef) -> NodeProperties:
         sh = self._sg.lookup_shape_from_node(iri)
@@ -43,49 +46,70 @@ class DirectoryService(RdfService):
             attrs["properties"] = props
         return NodeProperties(**attrs)
 
-    def _validate(self, iri: str, data_graph: Graph) -> Tuple[bool, Graph, str]:
-        validator = Validator(data_graph, shacl_graph=self._graph)
-        return validator.run()
-
     def resolve_context(self, iri: str) -> Dict:
         if iri in self._context_cache:
             return self._context_cache[iri]
-        else:
-            try:
-                context = Context(iri)
-            except FileNotFoundError as e:
-                raise ValueError(e)
-            else:
-                self._context_cache.update({iri: context.document})
-                return context.document
+
+        try:
+            context = Context(iri)
+        except FileNotFoundError as e:
+            raise ValueError(e) from e
+
+        self._context_cache.update({iri: context.document})
+        return context.document
 
     def generate_context(self) -> Dict:
         return self._generate_context()
 
-    def _build_shapes_map(self) -> Dict:
-        query = """
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            PREFIX sh: <http://www.w3.org/ns/shacl#>
-            SELECT ?type ?shape WHERE {
-                { ?shape sh:targetClass ?type .}
-                UNION {
-                    SELECT (?shape as ?type) ?shape WHERE {
-                        ?shape a sh:NodeShape .
-                        ?shape a rdfs:Class
-                    }
-                }
-            } ORDER BY ?type"""
-        res = self._graph.query(query)
-        return {row["type"]: row["shape"] for row in res}
+    def _build_shapes_map(self) -> Tuple[Dict, Dict, Dict]:
+        query = build_shacl_query(
+            defining_property_uri=self.NXV.shapes,
+            deprecated_property_uri=OWL.deprecated,
+            deprecated_optional=True,
+            search_in_graph=True,
+            context=self.context,
+        )
+        res = self._dataset_graph.query(query)
+        class_to_shape = {}
+        shape_to_defining_resource = {}
+        defining_resource_to_named_graph = {}
+        for row in res:
+            shape_uriref = URIRef(self.context.expand(row["shape"]))
+            resource_uriref = URIRef(self.context.expand(row["resource_id"]))
+            if row["type"]:
+                class_to_shape[URIRef(self.context.expand(row["type"]))] = shape_uriref
+            shape_to_defining_resource[shape_uriref] = resource_uriref
+            defining_resource_to_named_graph[resource_uriref] = URIRef(row["g"])
+        return (
+            class_to_shape,
+            shape_to_defining_resource,
+            defining_resource_to_named_graph,
+        )
+
+    def _build_ontology_map(self) -> Dict:
+        query = build_ontology_query()
+        res = self._dataset_graph.query(query)
+        ont_to_named_graph = {}
+        for row in res:
+            ont_to_named_graph[URIRef(self.context.expand(row["ont"]))] = URIRef(
+                row["g"]
+            )
+        return ont_to_named_graph
+
+    def load_resource_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
+        return self._dataset_graph.graph(URIRef(graph_id))
 
 
-def load_rdf_files(path: Path) -> Graph:
-    memory_graph = Graph()
+def _load_rdf_files_as_graph(path: Path) -> RDFDataset:
+    if not path.exists():
+        raise ValueError(f"The path {path} does not exist")
+    schema_graphs = RDFDataset()
     extensions = [".ttl", ".n3", ".json", ".rdf"]
     for f in path.rglob(os.path.join("*.*")):
         if f.suffix in extensions:
             file_format = guess_format(f.name)
             if file_format is None:
                 file_format = "json-ld"
-            memory_graph.parse(f.as_posix(), format=file_format)
-    return memory_graph
+            schema_graph = schema_graphs.graph(URIRef(f.as_posix()))
+            schema_graph.parse(f.as_posix(), format=file_format)
+    return schema_graphs

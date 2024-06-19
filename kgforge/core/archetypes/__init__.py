@@ -17,5 +17,7 @@
 from .mapping import Mapping
 from .mapper import Mapper
 from .store import Store
+from .read_only_store import ReadOnlyStore
 from .model import Model
 from .resolver import Resolver
+from .dataset_store import DatasetStore

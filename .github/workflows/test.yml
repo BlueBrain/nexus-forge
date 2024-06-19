@@ -16,6 +16,8 @@ jobs:
           python-version: 3.8
       - name: Install dependencies
         run: pip install .[dev]
+      - name: Lint pycodestyle the code
+        run:  tox -e lint
       - name: Run tests with pytest
         run: 
           pytest --cov=./ --cov-report=xml

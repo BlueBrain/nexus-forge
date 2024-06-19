@@ -1,0 +1,8 @@
+{
+  "description": "The goal of the NeuroElectro Project is to extract information about the electrophysiological properties (e.g. resting membrane potentials and membrane time constants) of diverse neuron types from the existing literature and place it into a centralized database.",
+  "url": "https://neuroelectro.org",
+  "license" : {
+    "id": "https://creativecommons.org/licenses/by-sa/4.0",
+    "label": "CC BY-SA 4.0"
+  }
+}

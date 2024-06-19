@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 import numpy as np
 from pandas import DataFrame, Series
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.json import as_json, from_json
 
@@ -60,29 +60,49 @@ def _from_dataframe(row: Series, na: Union[Any, List[Any]], nesting: str) -> Res
     new_na = row.replace(na, np.nan)
     no_na = new_na.dropna()
     items = list(no_na.items())
+    if not all(isinstance(i[0], str) for i in items):
+        raise ValueError('Non-string column name!')
     data = deflatten(items, nesting)
     return from_json(data, None)
 
 
 def deflatten(items: List[Tuple[str, Any]], sep: str) -> Dict:
-    d = dict()
-    i = 0
-    while i < len(items):
-        k, v = items[i]
-        if sep not in k:
-            d[k] = v
-            i += 1
-        else:
-            pk, _, ck = k.partition(sep)
-            pitems = list(take_while(items[i:], f"{pk}{sep}"))
-            d[pk] = deflatten(pitems, sep)
-            i += len(pitems)
-    return d
+    """
 
 
-def take_while(items: List[Tuple[str, Any]], start: str) -> Iterator[Tuple[str, Any]]:
-    for k, v in items:
-        if k.startswith(start):
-            yield k.replace(start, "", 1), v
-        else:
-            break
+    Parameters
+    ----------
+    items : List[Tuple[str, Any]]
+        at the beginning (first call in the recursion cycle) it is obtain within _from_dataframe as a list, one per row,
+        of tuples where the first item is the column name and the second is the value
+    sep : str
+        the separator. Usually '.'
+
+    Raises
+    ------
+    ValueError
+        One cannot provide both 'property.subproperty1' and 'property'. In such case, a ValueError is raised
+
+    Returns
+    -------
+    Dict
+        a deflattened (nested) dictionary of {columnName: value}.
+        Deflatten means that the separator implies nesting of the dictionary.
+
+    """
+    deflattened_row = {}
+    for col_label, v in items:
+        keys = col_label.split(sep)
+
+        current = deflattened_row
+        for i, k in enumerate(keys):
+            if i == len(keys) - 1:
+                try:
+                    current[k] = v
+                except TypeError as exc:
+                    raise ValueError(f'Mix of nested and not nested for {col_label}. Cannot be processed!') from exc
+            else:
+                if k not in current:
+                    current[k] = {}
+                current = current[k]
+    return deflattened_row

@@ -13,20 +13,20 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
 from copy import deepcopy
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 
-import re
+import os
 import numpy as np
-import yaml
-from kgforge.core.commons.files import load_file_as_byte
 from pandas import DataFrame
 from rdflib import Graph
-from urllib.parse import quote_plus, urlparse
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping, Model, Resolver, Store
-from kgforge.core.commons.context import Context
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
+from kgforge.core.archetypes.model import Model
+from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.mapper import Mapper
+from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.commons.actions import LazyAction
 from kgforge.core.commons.dictionaries import with_defaults
 from kgforge.core.commons.exceptions import ResolvingError
@@ -44,9 +44,7 @@ from kgforge.core.conversions.rdf import (
     Form,
 )
 from kgforge.core.reshaping import Reshaper
-from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.core.wrappings.paths import PathsWrapper, wrap_paths, Filter
 
 
 class KnowledgeGraphForge:
@@ -200,10 +198,10 @@ class KnowledgeGraphForge:
         :param kwargs:  keyword arguments
         """
 
+        self.set_environment_variables()
+
         if isinstance(configuration, str):
-            config_data = load_file_as_byte(configuration)
-            config_data = config_data.decode("utf-8")
-            config = yaml.safe_load(config_data)
+            config = load_yaml_from_file(configuration)
         else:
             config = deepcopy(configuration)
 
@@ -232,8 +230,19 @@ class KnowledgeGraphForge:
         self._model: Model = model(**model_config)
 
         # Store.
-        store_config.update(model_context=self._model.context())
         store_name = store_config.pop("name")
+        store_model_config = store_config.pop("model", None)
+        if store_model_config:
+            store_model_name = store_model_config.pop("name")
+            if store_model_name != model_name:
+                # Same model, different config
+                store_model = import_class(store_model_name, "models")
+                store_config["model"] = store_model(**store_model_config)
+            else:
+                # Same model, same config
+                store_config["model"] = self._model
+        else:
+            raise ValueError(f"Missing model configuration for store {store_name}")
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
         store_config.update(name=store_name)
@@ -249,6 +258,11 @@ class KnowledgeGraphForge:
 
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
+
+    @staticmethod
+    def set_environment_variables():
+        # Set environment variable for pyshacl
+        os.environ["PYSHACL_USE_FULL_MIXIN"] = "True"
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
@@ -306,8 +320,9 @@ class KnowledgeGraphForge:
     def validate(
         self,
         data: Union[Resource, List[Resource]],
-        execute_actions_before: bool=False,
-        type_: str=None
+        execute_actions_before: bool = False,
+        type_: str = None,
+        inference: Optional[str] = None,
     ) -> None:
         """
         Check if resources conform to their corresponding schemas. This method will try to infer the schema of a resource from its type.
@@ -318,9 +333,12 @@ class KnowledgeGraphForge:
         :param data: a resource or a list of resources to validate
         :param execute_actions_before: whether to execute a LazyAction value of one of a resource property (True) or not (False) prior to validation
         :param type_: the type to validate the data against it. If None, the validation function will look for a type attribute in the Resource
+        :param inference: an inference strategy to use during validation to extend the resource. For example 'rdfs' is an RDF inference strategy (when using RdfModel with pySHACL)
+                          able to extend the resource with the transitive closures of type subClassOf and/or property subPropertyOf relations as per the
+                          RDFS entailment rules (https://www.w3.org/TR/rdf-mt/). In this example 'owlrl' or 'rdfsowlrl' are also possible values while no inference will be performed with None .
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_)
+        self._model.validate(data, execute_actions_before, type_=type_, inference=inference)
 
     # Resolving User Interface.
 
@@ -359,10 +377,10 @@ class KnowledgeGraphForge:
                         "         - targets: ", ",".join(resolver_value.targets.keys())
                     )
         elif output == "dict":
-            resolvers_dict = dict()
+            resolvers_dict = {}
             # iterate over target_key, target_value and fill dictionary with targets
             for scope, scope_value in sorted(self._resolvers.items()):
-                individual_dict = dict()
+                individual_dict = {}
                 for resolver_key, resolver_value in scope_value.items():
                     for target_key, target_value in resolver_value.targets.items():
                         individual_dict[target_key] = target_value
@@ -395,10 +413,15 @@ class KnowledgeGraphForge:
         :param resolver: a resolver name
         :param target: a target identifier
         :param type: a type of resources to resolve
-        :param strategy:  the ResolvingStrategy to apply: BEST_MATCH (return the resource with the best score), EXACT_MATCH (return the resource with the highest score), ALL_MATCHES (return all retrieved resources sorted by score)
+        :param strategy:  the ResolvingStrategy to apply:
+        BEST_MATCH (return the resource with the best score),
+        EXACT_MATCH (return the resource with the highest score),
+        ALL_MATCHES (return all retrieved resources sorted by score)
         :param resolving_context: A context (e.g JSON-LD context) to use during resolving
         :param property_to_resolve: the property from which the text(s) to resolve is taken when 'text' is a Resource
-        :param merge_inplace_as: the property name that should hold the resolving result when 'text' is a Resource. When missing, the resolving result is returned insteada of being added to the provided resource.
+        :param merge_inplace_as: the property name that should hold the resolving result
+        when 'text' is a Resource. When missing, the resolving result is returned
+         instead of being added to the provided resource.
         :param limit: the number of resources to retrieve
         :param threshold: the threshold score
         :return: Optional[Union[Resource, List[Resource], Dict[str, List[Resource]]]]
@@ -442,8 +465,10 @@ class KnowledgeGraphForge:
                 )
             except Exception as e:
                 raise AttributeError(
-                    f"Invalid ResolvingStrategy value '{strategy}'. Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
-                )
+                    f"Invalid ResolvingStrategy value '{strategy}'. "
+                    f"Allowed names are {[name for name, member in ResolvingStrategy.__members__.items()]} "
+                    f"and allowed members are {[member for name, member in ResolvingStrategy.__members__.items()]}"
+                ) from e
             return rov.resolve(
                 text,
                 target,
@@ -454,7 +479,7 @@ class KnowledgeGraphForge:
                 merge_inplace_as,
                 limit,
                 threshold,
-                self
+                self,
             )
         else:
             raise ResolvingError("no resolvers have been configured")
@@ -462,49 +487,55 @@ class KnowledgeGraphForge:
     # Formatting User Interface.
 
     @catch
-    def format(self, what: str = None, *args, formatter: Union[Formatter, str] = Formatter.STR, uri: str = None, **kwargs) -> str:
+    def format(
+        self,
+        what: str = None,
+        *args,
+        formatter: Union[Formatter, str] = Formatter.STR,
+        uri: str = None,
+        **kwargs,
+    ) -> str:
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
         :param args: a list of string to use for formatting
-        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)  
+        :param formatter: the type of formatter to use. STR (default, corresponds to str.format(*args, **kwargs)), URI_REWRITER (Store based URI rewritter)
         :param uri: a URI to rewrite. Required formatter:str = Formatter.URI_REWRITER
         :return: str
         """
-        
+
         if what and uri:
             raise AttributeError(
-                    f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
+                f"both 'what': {what} and 'uri': {uri} arguments are provided. One of them should be provided."
             )
 
         try:
             formatter = (
-                formatter
-                if isinstance(formatter, Formatter)
-                else Formatter[formatter]
+                formatter if isinstance(formatter, Formatter) else Formatter[formatter]
             )
         except Exception as e:
             raise AttributeError(
-                f"Invalid Formatter value '{formatter}'. Allowed names are {[name for name, member in Formatter.__members__.items()]} and allowed members are {[member for name, member in Formatter.__members__.items()]}"
-            )
-        
+                f"Invalid Formatter value '{formatter}'. "
+                f"Allowed names are {[name for name, member in Formatter.__members__.items()]} "
+                f"and allowed members are {[member for name, member in Formatter.__members__.items()]}"
+            ) from e
+
         if formatter == Formatter.STR:
             if what is None:
                 raise AttributeError(
-                        f"A non None 'what' value is required when formatter == Formatter.STR"
+                    "A non None 'what' value is required when formatter == Formatter.STR"
                 )
             return self._formatters[what].format(*args, **kwargs)
-        elif formatter == Formatter.URI_REWRITER:
+        if formatter == Formatter.URI_REWRITER:
             if uri is None:
                 raise AttributeError(
-                            f"A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
-                    )
+                    "A non None 'uri' value is required when formatter == Formatter.URI_REWRITER"
+                )
             return self._store.rewrite_uri(uri, self.get_store_context(), **kwargs)
-        else:
-            raise AttributeError(
-                    f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
-            )
 
+        raise AttributeError(
+            f"{formatter} is not a valid formatter. Valid formatters are {[fm.value for fm in Formatter]}"
+        )
 
     # Mapping User Interface.
 
@@ -532,9 +563,7 @@ class KnowledgeGraphForge:
         return self._model.mappings(source, pretty)
 
     @catch
-    def mapping(
-        self, entity: str, source: str, type: Callable = DictionaryMapping
-    ) -> Mapping:
+    def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
 
@@ -543,6 +572,8 @@ class KnowledgeGraphForge:
         :param type: a Mapping class
         :return: Mapping
         """
+        if type is None:
+            type = self._store.mapping
         return self._model.mapping(entity, source, type)
 
     @catch
@@ -550,7 +581,7 @@ class KnowledgeGraphForge:
         self,
         data: Any,
         mapping: Union[Mapping, List[Mapping]],
-        mapper: Callable = DictionaryMapper,
+        mapper: Type[Mapper] = None,
         na: Union[Any, List[Any]] = None,
     ) -> Union[Resource, List[Resource]]:
         """
@@ -563,6 +594,8 @@ class KnowledgeGraphForge:
         :param na: represents missing values
         :return: Union[Resource, List[Resource]]
         """
+        if mapper is None:
+            mapper = self._store.mapper
         return mapper(self).map(data, mapping, na)
 
     # Reshaping User Interface.
@@ -594,7 +627,7 @@ class KnowledgeGraphForge:
         id: str,
         version: Optional[Union[int, str]] = None,
         cross_bucket: bool = False,
-        **params
+        **params,
     ) -> Resource:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -605,7 +638,9 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters.
         :return: Resource
         """
-        return self._store.retrieve(id, version, cross_bucket, **params)
+        return self._store.retrieve(
+            id_=id, version=version, cross_bucket=cross_bucket, **params
+        )
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
@@ -619,7 +654,7 @@ class KnowledgeGraphForge:
         return wrap_paths(template)
 
     @catch
-    def search(self, *filters, **params) -> List[Resource]:
+    def search(self, *filters: Union[Dict, Filter], **params) -> List[Resource]:
         """
         Search for resources based on a list of filters. The search results can be controlled (e.g. number of results) by setting parameters.
         See docs for more details: https://nexus-forge.readthedocs.io/en/latest/interaction.html#querying
@@ -628,10 +663,11 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters
         :return: List[Resource]
         """
+
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers, *filters, **params)
+        return self._store.search(resolvers=resolvers, *filters, **params)
 
     @catch
     def sparql(
@@ -640,7 +676,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        **params
+        **params,
     ) -> List[Resource]:
         """
         Search for resources using a SPARQL query. See SPARQL docs: https://www.w3.org/TR/sparql11-query.
@@ -661,7 +697,8 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-    ) -> List[Resource]:
+        **params,
+    ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         """
         Search for resources using an ElasticSearch DSL query. See ElasticSearch DSL docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl.html.
 
@@ -671,7 +708,7 @@ class KnowledgeGraphForge:
         :param offset: how many results to skip from the first one
         :return: List[Resource]
         """
-        return self._store.elastic(query, debug, limit, offset)
+        return self._store.elastic(query, debug, limit, offset, **params)
 
     @catch
     def download(
@@ -681,7 +718,7 @@ class KnowledgeGraphForge:
         path: str = ".",
         overwrite: bool = False,
         cross_bucket: bool = False,
-        content_type: str = None
+        content_type: str = None,
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -708,7 +745,7 @@ class KnowledgeGraphForge:
         :param data: the resources to register
         :param schema_id: an identifier of the schema the registered resources should conform to
         """
-        #self._store.mapper = self._store.mapper(self)
+        # self._store.mapper = self._store.mapper(self)
         self._store.register(data, schema_id)
 
     # No @catch because the error handling is done by execution.run().
@@ -801,7 +838,7 @@ class KnowledgeGraphForge:
         data: Union[Resource, List[Resource]],
         form: str = Form.COMPACTED.value,
         store_metadata: bool = False,
-        **params
+        **params,
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -819,7 +856,7 @@ class KnowledgeGraphForge:
             self._model.context(),
             self._store.metadata_context,
             self._model.resolve_context,
-            **params
+            **params,
         )
 
     @catch
@@ -930,7 +967,7 @@ class KnowledgeGraphForge:
         :return: Union[Resource, List[Resource]]
         """
         return from_dataframe(data, na, nesting)
-    
+
     def get_store_context(self):
         """Expose the context used in the store."""
         return self._store.context
@@ -938,7 +975,8 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
-    
+
+
 def prepare_resolvers(
     config: Dict, store_config: Dict
 ) -> Dict[str, Dict[str, Resolver]]:
@@ -955,14 +993,7 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
             store_config,
             "source",
             "name",
-            [
-                "endpoint",
-                "token",
-                "bucket",
-                "model_context",
-                "searchendpoints",
-                "vocabulary",
-            ],
+            ["endpoint", "token", "bucket", "model", "searchendpoints", "vocabulary"],
         )
     resolver_name = config.pop("resolver")
     resolver = import_class(resolver_name, "resolvers")

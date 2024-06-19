@@ -11,17 +11,19 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
-import copy
+from abc import abstractmethod
+from typing import Tuple, List, Dict, Optional, Any
 
+import copy
 import datetime
 import dateutil
 import elasticsearch_dsl
 from dateutil.parser import ParserError
 from elasticsearch_dsl import Field
-from typing import Tuple, List, Dict, Optional, Any
 
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.query_builder import QueryBuilder
+from kgforge.core.resource import Resource
 from kgforge.core.wrappings import Filter, FilterOperator
 
 elasticsearch_operator_range_map = {
@@ -35,17 +37,17 @@ elasticsearch_operator_range_map = {
 class ESQueryBuilder(QueryBuilder):
     @staticmethod
     def build(
-        schema: Dict,
+        schema: Optional[Dict],
         resolvers: Optional[List["Resolver"]],
         context: Context,
-        *filters,
+        filters: List[Filter],
         **params,
     ) -> Tuple[List, List, List]:
 
-        es_filters = list()
-        musts = list()
-        must_nots = list()
-        script_scores = list()
+        es_filters = []
+        musts = []
+        must_nots = []
+        script_scores = []
 
         default_str_keyword_field = params.get("default_str_keyword_field", "keyword")
         includes = params.get("includes", None)
@@ -57,7 +59,7 @@ class ESQueryBuilder(QueryBuilder):
             m._update_from_dict(schema)
             dynamic = m._meta["dynamic"] if "dynamic" in m._meta else dynamic
 
-        for index, f in enumerate(*filters):
+        for index, f in enumerate(filters):
             _filter = None
             must = None
             must_not = None
@@ -67,14 +69,14 @@ class ESQueryBuilder(QueryBuilder):
             found_path_parts = None
             nested_path, mapping_type = m.resolve_nested(field_path=property_path)
             if isinstance(mapping_type, elasticsearch_dsl.Nested) or isinstance(
-                mapping_type, elasticsearch_dsl.Object
+                    mapping_type, elasticsearch_dsl.Object
             ):
                 raise ValueError(
                     f"The provided path {f.path} can't be used for filter/search because it is not a leaf property."
                 )
             if (
-                isinstance(mapping_type, elasticsearch_dsl.DenseVector)
-                and f.operator != FilterOperator.EQUAL.value
+                    isinstance(mapping_type, elasticsearch_dsl.DenseVector)
+                    and f.operator != FilterOperator.EQUAL.value
             ):
                 raise ValueError(
                     f"The provided DenseVector path '{f.path}' can't be used for filter/search but only with the "
@@ -178,12 +180,28 @@ class ESQueryBuilder(QueryBuilder):
         else:
             return _wrap_in_bool_query(es_filters, musts, must_nots, includes, excludes)
 
+    @staticmethod
+    @abstractmethod
+    def build_resource_from_response(query: str, response: Dict, context: Context, *args,
+                                     **params) -> List[Resource]:
+        ...
+
+    @staticmethod
+    def apply_limit_and_offset_to_query(query, limit, default_limit, offset, default_offset):
+        # TODO should there be an elastic search default limit?
+        if limit:
+            query["size"] = limit
+        if offset:
+            query["from"] = offset
+
+        return query
+
 
 def _look_up_known_parent_paths(f, last_path, property_path, m):
     if (
-        len(f.path) >= 2
-        and last_path in ["id", "@id"]
-        and f.path[-2] in ["type", "@type"]
+            len(f.path) >= 2
+            and last_path in ["id", "@id"]
+            and f.path[-2] in ["type", "@type"]
     ):  # to cope with paths.type.id TODO: fix forge.paths to not add id after type
         property_path = _join_property_path(f.path[:-2], "@type")
 
@@ -237,8 +255,8 @@ def _add_source(query, includes, excludes):
         query_copy = copy.deepcopy(query)
         query_copy["_source"] = _source
         return query_copy
-    else:
-        return query
+
+    return query
 
 
 def _recursive_resolve_nested(m, field_path):
@@ -246,27 +264,26 @@ def _recursive_resolve_nested(m, field_path):
     if mapping_type is None and nested_path == ():
         if len(field_path) > 1:
             return _recursive_resolve_nested(
-                m, field_path=field_path[0 : len(field_path) - 1]
+                m, field_path=field_path[0:len(field_path) - 1]
             )
-        else:
-            return nested_path, field_path, mapping_type
 
-    else:
         return nested_path, field_path, mapping_type
+
+    return nested_path, field_path, mapping_type
 
 
 def _build_keyword_path(
-    mapping_type,
-    property_path,
-    dynamic_mapping_type=None,
-    default_str_keyword_field=None,
+        mapping_type,
+        property_path,
+        dynamic_mapping_type=None,
+        default_str_keyword_field=None,
 ):
     if isinstance(mapping_type, elasticsearch_dsl.Keyword):
         keyword_path = property_path
     elif (
-        mapping_type is None
-        and default_str_keyword_field is not None
-        and isinstance(dynamic_mapping_type, elasticsearch_dsl.Text)
+            mapping_type is None
+            and default_str_keyword_field is not None
+            and isinstance(dynamic_mapping_type, elasticsearch_dsl.Text)
     ):
         keyword_path = ".".join([property_path, default_str_keyword_field])
     elif mapping_type is not None:
@@ -286,22 +303,22 @@ def _build_keyword_path(
 
 
 def _build_bool_query(
-    filter: Filter,
-    mapping_type: Field,
-    k_path: str,
-    property_path: str,
-    filter_or_must_or_must_not: str,
-    term_or_match: str,
-    nested_path: List[str] = None,
+        filter: Filter,
+        mapping_type: Field,
+        k_path: str,
+        property_path: str,
+        filter_or_must_or_must_not: str,
+        term_or_match: str,
+        nested_path: List[str] = None,
 ):
     _filter = None
     must = None
     must_not = None
     script_score = None
     if (
-        filter.operator in elasticsearch_operator_range_map.keys()
-        and not isinstance(mapping_type, elasticsearch_dsl.Text)
-        and not isinstance(mapping_type, elasticsearch_dsl.Boolean)
+            filter.operator in elasticsearch_operator_range_map.keys()
+            and not isinstance(mapping_type, elasticsearch_dsl.Text)
+            and not isinstance(mapping_type, elasticsearch_dsl.Boolean)
     ):  # range filter query
         if nested_path:
             _filter = _wrap_in_nested_bool_query(
@@ -321,15 +338,13 @@ def _build_bool_query(
                 {elasticsearch_operator_range_map[filter.operator]: filter.value},
             )
 
-    elif filter.operator in elasticsearch_operator_range_map.keys() and (
-        isinstance(mapping_type, elasticsearch_dsl.Text)
-        or isinstance(mapping_type, elasticsearch_dsl.Boolean)
-    ):
+    elif filter.operator in elasticsearch_operator_range_map.keys() and \
+            isinstance(mapping_type, (elasticsearch_dsl.Text, elasticsearch_dsl.Boolean)):
         raise ValueError(
             f"Using the range operator {filter.operator} on the Text field/path {filter.path} is not supported."
         )
     elif filter.operator == FilterOperator.EQUAL.value and isinstance(
-        mapping_type, elasticsearch_dsl.DenseVector
+            mapping_type, elasticsearch_dsl.DenseVector
     ):
         if nested_path:
             sim_query = _wrap_in_script_query(k_path, filter.value)
@@ -363,7 +378,7 @@ def _build_bool_query(
 
 
 def _wrap_in_nested_bool_query(
-    path, filter_or_must_or_must_not, filter_type, filter_value
+        path, filter_or_must_or_must_not, filter_type, filter_value
 ):
     return _wrap_in_nested_query(
         path=path,
@@ -395,15 +410,15 @@ def _detect_mapping_type(value: Any):
         # double
         if float(value):
             return elasticsearch_dsl.Float()
-    except ValueError as ve:
+    except ValueError:
         pass
-    except TypeError as te:
+    except TypeError:
         pass
     try:
         # Date
         if isinstance(dateutil.parser.parse(str(value)), datetime.datetime):
             return elasticsearch_dsl.Date()
-    except ParserError as pe:
+    except ParserError:
         return elasticsearch_dsl.Text()
 
 
@@ -412,8 +427,8 @@ def _wrap_in_non_nested_query_query(path, filter_type, filter_value):
     return query
 
 
-def _wrap_in_script_query(field: str, queryVector: List):
+def _wrap_in_script_query(field: str, query_vector: List):
     return elasticsearch_dsl.query.Script(
         source=f"doc['{field}'].size() == 0 ? 0 : (cosineSimilarity(params.queryVector, doc['{field}'])+1.0) / 2",
-        params={"queryVector": queryVector},
+        params={"queryVector": query_vector},
     )

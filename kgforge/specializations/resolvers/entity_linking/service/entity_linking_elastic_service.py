@@ -11,19 +11,20 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
+
+from typing import Callable, Dict, List, Optional, Union, Any
+
 import itertools
 
 import requests
 
-from typing import Callable, Dict, List, Optional, Union, Any
-
-from kgforge.core import Resource
-from kgforge.core.archetypes import Store
+from kgforge.core.archetypes.store import Store
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from kgforge.core.conversions.json import as_json
 from kgforge.core.resource import encode
 from kgforge.core.wrappings import Filter, FilterOperator
-from kgforge.specializations.mappers import DictionaryMapper
-from kgforge.specializations.mappings import DictionaryMapping
+from kgforge.specializations.mappers.dictionaries import DictionaryMapper
+from kgforge.specializations.mappings.dictionaries import DictionaryMapping
 from kgforge.specializations.resolvers.entity_linking.service.entity_linking_service import (
     EntityLinkerService,
 )
@@ -33,6 +34,8 @@ from kgforge.specializations.resources.entity_linking_candidate import (
 
 
 class EntityLinkerElasticService(EntityLinkerService):
+    REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
+
     def __init__(
         self,
         store: Callable,
@@ -42,7 +45,7 @@ class EntityLinkerElasticService(EntityLinkerService):
         **store_config
     ):
         super().__init__(is_distance=False)
-        self.sources: Dict[str, Store] = dict()
+        self.sources: Dict[str, Store] = {}
         for identifier in targets:
             bucket = targets[identifier]['bucket']
             store_config.update(bucket=bucket)
@@ -70,7 +73,9 @@ class EntityLinkerElasticService(EntityLinkerService):
         resources, scores = [], []
         for mention in mentions_labels:
             call_url = self.encoder.format(x=mention)
-            embedding_object = requests.get(url=call_url)
+            embedding_object = requests.get(
+                url=call_url, timeout=EntityLinkerElasticService.REQUEST_TIMEOUT
+            )
             embedding = self.mapper().map(
                 embedding_object.json(), self.result_mapping, None
             )
@@ -78,7 +83,7 @@ class EntityLinkerElasticService(EntityLinkerService):
                 embedding_json = encode(embedding)
                 vector_field = list(embedding_json.keys())[0]
                 mention_resources, mention_resources_scores = self._similar(
-                    vector_field,embedding_json[vector_field], target, limit
+                    vector_field, embedding_json[vector_field], target, limit
                 )
                 resources.append(mention_resources)
                 scores.append(mention_resources_scores)
@@ -127,5 +132,5 @@ class EntityLinkerElasticService(EntityLinkerService):
                 ),
                 scores,
             )
-        else:
-            return None
+
+        return None

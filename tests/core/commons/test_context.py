@@ -16,6 +16,7 @@ import json
 
 import pytest
 from urllib.error import URLError
+from rdflib.plugins.shared.jsonld.context import URI_GEN_DELIMS
 
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import _merge_jsonld
@@ -47,7 +48,7 @@ def test_load_context_from_list(custom_context, context_iri_file, model_prefixes
     assert context.is_http_iri() is False
     assert context.base == "http://example.org/"
     assert context.vocab == "http://example.org/vocab/"
-    assert context.expand("Person") == "http://schema.org/Person"
+    assert context.expand("Person") == "https://schema.org/Person"
     assert context.prefixes == model_prefixes
 
 
@@ -66,6 +67,16 @@ def test_load_context_fail():
         Context(context_url)
 
 
+def test_prefix_with_non_URI_GEN_DELIMS_expands(model_context):
+    context = model_context
+    assert "_" not in URI_GEN_DELIMS
+    assert context.version == 1.1
+    assert (
+        context.resolve("NCBITaxon:10090")
+        == "http://purl.obolibrary.org/obo/NCBITaxon_10090"
+    )
+    assert context.expand("NCBITaxonPrefixFalse:10090") == "NCBITaxonPrefixFalse:10090"
+
+
 def is_valid_document(doc):
-    return (isinstance(doc, dict)
-            and "@context" in doc)
+    return isinstance(doc, dict) and "@context" in doc

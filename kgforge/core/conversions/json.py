@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Union, Optional, Callable
 
 import hjson
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import sort_attrs
 from kgforge.core.commons.context import Context
 from kgforge.core.conversions.rdf import as_jsonld
@@ -30,11 +30,11 @@ def as_json(data: Union[Resource, List[Resource]], expanded: bool, store_metadat
     if expanded:
         return as_jsonld(data, "expanded", store_metadata, model_context=model_context,
                          metadata_context=metadata_context, context_resolver=context_resolver)
-    else:
-        if isinstance(data, Resource):
-            return _as_json(data, store_metadata)
-        else:
-            return [_as_json(x, store_metadata) for x in data]
+
+    if isinstance(data, Resource):
+        return _as_json(data, store_metadata)
+
+    return [_as_json(x, store_metadata) for x in data]
 
 
 def from_json(data: Union[Dict, List[Dict]], na: Union[Any, List[Any]]
@@ -61,4 +61,3 @@ def _remove_context(dictionary: dict):
                 elif isinstance(dictionary[i], list):
                     for x in dictionary[i]:
                         _remove_context(x)
-

@@ -14,9 +14,9 @@
 
 # Test suite for initializing a forge.
 
-import pytest
+import os
 
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core.forge import KnowledgeGraphForge
 
 SCOPE = "terms"
 MODEL = "DemoModel"
@@ -30,6 +30,7 @@ class TestForgeInitialization:
         forge = KnowledgeGraphForge(config)
         assert forge._config['config'] == config
         assert forge._config['kwargs'] == {}
+        assert os.environ['PYSHACL_USE_FULL_MIXIN'] == "True"
         assert type(forge._model).__name__ == MODEL
         assert type(forge._store).__name__ == STORE
         assert type(forge._resolvers[SCOPE][RESOLVER]).__name__ == RESOLVER

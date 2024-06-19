@@ -1,14 +1,14 @@
-# 
+#
 # Blue Brain Nexus Forge is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Blue Brain Nexus Forge is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser
 # General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
@@ -16,8 +16,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable, Iterator, List, Optional, Sequence, Union
 
-from kgforge.core import Resource
-from kgforge.core.archetypes import Mapping
+from kgforge.core.resource import Resource
+from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.commons.attributes import repr_class
 
 
@@ -41,8 +41,9 @@ class Mapper(ABC):
     def __repr__(self) -> str:
         return repr_class(self)
 
-    def map(self, data: Any, mapping: Union[Mapping, List[Mapping]], na: Union[Any, List[Any]]
-            ) -> Union[Resource, List[Resource]]:
+    def map(
+            self, data: Any, mapping: Union[Mapping, List[Mapping]], na: Union[Any, List[Any]]
+    ) -> Union[Resource, List[Resource]]:
         # Data could be loaded from a directory, a file, a collection, or an object.
         mappings = mapping if isinstance(mapping, List) else [mapping]
         nas = na if isinstance(na, List) else [na]
@@ -75,7 +76,7 @@ class Mapper(ABC):
         # POLICY Should not include as Resource properties elements with values in 'na'.
         # POLICY Could make the KnowledgeGraphForge instance available as 'forge'.
         # POLICY Could make the record instance available as 'x'.
-        pass
+        ...
 
     # No _load_many() for proper parallel / distributed processing directly in self._map_many().
 
@@ -85,4 +86,4 @@ class Mapper(ABC):
         # Method to change to handle a new type of data to map.
         # POLICY Should prepare the record according to how the rules are using it.
         # The loading cannot be abstracted as it depends on the reader and the rules.
-        pass
+        ...

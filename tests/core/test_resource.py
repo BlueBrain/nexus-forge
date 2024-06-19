@@ -15,7 +15,7 @@
 import pytest
 from pytest_bdd import given, scenarios, then, when
 
-from kgforge.core import Resource
+from kgforge.core.resource import Resource
 
 # TODO To be port to the generic parameterizable test suite for resources in test_resources.py.
 #  DKE-135.
