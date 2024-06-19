@@ -447,7 +447,7 @@ class TestQuerying:
                 id="literal_eq",
             ),
             pytest.param(
-                (Filter(["agent", "name"], "__eq__", "Allen Institute"),),
+                (Filter(["agent", "name"], "__ne__", "Allen Institute"),),
                 (["agent/name ?v0"], ['FILTER(?v0 != "Allen Institute")']),
                 id="literal_ne",
             ),
