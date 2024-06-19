@@ -4,4 +4,5 @@
     name: x.name
     familyName: x.familyName
     givenName: x.givenName
+    alternateName: x.alternateName if hasattr(x, "alternateName") else None
 }

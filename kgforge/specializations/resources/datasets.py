@@ -53,6 +53,13 @@ class Dataset(Resource):
         _set(self, "distribution", action)
 
     @catch
+    def add_image(self, path: str, content_type: str = None, about: str = None) -> None:
+        # path: FilePath.
+        """Add an image form of the dataset."""
+        action = LazyAction(self._forge._store.upload_image, path, content_type, about, self._forge)
+        _set(self, "image", action)
+
+    @catch
     def add_contribution(self, resource: Union[str, Resource], versioned: bool = True, **kwargs) -> None:
         # resource: Union[str, Resource].
         """Add information on the contribution of an agent during the generation of the dataset."""
