@@ -169,20 +169,15 @@ class SPARQLQueryBuilder(QueryBuilder):
                     value = format_type[value_type](
                         parsed_value if parsed_value else f.value
                     )
-                    if value_type is CategoryDataType.LITERAL:
-                        if f.operator not in ["__eq__", "__ne__"]:
-                            raise NotImplementedError(
-                                "supported operators are '==' and '!=' when filtering with a str."
-                            )
-                        statements.append(f"{property_path} ?v{index}")
-                        sparql_filters.append(
-                            f"FILTER(?v{index} = {_box_value_as_full_iri(value)})"
+                    if value_type is CategoryDataType.LITERAL and f.operator not in ["__eq__", "__ne__"]:
+                        raise NotImplementedError(
+                            "supported operators are '==' and '!=' when filtering with a str."
                         )
-                    else:
-                        statements.append(f"{property_path} ?v{index}")
-                        sparql_filters.append(
-                            f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
-                        )
+
+                    statements.append(f"{property_path} ?v{index}")
+                    sparql_filters.append(
+                        f"FILTER(?v{index} {sparql_operator_map[f.operator]} {_box_value_as_full_iri(value)})"
+                    )
             except NotImplementedError as nie:
                 raise ValueError(
                     f"Operator '{sparql_operator_map[f.operator]}' "
