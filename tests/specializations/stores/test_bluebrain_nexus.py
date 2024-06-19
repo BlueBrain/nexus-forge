@@ -444,7 +444,12 @@ class TestQuerying:
             pytest.param(
                 (Filter(["agent", "name"], "__eq__", "Allen Institute"),),
                 (["agent/name ?v0"], ['FILTER(?v0 = "Allen Institute")']),
-                id="literal",
+                id="literal_eq",
+            ),
+            pytest.param(
+                (Filter(["agent", "name"], "__eq__", "Allen Institute"),),
+                (["agent/name ?v0"], ['FILTER(?v0 != "Allen Institute")']),
+                id="literal_ne",
             ),
             pytest.param(
                 (Filter(["address", "postalCode"], "__lt__", 50070),),
