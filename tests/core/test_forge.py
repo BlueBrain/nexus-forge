@@ -28,6 +28,8 @@ class TestForgeInitialization:
 
     def test_initialization(self, config):
         forge = KnowledgeGraphForge(config)
+        assert forge._config['config'] == config
+        assert forge._config['kwargs'] == {}
         assert os.environ['PYSHACL_USE_FULL_MIXIN'] == "True"
         assert type(forge._model).__name__ == MODEL
         assert type(forge._store).__name__ == STORE
