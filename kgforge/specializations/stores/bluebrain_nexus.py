@@ -12,8 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
+import os
 import asyncio
 import copy
+import collections
 
 import json
 import mimetypes
@@ -24,7 +26,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type, Callable
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
-import nexussdk as nexus
 import requests
 from aiohttp import ClientSession, MultipartWriter, hdrs, ClientResponseError
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
@@ -66,8 +67,11 @@ from kgforge.specializations.stores.nexus.batch_request_handler import BatchRequ
     BatchResult
 from kgforge.specializations.stores.nexus.service import Service, _error_message
 import kgforge.specializations.stores.nexus.prepare_methods as prepare_methods
+from kgforge.specializations.stores.nexus.http_helpers import files_create
+
 
 REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
+JSON_DECODER = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
 
 
 def catch_http_error_nexus(
@@ -224,13 +228,19 @@ class BlueBrainNexus(Store):
         if mime_type is None:
             mime_type = "application/octet-stream"
         try:
-            response = nexus.files.create(
-                self.organisation, self.project, file, content_type=mime_type
-            )
+            headers = self.service.headers_upload
+            filename = file.split("/")[-1]
+            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(os.path.getsize(file))
+            file_obj = {
+                "file": (filename, open(file, "rb"), mime_type)
+            }
+            response = requests.post(self.service.url_files, headers=headers, files=file_obj)
+            response.raise_for_status()
+
         except requests.HTTPError as e:
             raise UploadingError(_error_message(e)) from e
 
-        return response
+        return JSON_DECODER.decode(response.text)
 
     # C[R]UD.
 
@@ -576,12 +586,16 @@ class BlueBrainNexus(Store):
                     query_params=query_params
                 )
 
-    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+    def _retrieve_file_metadata(self, id_: str) -> Dict:
         response = requests.get(
             id_, headers=self.service.headers, timeout=REQUEST_TIMEOUT
         )
         catch_http_error_nexus(response, DownloadingError)
         metadata = response.json()
+        return metadata
+
+    def _retrieve_filename(self, id_: str) -> Tuple[str, str]:
+        metadata = self._retrieve_file_metadata(id_)
         return metadata["_filename"], metadata["_mediaType"]
 
     def _download_many(
@@ -661,21 +675,7 @@ class BlueBrainNexus(Store):
             for chunk in response.iter_content(chunk_size=4096):
                 f.write(chunk)
 
-    def _prepare_download_one(
-        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
-    ) -> Tuple[str, str]:
-        if cross_bucket:
-            if store_metadata is not None:
-                project = store_metadata._project.split("/")[-1]
-                org = store_metadata._project.split("/")[-2]
-            else:
-                raise ValueError(
-                    f"Downloading non registered file is not allowed when cross_bucket is set to {cross_bucket}"
-                )
-        else:
-            org = self.service.organisation
-            project = self.service.project
-
+    def _prepare_download_one_with_org_project(self, url: str, org: str, project: str):
         file_id = url.split("/")[-1]
         file_id = unquote(file_id)
         if len(file_id) < 1:
@@ -696,6 +696,23 @@ class BlueBrainNexus(Store):
                 )
             )
         return url_base, f"{org}/{project}"
+
+    def _prepare_download_one(
+        self, url: str, store_metadata: Optional[DictWrapper], cross_bucket: bool
+    ) -> Tuple[str, str]:
+        if cross_bucket:
+            if store_metadata is not None:
+                project = store_metadata._project.split("/")[-1]
+                org = store_metadata._project.split("/")[-2]
+            else:
+                raise ValueError(
+                    f"Downloading non registered file is not allowed when cross_bucket is set to True"
+                )
+        else:
+            org = self.service.organisation
+            project = self.service.project
+
+        return self._prepare_download_one_with_org_project(url, org, project)
 
     # CR[U]D.
 

@@ -19,9 +19,9 @@ from urllib.request import pathname2url
 from uuid import uuid4
 from contextlib import nullcontext as does_not_raise
 
-import nexussdk
 import pytest
 from typing import Callable, Union, List
+
 
 from kgforge.core.commons.files import load_yaml_from_file
 from kgforge.core.resource import Resource
@@ -145,9 +145,8 @@ def store_config(production_configuration):
 
 
 @pytest.fixture
-@mock.patch("nexussdk.projects.fetch", return_value=NEXUS_PROJECT_CONTEXT)
-@mock.patch("nexussdk.resources.fetch", side_effect=nexussdk.HTTPError("404"))
-def nexus_store(context_project_patch, metadata_context_patch, store_config):
+@mock.patch("kgforge.specializations.stores.nexus.http_helpers.project_fetch", return_value=NEXUS_PROJECT_CONTEXT)
+def nexus_store(context_project_patch, store_config):
 
     store_config_cp = copy.deepcopy(store_config)
     store_config_cp["endpoint"] = NEXUS
@@ -444,7 +443,12 @@ class TestQuerying:
             pytest.param(
                 (Filter(["agent", "name"], "__eq__", "Allen Institute"),),
                 (["agent/name ?v0"], ['FILTER(?v0 = "Allen Institute")']),
-                id="literal",
+                id="literal_eq",
+            ),
+            pytest.param(
+                (Filter(["agent", "name"], "__ne__", "Allen Institute"),),
+                (["agent/name ?v0"], ['FILTER(?v0 != "Allen Institute")']),
+                id="literal_ne",
             ),
             pytest.param(
                 (Filter(["address", "postalCode"], "__lt__", 50070),),

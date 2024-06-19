@@ -15,6 +15,7 @@
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Type
 
+import os
 import numpy as np
 from pandas import DataFrame
 from rdflib import Graph
@@ -197,10 +198,15 @@ class KnowledgeGraphForge:
         :param kwargs:  keyword arguments
         """
 
+        self.set_environment_variables()
+
         if isinstance(configuration, str):
             config = load_yaml_from_file(configuration)
         else:
             config = deepcopy(configuration)
+
+        # Store initial configuration
+        self._config = {"config": deepcopy(config), "kwargs": deepcopy(kwargs)}
 
         # Debugging.
         self._debug = kwargs.pop("debug", False)
@@ -252,6 +258,11 @@ class KnowledgeGraphForge:
 
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
+
+    @staticmethod
+    def set_environment_variables():
+        # Set environment variable for pyshacl
+        os.environ["PYSHACL_USE_FULL_MIXIN"] = "True"
 
     @catch
     def prefixes(self, pretty: bool = True) -> Optional[Dict[str, str]]:
@@ -327,7 +338,9 @@ class KnowledgeGraphForge:
                           RDFS entailment rules (https://www.w3.org/TR/rdf-mt/). In this example 'owlrl' or 'rdfsowlrl' are also possible values while no inference will be performed with None .
         :return: None
         """
-        self._model.validate(data, execute_actions_before, type_=type_, inference=inference)
+        self._model.validate(
+            data, execute_actions_before, type_=type_, inference=inference
+        )
 
     # Resolving User Interface.
 

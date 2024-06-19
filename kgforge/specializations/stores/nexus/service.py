@@ -23,7 +23,6 @@ from urllib.parse import quote_plus, urlparse, parse_qs
 
 import aiohttp
 import nest_asyncio
-import nexussdk as nexus
 import requests
 
 from kgforge.core.resource import Resource
@@ -38,6 +37,15 @@ from kgforge.core.commons.actions import (
 
 from kgforge.core.commons.exceptions import ConfigurationError, RunException
 from kgforge.core.commons.context import Context
+from kgforge.core.conversions.rdf import (
+    _from_jsonld_one,
+    _remove_ld_keys,
+    as_jsonld,
+    recursive_resolve,
+)
+import kgforge
+from kgforge.core.wrappings.dict import wrap_dict
+from kgforge.specializations.stores.nexus.http_helpers import views_fetch
 
 from kgforge.core.conversions.rdf import _from_jsonld_one, _remove_ld_keys, recursive_resolve
 from kgforge.core.wrappings.dict import wrap_dict
@@ -59,6 +67,8 @@ class Service:
     SPARQL_ENDPOINT_TYPE = "sparql"
     ELASTIC_ENDPOINT_TYPE = "elastic"
 
+    NEXUS_CONTENT_LENGTH_HEADER = "x-nxs-file-content-length"
+
     def __init__(
             self,
             endpoint: str,
@@ -79,7 +89,6 @@ class Service:
             files_download_config: Dict,
             **params,
     ):
-        nexus.config.set_environment(endpoint)
         self.endpoint = endpoint
         self.organisation = org
         self.project = prj
@@ -127,13 +136,15 @@ class Service:
         }
         self.headers_download = {"Accept": files_download_config.pop("Accept")}
 
+        self.token = token
+
         if token is not None:
-            nexus.config.set_token(token)
             self.headers["Authorization"] = "Bearer " + token
             self.headers_sparql["Authorization"] = "Bearer " + token
             self.headers_elastic["Authorization"] = "Bearer " + token
             self.headers_upload["Authorization"] = "Bearer " + token
             self.headers_download["Authorization"] = "Bearer " + token
+
         self.context = Context(self.get_project_context())
 
         self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
@@ -177,7 +188,9 @@ class Service:
         }
 
         self.elastic_endpoint["view"] = LazyAction(
-            nexus.views.fetch,
+            views_fetch,
+            self.endpoint,
+            self.token,
             quote_plus(org),
             quote_plus(prj),
             es_mapping if es_mapping else elastic_view,  # Todo consider using Dict for es_mapping
@@ -247,7 +260,7 @@ class Service:
         )
 
     def get_project_context(self) -> Dict:
-        project_data = nexus.projects.fetch(self.organisation, self.project)
+        project_data = kgforge.specializations.stores.nexus.http_helpers.project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
         for mapping in project_data['apiMappings']:
             context[mapping['prefix']] = mapping['namespace']

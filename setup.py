@@ -41,7 +41,7 @@ setup(
         "hjson",
         "pyyaml",
         "pandas",
-        "nexus-sdk",
+        "puremagic",
         "aiohttp",
         "rdflib==7.0.0",
         "pyLD",
