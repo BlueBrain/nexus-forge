@@ -490,10 +490,10 @@ class BlueBrainNexus(Store):
         **params,
     ) -> Union[List[Optional[Resource]], Optional[Resource]]:
         """
-        Retrieve a resource by its identifier from the configured store and possibly at a given version.
+        Retrieve one or many resources by identifier(s) from the configured store and possibly at a given version.
 
-        :param id_: the resource identifier to retrieve
-        :param version: a version of the resource to retrieve
+        :param id_: the identifier(s) of the resource(s) to retrieve
+        :param version: the version(s) of the resource(s) to retrieve. In case of list identifier and version values are matched by index
         :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
         :param params: a dictionary of parameters. Supported parameters are:
               [retrieve_source] whether to retrieve the resource payload as registered in the last update
