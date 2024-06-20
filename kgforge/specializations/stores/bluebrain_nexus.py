@@ -498,7 +498,7 @@ class BlueBrainNexus(Store):
         :param params: a dictionary of parameters. Supported parameters are:
               [retrieve_source] whether to retrieve the resource payload as registered in the last update
               (default: True)
-        :return: Resource
+        :return: Union[List[Optional[Resource]], Optional[Resource]]
         """
 
         ids = [id_] if isinstance(id_, str) else id_
