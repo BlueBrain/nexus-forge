@@ -20,14 +20,14 @@ import collections
 import json
 import mimetypes
 import re
-from asyncio import Semaphore, Task
+from asyncio import Semaphore, Task, AbstractEventLoop
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Type
+from typing import Any, Dict, List, Optional, Tuple, Union, Type, Callable
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
 import requests
-from aiohttp import ClientSession, MultipartWriter
+from aiohttp import ClientSession, MultipartWriter, hdrs, ClientResponseError
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
@@ -43,7 +43,7 @@ from kgforge.core.archetypes.store import Store
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.resolver import Resolver
-from kgforge.core.commons.actions import LazyAction
+from kgforge.core.commons.actions import LazyAction, Action
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.exceptions import (
     DeprecationError,
@@ -59,17 +59,17 @@ from kgforge.core.commons.exceptions import (
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
 from kgforge.core.conversions.json import as_json
-from kgforge.core.conversions.rdf import as_jsonld
 from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
-from kgforge.specializations.stores.nexus.http_helpers import files_create
-from kgforge.specializations.stores.nexus.service import (
-    BatchAction,
-    Service,
-    _error_message,
+from kgforge.specializations.stores.nexus.batch_request_handler import (
+    BatchRequestHandler,
+    BatchResult,
 )
+from kgforge.specializations.stores.nexus.service import Service, _error_message
+import kgforge.specializations.stores.nexus.prepare_methods as prepare_methods
+from kgforge.specializations.stores.nexus.http_helpers import files_create
 
 
 REQUEST_TIMEOUT = DEFAULT_REQUEST_TIMEOUT
@@ -77,9 +77,17 @@ JSON_DECODER = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
 
 
 def catch_http_error_nexus(
-    r: requests.Response, e: Type[BaseException], error_message_formatter=_error_message
+    r: requests.Response,
+    e: Type[BaseException],
+    error_message_formatter: Callable = _error_message,
+    aiohttp_error=False,
 ):
-    return catch_http_error(r, e, error_message_formatter)
+    return catch_http_error(
+        r,
+        e,
+        error_message_formatter,
+        to_catch=requests.HTTPError if not aiohttp_error else ClientResponseError,
+    )
 
 
 class BlueBrainNexus(Store):
@@ -115,17 +123,15 @@ class BlueBrainNexus(Store):
         )
 
     def _register_many(self, resources: List[Resource], schema_id: str) -> None:
+
+        fc_name = self._register_many.__name__
+
         def register_callback(task: Task):
             result = task.result()
-            if isinstance(result.response, Exception):
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    False,
-                    False,
-                )
-            else:
+            succeeded = not isinstance(result.response, Exception)
+
+            # This if is the one difference with the default callback
+            if succeeded:
                 result.resource.id = result.response["@id"]
                 if not hasattr(result.resource, "context"):
                     context = self.model_context() or self.context
@@ -134,80 +140,52 @@ class BlueBrainNexus(Store):
                         if context.is_http_iri()
                         else context.document["@context"]
                     )
-                self.service.synchronize_resource(
-                    result.resource,
-                    result.response,
-                    self._register_many.__name__,
-                    True,
-                    True,
-                )
+
+            self.service.synchronize_resource(
+                result.resource, result.response, fc_name, succeeded, succeeded
+            )
 
         verified = self.service.verify(
             resources,
-            function_name=self._register_many.__name__,
+            function_name=fc_name,
             exception=RegistrationError,
             id_required=False,
             required_synchronized=False,
             execute_actions=True,
         )
-        params_register = copy.deepcopy(self.service.params.get("register", {}))
 
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.CREATE,
             callback=register_callback,
-            error_type=RegistrationError,
+            prepare_function=prepare_methods.prepare_create,
             schema_id=schema_id,
-            params=params_register,
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
-        data = as_jsonld(
-            resource,
-            "compacted",
-            False,
-            model_context=context,
-            metadata_context=None,
-            context_resolver=self.service.resolve_context,
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_create(service=self.service, resource=resource)
         )
 
-        params_register = copy.deepcopy(self.service.params.get("register", None))
-        identifier = resource.get_identifier()
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
+            timeout=REQUEST_TIMEOUT,
+        )
 
-        if identifier:
+        catch_http_error_nexus(response, exception_)
 
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=identifier
-            )
-
-            response = requests.put(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT,
-            )
-        else:
-
-            url = Service.add_schema_and_id_to_endpoint(
-                self.service.url_resources, schema_id=schema_id, resource_id=None
-            )
-
-            response = requests.post(
-                url,
-                headers=self.service.headers,
-                data=json.dumps(data, ensure_ascii=True),
-                params=params_register,
-                timeout=REQUEST_TIMEOUT,
-            )
-        catch_http_error_nexus(response, RegistrationError)
+        data = payload
 
         response_json = response.json()
         resource.id = response_json["@id"]
         # If resource had no context, update it with the one provided by the store.
         if not hasattr(resource, "context"):
             resource.context = data["@context"]
+
         self.service.sync_metadata(resource, response_json)
 
     def _upload_many(self, paths: List[Path], content_type: str) -> List[Dict]:
@@ -253,11 +231,13 @@ class BlueBrainNexus(Store):
         try:
             headers = self.service.headers_upload
             filename = file.split("/")[-1]
-            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(os.path.getsize(file))
-            file_obj = {
-                "file": (filename, open(file, "rb"), mime_type)
-            }
-            response = requests.post(self.service.url_files, headers=headers, files=file_obj)
+            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(
+                os.path.getsize(file)
+            )
+            file_obj = {"file": (filename, open(file, "rb"), mime_type)}
+            response = requests.post(
+                self.service.url_files, headers=headers, files=file_obj
+            )
             response.raise_for_status()
 
         except requests.HTTPError as e:
@@ -291,8 +271,13 @@ class BlueBrainNexus(Store):
 
         return id_without_query, query_params
 
-    def _retrieve_id(
-        self, id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
+    async def _retrieve_id(
+        self,
+        session,
+        id_,
+        retrieve_source: bool,
+        cross_bucket: bool,
+        query_params: Dict,
     ):
         """
         Retrieves assuming the provided identifier really is the id
@@ -324,17 +309,17 @@ class BlueBrainNexus(Store):
 
         url = url_resource
 
-        response_not_source_with_metadata = requests.get(
-            url,
-            params=query_params,
-            headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT,
+        async with session.request(
+            method=hdrs.METH_GET, url=url, headers=self.service.headers
+        ) as response_not_source_with_metadata:
+            # turns the retrieved data into a resource
+            not_source_with_metadata = await response_not_source_with_metadata.json()
+
+        catch_http_error_nexus(
+            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
         )
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
 
         try:
-            not_source_with_metadata = response_not_source_with_metadata.json()
-
             # TODO temporary
             # if not (retrieve_source and cross_bucket):
             #     return self.service.to_resource(not_source_with_metadata)
@@ -350,24 +335,28 @@ class BlueBrainNexus(Store):
 
         # Retrieves the appropriate data if retrieve_source = True
         if _self:
-            return self._merge_metadata_with_source_data(
-                _self, not_source_with_metadata, query_params
+
+            return await self._merge_metadata_with_source_data(
+                session, _self, not_source_with_metadata, query_params
             )
 
         raise RetrievalError("Cannot find metadata in payload")
 
-    def _merge_metadata_with_source_data(
-        self, _self, data_not_source_with_metadata, query_params
+    async def _merge_metadata_with_source_data(
+        self, session, _self, data_not_source_with_metadata, query_params
     ):
-        response_source = requests.get(
+
+        async with session.request(
+            method=hdrs.METH_GET,
             url=f"{_self}/source",
-            params=query_params,
             headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT,
-        )
-        catch_http_error_nexus(response_source, RetrievalError)
-        # turns the retrieved data into a resource
-        data_source = response_source.json()
+            params=query_params,
+        ) as response_source:
+            # turns the retrieved data into a resource
+            data_source = await response_source.json()
+
+        catch_http_error_nexus(response_source, RetrievalError, aiohttp_error=True)
+
         resource = self.service.to_resource(data_source)
         # uses the metadata of the first call
         self.service.synchronize_resource(
@@ -375,8 +364,8 @@ class BlueBrainNexus(Store):
         )
         return resource
 
-    def _retrieve_self(
-        self, self_, retrieve_source: bool, query_params: Dict
+    async def _retrieve_self(
+        self, session, self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
         """
         Retrieves assuming the provided identifier is actually the resource's _self field
@@ -385,28 +374,155 @@ class BlueBrainNexus(Store):
         # url = f"{self_}/source" if retrieve_source else self_
         url = self_
 
-        response_not_source_with_metadata = requests.get(
-            url,
-            params=query_params,
+        async with session.request(
+            method=hdrs.METH_GET,
+            url=url,
             headers=self.service.headers,
-            timeout=REQUEST_TIMEOUT,
+            params=query_params,
+        ) as response_not_source_with_metadata:
+            # turns the retrieved data into a resource
+            not_source_with_metadata = await response_not_source_with_metadata.json()
+
+        catch_http_error_nexus(
+            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
         )
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
 
         try:
-            not_source_with_metadata = response_not_source_with_metadata.json()
             if not retrieve_source:
                 return self.service.to_resource(not_source_with_metadata)
 
         except Exception as e:
             raise RetrievalError(e) from e
 
-        return self._merge_metadata_with_source_data(
-            self_, not_source_with_metadata, query_params
+        return await self._merge_metadata_with_source_data(
+            session, self_, not_source_with_metadata, query_params
         )
+
+    def _retrieve_one(
+        self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
+    ):
+        loop = asyncio.get_event_loop()
+
+        async def do():
+            async with ClientSession() as session:
+                return await self._retrieve(
+                    semaphore=asyncio.Semaphore(1),
+                    session=session,
+                    id_=id_,
+                    version=version,
+                    cross_bucket=cross_bucket,
+                    **params,
+                )
+
+        return loop.run_until_complete(do())
+
+    def _retrieve_many(
+        self,
+        ids: List[str],
+        versions: List[Optional[Union[int, str]]],
+        cross_bucket: bool,
+        **params,
+    ) -> List[Optional[Resource]]:
+
+        def create_tasks(
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop: AbstractEventLoop,
+            ids_: List[Any],
+            service,
+            **kwargs,
+        ) -> List[asyncio.Task]:
+
+            vs = kwargs["versions"]
+            tasks = []
+
+            def retrieve_done_callback(task: Task):
+                result = task.result()
+
+                succeeded = not isinstance(result, Action)
+
+                if isinstance(result, Resource):
+                    self.service.synchronize_resource(
+                        resource=result,
+                        response=None,
+                        action_name=self,
+                        succeeded=succeeded,
+                        synchronized=succeeded,
+                    )
+
+            async def do_catch(id_, version):
+                try:
+                    resource = await self._retrieve(
+                        semaphore=semaphore,
+                        session=session,
+                        service=service,
+                        id_=id_,
+                        version=version,
+                        **kwargs,
+                    )
+                    return resource
+                except RetrievalError as e:
+                    return Action(self._retrieve_many.__name__, False, e)
+
+            for id_, version in zip(ids_, vs):
+                batch_result = do_catch(id_, version)
+                prepared_request: asyncio.Task = loop.create_task(batch_result)
+                prepared_request.add_done_callback(retrieve_done_callback)
+                tasks.append(prepared_request)
+
+            return tasks
+
+        batch_results = BatchRequestHandler.batch_request(
+            service=self.service,
+            task_creator=create_tasks,
+            data=ids,
+            versions=versions,
+            cross_bucket=cross_bucket,
+            **params,
+        )
+        return batch_results
 
     def retrieve(
         self,
+        id_: Union[str, List[str]],
+        version: Union[Optional[Union[int, str]], List[Optional[Union[int, str]]]],
+        cross_bucket: bool = False,
+        **params,
+    ) -> Union[List[Optional[Resource]], Optional[Resource]]:
+        """
+        Retrieve one or many resources by identifier(s) from the configured store and possibly at a given version.
+
+        :param id_: the identifier(s) of the resource(s) to retrieve
+        :param version: the version(s) of the resource(s) to retrieve. In case of list identifier and version values are matched by index
+        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
+        :param params: a dictionary of parameters. Supported parameters are:
+              [retrieve_source] whether to retrieve the resource payload as registered in the last update
+              (default: True)
+        :return: Union[List[Optional[Resource]], Optional[Resource]]
+        """
+
+        ids = [id_] if isinstance(id_, str) else id_
+
+        if len(ids) == 1:
+
+            versions = (
+                [version] if isinstance(version, (str, int)) else (version or [None])
+            )
+
+            return self._retrieve_one(ids[0], versions[0], cross_bucket, **params)
+
+        versions = [None] * len(ids) if version is None else version
+
+        if len(versions) != len(ids):
+            raise Exception("As many versions as ids need to be provided")
+
+        return self._retrieve_many(ids, versions, cross_bucket, **params)
+
+    # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
+    async def _retrieve(
+        self,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
         id_: str,
         version: Optional[Union[int, str]],
         cross_bucket: bool = False,
@@ -443,36 +559,39 @@ class BlueBrainNexus(Store):
         # if retrieve_source:
         #     query_params.update({"annotate": True})
 
-        try:
-            return self._retrieve_id(
-                id_=id_without_query,
-                retrieve_source=retrieve_source,
-                cross_bucket=cross_bucket,
-                query_params=query_params,
-            )
-        except RetrievalError as er:
+        async with semaphore:
+            try:
+                return await self._retrieve_id(
+                    session=session,
+                    id_=id_without_query,
+                    retrieve_source=retrieve_source,
+                    cross_bucket=cross_bucket,
+                    query_params=query_params,
+                )
+            except RetrievalError as er:
 
-            # without org and proj, vs with
-            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
-            nexus_path = (
-                nexus_path_no_bucket if cross_bucket else self.service.url_resources
-            )
-
-            if not id_without_query.startswith(nexus_path_no_bucket):
-                raise er
-
-            if not id_without_query.startswith(nexus_path):
-                raise RetrievalError(
-                    f"Provided resource identifier {id_} is not inside the current bucket, "
-                    "use cross_bucket=True to be able to retrieve it"
+                # without org and proj, vs with
+                nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
+                nexus_path = (
+                    nexus_path_no_bucket if cross_bucket else self.service.url_resources
                 )
 
-            # Try to use the id as it was given
-            return self._retrieve_self(
-                self_=id_without_query,
-                retrieve_source=retrieve_source,
-                query_params=query_params,
-            )
+                if not id_without_query.startswith(nexus_path_no_bucket):
+                    raise er
+
+                if not id_without_query.startswith(nexus_path):
+                    raise RetrievalError(
+                        f"Provided resource identifier {id_} is not inside the current bucket, "
+                        "use cross_bucket=True to be able to retrieve it"
+                    )
+
+                # Try to use the id as it was given
+                return await self._retrieve_self(
+                    session=session,
+                    self_=id_without_query,
+                    retrieve_source=retrieve_source,
+                    query_params=query_params,
+                )
 
     def _retrieve_file_metadata(self, id_: str) -> Dict:
         response = requests.get(
@@ -620,90 +739,81 @@ class BlueBrainNexus(Store):
         )
 
     def _update_many(self, resources: List[Resource], schema_id: str) -> None:
-        update_callback = self.service.default_callback(self._update_many.__name__)
+        fc_name = self._update_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._update_many.__name__,
+            function_name=fc_name,
             exception=UpdatingError,
             id_required=True,
             required_synchronized=False,
             execute_actions=True,
         )
-        params_update = copy.deepcopy(self.service.params.get("update", {}))
-        self.service.batch_request(
+
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.UPDATE,
-            callback=update_callback,
-            error_type=UpdatingError,
-            params=params_update,
+            callback=self.service.default_callback(fc_name),
+            prepare_function=prepare_methods.prepare_update,
             schema_id=schema_id,
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
-        context = self.model_context() or self.context
-        data = as_jsonld(
-            resource,
-            "compacted",
-            False,
-            model_context=context,
-            metadata_context=None,
-            context_resolver=self.service.resolve_context,
-        )
-        url, params = self.service._prepare_uri(
-            resource, schema_id, use_unconstrained_id=True
-        )
-        params_update = copy.deepcopy(self.service.params.get("update", {}))
-        params_update.update(params)
 
-        response = requests.put(
-            url,
-            headers=self.service.headers,
-            data=json.dumps(data, ensure_ascii=True),
-            params=params_update,
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_update(service=self.service, resource=resource)
+        )
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT,
         )
 
-        catch_http_error_nexus(response, UpdatingError)
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     def delete_schema(self, resource: Union[Resource, List[Resource]]):
         return self.update_schema(resource, schema_id=Service.UNCONSTRAINED_SCHEMA)
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
-
-        url = Service.add_schema_and_id_to_endpoint(
-            endpoint=self.service.url_resources,
-            schema_id=schema_id,
-            resource_id=resource.id,
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_update_schema(
+                service=self.service, resource=resource, schema_id=schema_id
+            )
         )
-        response = requests.put(
-            url=f"{url}/update-schema",
-            headers=self.service.headers,
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT,
         )
-        catch_http_error_nexus(response, SchemaUpdateError)
+
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     def _update_schema_many(self, resources: List[Resource], schema_id: str):
-
-        update_schema_callback = self.service.default_callback(
-            self._update_schema_many.__name__
-        )
+        fc_name = self._update_schema_many.__name__
 
         verified = self.service.verify(
             resources,
-            function_name=self._update_schema_many.__name__,
+            function_name=fc_name,
             exception=SchemaUpdateError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
         )
 
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.UPDATE_SCHEMA,
-            callback=update_schema_callback,
-            error_type=SchemaUpdateError,
+            prepare_function=prepare_methods.prepare_update_schema,
+            callback=self.service.default_callback(fc_name),
             schema_id=schema_id,
         )
 
@@ -734,38 +844,41 @@ class BlueBrainNexus(Store):
         )
 
     def _tag_many(self, resources: List[Resource], value: str) -> None:
-        tag_callback = self.service.default_callback(self._tag_many.__name__)
+        fc_name = self._tag_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._tag_many.__name__,
+            function_name=fc_name,
             exception=TaggingError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
         )
-        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
-        self.service.batch_request(
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.TAG,
-            callback=tag_callback,
-            error_type=TaggingError,
+            prepare_function=prepare_methods.prepare_tag,
+            callback=self.service.default_callback(fc_name),
             tag=value,
-            params=params_tag,
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        url, data, rev_param = self.service._prepare_tag(resource, value)
-        params_tag = copy.deepcopy(self.service.params.get("tag", {}))
-        params_tag.update(rev_param)
-        response = requests.post(
-            url,
-            headers=self.service.headers,
-            data=json.dumps(data, ensure_ascii=True),
-            params=params_tag,
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_tag(
+                service=self.service, resource=resource, tag=value
+            )
+        )
+
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT,
         )
-        catch_http_error_nexus(response, TaggingError)
 
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
     # CRU[D].
@@ -782,43 +895,40 @@ class BlueBrainNexus(Store):
         )
 
     def _deprecate_many(self, resources: List[Resource]) -> None:
-        deprecate_callback = self.service.default_callback(
-            self._deprecate_many.__name__
-        )
+        fc_name = self._deprecate_many.__name__
+
         verified = self.service.verify(
             resources,
-            function_name=self._deprecate_many.__name__,
+            function_name=fc_name,
             exception=DeprecationError,
             id_required=True,
             required_synchronized=True,
             execute_actions=False,
         )
-        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", {}))
-        self.service.batch_request(
+
+        BatchRequestHandler.batch_request_on_resources(
+            service=self.service,
             resources=verified,
-            action=BatchAction.DEPRECATE,
-            callback=deprecate_callback,
-            error_type=DeprecationError,
-            params=params_deprecate,
+            prepare_function=prepare_methods.prepare_deprecate,
+            callback=self.service.default_callback(fc_name),
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
 
-        url, params = self.service._prepare_uri(resource)
-        params_deprecate = copy.deepcopy(self.service.params.get("deprecate", None))
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_deprecate(service=self.service, resource=resource)
+        )
 
-        if params_deprecate is not None:
-            params_deprecate.update(params)
-        else:
-            params_deprecate = params
-
-        response = requests.delete(
-            url,
-            headers=self.service.headers,
-            params=params_deprecate,
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=json.dumps(payload, ensure_ascii=True),
+            params=params,
             timeout=REQUEST_TIMEOUT,
         )
-        catch_http_error_nexus(response, DeprecationError)
+
+        catch_http_error_nexus(response, exception_)
         self.service.sync_metadata(resource, response.json())
 
         # Querying.
@@ -926,14 +1036,12 @@ class BlueBrainNexus(Store):
                 offset=offset,
                 view=params.get("view", None),
             )
-            params_retrieve = copy.deepcopy(self.service.params.get("retrieve", {}))
-            params_retrieve["retrieve_source"] = retrieve_source
-            results = self.service.batch_request(
+            results = BatchRequestHandler.batch_request_on_resources(
+                service=self.service,
                 resources=resources,
-                action=BatchAction.FETCH,
+                prepare_function=prepare_methods.prepare_fetch,
                 callback=None,
-                error_type=QueryingError,
-                params=params_retrieve,
+                retrieve_source=retrieve_source,
             )
             resources = []
             for result in results:

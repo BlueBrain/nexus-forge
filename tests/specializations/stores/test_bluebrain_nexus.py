@@ -36,7 +36,8 @@ from kgforge.specializations.stores.bluebrain_nexus import BlueBrainNexus
 
 # FIXME mock Nexus for unittests
 # TODO To be port to the generic parameterizable test suite for stores in test_stores.py. DKE-135.
-from kgforge.specializations.stores.nexus import Service
+from kgforge.specializations.stores.nexus import Service, prepare_methods
+from kgforge.specializations.stores.nexus.prepare_methods import _prepare_uri
 from utils import full_path_relative_to_root
 
 MODEL = DemoModel(
@@ -47,6 +48,8 @@ MODEL = DemoModel(
 )
 BUCKET = "test/kgforge"
 NEXUS = "https://nexus-instance.org"
+
+
 TOKEN = "token"
 NEXUS_PROJECT_CONTEXT = {
     "base": "http://data.net",
@@ -314,19 +317,16 @@ def test_prepare_tag_uri(
 ):
 
     registered_building._store_metadata._constrainedBy = _constrainedBy
-    url, params = nexus_store.service._prepare_uri(registered_building, schema_id)
+    url, params = _prepare_uri(nexus_store.service, registered_building, schema_id)
     expected_url = expected_url_template.format(quote_plus(registered_building.id))
 
     assert params == expected_params
     assert url == expected_url
 
     tagValue = "aTag"
-    url, data, params = nexus_store.service._prepare_tag(registered_building, tagValue)
-    expected_url_tag = expected_url_tag_template.format(
-        quote_plus(registered_building.id)
-    )
-    expected_data = {"tag": tagValue, "rev": registered_building._store_metadata._rev}
-
+    url, data, params = prepare_methods._prepare_tag(nexus_store.service, registered_building, tagValue)
+    expected_url_tag = expected_url_tag_template.format(quote_plus(registered_building.id))
+    expected_data = {"tag":tagValue, "rev":registered_building._store_metadata._rev}
     assert params == expected_params
     assert data == expected_data
     assert url == expected_url_tag
