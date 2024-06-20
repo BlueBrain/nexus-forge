@@ -54,7 +54,7 @@ from kgforge.core.commons.exceptions import (
     TaggingError,
     UpdatingError,
     UploadingError,
-    SchemaUpdateError
+    SchemaUpdateError,
 )
 from kgforge.core.commons.execution import run, not_supported, catch_http_error
 from kgforge.core.commons.files import is_valid_url
@@ -63,8 +63,10 @@ from kgforge.core.wrappings.dict import DictWrapper
 from kgforge.core.wrappings.paths import Filter, create_filters_from_dict
 from kgforge.specializations.mappers.dictionaries import DictionaryMapper
 from kgforge.specializations.mappings.dictionaries import DictionaryMapping
-from kgforge.specializations.stores.nexus.batch_request_handler import BatchRequestHandler, \
-    BatchResult
+from kgforge.specializations.stores.nexus.batch_request_handler import (
+    BatchRequestHandler,
+    BatchResult,
+)
 from kgforge.specializations.stores.nexus.service import Service, _error_message
 import kgforge.specializations.stores.nexus.prepare_methods as prepare_methods
 from kgforge.specializations.stores.nexus.http_helpers import files_create
@@ -75,13 +77,16 @@ JSON_DECODER = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
 
 
 def catch_http_error_nexus(
-        r: requests.Response, e: Type[BaseException],
-        error_message_formatter: Callable = _error_message,
-        aiohttp_error=False
+    r: requests.Response,
+    e: Type[BaseException],
+    error_message_formatter: Callable = _error_message,
+    aiohttp_error=False,
 ):
     return catch_http_error(
-        r, e, error_message_formatter,
-        to_catch=requests.HTTPError if not aiohttp_error else ClientResponseError
+        r,
+        e,
+        error_message_formatter,
+        to_catch=requests.HTTPError if not aiohttp_error else ClientResponseError,
     )
 
 
@@ -137,11 +142,7 @@ class BlueBrainNexus(Store):
                     )
 
             self.service.synchronize_resource(
-                result.resource,
-                result.response,
-                fc_name,
-                succeeded,
-                succeeded,
+                result.resource, result.response, fc_name, succeeded, succeeded
             )
 
         verified = self.service.verify(
@@ -162,8 +163,8 @@ class BlueBrainNexus(Store):
         )
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
-        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_create(
-            service=self.service, resource=resource
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_create(service=self.service, resource=resource)
         )
 
         response = requests.request(
@@ -172,7 +173,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             data=json.dumps(payload, ensure_ascii=True),
             params=params,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
 
         catch_http_error_nexus(response, exception_)
@@ -230,11 +231,13 @@ class BlueBrainNexus(Store):
         try:
             headers = self.service.headers_upload
             filename = file.split("/")[-1]
-            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(os.path.getsize(file))
-            file_obj = {
-                "file": (filename, open(file, "rb"), mime_type)
-            }
-            response = requests.post(self.service.url_files, headers=headers, files=file_obj)
+            headers[self.service.NEXUS_CONTENT_LENGTH_HEADER] = str(
+                os.path.getsize(file)
+            )
+            file_obj = {"file": (filename, open(file, "rb"), mime_type)}
+            response = requests.post(
+                self.service.url_files, headers=headers, files=file_obj
+            )
             response.raise_for_status()
 
         except requests.HTTPError as e:
@@ -269,10 +272,12 @@ class BlueBrainNexus(Store):
         return id_without_query, query_params
 
     async def _retrieve_id(
-            self,
-            session,
-            id_, retrieve_source: bool, cross_bucket: bool, query_params: Dict
-
+        self,
+        session,
+        id_,
+        retrieve_source: bool,
+        cross_bucket: bool,
+        query_params: Dict,
     ):
         """
         Retrieves assuming the provided identifier really is the id
@@ -305,15 +310,14 @@ class BlueBrainNexus(Store):
         url = url_resource
 
         async with session.request(
-                method=hdrs.METH_GET,
-                url=url,
-                headers=self.service.headers,
-
+            method=hdrs.METH_GET, url=url, headers=self.service.headers
         ) as response_not_source_with_metadata:
             # turns the retrieved data into a resource
             not_source_with_metadata = await response_not_source_with_metadata.json()
 
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError, aiohttp_error=True)
+        catch_http_error_nexus(
+            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
+        )
 
         try:
             # TODO temporary
@@ -333,25 +337,20 @@ class BlueBrainNexus(Store):
         if _self:
 
             return await self._merge_metadata_with_source_data(
-                session,
-
-                _self, not_source_with_metadata, query_params
+                session, _self, not_source_with_metadata, query_params
             )
 
         raise RetrievalError("Cannot find metadata in payload")
 
-
     async def _merge_metadata_with_source_data(
-            self,
-            session,
-            _self, data_not_source_with_metadata, query_params
+        self, session, _self, data_not_source_with_metadata, query_params
     ):
 
         async with session.request(
-                method=hdrs.METH_GET,
-                url=f"{_self}/source",
-                headers=self.service.headers,
-                params=query_params
+            method=hdrs.METH_GET,
+            url=f"{_self}/source",
+            headers=self.service.headers,
+            params=query_params,
         ) as response_source:
             # turns the retrieved data into a resource
             data_source = await response_source.json()
@@ -366,9 +365,7 @@ class BlueBrainNexus(Store):
         return resource
 
     async def _retrieve_self(
-            self,
-            session,
-            self_, retrieve_source: bool, query_params: Dict
+        self, session, self_, retrieve_source: bool, query_params: Dict
     ) -> Resource:
         """
         Retrieves assuming the provided identifier is actually the resource's _self field
@@ -378,15 +375,17 @@ class BlueBrainNexus(Store):
         url = self_
 
         async with session.request(
-                method=hdrs.METH_GET,
-                url=url,
-                headers=self.service.headers,
-                params=query_params
+            method=hdrs.METH_GET,
+            url=url,
+            headers=self.service.headers,
+            params=query_params,
         ) as response_not_source_with_metadata:
             # turns the retrieved data into a resource
             not_source_with_metadata = await response_not_source_with_metadata.json()
 
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError, aiohttp_error=True)
+        catch_http_error_nexus(
+            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
+        )
 
         try:
             if not retrieve_source:
@@ -400,11 +399,7 @@ class BlueBrainNexus(Store):
         )
 
     def _retrieve_one(
-            self,
-            id_: str,
-            version: Optional[Union[int, str]],
-            cross_bucket: bool,
-            **params
+        self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ):
         loop = asyncio.get_event_loop()
 
@@ -416,26 +411,26 @@ class BlueBrainNexus(Store):
                     id_=id_,
                     version=version,
                     cross_bucket=cross_bucket,
-                    **params
+                    **params,
                 )
 
         return loop.run_until_complete(do())
 
     def _retrieve_many(
-            self,
-            ids: List[str],
-            versions: List[Optional[Union[int, str]]],
-            cross_bucket: bool,
-            **params
+        self,
+        ids: List[str],
+        versions: List[Optional[Union[int, str]]],
+        cross_bucket: bool,
+        **params,
     ) -> List[Optional[Resource]]:
 
         def create_tasks(
-                semaphore: asyncio.Semaphore,
-                session: ClientSession,
-                loop: AbstractEventLoop,
-                ids_: List[Any],
-                service,
-                **kwargs
+            semaphore: asyncio.Semaphore,
+            session: ClientSession,
+            loop: AbstractEventLoop,
+            ids_: List[Any],
+            service,
+            **kwargs,
         ) -> List[asyncio.Task]:
 
             vs = kwargs["versions"]
@@ -448,8 +443,11 @@ class BlueBrainNexus(Store):
 
                 if isinstance(result, Resource):
                     self.service.synchronize_resource(
-                        resource=result, response=None, action_name=self,
-                        succeeded=succeeded, synchronized=succeeded
+                        resource=result,
+                        response=None,
+                        action_name=self,
+                        succeeded=succeeded,
+                        synchronized=succeeded,
                     )
 
             async def do_catch(id_, version):
@@ -460,7 +458,7 @@ class BlueBrainNexus(Store):
                         service=service,
                         id_=id_,
                         version=version,
-                        **kwargs
+                        **kwargs,
                     )
                     return resource
                 except RetrievalError as e:
@@ -480,16 +478,16 @@ class BlueBrainNexus(Store):
             data=ids,
             versions=versions,
             cross_bucket=cross_bucket,
-            **params
+            **params,
         )
         return batch_results
 
     def retrieve(
-            self,
-            id_: Union[str, List[str]],
-            version: Union[Optional[Union[int, str]], List[Optional[Union[int, str]]]],
-            cross_bucket: bool = False,
-            **params
+        self,
+        id_: Union[str, List[str]],
+        version: Union[Optional[Union[int, str]], List[Optional[Union[int, str]]]],
+        cross_bucket: bool = False,
+        **params,
     ) -> Union[List[Optional[Resource]], Optional[Resource]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -507,7 +505,9 @@ class BlueBrainNexus(Store):
 
         if len(ids) == 1:
 
-            versions = [version] if isinstance(version, (str, int)) else (version or [None])
+            versions = (
+                [version] if isinstance(version, (str, int)) else (version or [None])
+            )
 
             return self._retrieve_one(ids[0], versions[0], cross_bucket, **params)
 
@@ -520,11 +520,13 @@ class BlueBrainNexus(Store):
 
     # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
     async def _retrieve(
-            self,
-            semaphore: asyncio.Semaphore,
-            session: ClientSession,
-            id_: str, version: Optional[Union[int, str]],
-            cross_bucket: bool = False, **params
+        self,
+        semaphore: asyncio.Semaphore,
+        session: ClientSession,
+        id_: str,
+        version: Optional[Union[int, str]],
+        cross_bucket: bool = False,
+        **params,
     ) -> Optional[Resource]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -561,14 +563,18 @@ class BlueBrainNexus(Store):
             try:
                 return await self._retrieve_id(
                     session=session,
-                    id_=id_without_query, retrieve_source=retrieve_source,
-                    cross_bucket=cross_bucket, query_params=query_params
+                    id_=id_without_query,
+                    retrieve_source=retrieve_source,
+                    cross_bucket=cross_bucket,
+                    query_params=query_params,
                 )
             except RetrievalError as er:
 
                 # without org and proj, vs with
                 nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
-                nexus_path = nexus_path_no_bucket if cross_bucket else self.service.url_resources
+                nexus_path = (
+                    nexus_path_no_bucket if cross_bucket else self.service.url_resources
+                )
 
                 if not id_without_query.startswith(nexus_path_no_bucket):
                     raise er
@@ -582,8 +588,9 @@ class BlueBrainNexus(Store):
                 # Try to use the id as it was given
                 return await self._retrieve_self(
                     session=session,
-                    self_=id_without_query, retrieve_source=retrieve_source,
-                    query_params=query_params
+                    self_=id_without_query,
+                    retrieve_source=retrieve_source,
+                    query_params=query_params,
                 )
 
     def _retrieve_file_metadata(self, id_: str) -> Dict:
@@ -748,14 +755,13 @@ class BlueBrainNexus(Store):
             resources=verified,
             callback=self.service.default_callback(fc_name),
             prepare_function=prepare_methods.prepare_update,
-            schema_id=schema_id
+            schema_id=schema_id,
         )
 
     def _update_one(self, resource: Resource, schema_id: str) -> None:
 
-        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update(
-            service=self.service,
-            resource=resource
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_update(service=self.service, resource=resource)
         )
 
         response = requests.request(
@@ -764,7 +770,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             data=json.dumps(payload, ensure_ascii=True),
             params=params,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
 
         catch_http_error_nexus(response, exception_)
@@ -774,8 +780,10 @@ class BlueBrainNexus(Store):
         return self.update_schema(resource, schema_id=Service.UNCONSTRAINED_SCHEMA)
 
     def _update_schema_one(self, resource: Resource, schema_id: str):
-        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_update_schema(
-            service=self.service, resource=resource, schema_id=schema_id
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_update_schema(
+                service=self.service, resource=resource, schema_id=schema_id
+            )
         )
         response = requests.request(
             method=method,
@@ -783,7 +791,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             data=json.dumps(payload, ensure_ascii=True),
             params=params,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
 
         catch_http_error_nexus(response, exception_)
@@ -851,12 +859,14 @@ class BlueBrainNexus(Store):
             resources=verified,
             prepare_function=prepare_methods.prepare_tag,
             callback=self.service.default_callback(fc_name),
-            tag=value
+            tag=value,
         )
 
     def _tag_one(self, resource: Resource, value: str) -> None:
-        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_tag(
-            service=self.service, resource=resource, tag=value
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_tag(
+                service=self.service, resource=resource, tag=value
+            )
         )
 
         response = requests.request(
@@ -865,7 +875,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             data=json.dumps(payload, ensure_ascii=True),
             params=params,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
 
         catch_http_error_nexus(response, exception_)
@@ -900,13 +910,13 @@ class BlueBrainNexus(Store):
             service=self.service,
             resources=verified,
             prepare_function=prepare_methods.prepare_deprecate,
-            callback=self.service.default_callback(fc_name)
+            callback=self.service.default_callback(fc_name),
         )
 
     def _deprecate_one(self, resource: Resource) -> None:
 
-        method, url, resource, exception_, headers, params, payload = prepare_methods.prepare_deprecate(
-            service=self.service, resource=resource
+        method, url, resource, exception_, headers, params, payload = (
+            prepare_methods.prepare_deprecate(service=self.service, resource=resource)
         )
 
         response = requests.request(
@@ -915,7 +925,7 @@ class BlueBrainNexus(Store):
             headers=headers,
             data=json.dumps(payload, ensure_ascii=True),
             params=params,
-            timeout=REQUEST_TIMEOUT
+            timeout=REQUEST_TIMEOUT,
         )
 
         catch_http_error_nexus(response, exception_)
@@ -1031,7 +1041,7 @@ class BlueBrainNexus(Store):
                 resources=resources,
                 prepare_function=prepare_methods.prepare_fetch,
                 callback=None,
-                retrieve_source=retrieve_source
+                retrieve_source=retrieve_source,
             )
             resources = []
             for result in results:
