@@ -1311,16 +1311,17 @@ class BlueBrainNexus(Store):
             **params,
         )
 
-    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+    @staticmethod
+    def rewrite_uri_static(endpoint: str, bucket: str, uri: str, context: Context, **kwargs) -> str:
         is_file = kwargs.get("is_file", True)
         encoding = kwargs.get("encoding", None)
 
         # try decoding the url first
         raw_url = unquote(uri)
         if is_file:  # for files
-            url_base = "/".join([self.endpoint, "files", self.bucket])
+            url_base = "/".join([endpoint, "files", bucket])
         else:  # for resources
-            url_base = "/".join([self.endpoint, "resources", self.bucket])
+            url_base = "/".join([endpoint, "resources", bucket])
         matches = re.match(r"[\w\.:%/-]+/(\w+):(\w+)/[\w\.-/:%]+", raw_url)
         if matches:
             groups = matches.groups()
@@ -1360,6 +1361,9 @@ class BlueBrainNexus(Store):
         else:
             uri = "/".join((url_base, quote_plus(url, encoding=encoding)))
         return uri
+
+    def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
+        return BlueBrainNexus.rewrite_uri_static(self.endpoint, self.bucket, uri, context, **kwargs)
 
     def _freeze_many(self, resources: List[Resource]) -> None:
         raise not_supported()
