@@ -216,7 +216,10 @@ class Service:
     def add_resource_id_to_endpoint(
             endpoint: str, resource_id: Optional[str]
     ):
-        return "/".join([endpoint, quote_plus(resource_id)])
+        if resource_id:
+            return "/".join([endpoint, quote_plus(resource_id)])
+        else:
+            return endpoint
 
     @staticmethod
     def add_schema_and_id_to_endpoint(
