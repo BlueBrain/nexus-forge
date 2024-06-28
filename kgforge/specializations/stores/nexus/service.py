@@ -70,7 +70,6 @@ class Service:
 
     NEXUS_CONTENT_LENGTH_HEADER = "x-nxs-file-content-length"
 
-
     def __init__(
             self,
             endpoint: str,

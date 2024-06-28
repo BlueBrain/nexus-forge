@@ -95,14 +95,10 @@ def _prepare_uri(
 ) -> Tuple[str, Dict]:
     schema_id = schema_uri or resource._store_metadata._constrainedBy
 
-
     if schema_id == service.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
         schema_id = None
 
     url = _make_url(service, schema_id, resource.id)
-    url = Service.add_schema_and_id_to_endpoint(
-        service.url_resources, schema_id, resource_id=resource.id
-    )
 
     rev = resource._store_metadata._rev
     params = {"rev": rev}

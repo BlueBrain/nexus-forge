@@ -304,6 +304,14 @@ def test_to_resource(nexus_store, registered_building, building_jsonld, store_co
             ("/".join((NEXUS, "resources", BUCKET, quote_plus("_"), "{}", "tags"))),
             id="tag-unconstrained",
         ),
+        pytest.param(
+            (Service.SHACL_SCHEMA),
+            (Service.SHACL_SCHEMA),
+            ({"rev": 1}),
+            ("/".join((NEXUS, "schemas", BUCKET, "{}"))),
+            ("/".join((NEXUS, "schemas", BUCKET, "{}", "tags"))),
+            id="tag-schema",
+        ),
     ],
 )
 def test_prepare_tag_uri(
