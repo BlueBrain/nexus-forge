@@ -18,6 +18,20 @@ prepare_return: TypeAlias = Tuple[
 #  but since the service is available, the param can be retrieved here
 
 
+def _make_url(service: Service,
+              schema_id: str,
+              identifier: str):
+    if schema_id == service.SHACL_SCHEMA:
+        url = Service.add_resource_id_to_endpoint(
+            service.url_schemas, resource_id=identifier
+        )
+    else:
+        url = Service.add_schema_and_id_to_endpoint(
+            service.url_resources, schema_id=schema_id, resource_id=identifier
+        )
+    return url
+
+
 def prepare_create(
         service: Service,
         resource: Resource,
@@ -30,9 +44,7 @@ def prepare_create(
 
     identifier = resource.get_identifier()
 
-    url = Service.add_schema_and_id_to_endpoint(
-        service.url_resources, schema_id=schema_id, resource_id=identifier
-    )
+    url = _make_url(service, schema_id, identifier)
 
     context = service.model_context or service.context
 
@@ -83,9 +95,11 @@ def _prepare_uri(
 ) -> Tuple[str, Dict]:
     schema_id = schema_uri or resource._store_metadata._constrainedBy
 
+
     if schema_id == service.UNCONSTRAINED_SCHEMA and not keep_unconstrained:
         schema_id = None
 
+    url = _make_url(service, schema_id, resource.id)
     url = Service.add_schema_and_id_to_endpoint(
         service.url_resources, schema_id, resource_id=resource.id
     )

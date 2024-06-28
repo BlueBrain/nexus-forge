@@ -63,11 +63,13 @@ class Service:
     DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
     UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
+    SHACL_SCHEMA = "https://bluebrain.github.io/nexus/schemas/shacl-20170720.ttl"
 
     SPARQL_ENDPOINT_TYPE = "sparql"
     ELASTIC_ENDPOINT_TYPE = "elastic"
 
     NEXUS_CONTENT_LENGTH_HEADER = "x-nxs-file-content-length"
+
 
     def __init__(
             self,
@@ -150,6 +152,7 @@ class Service:
         self.url_files = Service.make_endpoint(self.endpoint, "files", org, prj)
         self.url_resources = Service.make_endpoint(self.endpoint, "resources", org, prj)
         self.url_resolver = Service.make_endpoint(self.endpoint, "resolvers", org, prj)
+        self.url_schemas = Service.make_endpoint(self.endpoint, "schemas", org, prj)
 
         self.metadata_context = Context(
             recursive_resolve(
@@ -209,6 +212,12 @@ class Service:
         return "/".join(
             (endpoint, endpoint_type, quote_plus(organisation), quote_plus(project))
         )
+
+    @staticmethod
+    def add_resource_id_to_endpoint(
+            endpoint: str, resource_id: Optional[str]
+    ):
+        return "/".join([endpoint, quote_plus(resource_id)])
 
     @staticmethod
     def add_schema_and_id_to_endpoint(
