@@ -760,7 +760,7 @@ class BlueBrainNexus(Store):
     def _update_one(self, resource: Resource, schema_id: str) -> None:
 
         method, url, resource, exception_, headers, params, payload = (
-            prepare_methods.prepare_update(service=self.service, resource=resource)
+            prepare_methods.prepare_update(service=self.service, resource=resource, schema_id=schema_id)
         )
 
         response = requests.request(
