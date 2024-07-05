@@ -169,10 +169,8 @@ class SPARQLQueryBuilder(QueryBuilder):
                     value = format_type[value_type](
                         parsed_value if parsed_value else f.value
                     )
-                    if value_type is CategoryDataType.LITERAL and f.operator not in [
-                        "__eq__",
-                        "__ne__",
-                    ]:
+
+                    if value_type is CategoryDataType.LITERAL and f.operator not in ["__eq__", "__ne__"]:
                         raise NotImplementedError(
                             "supported operators are '==' and '!=' when filtering with a str."
                         )

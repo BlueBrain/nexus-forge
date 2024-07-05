@@ -113,10 +113,9 @@ def dispatch(
 
 
 def catch_http_error(
-    r: requests.Response,
-    error_to_throw: Type[BaseException],
-    error_message_formatter: Callable,
-    to_catch: Type[BaseException],
+        r: requests.Response, error_to_throw: Type[BaseException],
+        error_message_formatter: Callable,
+        to_catch: Type[BaseException]
 ):
     try:
         r.raise_for_status()
@@ -124,18 +123,19 @@ def catch_http_error(
         raise error_to_throw(error_message_formatter(e)) from e
 
 
-def run(
-    fun_one: Callable,
-    fun_many: Optional[Callable],
-    data: Union[Resource, List[Resource]],
-    exception: Type[RunException],
-    id_required: bool = False,
-    required_synchronized: Optional[bool] = None,
-    execute_actions: bool = False,
-    monitored_status: Optional[str] = None,
-    catch_exceptions: bool = True,
-    **kwargs,
+def run
+        fun_one: Callable,
+        fun_many: Optional[Callable],
+        data: Union[Resource, List[Resource]],
+        exception: Type[RunException],
+        id_required: bool = False,
+        required_synchronized: Optional[bool] = None,
+        execute_actions: bool = False,
+        monitored_status: Optional[str] = None,
+        catch_exceptions: bool = True,
+        **kwargs
 ) -> None:
+
     # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:
@@ -178,15 +178,15 @@ def _run_many(fun: Callable, resources: List[Resource], *args, **kwargs) -> None
 
 
 def _run_one(
-    fun: Callable,
-    resource: Resource,
-    exception: Type[RunException],
-    id_required: bool,
-    required_synchronized: Optional[bool],
-    execute_actions: bool,
-    monitored_status: Optional[str],
-    catch_exceptions: bool,
-    **kwargs,
+        fun: Callable,
+        resource: Resource,
+        exception: Type[RunException],
+        id_required: bool,
+        required_synchronized: Optional[bool],
+        execute_actions: bool,
+        monitored_status: Optional[str],
+        catch_exceptions: bool,
+        **kwargs
 ) -> None:
 
     try:

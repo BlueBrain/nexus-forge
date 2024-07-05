@@ -44,6 +44,7 @@ class SPARQLStore(DatasetStore):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> None:
+
     def __init__(
         self,
         model: Optional[Model] = None,
@@ -52,6 +53,7 @@ class SPARQLStore(DatasetStore):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> None:
+      
         super().__init__(model)
         self.endpoint = endpoint
         self.file_resource_mapping = file_resource_mapping
@@ -63,18 +65,12 @@ class SPARQLStore(DatasetStore):
             endpoint, searchendpoints, **store_config
         )
 
+
     @property
     def mapper(self) -> Optional[Type[Mapper]]:
         return DictionaryMapper
 
     def _download_one(
-        self,
-        url: str,
-        path: str,
-        store_metadata: Optional[DictWrapper],
-        cross_bucket: bool,
-        content_type: str,
-        bucket: str,
         self,
         url: str,
         path: str,
@@ -101,10 +97,6 @@ class SPARQLStore(DatasetStore):
         raise not_supported()
 
     def _search(
-        self,
-        *filters: Union[Dict, Filter],
-        resolvers: Optional[List[Resolver]] = None,
-        **params,
         self,
         *filters: Union[Dict, Filter],
         resolvers: Optional[List[Resolver]] = None,
@@ -137,9 +129,6 @@ class SPARQLStore(DatasetStore):
         search_endpoint = params.get(
             "search_endpoint", SPARQLService.SPARQL_ENDPOINT_TYPE
         )
-        search_endpoint = params.get(
-            "search_endpoint", SPARQLService.SPARQL_ENDPOINT_TYPE
-        )
 
         valid_endpoints = [SPARQLService.SPARQL_ENDPOINT_TYPE]
 
@@ -168,13 +157,8 @@ class SPARQLStore(DatasetStore):
             resolvers=resolvers,
             context=self.model_context(),
             filters=filters,
-            schema=None,
-            resolvers=resolvers,
-            context=self.model_context(),
-            filters=filters,
         )
         statements = ";\n ".join(query_statements)
-        _filters = (".\n".join(query_filters) + "\n") if len(filters) > 0 else ""
         _filters = (".\n".join(query_filters) + "\n") if len(filters) > 0 else ""
         _vars = ["?id"]
         query = SPARQLQueryBuilder.create_select_query(
@@ -187,9 +171,6 @@ class SPARQLStore(DatasetStore):
     def _sparql(
         self, query: str, endpoint: str
     ) -> Optional[Union[List[Resource], Resource]]:
-    def _sparql(
-        self, query: str, endpoint: str
-    ) -> Optional[Union[List[Resource], Resource]]:
         try:
             response = requests.post(
                 (
@@ -197,14 +178,8 @@ class SPARQLStore(DatasetStore):
                     if endpoint is None
                     else endpoint
                 ),
-                (
-                    self.service.sparql_endpoint["endpoint"]
-                    if endpoint is None
-                    else endpoint
-                ),
                 data=query,
                 headers=self.service.headers_sparql,
-                timeout=SPARQLStore.REQUEST_TIMEOUT,
                 timeout=SPARQLStore.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
@@ -221,7 +196,6 @@ class SPARQLStore(DatasetStore):
 
     def _initialize_service(
         self, endpoint: Optional[str], searchendpoints: Optional[Dict], **store_config
-        self, endpoint: Optional[str], searchendpoints: Optional[Dict], **store_config
     ) -> SPARQLService:
         try:
             max_connection = store_config.pop("max_connection", 50)
@@ -232,7 +206,6 @@ class SPARQLStore(DatasetStore):
             content_type = store_config.pop("Content-Type", "application/ld+json")
             accept = store_config.pop("Accept", "application/ld+json")
             params = store_config.pop("params", {})
-            store_context = store_config.pop("store_context", None)
             store_context = store_config.pop("store_context", None)
 
         except Exception as ve:

@@ -47,11 +47,8 @@ import kgforge
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.nexus.http_helpers import views_fetch
 
-from kgforge.core.conversions.rdf import (
-    _from_jsonld_one,
-    _remove_ld_keys,
-    recursive_resolve,
-)
+
+from kgforge.core.conversions.rdf import _from_jsonld_one, _remove_ld_keys, recursive_resolve
 from kgforge.core.wrappings.dict import wrap_dict
 
 
@@ -66,9 +63,7 @@ class Service:
     DEFAULT_ES_INDEX_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}defaultElasticSearchIndex"
     DEPRECATED_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}deprecated"
     PROJECT_PROPERTY_FALLBACK = f"{NEXUS_NAMESPACE_FALLBACK}project"
-    UNCONSTRAINED_SCHEMA = (
-        "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
-    )
+    UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
     SHACL_SCHEMA = "https://bluebrain.github.io/nexus/schemas/shacl-20170720.ttl"
 
     SPARQL_ENDPOINT_TYPE = "sparql"
@@ -130,9 +125,7 @@ class Service:
         self.headers = {"Content-Type": content_type, "Accept": accept}
 
         sparql_config = searchendpoints.get("sparql", None) if searchendpoints else None
-        elastic_config = (
-            searchendpoints.get("elastic", None) if searchendpoints else None
-        )
+        elastic_config = searchendpoints.get("elastic", None) if searchendpoints else None
 
         self.headers_sparql = {
             "Content-Type": (
@@ -206,15 +199,11 @@ class Service:
         )
 
         self.sparql_endpoint = {
-            "endpoint": self.make_query_endpoint_self(
-                sparql_view, Service.SPARQL_ENDPOINT_TYPE
-            )
+            "endpoint": self.make_query_endpoint_self(sparql_view, Service.SPARQL_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint = {
-            "endpoint": self.make_query_endpoint_self(
-                elastic_view, Service.ELASTIC_ENDPOINT_TYPE
-            )
+            "endpoint": self.make_query_endpoint_self(elastic_view, Service.ELASTIC_ENDPOINT_TYPE)
         }
 
         self.elastic_endpoint["view"] = LazyAction(
@@ -223,9 +212,7 @@ class Service:
             self.token,
             quote_plus(org),
             quote_plus(prj),
-            (
-                es_mapping if es_mapping else elastic_view
-            ),  # Todo consider using Dict for es_mapping
+            es_mapping if es_mapping else elastic_view,  # Todo consider using Dict for es_mapping
         )
         self.elastic_endpoint["default_str_keyword_field"] = default_str_keyword_field
 
@@ -236,16 +223,16 @@ class Service:
         except RuntimeError:
             pass
 
-    @staticmethod
-    def make_endpoint(
-        endpoint: str, endpoint_type: str, organisation: str, project: str
-    ):
+    @staticmetho
+    def make_endpoint(endpoint: str, endpoint_type: str, organisation: str, project: str):
         return "/".join(
             (endpoint, endpoint_type, quote_plus(organisation), quote_plus(project))
         )
 
     @staticmethod
-    def add_resource_id_to_endpoint(endpoint: str, resource_id: Optional[str]):
+    def add_resource_id_to_endpoint(
+            endpoint: str, resource_id: Optional[str]
+    ):
         if resource_id:
             return "/".join([endpoint, quote_plus(resource_id)])
         else:
@@ -253,7 +240,7 @@ class Service:
 
     @staticmethod
     def add_schema_and_id_to_endpoint(
-        endpoint: str, schema_id: Optional[str], resource_id: Optional[str]
+            endpoint: str, schema_id: Optional[str], resource_id: Optional[str]
     ):
         schema = quote_plus(schema_id) if schema_id else "_"
 
@@ -265,9 +252,7 @@ class Service:
         return "/".join(to_join)
 
     @staticmethod
-    def _format_version(
-        version: Any, error_to_throw: Type[RunException]
-    ) -> Optional[Dict]:
+    def _format_version(version: Any, error_to_throw: Type[RunException]) -> Optional[Dict]:
         if version is not None:
             if isinstance(version, int):
                 version_params = {"rev": version}
@@ -281,9 +266,7 @@ class Service:
         return version_params
 
     @staticmethod
-    def make_query_endpoint(
-        endpoint, view, endpoint_type, organisation, project
-    ) -> str:
+    def make_query_endpoint(endpoint, view, endpoint_type, organisation, project) -> str:
 
         if endpoint_type == Service.SPARQL_ENDPOINT_TYPE:
             last_url_component = "sparql"
@@ -298,20 +281,14 @@ class Service:
 
     def make_query_endpoint_self(self, view: str, endpoint_type: str):
         return Service.make_query_endpoint(
-            endpoint=self.endpoint,
-            view=view,
+            endpoint=self.endpoint, view=view,
             endpoint_type=endpoint_type,
             organisation=self.organisation,
-            project=self.project,
+            project=self.project
         )
 
     def get_project_context(self) -> Dict:
-        project_data = kgforge.specializations.stores.nexus.http_helpers.project_fetch(
-            endpoint=self.endpoint,
-            token=self.token,
-            org_label=self.organisation,
-            project_label=self.project,
-        )
+        project_data = kgforge.specializations.stores.nexus.http_helpers.project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
         for mapping in project_data["apiMappings"]:
             context[mapping["prefix"]] = mapping["namespace"]
@@ -327,13 +304,11 @@ class Service:
 
             url = Service.add_schema_and_id_to_endpoint(
                 endpoint=self.url_resolver,
-                schema_id=None,
-                resource_id=context_to_resolve,
+                schema_id=None
+                resource_id=context_to_resolve
             )
 
-            response = requests.get(
-                url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT
-            )
+            response = requests.get(url, headers=self.headers, timeout=Service.REQUEST_TIMEOUT)
             response.raise_for_status()
             resource = response.json()
         except Exception as exc:
@@ -382,7 +357,7 @@ class Service:
         if version_params is not None:
             query_params.update(version_params)
 
-        formatted_fragment = "#" + fragment if fragment is not None else ""
+        formatted_fragment = '#' + fragment if fragment is not None else ''
         id_without_query = f"{parsed_id.scheme}://{parsed_id.netloc}{parsed_id.path}{formatted_fragment}"
 
         return id_without_query, query_params
@@ -406,12 +381,12 @@ class Service:
         resource._store_metadata = wrap_dict(metadata)
 
     def synchronize_resource(
-        self,
-        resource: Resource,
-        response: Optional[Union[Exception, Dict]],
-        action_name: str,
-        succeeded: bool,
-        synchronized: bool,
+            self,
+            resource: Resource,
+            response: Optional[Union[Exception, Dict]],
+            action_name: str,
+            succeeded: bool,
+            synchronized: bool,
     ) -> None:
         if succeeded:
             action = Action(action_name, succeeded, None)
@@ -430,11 +405,8 @@ class Service:
             succeeded = not isinstance(result.response, Exception)
 
             self.synchronize_resource(
-                resource=result.resource,
-                response=result.response,
-                action_name=fun_name,
-                succeeded=succeeded,
-                synchronized=succeeded,
+                resource=result.resource, response=result.response, action_name=fun_name,
+                succeeded=succeeded, synchronized=succeeded
             )
 
         return callback
@@ -530,18 +502,16 @@ class Service:
         return resource
 
 
-def _error_message(
-    error: Union[requests.HTTPError, aiohttp.ClientResponseError, Dict]
-) -> str:
+def _error_message(error: Union[requests.HTTPError, aiohttp.ClientResponseError, Dict]) -> str:
     def format_message(msg: str):
-        return "".join([msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""])
+        return "".join(
+            [msg[0].lower(), msg[1:-1], msg[-1] if msg[-1] != "." else ""]
+        )
 
     try:
-        error_json = (
-            error.response.json()
-            if isinstance(error, (requests.HTTPError, aiohttp.ClientResponseError))
+        error_json = error.response.json() if \
+            isinstance(error, (requests.HTTPError, aiohttp.ClientResponseError)) \
             else error
-        )
 
         messages = []
         reason = error_json.get("reason", None)
@@ -558,11 +528,7 @@ def _error_message(
         pass
 
     try:
-        error_text = (
-            error.response.text()
-            if isinstance(error, requests.HTTPError)
-            else str(error)
-        )
+        error_text = error.response.text() if isinstance(error, requests.HTTPError) else str(error)
         return format_message(error_text)
     except Exception:
         return format_message(str(error))

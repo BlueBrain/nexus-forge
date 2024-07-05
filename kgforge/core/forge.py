@@ -246,13 +246,10 @@ class KnowledgeGraphForge:
                 # Same model, different config
                 store_model = import_class(store_model_name, "models")
                 store_config["model"] = store_model(**store_model_config)
-                store_config["model"] = store_model(**store_model_config)
             else:
                 # Same model, same config
                 store_config["model"] = self._model
-                store_config["model"] = self._model
         else:
-            raise ValueError(f"Missing model configuration for store {store_name}")
             raise ValueError(f"Missing model configuration for store {store_name}")
         store = import_class(store_name, "stores")
         self._store: Store = store(**store_config)
@@ -275,6 +272,7 @@ class KnowledgeGraphForge:
         self._dataset_sources: Optional[Dict[str, DatasetStore]] = self.create_datasets(
             dataset_config, store_config
         )
+
 
     @staticmethod
     def set_environment_variables():
@@ -499,7 +497,6 @@ class KnowledgeGraphForge:
                 limit,
                 threshold,
                 self,
-                self,
             )
         else:
             raise ResolvingError("no resolvers have been configured")
@@ -515,14 +512,7 @@ class KnowledgeGraphForge:
         uri: str = None,
         **kwargs,
     ) -> str:
-    def format(
-        self,
-        what: str = None,
-        *args,
-        formatter: Union[Formatter, str] = Formatter.STR,
-        uri: str = None,
-        **kwargs,
-    ) -> str:
+      
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
@@ -539,7 +529,6 @@ class KnowledgeGraphForge:
 
         try:
             formatter = (
-                formatter if isinstance(formatter, Formatter) else Formatter[formatter]
                 formatter if isinstance(formatter, Formatter) else Formatter[formatter]
             )
         except Exception as e:
@@ -596,7 +585,6 @@ class KnowledgeGraphForge:
             return self._model.mappings(source, pretty)
 
     @catch
-    def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
     def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
         """
         Return a Mapping object of type 'type' for a resource type 'entity' and a source.
@@ -665,7 +653,7 @@ class KnowledgeGraphForge:
         id: Union[str, List[str]],
         version: Optional[Union[int, str, List[Union[str, int]]]] = None,
         cross_bucket: bool = False,
-        **params,
+        **params
     ) -> Union[Optional[Resource], List[Optional[Resource]]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -679,9 +667,7 @@ class KnowledgeGraphForge:
         return self._store.retrieve(
             id_=id, version=version, cross_bucket=cross_bucket, **params
         )
-        return self._store.retrieve(
-            id_=id, version=version, cross_bucket=cross_bucket, **params
-        )
+
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
@@ -708,6 +694,7 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
+
         dataset = params.pop("source", None)
         if dataset:
             if dataset in self._dataset_sources:
@@ -718,6 +705,7 @@ class KnowledgeGraphForge:
                 raise AttributeError("Selected database was not declared within forge.")
         return self._store.search(resolvers, *filters, **params)
 
+
     @catch
     def sparql(
         self,
@@ -725,7 +713,6 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        **params,
         **params,
     ) -> List[Resource]:
         """
@@ -913,7 +900,6 @@ class KnowledgeGraphForge:
         form: str = Form.COMPACTED.value,
         store_metadata: bool = False,
         **params,
-        **params,
     ) -> Union[Dict, List[Dict]]:
         """
         Convert a resource or a list of resources to JSON-LD.
@@ -931,7 +917,6 @@ class KnowledgeGraphForge:
             self._model.context(),
             self._store.metadata_context,
             self._model.resolve_context,
-            **params,
             **params,
         )
 
@@ -1138,7 +1123,6 @@ def prepare_resolver(config: Dict, store_config: Dict) -> Tuple[str, Resolver]:
             store_config,
             "source",
             "name",
-            ["endpoint", "token", "bucket", "model", "searchendpoints", "vocabulary"],
             ["endpoint", "token", "bucket", "model", "searchendpoints", "vocabulary"],
         )
     resolver_name = config.pop("resolver")
