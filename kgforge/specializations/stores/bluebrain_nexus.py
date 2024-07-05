@@ -164,7 +164,9 @@ class BlueBrainNexus(Store):
 
     def _register_one(self, resource: Resource, schema_id: str) -> None:
         method, url, resource, exception_, headers, params, payload = (
-            prepare_methods.prepare_create(service=self.service, resource=resource, schema_id=schema_id)
+            prepare_methods.prepare_create(
+                service=self.service, resource=resource, schema_id=schema_id
+            )
         )
         response = requests.request(
             method=method,
@@ -760,7 +762,9 @@ class BlueBrainNexus(Store):
     def _update_one(self, resource: Resource, schema_id: str) -> None:
 
         method, url, resource, exception_, headers, params, payload = (
-            prepare_methods.prepare_update(service=self.service, resource=resource, schema_id=schema_id)
+            prepare_methods.prepare_update(
+                service=self.service, resource=resource, schema_id=schema_id
+            )
         )
 
         response = requests.request(
@@ -1311,7 +1315,9 @@ class BlueBrainNexus(Store):
         )
 
     @staticmethod
-    def rewrite_uri_static(endpoint: str, bucket: str, uri: str, context: Context, **kwargs) -> str:
+    def rewrite_uri_static(
+        endpoint: str, bucket: str, uri: str, context: Context, **kwargs
+    ) -> str:
         is_file = kwargs.get("is_file", True)
         encoding = kwargs.get("encoding", None)
 
@@ -1362,7 +1368,9 @@ class BlueBrainNexus(Store):
         return uri
 
     def rewrite_uri(self, uri: str, context: Context, **kwargs) -> str:
-        return BlueBrainNexus.rewrite_uri_static(self.endpoint, self.bucket, uri, context, **kwargs)
+        return BlueBrainNexus.rewrite_uri_static(
+            self.endpoint, self.bucket, uri, context, **kwargs
+        )
 
     def _freeze_many(self, resources: List[Resource]) -> None:
         raise not_supported()

@@ -136,7 +136,6 @@ def run(
     catch_exceptions: bool = True,
     **kwargs,
 ) -> None:
-
     # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:

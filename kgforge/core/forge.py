@@ -665,7 +665,7 @@ class KnowledgeGraphForge:
         id: Union[str, List[str]],
         version: Optional[Union[int, str, List[Union[str, int]]]] = None,
         cross_bucket: bool = False,
-        **params
+        **params,
     ) -> Union[Optional[Resource], List[Optional[Resource]]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -755,6 +755,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        source: Optional[str] = None,
         **params,
     ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         """
@@ -784,6 +785,7 @@ class KnowledgeGraphForge:
         overwrite: bool = False,
         cross_bucket: bool = False,
         content_type: str = None,
+        source: Optional[str] = None,
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
