@@ -273,7 +273,6 @@ class KnowledgeGraphForge:
             dataset_config, store_config
         )
 
-
     @staticmethod
     def set_environment_variables():
         # Set environment variable for pyshacl
@@ -512,7 +511,6 @@ class KnowledgeGraphForge:
         uri: str = None,
         **kwargs,
     ) -> str:
-      
         """
         Select a configured formatter (see https://nexus-forge.readthedocs.io/en/latest/interaction.html#formatting) string (identified by 'what') and format it using provided '*args'
         :param what: a configured str format name. Required formatter:str = Formatter.STR
@@ -653,7 +651,7 @@ class KnowledgeGraphForge:
         id: Union[str, List[str]],
         version: Optional[Union[int, str, List[Union[str, int]]]] = None,
         cross_bucket: bool = False,
-        **params
+        **params,
     ) -> Union[Optional[Resource], List[Optional[Resource]]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -667,7 +665,6 @@ class KnowledgeGraphForge:
         return self._store.retrieve(
             id_=id, version=version, cross_bucket=cross_bucket, **params
         )
-
 
     @catch
     def paths(self, type: str) -> PathsWrapper:
@@ -704,7 +701,6 @@ class KnowledgeGraphForge:
             else:
                 raise AttributeError("Selected database was not declared within forge.")
         return self._store.search(resolvers, *filters, **params)
-
 
     @catch
     def sparql(

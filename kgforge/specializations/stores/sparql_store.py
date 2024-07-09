@@ -45,15 +45,6 @@ class SPARQLStore(DatasetStore):
         **store_config,
     ) -> None:
 
-    def __init__(
-        self,
-        model: Optional[Model] = None,
-        endpoint: Optional[str] = None,
-        file_resource_mapping: Optional[str] = None,
-        searchendpoints: Optional[Dict] = None,
-        **store_config,
-    ) -> None:
-      
         super().__init__(model)
         self.endpoint = endpoint
         self.file_resource_mapping = file_resource_mapping
@@ -64,7 +55,6 @@ class SPARQLStore(DatasetStore):
         self.service = self._initialize_service(
             endpoint, searchendpoints, **store_config
         )
-
 
     @property
     def mapper(self) -> Optional[Type[Mapper]]:
