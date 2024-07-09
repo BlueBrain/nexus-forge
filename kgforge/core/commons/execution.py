@@ -15,12 +15,16 @@
 import inspect
 import traceback
 from functools import wraps
-from typing import Any, Callable, List, Optional, Tuple, Union, Type
+from typing import Any, Callable, List, Optional, Tuple, Union, Type, Dict
 import requests
 
 from kgforge.core.resource import Resource
-from kgforge.core.commons.actions import (Action, Actions, collect_lazy_actions,
-                                          execute_lazy_actions)
+from kgforge.core.commons.actions import (
+    Action,
+    Actions,
+    collect_lazy_actions,
+    execute_lazy_actions,
+)
 from kgforge.core.commons.exceptions import NotSupportedError, RunException
 
 
@@ -58,14 +62,20 @@ def catch(fun):
         if type(self).__name__ == class_name:
             forge = self
         else:
-            forge = next(x for x in self.__dict__.values() if type(x).__name__ == class_name)
+            forge = next(
+                x for x in self.__dict__.values() if type(x).__name__ == class_name
+            )
         debug = forge._debug
 
         try:
             return fun(*args, **kwargs)
         except Exception as e:
             stack = traceback.extract_stack()
-            it = (x for x in stack if x.name == "wrapper" and x.filename == stack[-1].filename)
+            it = (
+                x
+                for x in stack
+                if x.name == "wrapper" and x.filename == stack[-1].filename
+            )
             next(it)
             try:
                 next(it)
@@ -77,8 +87,7 @@ def catch(fun):
                 if called_once and not debug:
                     tb = e.__traceback__
                     fs = traceback.extract_tb(tb)[-1]
-                    print(f"<action> {fs.name}"
-                          f"\n<error> {type(e).__name__}: {e}\n")
+                    print(f"<action> {fs.name}" f"\n<error> {type(e).__name__}: {e}\n")
                     return None
 
                 raise
@@ -87,8 +96,13 @@ def catch(fun):
 
 
 # @functools.singledispatchmethod is introduced in Python 3.8.
-def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
-             fun_one: Callable, *args, **params) -> Any:
+def dispatch(
+    data: Union[Resource, List[Resource]],
+    fun_many: Callable,
+    fun_one: Callable,
+    *args,
+    **params,
+) -> Any:
     # POLICY The method calling this function should be decorated with execution.catch().
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         return fun_many(data, *args, **params)
@@ -99,9 +113,10 @@ def dispatch(data: Union[Resource, List[Resource]], fun_many: Callable,
 
 
 def catch_http_error(
-        r: requests.Response, error_to_throw: Type[BaseException],
-        error_message_formatter: Callable,
-        to_catch: Type[BaseException]
+    r: requests.Response,
+    error_to_throw: Type[BaseException],
+    error_message_formatter: Callable,
+    to_catch: Type[BaseException],
 ):
     try:
         r.raise_for_status()
@@ -110,30 +125,48 @@ def catch_http_error(
 
 
 def run(
-        fun_one: Callable,
-        fun_many: Optional[Callable],
-        data: Union[Resource, List[Resource]],
-        exception: Type[RunException],
-        id_required: bool = False,
-        required_synchronized: Optional[bool] = None,
-        execute_actions: bool = False,
-        monitored_status: Optional[str] = None,
-        catch_exceptions: bool = True,
-        **kwargs
+    fun_one: Callable,
+    fun_many: Optional[Callable],
+    data: Union[Resource, List[Resource]],
+    exception: Type[RunException],
+    id_required: bool = False,
+    required_synchronized: Optional[bool] = None,
+    execute_actions: bool = False,
+    monitored_status: Optional[str] = None,
+    catch_exceptions: bool = True,
+    **kwargs,
 ) -> None:
 
     # POLICY Should be called for operations on resources where recovering from errors is needed.
     if isinstance(data, List) and all(isinstance(x, Resource) for x in data):
         if fun_many is None:
-            _run_many(fun_one, data, exception, id_required, required_synchronized,
-                      execute_actions, monitored_status, catch_exceptions, **kwargs)
+            _run_many(
+                fun_one,
+                data,
+                exception,
+                id_required,
+                required_synchronized,
+                execute_actions,
+                monitored_status,
+                catch_exceptions,
+                **kwargs,
+            )
         else:
             fun_many(data, **kwargs)
         actions = Actions.from_resources(data)
         print(actions)
     elif isinstance(data, Resource):
-        _run_one(fun_one, data, exception, id_required, required_synchronized, execute_actions,
-                 monitored_status, catch_exceptions, **kwargs)
+        _run_one(
+            fun_one,
+            data,
+            exception,
+            id_required,
+            required_synchronized,
+            execute_actions,
+            monitored_status,
+            catch_exceptions,
+            **kwargs,
+        )
         action = data._last_action
         print(action)
     else:
@@ -146,15 +179,15 @@ def _run_many(fun: Callable, resources: List[Resource], *args, **kwargs) -> None
 
 
 def _run_one(
-        fun: Callable,
-        resource: Resource,
-        exception: Type[RunException],
-        id_required: bool,
-        required_synchronized: Optional[bool],
-        execute_actions: bool,
-        monitored_status: Optional[str],
-        catch_exceptions: bool,
-        **kwargs
+    fun: Callable,
+    resource: Resource,
+    exception: Type[RunException],
+    id_required: bool,
+    required_synchronized: Optional[bool],
+    execute_actions: bool,
+    monitored_status: Optional[str],
+    catch_exceptions: bool,
+    **kwargs,
 ) -> None:
 
     try:
@@ -162,7 +195,10 @@ def _run_one(
             raise exception("resource should have an id")
 
         synchronized = resource._synchronized
-        if required_synchronized is not None and synchronized is not required_synchronized:
+        if (
+            required_synchronized is not None
+            and synchronized is not required_synchronized
+        ):
             be_or_not_be = "be" if required_synchronized is True else "not be"
             raise exception(f"resource should {be_or_not_be} synchronized")
 
@@ -170,7 +206,9 @@ def _run_one(
         if execute_actions:
             execute_lazy_actions(resource, lazy_actions)
         elif lazy_actions:
-            raise exception("resource has lazy actions which need to be executed before")
+            raise exception(
+                "resource has lazy actions which need to be executed before"
+            )
 
         result = fun(resource, **kwargs)
     except Exception as e:

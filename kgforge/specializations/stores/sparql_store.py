@@ -44,10 +44,14 @@ class SPARQLStore(DatasetStore):
         searchendpoints: Optional[Dict] = None,
         **store_config,
     ) -> None:
+
         super().__init__(model)
         self.endpoint = endpoint
         self.file_resource_mapping = file_resource_mapping
         self.searchendpoints = searchendpoints
+        self.service = self._initialize_service(
+            endpoint, searchendpoints, **store_config
+        )
         self.service = self._initialize_service(
             endpoint, searchendpoints, **store_config
         )

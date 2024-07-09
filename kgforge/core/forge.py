@@ -24,6 +24,7 @@ from kgforge.core.resource import Resource
 from kgforge.core.archetypes.mapping import Mapping
 from kgforge.core.archetypes.model import Model
 from kgforge.core.archetypes.resolver import Resolver
+from kgforge.core.archetypes.dataset_store import DatasetStore
 from kgforge.core.archetypes.mapper import Mapper
 from kgforge.core.archetypes.store import Store
 from kgforge.core.commons.files import load_yaml_from_file
@@ -185,6 +186,13 @@ class KnowledgeGraphForge:
                  "<name>": <str>,
                  ...,
              },
+             "Datasets":{
+                 "<name>": {
+                    "origin" : <str>,
+                    "source": <str>
+                    ...,
+                }
+             }
          }
 
          In the configuration, Class name could be provided in three formats:
@@ -258,6 +266,12 @@ class KnowledgeGraphForge:
 
         # Formatters.
         self._formatters: Optional[Dict[str, str]] = config.pop("Formatters", None)
+
+        # Datasets
+        dataset_config = config.pop("Datasets", None)
+        self._dataset_sources: Optional[Dict[str, DatasetStore]] = self.create_datasets(
+            dataset_config, store_config
+        )
 
     @staticmethod
     def set_environment_variables():
@@ -562,7 +576,11 @@ class KnowledgeGraphForge:
         :param pretty: a boolean
         :return: Optional[Dict[str, List[str]]]
         """
-        return self._model.mappings(source, pretty)
+        if source in self._dataset_sources:
+            ds = self._dataset_sources[source]
+            return ds._model.mappings(ds._model.source, pretty)
+        else:
+            return self._model.mappings(source, pretty)
 
     @catch
     def mapping(self, entity: str, source: str, type: Type[Mapping] = None) -> Mapping:
@@ -576,7 +594,11 @@ class KnowledgeGraphForge:
         """
         if type is None:
             type = self._store.mapping
-        return self._model.mapping(entity, source, type)
+        if source in self._dataset_sources:
+            ds = self._dataset_sources[source]
+            return ds._model.mapping(entity, ds._model.source, type)
+        else:
+            return self._model.mapping(entity, source, type)
 
     @catch
     def map(
@@ -629,7 +651,7 @@ class KnowledgeGraphForge:
         id: Union[str, List[str]],
         version: Optional[Union[int, str, List[Union[str, int]]]] = None,
         cross_bucket: bool = False,
-        **params
+        **params,
     ) -> Union[Optional[Resource], List[Optional[Resource]]]:
         """
         Retrieve a resource by its identifier from the configured store and possibly at a given version.
@@ -669,7 +691,16 @@ class KnowledgeGraphForge:
         resolvers = (
             list(self._resolvers.values()) if self._resolvers is not None else None
         )
-        return self._store.search(resolvers=resolvers, *filters, **params)
+
+        dataset = params.pop("source", None)
+        if dataset:
+            if dataset in self._dataset_sources:
+                return self._dataset_sources[dataset].search(
+                    resolvers, *filters, **params
+                )
+            else:
+                raise AttributeError("Selected database was not declared within forge.")
+        return self._store.search(resolvers, *filters, **params)
 
     @catch
     def sparql(
@@ -690,6 +721,14 @@ class KnowledgeGraphForge:
         :param params: a dictionary of parameters. Supported params are: rewrite (whether to rewrite the sparql query or run it as is)
         :return: List[Resource]
         """
+        dataset = params.pop("source", None)
+        if dataset:
+            if dataset in self._dataset_sources:
+                return self._dataset_sources[dataset].sparql(
+                    query, debug, limit, offset, **params
+                )
+            else:
+                raise AttributeError("Selected database was not declared within forge.")
         return self._store.sparql(query, debug, limit, offset, **params)
 
     @catch
@@ -699,6 +738,7 @@ class KnowledgeGraphForge:
         debug: bool = False,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
+        source: Optional[str] = None,
         **params,
     ) -> Union[List[Resource], Resource, List[Dict], Dict]:
         """
@@ -710,6 +750,13 @@ class KnowledgeGraphForge:
         :param offset: how many results to skip from the first one
         :return: List[Resource]
         """
+        if source:
+            if source in self._dataset_sources:
+                return self._dataset_sources[source].elastic(
+                    query, debug, limit, offset
+                )
+            else:
+                raise AttributeError("Selected database was not declared within forge.")
         return self._store.elastic(query, debug, limit, offset, **params)
 
     @catch
@@ -721,6 +768,7 @@ class KnowledgeGraphForge:
         overwrite: bool = False,
         cross_bucket: bool = False,
         content_type: str = None,
+        source: Optional[str] = None,
     ) -> None:
         """
         Download files attached to a resource or a list of resources.
@@ -733,6 +781,13 @@ class KnowledgeGraphForge:
         :param content_type: the content_type of the files to download
         """
         # path: DirPath.
+        if source:
+            if source in self._dataset_sources:
+                return self._dataset_sources[source].download(
+                    data, follow, path, overwrite, cross_bucket, content_type
+                )
+            else:
+                raise AttributeError("Selected database was not declared within forge.")
         self._store.download(data, follow, path, overwrite, cross_bucket, content_type)
 
     # Storing User Interface.
@@ -977,6 +1032,75 @@ class KnowledgeGraphForge:
     def get_model_context(self):
         """Expose the context used in the model."""
         return self._model.context()
+
+    @catch
+    def dataset_sources(
+        self, type_: Optional[List[str]] = None, pretty: bool = False
+    ) -> Optional[List[str]]:
+        """
+        Print(pretty=True) or return (pretty=False) configured data sources.
+        :param pretty: a boolean
+        :return: Optional[List[str]]
+        """
+        if type_ is None:
+            sources = self._dataset_sources
+        else:
+            sources = {}
+            if isinstance(type_, list):
+                for type in type_:
+                    for ds, types in self._dataset_sources.items():
+                        try:
+                            if type in types:
+                                sources[ds] = types
+                        except ValueError:
+                            # skiping db without mappings
+                            continue
+            else:
+                for ds, dstypes in self._dataset_sources.items():
+                    try:
+                        types = dstypes.types()
+                        if type_ in types:
+                            sources[ds] = dstypes
+                    except ValueError:
+                        # skiping db without mappings
+                        continue
+            if not sources:
+                print("No Database sources were found for the given type(s)")
+        if pretty:
+            print(*["Available Database sources:", *sources], sep="\n")
+        else:
+            return sources
+
+    def add_dataset_source(self, dataset: DatasetStore) -> None:
+        """
+        Add a DatabaseSource to the KG.
+        """
+        self._dataset_sources[dataset.name] = dataset
+
+    def create_datasets(
+        self,
+        all_config: Optional[Dict[str, Dict[str, str]]],
+        store_config: Optional[Dict[str, Dict[str, str]]],
+    ) -> Dict[str, DatasetStore]:
+        ds = {}
+        for name, config in all_config.items():
+            origin = config["origin"]
+            source = config["source"]
+            # Reuse complete configuration of the store when Nexus is called
+            if source == store_config["name"] == "BlueBrainNexus":
+                store_copy = deepcopy(store_config)
+                with_defaults(
+                    config, store_copy, "source", "name", list(store_copy.keys())
+                )
+            else:
+                try:
+                    dataset = import_class(name, "stores")
+                    ds[name]: DatasetStore = dataset(**config)
+                except Exception:
+                    raise NotImplementedError(
+                        f"Dataset from {origin} is not yet implemented."
+                    )
+        return ds
 
 
 def prepare_resolvers(

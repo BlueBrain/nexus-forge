@@ -47,6 +47,7 @@ import kgforge
 from kgforge.core.wrappings.dict import wrap_dict
 from kgforge.specializations.stores.nexus.http_helpers import views_fetch
 
+
 from kgforge.core.conversions.rdf import _from_jsonld_one, _remove_ld_keys, recursive_resolve
 from kgforge.core.wrappings.dict import wrap_dict
 
@@ -71,24 +72,24 @@ class Service:
     NEXUS_CONTENT_LENGTH_HEADER = "x-nxs-file-content-length"
 
     def __init__(
-            self,
-            endpoint: str,
-            org: str,
-            prj: str,
-            token: str,
-            model_context: Context,
-            max_connection: int,
-            searchendpoints: Dict,
-            store_context: str,
-            store_local_context: str,
-            namespace: str,
-            project_property: str,
-            deprecated_property: bool,
-            content_type: str,
-            accept: str,
-            files_upload_config: Dict,
-            files_download_config: Dict,
-            **params,
+        self,
+        endpoint: str,
+        org: str,
+        prj: str,
+        token: str,
+        model_context: Context,
+        max_connection: int,
+        searchendpoints: Dict,
+        store_context: str,
+        store_local_context: str,
+        namespace: str,
+        project_property: str,
+        deprecated_property: bool,
+        content_type: str,
+        accept: str,
+        files_upload_config: Dict,
+        files_download_config: Dict,
+        **params,
     ):
         self.endpoint = endpoint
         self.organisation = org
@@ -102,8 +103,18 @@ class Service:
         self.namespace = namespace
         self.project_property = project_property
         self.store_metadata_keys = [
-            "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
-            "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+            "_constrainedBy",
+            "_createdAt",
+            "_createdBy",
+            "_deprecated",
+            "_incoming",
+            "_outgoing",
+            "_project",
+            "_rev",
+            "_schemaProject",
+            "_self",
+            "_updatedAt",
+            "_updatedBy",
         ]
 
         self.deprecated_property = deprecated_property
@@ -117,24 +128,30 @@ class Service:
         elastic_config = searchendpoints.get("elastic", None) if searchendpoints else None
 
         self.headers_sparql = {
-            "Content-Type": sparql_config["Content-Type"]
-            if sparql_config and "Content-Type" in sparql_config
-            else "text/plain",
-            "Accept": sparql_config["Accept"]
-            if sparql_config and "Accept" in sparql_config
-            else "application/sparql-results+json",
+            "Content-Type": (
+                sparql_config["Content-Type"]
+                if sparql_config and "Content-Type" in sparql_config
+                else "text/plain"
+            ),
+            "Accept": (
+                sparql_config["Accept"]
+                if sparql_config and "Accept" in sparql_config
+                else "application/sparql-results+json"
+            ),
         }
         self.headers_elastic = {
-            "Content-Type": elastic_config["Content-Type"]
-            if elastic_config and "Content-Type" in elastic_config
-            else "application/json",
-            "Accept": elastic_config["Accept"]
-            if elastic_config and "Accept" in elastic_config
-            else "application/json",
+            "Content-Type": (
+                elastic_config["Content-Type"]
+                if elastic_config and "Content-Type" in elastic_config
+                else "application/json"
+            ),
+            "Accept": (
+                elastic_config["Accept"]
+                if elastic_config and "Accept" in elastic_config
+                else "application/json"
+            ),
         }
-        self.headers_upload = {
-            "Accept": files_upload_config.pop("Accept"),
-        }
+        self.headers_upload = {"Accept": files_upload_config.pop("Accept")}
         self.headers_download = {"Accept": files_download_config.pop("Accept")}
 
         self.token = token
@@ -206,7 +223,7 @@ class Service:
         except RuntimeError:
             pass
 
-    @staticmethod
+    @staticmetho
     def make_endpoint(endpoint: str, endpoint_type: str, organisation: str, project: str):
         return "/".join(
             (endpoint, endpoint_type, quote_plus(organisation), quote_plus(project))
@@ -273,8 +290,8 @@ class Service:
     def get_project_context(self) -> Dict:
         project_data = kgforge.specializations.stores.nexus.http_helpers.project_fetch(endpoint=self.endpoint, token=self.token, org_label=self.organisation, project_label=self.project)
         context = {"@base": project_data["base"], "@vocab": project_data["vocab"]}
-        for mapping in project_data['apiMappings']:
-            context[mapping['prefix']] = mapping['namespace']
+        for mapping in project_data["apiMappings"]:
+            context[mapping["prefix"]] = mapping["namespace"]
         return context
 
     def resolve_context(self, iri: str, local_only: Optional[bool] = False) -> Dict:
@@ -287,7 +304,7 @@ class Service:
 
             url = Service.add_schema_and_id_to_endpoint(
                 endpoint=self.url_resolver,
-                schema_id=None,
+                schema_id=None
                 resource_id=context_to_resolve
             )
 
@@ -299,15 +316,19 @@ class Service:
                 try:
                     context = Context(context_to_resolve)
                 except URLError as exc2:
-                    raise ValueError(f"{context_to_resolve} is not resolvable") from exc2
+                    raise ValueError(
+                        f"{context_to_resolve} is not resolvable"
+                    ) from exc2
 
                 document = context.document["@context"]
             else:
                 raise ValueError(f"{context_to_resolve} is not resolvable") from exc
         else:
             # Make sure context is not deprecated
-            if '_deprecated' in resource and resource['_deprecated']:
-                raise ConfigurationError(f"Context {context_to_resolve} exists but was deprecated")
+            if "_deprecated" in resource and resource["_deprecated"]:
+                raise ConfigurationError(
+                    f"Context {context_to_resolve} exists but was deprecated"
+                )
             document = json.loads(json.dumps(resource["@context"]))
         if isinstance(document, list):
             if self.store_context in document:
@@ -391,13 +412,13 @@ class Service:
         return callback
 
     def verify(
-            self,
-            resources: List[Resource],
-            function_name,
-            exception: Type[Exception],
-            id_required: bool,
-            required_synchronized: bool,
-            execute_actions: bool,
+        self,
+        resources: List[Resource],
+        function_name,
+        exception: Type[Exception],
+        id_required: bool,
+        required_synchronized: bool,
+        execute_actions: bool,
     ) -> List[Resource]:
         valid = []
         for resource in resources:
@@ -428,12 +449,15 @@ class Service:
         return valid
 
     def to_resource(
-            self, payload: Dict, sync_metadata: bool = True, **kwargs
+        self, payload: Dict, sync_metadata: bool = True, **kwargs
     ) -> Resource:
         # Use JSONLD context defined in Model if no context is retrieved from payload
         # Todo: BlueBrainNexus store is not indexing in ES the JSONLD context, user provided context can be changed to Model defined one
         data_context = deepcopy(
-            payload.get("@context", self.model_context.iri if self.model_context else None))
+            payload.get(
+                "@context", self.model_context.iri if self.model_context else None
+            )
+        )
         if not isinstance(data_context, list):
             data_context = [data_context]
         if self.store_context in data_context:
@@ -450,9 +474,9 @@ class Service:
                 data[k] = v
 
         if (
-                self.model_context
-                and data_context is not None
-                and data_context == self.model_context.iri
+            self.model_context
+            and data_context is not None
+            and data_context == self.model_context.iri
         ):
             resolved_ctx = self.model_context.document["@context"]
         elif data_context is not None:
@@ -473,7 +497,7 @@ class Service:
         if len(metadata) > 0 and sync_metadata:
             metadata.update(kwargs)
             self.sync_metadata(resource, metadata)
-        if not hasattr(resource, "id") and kwargs and 'id' in kwargs.keys():
+        if not hasattr(resource, "id") and kwargs and "id" in kwargs.keys():
             resource.id = kwargs.get("id")
         return resource
 

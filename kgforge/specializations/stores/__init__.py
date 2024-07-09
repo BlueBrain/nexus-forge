@@ -14,3 +14,5 @@
 
 from .bluebrain_nexus import BlueBrainNexus
 from .demo_store import DemoStore
+from .sparql_store import SPARQLStore
+from .web_service_store import WebServiceStore
