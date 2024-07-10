@@ -63,52 +63,51 @@ ALL_COLLECTORS = [
 ALL_COLLECTORS_MAP = {c.constraint(): c for c in ALL_COLLECTORS}
 
 
-def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
-    """traverses the Shape SACL properties to collect constrained properties
-
-    This function is injected to pyshacl Shape object in order to traverse the Shacl graph.
-    It will call a specific collector depending on the SHACL property present in the NodeShape
-
-    Args:
-        predecessors: list of nodes that have being traversed, used to break circular
-            recursion
-
-    Returns:
-        properties, attributes: Tuple(list,dict), the collected properties and attributes
-            respectively gathered from the collectors
-    """
-
-    parameters = self.parameters()
-    properties = []
-    attributes = {}
-    done_collectors = set()
-    for param in iter(parameters):
-        if param in ALL_COLLECTORS_MAP:
-            constraint_collector = ALL_COLLECTORS_MAP[param]
-            if constraint_collector not in done_collectors:
-                c = constraint_collector(self)
-                predecessors.add(self.node)
-                props, attrs = c.collect(predecessors)
-                if attrs:
-                    attributes.update(attrs)
-                if props:
-                    properties.extend(props)
-                done_collectors.add(constraint_collector)
-                if predecessors:
-                    predecessors.remove(self.node)
-        else:
-            # FIXME: there are some SHACL constrains that are not implemented
-            # raise IndexError(f"{param} not implemented!")
-            pass
-
-    return properties, attributes
-
-
 class ShapeWrapper(Shape):
     __slots__ = ("__dict__",)
 
     def __init__(self, shape: Shape) -> None:
         super().__init__(shape.sg, shape.node, shape._p, shape._path, shape.logger)
+
+    def traverse(self, predecessors: Set[URIRef]) -> Tuple[List, Dict]:
+        """traverses the Shape SHACL properties to collect constrained properties
+
+        This function is injected to pyshacl Shape object in order to traverse the Shacl graph.
+        It will call a specific collector depending on the SHACL property present in the NodeShape
+
+        Args:
+            predecessors: list of nodes that have being traversed, used to break circular
+                recursion
+
+        Returns:
+            properties, attributes: Tuple(list,dict), the collected properties and attributes
+                respectively gathered from the collectors
+        """
+
+        parameters = self.parameters()
+        properties = []
+        attributes = {}
+        done_collectors = set()
+        for param in iter(parameters):
+            if param in ALL_COLLECTORS_MAP:
+                constraint_collector = ALL_COLLECTORS_MAP[param]
+                if constraint_collector not in done_collectors:
+                    c = constraint_collector(self)
+                    predecessors.add(self.node)
+                    props, attrs = c.collect(predecessors)
+                    if attrs:
+                        attributes.update(attrs)
+                    if props:
+                        properties.extend(props)
+                    done_collectors.add(constraint_collector)
+                    if predecessors:
+                        predecessors.remove(self.node)
+            else:
+                # FIXME: there are some SHACL constrains that are not implemented
+                # raise IndexError(f"{param} not implemented!")
+                pass
+
+        return properties, attributes
 
     def parameters(self):
         return (
@@ -125,7 +124,7 @@ class ShapesGraphWrapper(ShapesGraph):
         # the following line triggers the shape loading
         self._shapes = self.shapes
 
-    def lookup_shape_from_node(self, node: URIRef) -> Shape:
+    def lookup_shape_from_node(self, node: URIRef) -> Optional[ShapeWrapper]:
         """Overwrite function to inject the transverse function for only to requested nodes.
 
         Args:
@@ -138,12 +137,8 @@ class ShapesGraphWrapper(ShapesGraph):
             shape = self._node_shape_cache[node]
         except KeyError as ke:
             raise ValueError(f"Unknown shape node id '{node}': {str(ke)}") from ke
-        if shape:
-            shape_wrapper = ShapeWrapper(self._node_shape_cache[node])
-            if not hasattr(shape_wrapper, "traverse"):
-                shape_wrapper.traverse = types.MethodType(traverse, shape_wrapper)
-            return shape_wrapper
-        return shape
+
+        return ShapeWrapper(shape)
 
 
 class RdfService:
@@ -193,7 +188,8 @@ class RdfService:
         """
         raise NotImplementedError()
 
-    def validate(self, resource: Resource, type_: str, inference: str):
+    @staticmethod
+    def type_to_validate_against(resource: Resource, type_: str) -> str:
         try:
             if not resource.get_type() and not type_:
                 raise ValueError(
@@ -209,12 +205,25 @@ class RdfService:
             raise TypeError(
                 f"A single type should be provided for validation: {str(exc)}"
             ) from exc
-        shape_iri = self.get_shape_uriref_from_class_fragment(type_to_validate)
-        data_graph = as_graph(resource, False, self.context, None, None)
-        shape, shacl_graph, ont_graph = self.get_shape_graph(shape_iri)
-        conforms, report_graph, report_text = self._validate(
-            shape_iri, data_graph, shape, shacl_graph, inference, ont_graph
+
+        return type_to_validate
+
+    @staticmethod
+    def validate(
+            resource: Resource, shape: ShapeWrapper, shacl_graph: Graph, ont_graph: Graph, type_to_validate: str, inference: str, context: Context
+    ) -> Tuple[bool, Graph, str]:
+
+        data_graph = as_graph(resource, False, context, None, None)
+
+        inplace = inference and inference != "none"
+        conforms, report_graph, report_text = validate(
+            data_graph=data_graph,
+            shacl_graph=shacl_graph,
+            ont_graph=ont_graph,
+            inference=inference,
+            inplace=inplace,
         )
+
         # when no schema target was found in the data (i.e no data was selected for validation)
         # conforms is currently set to True by pyShacl. Here it is set to False so that
         # the validation fails when type_to_validate is not present in the data
@@ -244,24 +253,6 @@ class RdfService:
                 sg=shape.sg, conforms=conforms, results=[result]
             )
         return conforms, report_graph, report_text
-
-    def _validate(
-        self,
-        iri: str,
-        data_graph: Graph,
-        shape: Shape,
-        shacl_graph: Graph,
-        inference: str,
-        ont_graph: Graph = None,
-    ) -> Tuple[bool, Graph, str]:
-        inplace = inference and inference != "none"
-        return validate(
-            data_graph=data_graph,
-            shacl_graph=shacl_graph,
-            ont_graph=ont_graph,
-            inference=inference,
-            inplace=inplace,
-        )
 
     @abstractmethod
     def resolve_context(self, iri: str) -> Dict:
@@ -408,7 +399,7 @@ class RdfService:
         imported_resource_uriref,
         resource_to_named_graph_uriref,
         collect_imported_ontology: bool,
-    ):
+    ) -> Tuple[Graph, Graph]:
         imported_graph_id = resource_to_named_graph_uriref[imported_resource_uriref]
         if imported_resource_uriref not in self._imported:
             imported_resource_graph, imported_ont_graph = (
@@ -618,25 +609,28 @@ class RdfService:
                 f"Failed to import the shape '{node_shape_uriref}': {str(e)}"
             ) from e
 
-    def get_shape_graph(self, node_shape_uriref: URIRef) -> Tuple[Shape, Graph, Graph]:
+    def get_shape_graph(self, node_shape_uriref: URIRef) -> Tuple[ShapeWrapper, Graph, Graph]:
         if node_shape_uriref not in self.shape_to_defining_resource:
             raise ValueError(f"Unknown shape '{node_shape_uriref}'")
+
+        if self.shape_to_defining_resource[node_shape_uriref] not in self._imported:
+            return self._import_shape(node_shape_uriref)
+
         try:
             shape = self.get_shape_graph_wrapper().lookup_shape_from_node(
                 node_shape_uriref
             )
-        except ValueError:
-            return self._import_shape(node_shape_uriref)
-        if self.shape_to_defining_resource[node_shape_uriref] in self._imported:
-            defining_resource = self.shape_to_defining_resource[node_shape_uriref]
             shape_graph = self._dataset_graph.graph(
                 self._get_named_graph_from_shape(node_shape_uriref)
             )
-            ont_graph = self._build_imported_ontology_graph(defining_resource)
-        else:
-            return self._import_shape(node_shape_uriref)
+            ont_graph = self._build_imported_ontology_graph(
+                self.shape_to_defining_resource[node_shape_uriref]
+            )
 
-        return shape, shape_graph, ont_graph
+            return shape, shape_graph, ont_graph
+
+        except ValueError:
+            return self._import_shape(node_shape_uriref)
 
     def _build_imported_ontology_graph(self, resurce_uriref):
         ont_graph = Graph()
