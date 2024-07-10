@@ -166,7 +166,7 @@ class RdfModel(Model):
 
     def _validate_many(self, resources: List[Resource], type_: str, inference: str) -> None:
 
-        t = [self._get_shape_stuff(r, type_) for r in resources] # Cannot be parallelized because loading the same shape at the same time leads to errors
+        t = [self._get_shape_stuff(r, type_) for r in resources]  # Cannot be parallelized because loading the same shape at the same time leads to errors
 
         def fc_call(arg):
             type_to_validate, shape, shacl_graph, ont_graph, r = arg
