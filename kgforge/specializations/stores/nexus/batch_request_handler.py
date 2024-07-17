@@ -4,6 +4,8 @@ import json
 import asyncio
 
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any
+
+from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from typing_extensions import Unpack
 
 from aiohttp import ClientSession
@@ -15,6 +17,7 @@ from kgforge.specializations.stores.nexus.service import Service, _error_message
 BatchResult = namedtuple("BatchResult", ["resource", "response"])
 BatchResults = List[BatchResult]
 
+BATCH_REQUEST_TIMEOUT_PER_REQUEST = DEFAULT_REQUEST_TIMEOUT
 
 class BatchRequestHandler:
 
@@ -33,7 +36,7 @@ class BatchRequestHandler:
             semaphore = asyncio.Semaphore(service.max_connection)
             loop = asyncio.get_event_loop()
 
-            async with ClientSession() as session:
+            async with ClientSession(timeout=BATCH_REQUEST_TIMEOUT_PER_REQUEST) as session:
                 tasks = task_creator(
                     semaphore, session, loop, data, service, **kwargs
                 )
@@ -82,19 +85,25 @@ class BatchRequestHandler:
             )
 
             async with semaphore:
-                async with session.request(
-                        method=method,
-                        url=url,
-                        headers=headers,
-                        data=json.dumps(payload, ensure_ascii=True),
-                        params=params
-                ) as response:
-                    content = await response.json()
-                    if response.status < 400:
-                        return BatchResult(resource, content)
+                try:
+                    async with session.request(
+                            method=method,
+                            url=url,
+                            headers=headers,
+                            data=json.dumps(payload, ensure_ascii=True),
+                            params=params,
+                    ) as response:
+                        content = await response.json()
+                        if response.status < 400:
+                            return BatchResult(resource, content)
 
-                    error = exception(_error_message(content))
-                    return BatchResult(resource, error)
+                        error = exception(_error_message(content))
+                        return BatchResult(resource, error)
+
+                except asyncio.exceptions.TimeoutError as timeout_error:
+
+                    return BatchResult(resource, exception(str(timeout_error)))
+
 
         tasks = []
 
