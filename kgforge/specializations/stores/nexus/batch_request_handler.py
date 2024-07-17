@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Type, Any
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 from typing_extensions import Unpack
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.exceptions import RunException
@@ -36,7 +36,7 @@ class BatchRequestHandler:
             semaphore = asyncio.Semaphore(service.max_connection)
             loop = asyncio.get_event_loop()
 
-            async with ClientSession(timeout=BATCH_REQUEST_TIMEOUT_PER_REQUEST) as session:
+            async with ClientSession(timeout=ClientTimeout(total=BATCH_REQUEST_TIMEOUT_PER_REQUEST)) as session:
                 tasks = task_creator(
                     semaphore, session, loop, data, service, **kwargs
                 )
