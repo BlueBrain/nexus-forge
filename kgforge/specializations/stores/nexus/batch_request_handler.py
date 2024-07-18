@@ -19,6 +19,7 @@ BatchResults = List[BatchResult]
 
 BATCH_REQUEST_TIMEOUT_PER_REQUEST = DEFAULT_REQUEST_TIMEOUT
 
+
 class BatchRequestHandler:
 
     @staticmethod
@@ -103,7 +104,6 @@ class BatchRequestHandler:
                 except asyncio.exceptions.TimeoutError as timeout_error:
 
                     return BatchResult(resource, exception(str(timeout_error)))
-
 
         tasks = []
 
