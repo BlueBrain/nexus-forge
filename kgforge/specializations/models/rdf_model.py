@@ -13,7 +13,7 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import datetime
 import re
-from multiprocessing.pool import ThreadPool
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Any, Union, Tuple
 
@@ -175,7 +175,7 @@ class RdfModel(Model):
                 resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph, ont_graph=ont_graph, short_message=True, raise_=False
             )
 
-        ThreadPool(processes=VALIDATION_PARALLELISM).map(fc_call, t)
+        Pool(processes=VALIDATION_PARALLELISM).map(fc_call, t)
 
     def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
 
