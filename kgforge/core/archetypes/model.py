@@ -177,7 +177,7 @@ class Model(ABC):
         # Replace None by self._validate_many to switch to optimized bulk validation.
         run(
             self._validate_one,
-            None,
+            self._validate_many,
             data,
             execute_actions=execute_actions_before,
             exception=ValidationError,

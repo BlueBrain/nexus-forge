@@ -127,7 +127,9 @@ class DemoModel(Model):
     def _validate_many(
         self, resources: List[Resource], type_: str, inference: str
     ) -> None:
-        raise not_supported()
+
+        for resource in resources:
+            self._validate_one(resource, type_, inference)
 
 
 class ModelLibrary:
