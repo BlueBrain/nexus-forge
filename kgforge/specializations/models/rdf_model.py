@@ -64,7 +64,7 @@ DEFAULT_VALUE = {
 
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 
-VALIDATION_PARALLELISM = 100
+VALIDATION_PARALLELISM = None
 
 
 class RdfModel(Model):
@@ -168,8 +168,7 @@ class RdfModel(Model):
         return type_to_validate, shape, shacl_graph, ont_graph, r
 
     @staticmethod
-    def fc_call(t):
-        type_to_validate, shape, shacl_graph, ont_graph, r, inference, context = t
+    def fc_call(type_to_validate, shape, shacl_graph, ont_graph, r, inference, context):
 
         return RdfModel._validate(
             resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
@@ -183,7 +182,7 @@ class RdfModel(Model):
                 type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(r, type_)
                 yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, self.service.context
 
-        resources_2 = Pool().map(RdfModel.fc_call, validate_iterator())
+        resources_2 = Pool(processes=VALIDATION_PARALLELISM).starmap(RdfModel.fc_call, validate_iterator())
 
         for r_1, r_2 in zip(resources, resources_2):
             r_1._validated = r_2._validated
