@@ -64,7 +64,7 @@ DEFAULT_VALUE = {
 
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 
-VALIDATION_PARALLELISM = 10
+VALIDATION_PARALLELISM = 100
 
 
 class RdfModel(Model):
@@ -176,17 +176,14 @@ class RdfModel(Model):
             ont_graph=ont_graph, short_message=True, raise_=False, context=context
         )
 
-    def validate_iterator(self, resources, type_: str, inference: str, context: Context):
-        for r in resources:
-            type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(r, type_)
-            yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, context
-
     def _validate_many(self, resources: List[Resource], type_: str, inference: str) -> None:
 
-        resources_2 = Pool(processes=VALIDATION_PARALLELISM).map(
-            RdfModel.fc_call,
-            self.validate_iterator(resources, type_, inference, context=self.service.context)
-        )
+        def validate_iterator():
+            for r in resources:
+                type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(r, type_)
+                yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, self.service.context
+
+        resources_2 = Pool().map(RdfModel.fc_call, validate_iterator())
 
         for r_1, r_2 in zip(resources, resources_2):
             r_1._validated = r_2._validated
