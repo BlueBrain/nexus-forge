@@ -130,12 +130,13 @@ class RdfModel(Model):
             inference=inference,
         )
 
+    @staticmethod
     def _validate(
-            self, resource: Resource, shape: ShapeWrapper, shacl_graph: Graph, ont_graph: Graph, type_to_validate: str,
-            inference: str, short_message: bool, raise_: bool
-    ) -> None:
+            resource: Resource, shape: ShapeWrapper, shacl_graph: Graph, ont_graph: Graph, type_to_validate: str,
+            inference: str, short_message: bool, raise_: bool, context: Context
+    ) -> Resource:
 
-        conforms, graph, report = RdfService.validate(resource, shape, shacl_graph, ont_graph, type_to_validate, inference, context=self.service.context)
+        conforms, graph, report = RdfService.validate(resource, shape, shacl_graph, ont_graph, type_to_validate, inference, context=context)
 
         if not conforms:
             if not short_message:
@@ -152,10 +153,12 @@ class RdfModel(Model):
             err = None
 
         resource._validated = conforms
-        resource._last_action = Action(operation=self._validate_many.__name__, succeeded=conforms, error=err)
+        resource._last_action = Action(operation="_validate_many", succeeded=conforms, error=err)
 
         if not conforms and raise_:
             raise err
+
+        return resource
 
     def _get_shape_stuff(self, r: Resource, type_: str) -> Tuple[str, ShapeWrapper, Graph, Graph, Resource]:
         type_to_validate = RdfService.type_to_validate_against(r, type_)
@@ -164,25 +167,38 @@ class RdfModel(Model):
         )
         return type_to_validate, shape, shacl_graph, ont_graph, r
 
+    @staticmethod
+    def fc_call(t):
+        type_to_validate, shape, shacl_graph, ont_graph, r, inference, context = t
+
+        return RdfModel._validate(
+            resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
+            ont_graph=ont_graph, short_message=True, raise_=False, context=context
+        )
+
+    def validate_iterator(self, resources, type_: str, inference: str, context: Context):
+        for r in resources:
+            type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(r, type_)
+            yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, context
+
     def _validate_many(self, resources: List[Resource], type_: str, inference: str) -> None:
 
-        t = [self._get_shape_stuff(r, type_) for r in resources]  # Cannot be parallelized because loading the same shape at the same time leads to errors
+        resources_2 = Pool(processes=VALIDATION_PARALLELISM).map(
+            RdfModel.fc_call,
+            self.validate_iterator(resources, type_, inference, context=self.service.context)
+        )
 
-        def fc_call(arg):
-            type_to_validate, shape, shacl_graph, ont_graph, r = arg
-
-            return self._validate(
-                resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph, ont_graph=ont_graph, short_message=True, raise_=False
-            )
-
-        Pool(processes=VALIDATION_PARALLELISM).map(fc_call, t)
+        for r_1, r_2 in zip(resources, resources_2):
+            r_1._validated = r_2._validated
+            r_1._last_action = r_2._last_action
 
     def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
 
         type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(resource, type_)
 
-        self._validate(
-            resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph, ont_graph=ont_graph, short_message=False, raise_=True
+        RdfModel._validate(
+            resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
+            ont_graph=ont_graph, short_message=False, raise_=True, context=self.service.context
         )
 
     # Utils.

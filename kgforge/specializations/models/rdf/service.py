@@ -140,6 +140,17 @@ class ShapesGraphWrapper(ShapesGraph):
 
         return ShapeWrapper(shape)
 
+    @property
+    def shapes(self):  # pyshacl implementation returns dict_values (not list). This cannot be pickled.
+        """
+
+        :returns: [Shape]
+        :rtype: list(pyshacl.shape.Shape)
+        """
+        if len(self._node_shape_cache) < 1:
+            self._build_node_shape_cache()
+        return list(self._node_shape_cache.values())
+
 
 class RdfService:
 
