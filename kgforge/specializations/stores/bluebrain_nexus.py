@@ -288,80 +288,31 @@ class BlueBrainNexus(Store):
         url_resource = Service.add_schema_and_id_to_endpoint(
             url_base, schema_id=None, resource_id=id_
         )
-        # 4 cases depending on the value of retrieve_source and cross_bucket:
-        # retrieve_source = False and cross_bucket = True: metadata in payload
-        # retrieve_source = False and cross_bucket = False: metadata in payload
-        # retrieve_source = True and cross_bucket = False: metadata in payload with annotate = True
-        # retrieve_source = True and cross_bucket = True:
-        #   Uses the resolvers endpoint. No metadata if retrieving_source.
-        #   https://github.com/BlueBrain/nexus/issues/4717 To fetch separately.
-        #   Solution: first API call used to retrieve metadata
-        #             afterwards, second API call to retrieve data
 
-        # TODO temporary
-        # url = f"{url_resource}/source" if retrieve_source else url_resource
-        #
-        # # if cross_bucket, no support for /source and metadata.
-        # # So this will fetch the right metadata. The source data will be fetched later
-        # if cross_bucket:
-        #     url = url_resource
-
-        url = url_resource
+        url = f"{url_resource}/source" if retrieve_source else url_resource
 
         async with session.request(
-            method=hdrs.METH_GET, url=url, headers=self.service.headers
-        ) as response_not_source_with_metadata:
-            # turns the retrieved data into a resource
-            not_source_with_metadata = await response_not_source_with_metadata.json()
+            method=hdrs.METH_GET, url=url, headers=self.service.headers, params=query_params
+        ) as response:
 
-        catch_http_error_nexus(
-            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
-        )
+            catch_http_error_nexus(
+                response, RetrievalError, aiohttp_error=True
+            )
+
+            response_json = await response.json()
+
+
 
         try:
-            # TODO temporary
-            # if not (retrieve_source and cross_bucket):
-            #     return self.service.to_resource(not_source_with_metadata)
+            resource = self.service.to_resource(response_json)
+            self.service.synchronize_resource(
+                resource, None, self.retrieve.__name__, True, True
+            )
 
-            if not retrieve_source:
-                return self.service.to_resource(not_source_with_metadata)
+            return resource
 
         except Exception as e:
             raise RetrievalError(e) from e
-
-        # specific case that requires additional fetching of data with source
-        _self = not_source_with_metadata.get("_self", None)
-
-        # Retrieves the appropriate data if retrieve_source = True
-        if _self:
-
-            return await self._merge_metadata_with_source_data(
-                session, _self, not_source_with_metadata, query_params
-            )
-
-        raise RetrievalError("Cannot find metadata in payload")
-
-    async def _merge_metadata_with_source_data(
-        self, session, _self, data_not_source_with_metadata, query_params
-    ):
-
-        async with session.request(
-            method=hdrs.METH_GET,
-            url=f"{_self}/source",
-            headers=self.service.headers,
-            params=query_params,
-        ) as response_source:
-            # turns the retrieved data into a resource
-            data_source = await response_source.json()
-
-        catch_http_error_nexus(response_source, RetrievalError, aiohttp_error=True)
-
-        resource = self.service.to_resource(data_source)
-        # uses the metadata of the first call
-        self.service.synchronize_resource(
-            resource, data_not_source_with_metadata, self.retrieve.__name__, True, True
-        )
-        return resource
 
     async def _retrieve_self(
         self, session, self_, retrieve_source: bool, query_params: Dict
@@ -369,33 +320,32 @@ class BlueBrainNexus(Store):
         """
         Retrieves assuming the provided identifier is actually the resource's _self field
         """
-        # TODO temporary
-        # url = f"{self_}/source" if retrieve_source else self_
-        url = self_
+        url = f"{self_}/source" if retrieve_source else self_
 
         async with session.request(
             method=hdrs.METH_GET,
             url=url,
             headers=self.service.headers,
             params=query_params,
-        ) as response_not_source_with_metadata:
-            # turns the retrieved data into a resource
-            not_source_with_metadata = await response_not_source_with_metadata.json()
+        ) as response:
 
-        catch_http_error_nexus(
-            response_not_source_with_metadata, RetrievalError, aiohttp_error=True
-        )
+            catch_http_error_nexus(
+                response, RetrievalError, aiohttp_error=True
+            )
+
+            response_json = await response.json()
+
 
         try:
-            if not retrieve_source:
-                return self.service.to_resource(not_source_with_metadata)
+            resource = self.service.to_resource(response_json)
+            self.service.synchronize_resource(
+                resource, None, self.retrieve.__name__, True, True
+            )
+            return resource
 
         except Exception as e:
             raise RetrievalError(e) from e
 
-        return await self._merge_metadata_with_source_data(
-            session, self_, not_source_with_metadata, query_params
-        )
 
     def _retrieve_one(
         self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
@@ -555,8 +505,8 @@ class BlueBrainNexus(Store):
 
         retrieve_source = params.get("retrieve_source", True)
 
-        # if retrieve_source:
-        #     query_params.update({"annotate": True})
+        if retrieve_source:
+            query_params.update({"annotate": "true"})
 
         async with semaphore:
             try:
