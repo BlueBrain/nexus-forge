@@ -270,7 +270,32 @@ class BlueBrainNexus(Store):
 
         return id_without_query, query_params
 
-    async def _get_resource(
+    def _get_resource_sync(self, url: str, query_params: Dict) -> Resource:
+
+        response = requests.request(
+            method=hdrs.METH_GET,
+            url=url,
+            headers=self.service.headers,
+            params=query_params,
+        )
+
+        catch_http_error_nexus(
+            response, RetrievalError, aiohttp_error=True
+        )
+
+        response_json = response.json()
+
+        try:
+            resource = self.service.to_resource(response_json)
+            self.service.synchronize_resource(
+                resource, None, self.retrieve.__name__, True, True
+            )
+            return resource
+
+        except Exception as e:
+            raise RetrievalError(e) from e
+
+    async def _get_resource_async(
         self, session, url: str, query_params: Dict
     ) -> Resource:
 
@@ -300,20 +325,22 @@ class BlueBrainNexus(Store):
     def _retrieve_one(
         self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
     ):
-        loop = asyncio.get_event_loop()
 
-        async def do():
-            async with ClientSession() as session:
-                return await self._retrieve(
-                    semaphore=asyncio.Semaphore(1),
-                    session=session,
-                    id_=id_,
-                    version=version,
-                    cross_bucket=cross_bucket,
-                    **params,
-                )
+        url, query_params = self._make_get_resource_url(
+            by_id=True, id_=id_, version=version, cross_bucket=cross_bucket, **params
+        )
 
-        return loop.run_until_complete(do())
+        try:
+            resource = self._get_resource_sync(url=url, query_params=query_params)
+        except RetrievalError as er:
+
+            url, query_params = self._make_get_resource_url(
+                by_id=False, raise_=er, id_=id_, version=version, cross_bucket=cross_bucket, **params
+            )
+
+            resource = self._get_resource_sync(url=url, query_params=query_params)
+
+        return resource
 
     def _retrieve_many(
         self,
@@ -351,15 +378,32 @@ class BlueBrainNexus(Store):
 
             async def do_catch(id_, version):
                 try:
-                    resource = await self._retrieve(
-                        semaphore=semaphore,
-                        session=session,
-                        service=service,
-                        id_=id_,
-                        version=version,
-                        **kwargs,
+
+                    url, query_params = self._make_get_resource_url(
+                        by_id=True, id_=id_, version=version, cross_bucket=cross_bucket, **params
                     )
+
+                    async with semaphore:
+                        try:
+                            resource = await self._get_resource_async(
+                                session=session,
+                                url=url,
+                                query_params=query_params
+                            )
+                        except RetrievalError as er:
+
+                            url, query_params = self._make_get_resource_url(
+                                by_id=False, raise_=er, id_=id_, version=version, cross_bucket=cross_bucket, **params
+                            )
+
+                            resource = await self._get_resource_async(
+                                session=session,
+                                url=url,
+                                query_params=query_params
+                            )
+
                     return resource
+
                 except RetrievalError as e:
                     return Action(self._retrieve_many.__name__, False, e)
 
@@ -417,27 +461,15 @@ class BlueBrainNexus(Store):
 
         return self._retrieve_many(ids, versions, cross_bucket, **params)
 
-    # TODO service.to_resource probably makes requests of its own and should have a callback in prepare_done
-    async def _retrieve(
+    def _make_get_resource_url(
         self,
-        semaphore: asyncio.Semaphore,
-        session: ClientSession,
+        by_id: bool,
         id_: str,
         version: Optional[Union[int, str]],
         cross_bucket: bool = False,
+        raise_: Optional[Exception] = None,
         **params,
-    ) -> Optional[Resource]:
-        """
-        Retrieve a resource by its identifier from the configured store and possibly at a given version.
-
-        :param id_: the resource identifier to retrieve
-        :param version: a version of the resource to retrieve
-        :param cross_bucket: instructs the configured store to whether search beyond the configured bucket (True) or not (False)
-        :param params: a dictionary of parameters. Supported parameters are:
-              [retrieve_source] whether to retrieve the resource payload as registered in the last update
-              (default: True)
-        :return: Resource
-        """
+    ) -> Tuple[str, Dict]:
 
         if version is not None:
             if isinstance(version, int):
@@ -458,51 +490,37 @@ class BlueBrainNexus(Store):
         if retrieve_source:
             query_params.update({"annotate": "true"})
 
-        async with semaphore:
-            try:
+        if by_id:
+            url_base = (
+                self.service.url_resolver if cross_bucket else self.service.url_resources
+            )
 
-                url_base = (
-                    self.service.url_resolver if cross_bucket else self.service.url_resources
+            url_resource = Service.add_schema_and_id_to_endpoint(
+                url_base, schema_id=None, resource_id=id_without_query
+            )
+
+            url = f"{url_resource}/source" if retrieve_source else url_resource
+
+            return url, query_params
+        else:
+            # without org and proj, vs with
+            nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
+            nexus_path = (
+                nexus_path_no_bucket if cross_bucket else self.service.url_resources
+            )
+
+            if not id_without_query.startswith(nexus_path_no_bucket):
+                raise raise_
+
+            if not id_without_query.startswith(nexus_path):
+                raise RetrievalError(
+                    f"Provided resource identifier {id_} is not inside the current bucket, "
+                    "use cross_bucket=True to be able to retrieve it"
                 )
 
-                url_resource = Service.add_schema_and_id_to_endpoint(
-                    url_base, schema_id=None, resource_id=id_
-                )
-
-                url = f"{url_resource}/source" if retrieve_source else url_resource
-
-                return await self._get_resource(
-                    session=session,
-                    url=url,
-                    query_params=query_params,
-                )
-            except RetrievalError as er:
-
-                # without org and proj, vs with
-                nexus_path_no_bucket = f"{self.service.endpoint}/resources/"
-                nexus_path = (
-                    nexus_path_no_bucket if cross_bucket else self.service.url_resources
-                )
-
-                if not id_without_query.startswith(nexus_path_no_bucket):
-                    raise er
-
-                if not id_without_query.startswith(nexus_path):
-                    raise RetrievalError(
-                        f"Provided resource identifier {id_} is not inside the current bucket, "
-                        "use cross_bucket=True to be able to retrieve it"
-                    )
-
-                # Try to use the id as it was given
-
-                self_ = id_without_query
-                url = f"{self_}/source" if retrieve_source else self_
-
-                return await self._get_resource(
-                    session=session,
-                    url=url,
-                    query_params=query_params,
-                )
+            self_ = id_without_query
+            url = f"{self_}/source" if retrieve_source else self_
+            return url, query_params
 
     def _retrieve_file_metadata(self, id_: str) -> Dict:
         response = requests.get(
