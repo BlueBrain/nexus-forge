@@ -296,7 +296,7 @@ class BlueBrainNexus(Store):
             raise RetrievalError(e) from e
 
     async def _get_resource_async(
-        self, session, url: str, query_params: Dict
+        self, session: ClientSession, url: str, query_params: Dict
     ) -> Resource:
 
         async with session.request(

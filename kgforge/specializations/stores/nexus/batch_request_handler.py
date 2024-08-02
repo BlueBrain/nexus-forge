@@ -6,6 +6,8 @@ import asyncio
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
+
+import aiohttp
 from typing_extensions import Unpack
 
 from aiohttp import ClientSession, ClientTimeout
