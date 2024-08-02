@@ -270,57 +270,9 @@ class BlueBrainNexus(Store):
 
         return id_without_query, query_params
 
-    async def _retrieve_id(
-        self,
-        session,
-        id_,
-        retrieve_source: bool,
-        cross_bucket: bool,
-        query_params: Dict,
-    ):
-        """
-        Retrieves assuming the provided identifier really is the id
-        """
-        url_base = (
-            self.service.url_resolver if cross_bucket else self.service.url_resources
-        )
-
-        url_resource = Service.add_schema_and_id_to_endpoint(
-            url_base, schema_id=None, resource_id=id_
-        )
-
-        url = f"{url_resource}/source" if retrieve_source else url_resource
-
-        async with session.request(
-            method=hdrs.METH_GET, url=url, headers=self.service.headers, params=query_params
-        ) as response:
-
-            catch_http_error_nexus(
-                response, RetrievalError, aiohttp_error=True
-            )
-
-            response_json = await response.json()
-
-
-
-        try:
-            resource = self.service.to_resource(response_json)
-            self.service.synchronize_resource(
-                resource, None, self.retrieve.__name__, True, True
-            )
-
-            return resource
-
-        except Exception as e:
-            raise RetrievalError(e) from e
-
-    async def _retrieve_self(
-        self, session, self_, retrieve_source: bool, query_params: Dict
+    async def _get_resource(
+        self, session, url: str, query_params: Dict
     ) -> Resource:
-        """
-        Retrieves assuming the provided identifier is actually the resource's _self field
-        """
-        url = f"{self_}/source" if retrieve_source else self_
 
         async with session.request(
             method=hdrs.METH_GET,
@@ -335,7 +287,6 @@ class BlueBrainNexus(Store):
 
             response_json = await response.json()
 
-
         try:
             resource = self.service.to_resource(response_json)
             self.service.synchronize_resource(
@@ -345,7 +296,6 @@ class BlueBrainNexus(Store):
 
         except Exception as e:
             raise RetrievalError(e) from e
-
 
     def _retrieve_one(
         self, id_: str, version: Optional[Union[int, str]], cross_bucket: bool, **params
@@ -510,11 +460,20 @@ class BlueBrainNexus(Store):
 
         async with semaphore:
             try:
-                return await self._retrieve_id(
+
+                url_base = (
+                    self.service.url_resolver if cross_bucket else self.service.url_resources
+                )
+
+                url_resource = Service.add_schema_and_id_to_endpoint(
+                    url_base, schema_id=None, resource_id=id_
+                )
+
+                url = f"{url_resource}/source" if retrieve_source else url_resource
+
+                return await self._get_resource(
                     session=session,
-                    id_=id_without_query,
-                    retrieve_source=retrieve_source,
-                    cross_bucket=cross_bucket,
+                    url=url,
                     query_params=query_params,
                 )
             except RetrievalError as er:
@@ -535,10 +494,13 @@ class BlueBrainNexus(Store):
                     )
 
                 # Try to use the id as it was given
-                return await self._retrieve_self(
+
+                self_ = id_without_query
+                url = f"{self_}/source" if retrieve_source else self_
+
+                return await self._get_resource(
                     session=session,
-                    self_=id_without_query,
-                    retrieve_source=retrieve_source,
+                    url=url,
                     query_params=query_params,
                 )
 
