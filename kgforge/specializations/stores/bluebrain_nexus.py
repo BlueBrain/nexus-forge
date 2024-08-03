@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Type, Callable
 from urllib.parse import quote_plus, unquote, urlparse, parse_qs
 
+import aiohttp
 import requests
 from aiohttp import ClientSession, MultipartWriter, hdrs, ClientResponseError
 from aiohttp.hdrs import CONTENT_DISPOSITION, CONTENT_TYPE
@@ -352,7 +353,7 @@ class BlueBrainNexus(Store):
 
         def create_tasks(
             semaphore: asyncio.Semaphore,
-            session: ClientSession,
+            # session: ClientSession,
             loop: AbstractEventLoop,
             ids_: List[Any],
             service,
@@ -384,23 +385,25 @@ class BlueBrainNexus(Store):
                     )
 
                     async with semaphore:
+
                         try:
-                            resource = await self._get_resource_async(
-                                session=session,
-                                url=url,
-                                query_params=query_params
-                            )
+                            async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
+                                resource = await self._get_resource_async(
+                                    session=session,
+                                    url=url,
+                                    query_params=query_params
+                                )
                         except RetrievalError as er:
 
                             url, query_params = self._make_get_resource_url(
                                 by_id=False, raise_=er, id_=id_, version=version, cross_bucket=cross_bucket, **params
                             )
-
-                            resource = await self._get_resource_async(
-                                session=session,
-                                url=url,
-                                query_params=query_params
-                            )
+                            async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
+                                resource = await self._get_resource_async(
+                                    session=session,
+                                    url=url,
+                                    query_params=query_params
+                                )
 
                     return resource
 
