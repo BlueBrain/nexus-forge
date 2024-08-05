@@ -163,9 +163,7 @@ class StoreService(RdfService):
 
     def load_resource_graph_from_source(self, graph_id: str, schema_id: str) -> Graph:
         try:
-            schema_resource = self.context_store.retrieve(
-                schema_id, version=None, cross_bucket=False
-            )
+            schema_resource = self.context_store.retrieve_schema(schema_id)
         except RetrievalError as e:
             raise ValueError(f"Failed to retrieve {schema_id}: {str(e)}") from e
         json_dict = as_jsonld(
