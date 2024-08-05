@@ -165,7 +165,11 @@ class StoreService(RdfService):
         try:
             schema_resource = self.context_store.retrieve_schema(schema_id)
         except RetrievalError as e:
-            raise ValueError(f"Failed to retrieve {schema_id}: {str(e)}") from e
+            try:
+                schema_resource = self.context_store.retrieve(schema_id, cross_bucket=False, version=None)
+            except RetrievalError as e2:
+                raise ValueError(f"Failed to retrieve {schema_id}: {str(e2)}") from e2
+
         json_dict = as_jsonld(
             schema_resource,
             form="expanded",
