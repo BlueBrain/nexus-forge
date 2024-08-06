@@ -4,6 +4,8 @@ import json
 import asyncio
 
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any
+
+import aiohttp
 from typing_extensions import Unpack
 
 from aiohttp import ClientSession
@@ -23,7 +25,7 @@ class BatchRequestHandler:
             service: Service,
             data: List[Any],
             task_creator: Callable[
-                [asyncio.Semaphore, ClientSession, AbstractEventLoop, List[Any], Service, Unpack[Any]],
+                [asyncio.Semaphore, AbstractEventLoop, List[Any], Service, Unpack[Any]],
                 List[asyncio.Task]
             ],
             **kwargs
@@ -33,11 +35,10 @@ class BatchRequestHandler:
             semaphore = asyncio.Semaphore(service.max_connection)
             loop = asyncio.get_event_loop()
 
-            async with ClientSession() as session:
-                tasks = task_creator(
-                    semaphore, session, loop, data, service, **kwargs
-                )
-                return await asyncio.gather(*tasks)
+            tasks = task_creator(
+                semaphore, loop, data, service, **kwargs
+            )
+            return await asyncio.gather(*tasks)
 
         return asyncio.run(dispatch_action())
 
@@ -65,7 +66,7 @@ class BatchRequestHandler:
     @staticmethod
     def create_tasks_for_resources(
             semaphore: asyncio.Semaphore,
-            session: ClientSession,
+            # session: ClientSession,
             loop: AbstractEventLoop,
             resources: List[Resource],
             service,
@@ -82,19 +83,22 @@ class BatchRequestHandler:
             )
 
             async with semaphore:
-                async with session.request(
-                        method=method,
-                        url=url,
-                        headers=headers,
-                        data=json.dumps(payload, ensure_ascii=True),
-                        params=params
-                ) as response:
-                    content = await response.json()
-                    if response.status < 400:
-                        return BatchResult(resource, content)
 
-                    error = exception(_error_message(content))
-                    return BatchResult(resource, error)
+                async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
+
+                    async with session.request(
+                            method=method,
+                            url=url,
+                            headers=headers,
+                            data=json.dumps(payload, ensure_ascii=True),
+                            params=params
+                    ) as response:
+                        content = await response.json()
+                        if response.status < 400:
+                            return BatchResult(resource, content)
+
+                        error = exception(_error_message(content))
+                        return BatchResult(resource, error)
 
         tasks = []
 
