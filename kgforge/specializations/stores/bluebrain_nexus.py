@@ -281,7 +281,7 @@ class BlueBrainNexus(Store):
         )
 
         catch_http_error_nexus(
-            response, RetrievalError, aiohttp_error=True
+            response, RetrievalError, aiohttp_error=False
         )
 
         response_json = response.json()
