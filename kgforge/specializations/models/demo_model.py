@@ -99,6 +99,8 @@ class DemoModel(Model):
         if reason is not None:
             raise ValidationError(reason)
 
+    _validate_many = None
+
     # Utils.
 
     @staticmethod
@@ -123,13 +125,6 @@ class DemoModel(Model):
 
     def schema_id(self, type: str) -> str:
         raise not_supported()
-
-    def _validate_many(
-        self, resources: List[Resource], type_: str, inference: str
-    ) -> None:
-
-        for resource in resources:
-            self._validate_one(resource, type_, inference)
 
 
 class ModelLibrary:
