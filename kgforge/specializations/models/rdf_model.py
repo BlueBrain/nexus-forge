@@ -13,11 +13,12 @@
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 import datetime
 import re
+from multiprocessing import Pool
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Any, Union
+from typing import Dict, List, Callable, Optional, Any, Union, Tuple
 
 from pyshacl.consts import SH
-from rdflib import URIRef, Literal
+from rdflib import URIRef, Literal, Graph
 from rdflib.namespace import XSD
 
 from kgforge.core.archetypes.mapping import Mapping
@@ -30,7 +31,7 @@ from kgforge.core.commons.exceptions import ValidationError
 from kgforge.core.commons.execution import run, not_supported
 from kgforge.specializations.models.rdf.collectors import NodeProperties
 from kgforge.specializations.models.rdf.directory_service import DirectoryService
-from kgforge.specializations.models.rdf.service import RdfService
+from kgforge.specializations.models.rdf.service import RdfService, ShapeWrapper
 from kgforge.specializations.models.rdf.store_service import StoreService
 from kgforge.specializations.models.rdf.utils import as_term
 
@@ -62,6 +63,8 @@ DEFAULT_VALUE = {
 }
 
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
+
+VALIDATION_PARALLELISM = None
 
 
 class RdfModel(Model):
@@ -127,33 +130,72 @@ class RdfModel(Model):
             inference=inference,
         )
 
-    def _validate_many(
-        self, resources: List[Resource], type_: str, inference: str
-    ) -> None:
-        for resource in resources:
-            conforms, graph, _ = self.service.validate(
-                resource, type_=type_, inference=inference
-            )
-            if conforms:
-                resource._validated = True
-                action = Action(self._validate_many.__name__, conforms, None)
+    @staticmethod
+    def _validate(
+            resource: Resource, shape: ShapeWrapper, shacl_graph: Graph, ont_graph: Graph, type_to_validate: str,
+            inference: str, short_message: bool, raise_: bool, context: Context
+    ) -> Resource:
+
+        conforms, graph, report = RdfService.validate(resource, shape, shacl_graph, ont_graph, type_to_validate, inference, context=context)
+
+        if not conforms:
+            if not short_message:
+                message = report
             else:
-                resource._validated = False
                 violations = set(
                     " ".join(re.findall("[A-Z][^A-Z]*", as_term(o)))
                     for o in graph.objects(None, SH.sourceConstraintComponent)
                 )
                 message = f"violation(s) of type(s) {', '.join(sorted(violations))}"
-                action = Action(
-                    self._validate_many.__name__, conforms, ValidationError(message)
-                )
 
-            resource._last_action = action
+            err = ValidationError(message)
+        else:
+            err = None
+
+        resource._validated = conforms
+        resource._last_action = Action(operation="_validate_many", succeeded=conforms, error=err)
+
+        if not conforms and raise_:
+            raise err
+
+        return resource
+
+    def _prepare_shapes(self, r: Resource, type_: str) -> Tuple[str, ShapeWrapper, Graph, Graph, Resource]:
+        type_to_validate = RdfService.type_to_validate_against(r, type_)
+        shape, shacl_graph, ont_graph = self.service.get_shape_graph(
+            node_shape_uriref=self.service.get_shape_uriref_from_class_fragment(type_to_validate)
+        )
+        return type_to_validate, shape, shacl_graph, ont_graph, r
+
+    @staticmethod
+    def fc_call(type_to_validate, shape, shacl_graph, ont_graph, r, inference, context):
+
+        return RdfModel._validate(
+            resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
+            ont_graph=ont_graph, short_message=True, raise_=False, context=context
+        )
+
+    def _validate_many(self, resources: List[Resource], type_: str, inference: str) -> None:
+
+        def validate_iterator():
+            for r in resources:
+                type_to_validate, shape, shacl_graph, ont_graph, r = self._prepare_shapes(r, type_)
+                yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, self.service.context
+
+        resources_2 = Pool(processes=VALIDATION_PARALLELISM).starmap(RdfModel.fc_call, validate_iterator())
+
+        for r_1, r_2 in zip(resources, resources_2):
+            r_1._validated = r_2._validated
+            r_1._last_action = r_2._last_action
 
     def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
-        conforms, _, report = self.service.validate(resource, type_, inference)
-        if conforms is False:
-            raise ValidationError("\n" + report)
+
+        type_to_validate, shape, shacl_graph, ont_graph, r = self._prepare_shapes(resource, type_)
+
+        RdfModel._validate(
+            resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
+            ont_graph=ont_graph, short_message=False, raise_=True, context=self.service.context
+        )
 
     # Utils.
 

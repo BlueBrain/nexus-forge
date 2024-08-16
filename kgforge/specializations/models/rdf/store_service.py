@@ -70,7 +70,7 @@ class StoreService(RdfService):
     def generate_context(self) -> Dict:
         for shape_uriref, schema_uriref in self.shape_to_defining_resource.items():
             if schema_uriref not in self._imported:
-                self._transitive_load_shape_graph(
+                self._transitive_load_resource_graph(
                     self._get_named_graph_from_shape(shape_uriref), schema_uriref
                 )
         # reloads the shapes graph
