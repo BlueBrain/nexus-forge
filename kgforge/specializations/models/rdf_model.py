@@ -160,7 +160,7 @@ class RdfModel(Model):
 
         return resource
 
-    def _get_shape_stuff(self, r: Resource, type_: str) -> Tuple[str, ShapeWrapper, Graph, Graph, Resource]:
+    def _prepare_shapes(self, r: Resource, type_: str) -> Tuple[str, ShapeWrapper, Graph, Graph, Resource]:
         type_to_validate = RdfService.type_to_validate_against(r, type_)
         shape, shacl_graph, ont_graph = self.service.get_shape_graph(
             node_shape_uriref=self.service.get_shape_uriref_from_class_fragment(type_to_validate)
@@ -179,7 +179,7 @@ class RdfModel(Model):
 
         def validate_iterator():
             for r in resources:
-                type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(r, type_)
+                type_to_validate, shape, shacl_graph, ont_graph, r = self._prepare_shapes(r, type_)
                 yield type_to_validate, shape, shacl_graph, ont_graph, r, inference, self.service.context
 
         resources_2 = Pool(processes=VALIDATION_PARALLELISM).starmap(RdfModel.fc_call, validate_iterator())
@@ -190,7 +190,7 @@ class RdfModel(Model):
 
     def _validate_one(self, resource: Resource, type_: str, inference: str) -> None:
 
-        type_to_validate, shape, shacl_graph, ont_graph, r = self._get_shape_stuff(resource, type_)
+        type_to_validate, shape, shacl_graph, ont_graph, r = self._prepare_shapes(resource, type_)
 
         RdfModel._validate(
             resource=r, type_to_validate=type_to_validate, inference=inference, shape=shape, shacl_graph=shacl_graph,
