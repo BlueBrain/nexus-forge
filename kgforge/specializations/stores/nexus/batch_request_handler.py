@@ -3,7 +3,7 @@ from collections import namedtuple
 import json
 import asyncio
 
-from typing import Callable, Dict, List, Optional, Tuple, Type, Any
+from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Coroutine
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 
@@ -23,6 +23,14 @@ BATCH_REQUEST_TIMEOUT_PER_REQUEST = DEFAULT_REQUEST_TIMEOUT
 
 
 class BatchRequestHandler:
+    BATCH_SIZE = 80
+
+    @staticmethod
+    def batch(iterable, n=BATCH_SIZE):
+
+        l = len(iterable)
+        for ndx in range(0, l, n):
+            yield iterable[ndx:min(ndx + n, l)]
 
     @staticmethod
     def batch_request(
@@ -30,7 +38,7 @@ class BatchRequestHandler:
             data: List[Any],
             task_creator: Callable[
                 [asyncio.Semaphore, AbstractEventLoop, List[Any], Service, Unpack[Any]],
-                List[asyncio.Task]
+                Coroutine[Any, Any, Tuple[List[asyncio.Task], List[ClientSession]]]
             ],
             **kwargs
     ):
@@ -39,12 +47,22 @@ class BatchRequestHandler:
             semaphore = asyncio.Semaphore(service.max_connection)
             loop = asyncio.get_event_loop()
 
-            tasks = task_creator(
+            tasks, sessions = await task_creator(
                 semaphore, loop, data, service, **kwargs
             )
-            return await asyncio.gather(*tasks)
+            res = await asyncio.gather(*tasks)
 
-        return asyncio.run(dispatch_action())
+            return res, sessions
+
+        res, sessions = asyncio.run(dispatch_action())
+
+        async def close_sessions(sesss):
+            for sess in sesss:
+                await sess.close()
+
+        asyncio.run(close_sessions(sessions))
+        return res
+
 
     @staticmethod
     def batch_request_on_resources(
@@ -68,19 +86,18 @@ class BatchRequestHandler:
         )
 
     @staticmethod
-    def create_tasks_for_resources(
+    async def create_tasks_for_resources(
             semaphore: asyncio.Semaphore,
-            session: ClientSession,
             loop: AbstractEventLoop,
             resources: List[Resource],
             service,
             **kwargs
-    ) -> List[asyncio.Task]:
+    ) -> Tuple[List[asyncio.Task], List[ClientSession]]:
 
         prepare_function = kwargs["prepare_function"]
         callback = kwargs["callback"]
 
-        async def request(resource: Optional[Resource]) -> BatchResult:
+        async def request(resource: Optional[Resource], client_session: ClientSession) -> BatchResult:
 
             method, url, resource, exception, headers, params, payload = prepare_function(
                 service, resource, **kwargs
@@ -88,9 +105,8 @@ class BatchRequestHandler:
 
             async with semaphore:
 
-                async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
-
-                    async with session.request(
+                try:
+                    async with client_session.request(
                             method=method,
                             url=url,
                             headers=headers,
@@ -104,15 +120,24 @@ class BatchRequestHandler:
                         error = exception(_error_message(content))
                         return BatchResult(resource, error)
 
+                except Exception as e:
+                    return BatchResult(resource, exception(str(e)))
+
         tasks = []
+        sessions = []
 
-        for res in resources:
+        for batch_i in BatchRequestHandler.batch(resources):
 
-            prepared_request: asyncio.Task = loop.create_task(request(res))
+            session = ClientSession()
+            sessions.append(session)
 
-            if callback:
-                prepared_request.add_done_callback(callback)
+            for res in batch_i:
 
-            tasks.append(prepared_request)
+                prepared_request: asyncio.Task = loop.create_task(request(res, client_session=session))
 
-        return tasks
+                if callback:
+                    prepared_request.add_done_callback(callback)
+
+                tasks.append(prepared_request)
+
+        return tasks, sessions

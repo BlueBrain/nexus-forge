@@ -349,35 +349,31 @@ class BlueBrainNexus(Store):
         versions: List[Optional[Union[int, str]]],
         cross_bucket: bool,
         **params,
-    ) -> List[Optional[Resource]]:
+    ) -> List[Union[Resource, Action]]:
 
-        def create_tasks(
+        def retrieve_done_callback(task: Task):
+            result = task.result()
+
+            succeeded = not isinstance(result, Action)
+
+            if isinstance(result, Resource):
+                self.service.synchronize_resource(
+                    resource=result,
+                    response=None,
+                    action_name=self,
+                    succeeded=succeeded,
+                    synchronized=succeeded,
+                )
+
+        async def create_tasks(
             semaphore: asyncio.Semaphore,
-            # session: ClientSession,
             loop: AbstractEventLoop,
             ids_: List[Any],
             service,
             **kwargs,
-        ) -> List[asyncio.Task]:
+        ) -> Tuple[List[asyncio.Task], List[ClientSession]]:
 
-            vs = kwargs["versions"]
-            tasks = []
-
-            def retrieve_done_callback(task: Task):
-                result = task.result()
-
-                succeeded = not isinstance(result, Action)
-
-                if isinstance(result, Resource):
-                    self.service.synchronize_resource(
-                        resource=result,
-                        response=None,
-                        action_name=self,
-                        succeeded=succeeded,
-                        synchronized=succeeded,
-                    )
-
-            async def do_catch(id_, version):
+            async def do_catch(id_, version, session) -> Union[Resource, Action]:
                 try:
 
                     url, query_params = self._make_get_resource_url(
@@ -387,36 +383,43 @@ class BlueBrainNexus(Store):
                     async with semaphore:
 
                         try:
-                            async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
-                                resource = await self._get_resource_async(
-                                    session=session,
-                                    url=url,
-                                    query_params=query_params
-                                )
+                            resource = await self._get_resource_async(
+                                session=session,
+                                url=url,
+                                query_params=query_params
+                            )
                         except RetrievalError as er:
 
                             url, query_params = self._make_get_resource_url(
                                 by_id=False, raise_=er, id_=id_, version=version, cross_bucket=cross_bucket, **params
                             )
-                            async with ClientSession(connector=aiohttp.TCPConnector(force_close=True)) as session:
-                                resource = await self._get_resource_async(
-                                    session=session,
-                                    url=url,
-                                    query_params=query_params
-                                )
+                            resource = await self._get_resource_async(
+                                session=session,
+                                url=url,
+                                query_params=query_params
+                            )
 
                     return resource
 
                 except RetrievalError as e:
                     return Action(self._retrieve_many.__name__, False, e)
 
-            for id_, version in zip(ids_, vs):
-                batch_result = do_catch(id_, version)
-                prepared_request: asyncio.Task = loop.create_task(batch_result)
-                prepared_request.add_done_callback(retrieve_done_callback)
-                tasks.append(prepared_request)
+            vs = kwargs["versions"]
+            tasks = []
+            sessions = []
+            for batch_i in BatchRequestHandler.batch(list(zip(ids_, vs))):
 
-            return tasks
+                session = ClientSession()
+                sessions.append(session)
+
+                for id_, version in batch_i:
+                    batch_result = do_catch(id_, version, session)
+                    prepared_request: asyncio.Task = loop.create_task(batch_result)
+
+                    prepared_request.add_done_callback(retrieve_done_callback)
+                    tasks.append(prepared_request)
+
+            return tasks, sessions
 
         batch_results = BatchRequestHandler.batch_request(
             service=self.service,
