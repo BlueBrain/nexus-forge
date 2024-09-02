@@ -2,6 +2,8 @@ from asyncio import AbstractEventLoop
 from collections import namedtuple
 import json
 import asyncio
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Coroutine
 
@@ -43,26 +45,25 @@ class BatchRequestHandler:
             **kwargs
     ):
 
+        loop = asyncio.get_event_loop()
+
         async def dispatch_action():
             semaphore = asyncio.Semaphore(service.max_connection)
-            loop = asyncio.get_event_loop()
 
             tasks, sessions = await task_creator(
                 semaphore, loop, data, service, **kwargs
             )
-            res = await asyncio.gather(*tasks)
 
-            return res, sessions
-
-        res, sessions = asyncio.run(dispatch_action())
+            return await asyncio.gather(*tasks), sessions
 
         async def close_sessions(sesss):
             for sess in sesss:
                 await sess.close()
 
-        asyncio.run(close_sessions(sessions))
+        res, sessions = asyncio.run(dispatch_action())
+        closing_task = loop.create_task(close_sessions(sessions))
+        asyncio.run(closing_task)
         return res
-
 
     @staticmethod
     def batch_request_on_resources(
@@ -76,68 +77,77 @@ class BatchRequestHandler:
             **kwargs
     ) -> BatchResults:
 
+        async def create_tasks_for_resources(
+                semaphore: asyncio.Semaphore,
+                loop: AbstractEventLoop,
+                resources: List[Resource],
+                service,
+                **kwargs
+        ) -> Tuple[List[asyncio.Task], List[ClientSession]]:
+
+            prepare_function = kwargs["prepare_function"]
+            callback = kwargs["callback"]
+
+            async def request(resource: Optional[Resource], client_session: ClientSession) -> BatchResult:
+
+                method, url, resource, exception, headers, params, payload = prepare_function(
+                    service, resource, **kwargs
+                )
+
+                async with semaphore:
+
+                    try:
+                        async with client_session.request(
+                                method=method,
+                                url=url,
+                                headers=headers,
+                                data=json.dumps(payload, ensure_ascii=True),
+                                params=params
+                        ) as response:
+                            content = await response.json()
+                            if response.status < 400:
+                                return BatchResult(resource, content)
+
+                            error = exception(_error_message(content))
+                            return BatchResult(resource, error)
+
+                    except Exception as e:
+                        return BatchResult(resource, exception(str(e)))
+
+            return BatchRequestHandler.create_tasks_and_sessions(
+                loop, resources, request, callback
+            )
+
         return BatchRequestHandler.batch_request(
             service=service,
             data=resources,
-            task_creator=BatchRequestHandler.create_tasks_for_resources,
+            task_creator=create_tasks_for_resources,
             prepare_function=prepare_function,
             callback=callback,
             **kwargs
         )
 
     @staticmethod
-    async def create_tasks_for_resources(
-            semaphore: asyncio.Semaphore,
-            loop: AbstractEventLoop,
-            resources: List[Resource],
-            service,
-            **kwargs
-    ) -> Tuple[List[asyncio.Task], List[ClientSession]]:
-
-        prepare_function = kwargs["prepare_function"]
-        callback = kwargs["callback"]
-
-        async def request(resource: Optional[Resource], client_session: ClientSession) -> BatchResult:
-
-            method, url, resource, exception, headers, params, payload = prepare_function(
-                service, resource, **kwargs
-            )
-
-            async with semaphore:
-
-                try:
-                    async with client_session.request(
-                            method=method,
-                            url=url,
-                            headers=headers,
-                            data=json.dumps(payload, ensure_ascii=True),
-                            params=params
-                    ) as response:
-                        content = await response.json()
-                        if response.status < 400:
-                            return BatchResult(resource, content)
-
-                        error = exception(_error_message(content))
-                        return BatchResult(resource, error)
-
-                except Exception as e:
-                    return BatchResult(resource, exception(str(e)))
+    def create_tasks_and_sessions(loop, elements, fc, callback=None):
 
         tasks = []
         sessions = []
 
-        for batch_i in BatchRequestHandler.batch(resources):
+        for batch_i in BatchRequestHandler.batch(elements):
 
             session = ClientSession()
             sessions.append(session)
 
             for res in batch_i:
+                # result = fc(res, client_session=session)
+                # prepared_request: asyncio.Task = loop.create_task(result)
 
-                prepared_request: asyncio.Task = loop.create_task(request(res, client_session=session))
+                with ThreadPoolExecutor() as executor:
+                    prepared_request: asyncio.Task = loop.run_in_executor(executor, fc, res, session)
+                    if callback:
+                        prepared_request.add_done_callback(callback)
 
-                if callback:
-                    prepared_request.add_done_callback(callback)
-
-                tasks.append(prepared_request)
+                    tasks.append(prepared_request)
 
         return tasks, sessions
+
