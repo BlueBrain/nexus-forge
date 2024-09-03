@@ -135,7 +135,7 @@ class BatchRequestHandler:
 
         for batch_i in BatchRequestHandler.batch(elements):
 
-            session = ClientSession()
+            session = ClientSession(timeout=ClientTimeout(BATCH_REQUEST_TIMEOUT_PER_REQUEST))
             sessions.append(session)
 
             for res in batch_i:
