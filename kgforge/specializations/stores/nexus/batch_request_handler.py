@@ -3,8 +3,9 @@ from collections import namedtuple
 import json
 import asyncio
 
-from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Coroutine
+from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Coroutine, Union
 
+from kgforge.core.commons.actions import Action
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 
 from typing_extensions import Unpack
@@ -70,7 +71,7 @@ class BatchRequestHandler:
                 ['Service', Resource, Dict, Unpack[Any]],
                 Tuple[str, str, Resource, Type[RunException], Dict, Optional[Dict], Optional[Dict]]
             ],
-            callback: Callable,
+            callback: Optional[Callable] = None,
             **kwargs
     ) -> BatchResults:
 
@@ -125,7 +126,12 @@ class BatchRequestHandler:
         )
 
     @staticmethod
-    def create_tasks_and_sessions(loop, elements, fc, callback=None):
+    def create_tasks_and_sessions(
+            loop: AbstractEventLoop,
+            elements: List[Union[str, Resource]],
+            fc: Callable[[Union[str, Resource], ClientSession], Coroutine[Any, Any, Union[Resource, Action, BatchResult]]],
+            callback: Optional[Callable]
+    ) -> Tuple[List[asyncio.Task], List[ClientSession]]:
 
         tasks = []
         sessions = []
@@ -136,8 +142,7 @@ class BatchRequestHandler:
             sessions.append(session)
 
             for res in batch_i:
-                result = fc(res, client_session=session)
-                prepared_request: asyncio.Task = loop.create_task(result)
+                prepared_request: asyncio.Task = loop.create_task(fc(res, session))
 
                 if callback:
                     prepared_request.add_done_callback(callback)
