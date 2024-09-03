@@ -2,14 +2,11 @@ from asyncio import AbstractEventLoop
 from collections import namedtuple
 import json
 import asyncio
-import concurrent.futures
-from concurrent.futures import ThreadPoolExecutor
 
 from typing import Callable, Dict, List, Optional, Tuple, Type, Any, Coroutine
 
 from kgforge.core.commons.constants import DEFAULT_REQUEST_TIMEOUT
 
-import aiohttp
 from typing_extensions import Unpack
 
 from aiohttp import ClientSession, ClientTimeout
@@ -139,15 +136,13 @@ class BatchRequestHandler:
             sessions.append(session)
 
             for res in batch_i:
-                # result = fc(res, client_session=session)
-                # prepared_request: asyncio.Task = loop.create_task(result)
+                result = fc(res, client_session=session)
+                prepared_request: asyncio.Task = loop.create_task(result)
 
-                with ThreadPoolExecutor() as executor:
-                    prepared_request: asyncio.Task = loop.run_in_executor(executor, fc, res, session)
-                    if callback:
-                        prepared_request.add_done_callback(callback)
+                if callback:
+                    prepared_request.add_done_callback(callback)
 
-                    tasks.append(prepared_request)
+                tasks.append(prepared_request)
 
         return tasks, sessions
 
