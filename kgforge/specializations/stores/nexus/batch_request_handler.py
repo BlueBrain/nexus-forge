@@ -28,9 +28,9 @@ class BatchRequestHandler:
     @staticmethod
     def batch(iterable, n=BATCH_SIZE):
 
-        l = len(iterable)
-        for ndx in range(0, l, n):
-            yield iterable[ndx:min(ndx + n, l)]
+        length_v = len(iterable)
+        for ndx in range(0, length_v, n):
+            yield iterable[ndx:min(ndx + n, length_v)]
 
     @staticmethod
     def batch_request(
@@ -150,4 +150,3 @@ class BatchRequestHandler:
                 tasks.append(prepared_request)
 
         return tasks, sessions
-
