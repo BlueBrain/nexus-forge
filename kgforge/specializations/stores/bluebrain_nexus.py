@@ -309,7 +309,7 @@ class BlueBrainNexus(Store):
         url = url_resource
 
         async with session.request(
-            method=hdrs.METH_GET, url=url, headers=self.service.headers
+            method=hdrs.METH_GET, url=url, headers=self.service.headers, params=query_params
         ) as response_not_source_with_metadata:
             # turns the retrieved data into a resource
             not_source_with_metadata = await response_not_source_with_metadata.json()
