@@ -63,7 +63,7 @@ class ReadOnlyStore(ABC):
 
     def get_context_prefix_vocab(self) -> Tuple[Optional[Dict], Optional[Dict], Optional[str]]:
         return (
-            ReadOnlyStore._context_to_dict(self.model_context().document),
+            ReadOnlyStore._context_to_dict(self.model_context()),
             self.model_context().prefixes,
             self.model_context().vocab
         )
@@ -259,7 +259,6 @@ class ReadOnlyStore(ABC):
     def _initialize_service(
             self,
             endpoint: Optional[str],
-            bucket: Optional[str],
             token: Optional[str],
             searchendpoints: Optional[Dict] = None,
             **store_config,

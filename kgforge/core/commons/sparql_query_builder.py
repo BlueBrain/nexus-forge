@@ -28,7 +28,7 @@ from kgforge.core.conversions.rdf import from_jsonld
 from kgforge.core.archetypes.resolver import Resolver
 from kgforge.core.commons.context import Context
 from kgforge.core.commons.files import is_valid_url
-from kgforge.core.commons.parser import _parse_type
+from kgforge.core.commons.parser import _parse_type, _process_types
 from kgforge.core.commons.query_builder import QueryBuilder
 from kgforge.core.wrappings.paths import Filter
 
@@ -169,6 +169,7 @@ class SPARQLQueryBuilder(QueryBuilder):
                     value = format_type[value_type](
                         parsed_value if parsed_value else f.value
                     )
+
                     if value_type is CategoryDataType.LITERAL and f.operator not in ["__eq__", "__ne__"]:
                         raise NotImplementedError(
                             "supported operators are '==' and '!=' when filtering with a str."
