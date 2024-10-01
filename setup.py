@@ -50,7 +50,7 @@ setup(
         "pyparsing>=2.0.2",
         "owlrl>=5.2.3",
         "elasticsearch_dsl==7.4.0",
-        "requests==2.31.0",
+        "requests==2.32.0",
         "typing-extensions"
     ],
     extras_require={
