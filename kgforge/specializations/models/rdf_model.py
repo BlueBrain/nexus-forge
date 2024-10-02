@@ -64,7 +64,7 @@ DEFAULT_VALUE = {
 
 DEFAULT_TYPE_ORDER = [str, float, int, bool, datetime.date, datetime.time]
 
-VALIDATION_PARALLELISM = None
+VALIDATION_PARALLELISM = 10
 
 
 class RdfModel(Model):
