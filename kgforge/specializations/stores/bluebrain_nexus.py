@@ -431,35 +431,6 @@ class BlueBrainNexus(Store):
         )
         return batch_results
 
-    def retrieve_schema(self, id_: bool) -> Resource:
-
-        url = self.service.add_resource_id_to_endpoint(endpoint=self.service.url_schemas, resource_id=id_)
-
-        response_not_source_with_metadata = requests.request(method=hdrs.METH_GET, url=url, headers=self.service.headers)
-
-        not_source_with_metadata = response_not_source_with_metadata.json()
-
-        catch_http_error_nexus(response_not_source_with_metadata, RetrievalError)
-
-        _self = not_source_with_metadata.get("_self", None)
-
-        if not _self:
-            raise RetrievalError("Cannot find metadata in payload")
-
-        response_source = requests.request(method=hdrs.METH_GET, url=f"{_self}/source", headers=self.service.headers)
-
-        data_source = response_source.json()
-
-        catch_http_error_nexus(response_source, RetrievalError)
-
-        # turns the retrieved data into a resource
-        resource = self.service.to_resource(data_source)
-
-        # uses the metadata of the first call
-        self.service.synchronize_resource(resource, not_source_with_metadata, self.retrieve_schema.__name__, True, True)
-
-        return resource
-
     def retrieve(
         self,
         id_: Union[str, List[str]],
