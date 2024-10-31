@@ -114,10 +114,7 @@ def collect_values_jp(data: Resource, follow: str,
                       constraint_dict: Optional[Dict] = None) -> List[str]:
     try:
         properties = follow.split('.')
-        if len(properties) == 0:
-            pattern = f"$.{pattern}"
-        else:
-            pattern = f"$." + "[*].".join(properties)
+        pattern = f"$." + "[*].".join(properties)
         jp_query = jp.parse(pattern)
         data = as_json(data, False, False, None, None, None)
         results = jp_query.find(data)
