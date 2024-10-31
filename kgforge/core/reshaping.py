@@ -114,12 +114,12 @@ def collect_values_jp(data: Resource, follow: str,
                       constraint_dict: Optional[Dict] = None) -> List[str]:
     try:
         properties = follow.split('.')
-        pattern = f"$." + "[*].".join(properties)
+        pattern = "$." + "[*].".join(properties)
         jp_query = jp.parse(pattern)
         data = as_json(data, False, False, None, None, None)
         results = jp_query.find(data)
         if len(results) == 0:
-            raise exception(f"Path not found")
+            raise exception(f"Path {follow} not found")
         if constraint_dict:
             if len(constraint_dict) != 1:
                 raise NotImplementedError("Only one constraint can be impossed at the moment")
