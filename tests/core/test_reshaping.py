@@ -16,7 +16,7 @@
 import pytest
 from kgforge.core.resource import Resource
 from kgforge.core.forge import KnowledgeGraphForge
-from kgforge.core.reshaping import collect_values, Reshaper
+from kgforge.core.reshaping import collect_values, collect_values_jp, Reshaper
 
 
 def test_collect_values():
@@ -41,6 +41,32 @@ def test_collect_values():
         collect_values(data_set, "fake.path")
     with pytest.raises(ValueError):
         collect_values(None, "hasPart.url",ValueError)
+
+
+def test_collect_values_jasonpath():
+    simple = Resource(type="Experiment", url="file.gz")
+    r = collect_values_jp(simple, "url")
+    assert simple.url in r, "url should be in the list"
+    deep = Resource(type="Experiment", level1=Resource(level2=Resource(url="file.gz")))
+    r = collect_values_jp(deep, "level1.level2.url")
+    assert deep.level1.level2.url in r, "url should be in the list"
+    files = [Resource(type="Experiment", url=f"file{i}") for i in range(3)]
+    files.append(Resource(type="Experiment", contentUrl=f"file3"))
+    data_set = Resource(type="Dataset", hasPart=files)
+    r = collect_values_jp(data_set, "hasPart.contentUrl")
+    assert ["file3"] == r, "one element should be in the list"
+    r = collect_values_jp(data_set, "hasPart.url")
+    assert ["file0", "file1", "file2"] == r, "three elements should be in the list"
+    files = [Resource(type="Experiment", url=f"file{i}", encodingFormat=f"application/{ext}") for i, ext in enumerate(['csv', 'swc'])] 
+    data_set = Resource(type="Dataset", hasPart=files)
+    r = collect_values_jp(data_set, "hasPart.url", constraint_dict={'encodingFormat': 'application/swc'})
+    assert ["file1"] == r, "only the file with encodingFormat `application/swc` must be returned"
+    with pytest.raises(Exception):
+        collect_values_jp(data_set, "hasPart.url", constraint_dict={'encodingFormat': 'application/swc', 'contentUrl': 'something'})
+    with pytest.raises(Exception):
+        collect_values_jp(data_set, "fake.path")
+    with pytest.raises(ValueError):
+        collect_values_jp(None, "hasPart.url", ValueError)
 
 
 def test_reshape(config):

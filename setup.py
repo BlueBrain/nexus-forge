@@ -51,7 +51,8 @@ setup(
         "owlrl>=5.2.3",
         "elasticsearch_dsl==7.4.0",
         "requests==2.32.0",
-        "typing-extensions"
+        "typing-extensions",
+        "jsonpath-ng"
     ],
     extras_require={
         "dev": [

@@ -26,7 +26,7 @@ from kgforge.core.commons.exceptions import (
 )
 from kgforge.core.commons.execution import not_supported
 from kgforge.core.commons.sparql_query_builder import SPARQLQueryBuilder
-from kgforge.core.reshaping import collect_values
+from kgforge.core.reshaping import collect_values, collect_values_jp
 from kgforge.core.wrappings import Filter
 from kgforge.core.wrappings.dict import DictWrapper
 
@@ -107,9 +107,13 @@ class ReadOnlyStore(ABC):
         # path: DirPath.
         urls = []
         store_metadata = []
+        constraint_dict = None
+        if content_type:
+            constraint_dict = {'encodingFormat': content_type}
         to_download = [data] if isinstance(data, Resource) else data
         for d in to_download:
-            collected_values = collect_values(d, follow, DownloadingError)
+            # collected_values = collect_values(d, follow, DownloadingError)
+            collected_values = collect_values_jp(d, follow, DownloadingError, constraint_dict)
             urls.extend(collected_values)
             store_metadata.extend(
                 [d._store_metadata for _ in range(len(collected_values))]
