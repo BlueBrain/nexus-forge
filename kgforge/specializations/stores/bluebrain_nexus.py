@@ -601,8 +601,6 @@ class BlueBrainNexus(Store):
         params_download = copy.deepcopy(self.service.params.get("download", {}))
         headers = (
             self.service.headers_download
-            if not content_type
-            else update_dict(self.service.headers_download, {"Accept": content_type})
         )
 
         response = requests.get(
