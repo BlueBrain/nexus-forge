@@ -12,7 +12,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Blue Brain Nexus Forge. If not, see <https://choosealicense.com/licenses/lgpl-3.0/>.
 
-from typing import Dict, Iterator, List, Union, Type
+from typing import Dict, Iterator, List, Union, Type, Optional
+import jsonpath_ng as jp
 
 from kgforge.core.resource import Resource
 from kgforge.core.commons.attributes import repr_class
@@ -102,6 +103,34 @@ def collect_values(data: Union[Resource, List[Resource]], follow: str,
         jsoned = as_json(reshaped, False, False, None, None, None)
         prepared = jsoned if isinstance(jsoned, List) else [jsoned]
         return list(_collect(prepared))
+    except Exception as e:
+        raise exception(
+            f"An error occur when collecting values for path to follow '{follow}': {str(e)}"
+        ) from e
+
+
+def collect_values_jp(data: Resource, follow: str,
+                      exception: Type[Exception] = Exception,
+                      constraint_dict: Optional[Dict] = None) -> List[str]:
+    try:
+        properties = follow.split('.')
+        if len(properties) == 0:
+            pattern = f"$.{pattern}"
+        else:
+            pattern = f"$." + "[*].".join(properties)
+        jp_query = jp.parse(pattern)
+        data = as_json(data, False, False, None, None, None)
+        results = jp_query.find(data)
+        if len(results) == 0:
+            raise exception(f"Path not found")
+        if constraint_dict:
+            if len(constraint_dict) != 1:
+                raise NotImplementedError("Only one constraint can be impossed at the moment")
+            [(k, v)] = list(constraint_dict.items())
+            return [result.value for result in results if result.context.value[k] == v]
+        else:
+            return [result.value for result in results]
+
     except Exception as e:
         raise exception(
             f"An error occur when collecting values for path to follow '{follow}': {str(e)}"
