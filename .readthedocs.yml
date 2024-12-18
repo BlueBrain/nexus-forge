@@ -7,6 +7,7 @@ version: 2
 
 sphinx:
   fail_on_warning: true
+  configuration: docs/source/conf.py
 
 build:
   os: ubuntu-22.04
